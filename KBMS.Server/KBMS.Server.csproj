@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\KBMS.Models\KBMS.Models.csproj" />
+    <ProjectReference Include="..\KBMS.Storage\KBMS.Storage.csproj" />
+    <ProjectReference Include="..\KBMS.Network\KBMS.Network.csproj" />
+    <ProjectReference Include="..\KBMS.Knowledge\KBMS.Knowledge.csproj" />
+    <ProjectReference Include="..\KBMS.Reasoning\KBMS.Reasoning.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

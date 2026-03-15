@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet:*)",
+      "Bash(find . -name *.csproj -path *Reasoning*)",
+      "Bash(pkill:*)"
+    ]
+  }
+}
