@@ -92,6 +92,8 @@ public class Lexer
         { "COMPUTATION", TokenType.COMPUTATION },
         { "FORMULA", TokenType.FORMULA },
         { "COST", TokenType.COST },
+        { "EQUATION", TokenType.EQUATION },
+        { "EQUATIONS", TokenType.EQUATIONS },
 
         // Rule Keywords
         { "TYPE", TokenType.TYPE },

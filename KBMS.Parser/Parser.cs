@@ -151,70 +151,68 @@ public class Parser
             Column = token.Column
         };
 
-        // Parse VARIABLES clause
-        if (Check(TokenType.VARIABLES))
+        while (!IsAtEnd())
         {
-            Consume(TokenType.VARIABLES);
-            if (!Check(TokenType.LPAREN))
-                throw new ParserException("Expected '(' after VARIABLES");
-            Consume(TokenType.LPAREN);
-            while (!Check(TokenType.RPAREN))
+            var nextType = Peek()?.Type;
+            if (nextType == TokenType.VARIABLES)
             {
-                var varNode = ParseVariableDefinition();
-                node.Variables.Add(varNode);
-                if (!Check(TokenType.RPAREN))
-                    Consume(TokenType.COMMA);
+                Consume(TokenType.VARIABLES);
+                if (!Check(TokenType.LPAREN))
+                    throw new ParserException("Expected '(' after VARIABLES");
+                Consume(TokenType.LPAREN);
+                while (!Check(TokenType.RPAREN))
+                {
+                    var varNode = ParseVariableDefinition();
+                    node.Variables.Add(varNode);
+                    if (!Check(TokenType.RPAREN))
+                        Consume(TokenType.COMMA);
+                }
+                Consume(TokenType.RPAREN);
             }
-            Consume(TokenType.RPAREN);
-        }
-
-        // Parse ALIASES clause
-        if (Check(TokenType.ALIASES))
-        {
-            Consume(TokenType.ALIASES);
-            node.Aliases = ParseIdentifierList();
-        }
-
-        // Parse BASE_OBJECTS clause
-        if (Check(TokenType.BASE_OBJECTS))
-        {
-            Consume(TokenType.BASE_OBJECTS);
-            node.BaseObjects = ParseIdentifierList();
-        }
-
-        // Parse CONSTRAINTS clause
-        if (Check(TokenType.CONSTRAINTS))
-        {
-            Consume(TokenType.CONSTRAINTS);
-            node.Constraints = ParseConstraintList();
-        }
-
-        // Parse SAME_VARIABLES clause
-        if (Check(TokenType.SAME_VARIABLES))
-        {
-            Consume(TokenType.SAME_VARIABLES);
-            node.SameVariables = ParseSameVariablesList();
-        }
-
-        // Parse CONSTRUCT_RELATIONS clause
-        if (Check(TokenType.CONSTRUCT_RELATIONS))
-        {
-            Consume(TokenType.CONSTRUCT_RELATIONS);
-            node.ConstructRelations = ParseConstructRelationList();
-        }
-
-        // Parse PROPERTIES clause
-        if (Check(TokenType.PROPERTIES))
-        {
-            Consume(TokenType.PROPERTIES);
-            node.Properties = ParsePropertyList();
-        }
-
-        // Parse RULES clause
-        if (Check(TokenType.RULES))
-        {
-            Consume(TokenType.RULES);
-            node.ConceptRules = ParseConceptRuleList();
+            else if (nextType == TokenType.ALIASES)
+            {
+                Consume(TokenType.ALIASES);
+                node.Aliases = ParseIdentifierList();
+            }
+            else if (nextType == TokenType.BASE_OBJECTS)
+            {
+                Consume(TokenType.BASE_OBJECTS);
+                node.BaseObjects = ParseIdentifierList();
+            }
+            else if (nextType == TokenType.CONSTRAINTS)
+            {
+                Consume(TokenType.CONSTRAINTS);
+                node.Constraints = ParseConstraintList();
+            }
+            else if (nextType == TokenType.SAME_VARIABLES)
+            {
+                Consume(TokenType.SAME_VARIABLES);
+                node.SameVariables = ParseSameVariablesList();
+            }
+            else if (nextType == TokenType.CONSTRUCT_RELATIONS)
+            {
+                Consume(TokenType.CONSTRUCT_RELATIONS);
+                node.ConstructRelations = ParseConstructRelationList();
+            }
+            else if (nextType == TokenType.PROPERTIES)
+            {
+                Consume(TokenType.PROPERTIES);
+                node.Properties = ParsePropertyList();
+            }
+            else if (nextType == TokenType.RULES)
+            {
+                Consume(TokenType.RULES);
+                node.ConceptRules = ParseConceptRuleList();
+            }
+            else if (nextType == TokenType.EQUATIONS)
+            {
+                Consume(TokenType.EQUATIONS);
+                node.Equations = ParseEquationList();
+            }
+            else
+            {
+                break;
+            }
         }
 
         return node;
@@ -1377,7 +1375,7 @@ public class Parser
             Consume(TokenType.GIVEN);
             while (!Check(TokenType.FIND) && !Check(TokenType.SEMICOLON) && !IsAtEnd())
             {
-                var keyToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected variable name");
+                var keyToken = ConsumeIdentifier() ?? throw new ParserException("Expected variable name");
                 Consume(TokenType.EQUALS);
                 var valueToken = Peek() ?? throw new ParserException("Expected value");
                 string value;
@@ -1414,7 +1412,7 @@ public class Parser
         Consume(TokenType.FIND);
         while (!Check(TokenType.SAVE) && !Check(TokenType.SEMICOLON) && !IsAtEnd())
         {
-            var findToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected variable to find");
+            var findToken = ConsumeIdentifier() ?? throw new ParserException("Expected variable to find");
             node.FindVariables.Add(findToken.Lexeme);
 
             if (Check(TokenType.COMMA))
@@ -1913,7 +1911,9 @@ public class Parser
     {
         var list = new List<ConceptRuleDef>();
 
-        while (!IsAtEnd() && !IsClauseKeyword(Peek()?.Type))
+        // Rules start with TYPE or IF — we must NOT use IsClauseKeyword as boundary
+        // since TYPE, IF, THEN are both clause keywords and rule-internal tokens
+        while (!IsAtEnd() && (Check(TokenType.TYPE) || Check(TokenType.IF)))
         {
             var rule = new ConceptRuleDef();
             
@@ -1956,6 +1956,18 @@ public class Parser
                 break;
         }
 
+        return list;
+    }
+
+    private List<EquationDef> ParseEquationList()
+    {
+        var list = new List<EquationDef>();
+        while (!IsAtEnd() && !IsClauseKeyword(Peek()?.Type))
+        {
+            list.Add(new EquationDef { Expression = ParseExpressionString() });
+            if (Check(TokenType.COMMA)) Consume(TokenType.COMMA);
+            else break;
+        }
         return list;
     }
 
@@ -2198,6 +2210,8 @@ public class Parser
                type == TokenType.PROPERTIES ||
                type == TokenType.FORMULA ||
                type == TokenType.COST ||
+               type == TokenType.EQUATION ||
+               type == TokenType.EQUATIONS ||
                type == TokenType.TYPE ||
                type == TokenType.SCOPE ||
                type == TokenType.IF ||
@@ -2228,5 +2242,27 @@ public class Parser
         if (value is decimal dec) return (double)dec;
         if (double.TryParse(value.ToString(), out var result)) return result;
         return null;
+    }
+    private Token? ConsumeIdentifier()
+    {
+        var token = Peek();
+        if (token == null) return null;
+
+        if (token.Type == TokenType.IDENTIFIER || IsSoftKeyword(token.Type))
+        {
+            return Advance();
+        }
+        return null;
+    }
+
+    private bool IsSoftKeyword(TokenType type)
+    {
+        return type == TokenType.DESCRIPTION || 
+               type == TokenType.DESC || 
+               type == TokenType.ASC || 
+               type == TokenType.TYPE || 
+               type == TokenType.COST || 
+               type == TokenType.DATE ||
+               type == TokenType.TIMESTAMP;
     }
 }

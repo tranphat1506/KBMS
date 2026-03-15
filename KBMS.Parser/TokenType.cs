@@ -89,6 +89,8 @@ public enum TokenType
     COMPUTATION,    // COMPUTATION
     FORMULA,        // FORMULA
     COST,           // COST
+    EQUATION,       // EQUATION
+    EQUATIONS,      // EQUATIONS
 
     // Keywords - Rule
     TYPE,           // TYPE

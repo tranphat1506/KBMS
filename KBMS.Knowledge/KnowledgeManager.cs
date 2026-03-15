@@ -245,7 +245,16 @@ public class KnowledgeManager
 
                 if (referencedConcept != null && referencedConcept.Variables.Count > 0)
                 {
-                    // Expand: p1: Point → p1.x: DECIMAL, p1.y: DECIMAL, etc.
+                    // Keep the original variable (e.g., p1: Point) so InferenceEngine knows to recurse
+                    expandedVariables.Add(new Variable
+                    {
+                        Name = v.Name,
+                        Type = v.Type,
+                        Length = v.Length,
+                        Scale = v.Scale
+                    });
+
+                    // Also expand: p1.x, p1.y, etc. for backward compatibility and direct property access
                     foreach (var subVar in referencedConcept.Variables)
                     {
                         expandedVariables.Add(new Variable
@@ -301,6 +310,12 @@ public class KnowledgeManager
                 Variables = r.Variables.Select(v => new Variable { Name = v.Name, Type = v.Type, Length = v.Length, Scale = v.Scale }).ToList(),
                 Hypothesis = r.Hypothesis,
                 Conclusion = r.Conclusion
+            }).ToList(),
+            Equations = node.Equations.Select(e => new Equation
+            {
+                Id = Guid.NewGuid(),
+                Expression = e.Expression,
+                Variables = ExtractVariablesFromExpression(e.Expression)
             }).ToList()
         };
 
@@ -308,6 +323,25 @@ public class KnowledgeManager
         return created != null
             ? new { success = true, message = $"Concept '{node.ConceptName}' created successfully." }
             : new { error = $"Concept '{node.ConceptName}' already exists." };
+    }
+
+    private List<string> ExtractVariablesFromExpression(string expression)
+    {
+        // Regex to find alphanumeric identifiers (including dots for nested properties)
+        var regex = new System.Text.RegularExpressions.Regex(@"\b[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*\b");
+        var matches = regex.Matches(expression);
+        var vars = new HashSet<string>();
+        var knownFuncs = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Sqrt", "Sin", "Cos", "Tan", "Log", "Exp", "Pow", "Abs", "Min", "Max" };
+
+        foreach (System.Text.RegularExpressions.Match match in matches)
+        {
+            var val = match.Value;
+            if (!knownFuncs.Contains(val) && !double.TryParse(val, out _))
+            {
+                vars.Add(val);
+            }
+        }
+        return vars.ToList();
     }
 
     private object HandleDropConcept(DropConceptNode node, string kbName)
@@ -985,6 +1019,7 @@ public class KnowledgeManager
 
         // Initialize engine and solve
         var engine = new KBMS.Reasoning.InferenceEngine();
+        engine.ConceptResolver = (name) => _storage.LoadConcept(kbName, name);
         var result = engine.FindClosure(concept, initialFacts, node.FindVariables);
 
         if (result.Success && node.SaveResults)

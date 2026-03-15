@@ -15,6 +15,14 @@ public class Concept
     public List<ConstructRelation> ConstructRelations { get; set; } = new();
     public List<Property> Properties { get; set; } = new();
     public List<ConceptRule> ConceptRules { get; set; } = new();
+    public List<Equation> Equations { get; set; } = new();
+}
+
+public class Equation
+{
+    public Guid Id { get; set; }
+    public string Expression { get; set; } = string.Empty;
+    public List<string> Variables { get; set; } = new();
 }
 
 public class Variable

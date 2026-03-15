@@ -91,6 +91,19 @@ public class CreateConceptNode : DdlNode
     /// List of local rules
     /// </summary>
     public List<ConceptRuleDef> ConceptRules { get; set; } = new();
+
+    /// <summary>
+    /// List of equations
+    /// </summary>
+    public List<EquationDef> Equations { get; set; } = new();
+}
+
+/// <summary>
+/// Definition for an equation bound to a concept
+/// </summary>
+public class EquationDef
+{
+    public string Expression { get; set; } = string.Empty;
 }
 
 /// <summary>
