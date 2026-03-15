@@ -109,6 +109,8 @@ public enum TokenType
     FOR,            // FOR
     GIVEN,          // GIVEN
     USING,          // USING
+    FIND,           // FIND
+    SAVE,           // SAVE
 
     // Keywords - Aggregation
     COUNT,          // COUNT

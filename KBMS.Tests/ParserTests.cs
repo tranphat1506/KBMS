@@ -519,16 +519,17 @@ public class ParserTests
     [Fact]
     public void Parser_Solve_ShouldParseCorrectly()
     {
-        var node = ParseStatement("SOLVE Triangle FOR area GIVEN a = 3, b = 4");
+        var node = ParseStatement("SOLVE ON CONCEPT Triangle GIVEN a = 3, b = 4 FIND area SAVE");
 
         Assert.NotNull(node);
-        Assert.IsType<SolveNode>(node);
+        Assert.IsType<KBMS.Parser.Ast.Dml.SolveNode>(node);
 
-        var solveNode = (SolveNode)node;
+        var solveNode = (KBMS.Parser.Ast.Dml.SolveNode)node;
         Assert.Equal("SOLVE", solveNode.Type);
         Assert.Equal("Triangle", solveNode.ConceptName);
-        Assert.Equal("area", solveNode.FindVariable);
-        Assert.Equal(2, solveNode.Known.Count);
+        Assert.Equal("area", solveNode.FindVariables[0]);
+        Assert.Equal(2, solveNode.GivenFacts.Count);
+        Assert.True(solveNode.SaveResults);
     }
 
     // ==================== SHOW Tests ====================
@@ -631,5 +632,22 @@ public class ParserTests
 
         Assert.Equal("kb1", kb1.KbName);
         Assert.Equal("kb2", kb2.KbName);
+    }
+
+    [Fact]
+    // Temporary test to evaluate NCalc property handling
+    public void Parser_NCalcTest()
+    {
+        // 1. Array-like bracket syntax mapping to flat dictionary keys
+        var e1 = new NCalc.Expression("Sqrt([p1.x] * [p1.y])");
+        e1.Parameters["p1.x"] = 4.0;
+        e1.Parameters["p1.y"] = 9.0;
+        Assert.Equal(6.0, e1.Evaluate());
+        
+        // 2. See if NCalc parses dot correctly if passed as flat object without brackets
+        var e2 = new NCalc.Expression("Sqrt(p1.x * p1.y)");
+        e2.Parameters["p1.x"] = 4.0;
+        e2.Parameters["p1.y"] = 9.0;
+        Assert.Equal(6.0, e2.Evaluate());
     }
 }

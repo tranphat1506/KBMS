@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using KBMS.Models;
 using KBMS.Parser.Ast;
+using KBMS.Parser.Ast.Dml;
 using KBMS.Storage;
 
 namespace KBMS.Knowledge;
@@ -913,13 +914,52 @@ public class KnowledgeManager
 
     private object HandleSolve(SolveNode node, string kbName)
     {
-        // SOLVE requires Reasoning Engine - not yet implemented
-        // Return placeholder response
-        return new
+        var kb = _storage.LoadKb(kbName);
+        if (kb == null)
+            return new { error = $"Knowledge base '{kbName}' not found." };
+
+        var concept = _storage.LoadConcept(kbName, node.ConceptName);
+        if (concept == null)
+            return new { error = $"Concept '{node.ConceptName}' does not exist." };
+
+        // Convert GivenFacts strings to objects where possible (best effort mapping)
+        var initialFacts = new Dictionary<string, object>();
+        foreach (var kvp in node.GivenFacts)
         {
-            error = "SOLVE functionality requires Reasoning Engine - not yet implemented.",
-            hint = "SOLVE will use forward/backward chaining to find unknown values based on rules."
-        };
+            if (double.TryParse(kvp.Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var d))
+                initialFacts[kvp.Key] = d;
+            else if (bool.TryParse(kvp.Value, out var b))
+                initialFacts[kvp.Key] = b;
+            else
+                initialFacts[kvp.Key] = kvp.Value;
+        }
+
+        // Initialize engine and solve
+        var engine = new KBMS.Reasoning.InferenceEngine();
+        var result = engine.FindClosure(concept, initialFacts, node.FindVariables);
+
+        if (result.Success && node.SaveResults)
+        {
+            // Optionally merge starting facts with derived facts and save to DB
+            var combinedFacts = new Dictionary<string, object>(initialFacts);
+            foreach (var kvp in result.DerivedFacts)
+            {
+                combinedFacts[kvp.Key] = kvp.Value;
+            }
+
+            var obj = new ObjectInstance
+            {
+                Id = Guid.NewGuid(),
+                KbId = kb.Id,
+                ConceptName = node.ConceptName,
+                Values = combinedFacts
+            };
+            
+            _storage.InsertObject(kbName, obj);
+            result.Steps.Add($"Saved derived object instance {obj.Id} to database.");
+        }
+
+        return result;
     }
 
     // ==================== SHOW Handlers ====================

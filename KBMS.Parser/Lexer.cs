@@ -112,6 +112,8 @@ public class Lexer
         { "FOR", TokenType.FOR },
         { "GIVEN", TokenType.GIVEN },
         { "USING", TokenType.USING },
+        { "FIND", TokenType.FIND },
+        { "SAVE", TokenType.SAVE },
 
         // Aggregation Keywords
         { "COUNT", TokenType.COUNT },
@@ -364,21 +366,24 @@ public class Lexer
 
     private void Identifier()
     {
-        while (IsAlphaNumeric(Peek())) Advance();
+        while (IsAlphaNumeric(Peek()) || (Peek() == '.' && IsAlphaNumeric(PeekNext())))
+        {
+            Advance();
+        }
 
         var text = _source.Substring(_start, _current - _start);
+        var type = TokenType.IDENTIFIER;
 
-        // Check for keywords
-        if (Keywords.TryGetValue(text, out var type))
+        if (Keywords.TryGetValue(text.ToUpper(), out var keywordType))
         {
-            if (type == TokenType.BOOLEAN)
+            if (keywordType == TokenType.BOOLEAN)
             {
                 // true/false
                 AddToken(TokenType.BOOLEAN, bool.Parse(text));
             }
             else
             {
-                AddToken(type);
+                AddToken(keywordType);
             }
         }
         else

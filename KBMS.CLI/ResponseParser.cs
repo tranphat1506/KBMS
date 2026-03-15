@@ -60,7 +60,6 @@ public static class ResponseParser
     private static void DisplayJsonAsTable(JsonDocument jsonDoc)
     {
         var root = jsonDoc.RootElement;
-        Console.WriteLine(root.ToString());
         // Get execution time if available
         var executionTime = "0.00";
         if (root.TryGetProperty("executionTime", out var etProp))
@@ -149,6 +148,11 @@ public static class ResponseParser
         else if (root.TryGetProperty("aggregates", out var aggregatesProp))
         {
             DisplayAggregatesAsTable(aggregatesProp, executionTime);
+        }
+        else if (root.TryGetProperty("Success", out _) && root.TryGetProperty("DerivedFacts", out var derivedFactsProp))
+        {
+            // Handling Reasoning Engine Result (SOLVE)
+            DisplaySolveResult(root, executionTime);
         }
         else
         {
@@ -851,5 +855,68 @@ public static class ResponseParser
     {
         if (str.Length >= width) return str;
         return str + new string(padChar, width - str.Length);
+    }
+    private static void DisplaySolveResult(JsonElement root, string executionTime)
+    {
+        var success = root.GetProperty("Success").GetBoolean();
+        var conceptName = root.TryGetProperty("ConceptName", out var cProp) ? cProp.GetString() : "Unknown";
+        
+        Console.WriteLine($"\n=== REASONING ENGINE RESULT: {conceptName} ===\n");
+
+        if (root.TryGetProperty("Steps", out var stepsProp) && stepsProp.ValueKind == JsonValueKind.Array)
+        {
+            Console.WriteLine("Execution Steps:");
+            var steps = stepsProp.EnumerateArray().ToList();
+            for (int i = 0; i < steps.Count; i++)
+            {
+                var step = steps[i].GetString();
+                if (i == steps.Count - 1)
+                {
+                    // Last step might be a success/stop message, tint it if possible but we print normally
+                    Console.WriteLine($"  => {step}");
+                }
+                else
+                {
+                    Console.WriteLine($"  - {step}");
+                }
+            }
+            Console.WriteLine();
+        }
+
+        if (success)
+        {
+            Console.WriteLine("STATUS: SUCCESS");
+        }
+        else
+        {
+            Console.WriteLine("STATUS: FAILED or HALTED");
+            if (root.TryGetProperty("ErrorMessage", out var errProp))
+            {
+                Console.WriteLine($"Error: {errProp.GetString()}");
+            }
+        }
+
+        Console.WriteLine("\nDerived Facts (Goals Achieved):");
+        if (root.TryGetProperty("DerivedFacts", out var factsProp) && factsProp.ValueKind == JsonValueKind.Object)
+        {
+            var facts = factsProp.EnumerateObject().ToList();
+            if (facts.Count == 0)
+            {
+                Console.WriteLine("  (No facts derived)");
+            }
+            else
+            {
+                Console.WriteLine("  +-----------------+-----------------+");
+                Console.WriteLine("  | Variable        | Value           |");
+                Console.WriteLine("  +-----------------+-----------------+");
+                foreach (var fact in facts)
+                {
+                    Console.WriteLine($"  | {Pad(fact.Name, 15)} | {Pad(GetDisplayString(fact.Value), 15)} |");
+                }
+                Console.WriteLine("  +-----------------+-----------------+");
+            }
+        }
+
+        Console.WriteLine($"\nCompleted in {executionTime} sec");
     }
 }

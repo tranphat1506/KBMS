@@ -4,6 +4,7 @@
     <ProjectReference Include="..\KBMS.Models\KBMS.Models.csproj" />
     <ProjectReference Include="..\KBMS.Storage\KBMS.Storage.csproj" />
     <ProjectReference Include="..\KBMS.Parser\KBMS.Parser.csproj" />
+    <ProjectReference Include="..\KBMS.Reasoning\KBMS.Reasoning.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using KBMS.Parser.Ast;
+using KBMS.Parser.Ast.Dml;
 
 namespace KBMS.Parser;
 
@@ -1353,8 +1354,12 @@ public class Parser
         var token = Peek() ?? throw new ParserException("Unexpected end of input");
         Consume(TokenType.SOLVE);
 
+        // Syntax: SOLVE ON CONCEPT <ConceptName>
+        Consume(TokenType.ON);
+        Consume(TokenType.CONCEPT);
+
         var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected concept name");
-        var node = new SolveNode
+        var node = new SolveNode(token)
         {
             Type = "SOLVE",
             ConceptName = conceptToken.Lexeme,
@@ -1362,39 +1367,51 @@ public class Parser
             Column = token.Column
         };
 
-        Consume(TokenType.FOR);
-        var findToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected variable to find");
-        node.FindVariable = findToken.Lexeme;
-
-        Consume(TokenType.GIVEN);
-
-        // Parse known values
-        while (!Check(TokenType.USING) && !Check(TokenType.SEMICOLON) && !IsAtEnd())
+        // Parse GIVEN clause (FactSpace GT)
+        if (Check(TokenType.GIVEN))
         {
-            var keyToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected variable name");
-            Consume(TokenType.EQUALS);
-            var valueToken = Peek() ?? throw new ParserException("Expected value");
-            object value;
-
-            switch (valueToken.Type)
+            Consume(TokenType.GIVEN);
+            while (!Check(TokenType.FIND) && !Check(TokenType.SEMICOLON) && !IsAtEnd())
             {
-                case TokenType.NUMBER:
-                    value = ConvertToDouble(valueToken.Literal)!;
+                var keyToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected variable name");
+                Consume(TokenType.EQUALS);
+                var valueToken = Peek() ?? throw new ParserException("Expected value");
+                string value;
+
+                switch (valueToken.Type)
+                {
+                    case TokenType.NUMBER:
+                        // Use original lexeme to store precision properly
+                        value = valueToken.Lexeme;
+                        break;
+                    case TokenType.STRING:
+                        value = valueToken.Literal?.ToString() ?? "";
+                        break;
+                    case TokenType.BOOLEAN:
+                        value = valueToken.Lexeme.ToLower();
+                        break;
+                    case TokenType.IDENTIFIER:
+                        value = valueToken.Lexeme;
+                        break;
+                    default:
+                        throw new ParserException($"Unexpected value type: {valueToken.Lexeme}", valueToken.Line, valueToken.Column);
+                }
+                Advance();
+                node.GivenFacts[keyToken.Lexeme] = value;
+
+                if (Check(TokenType.COMMA))
+                    Consume(TokenType.COMMA);
+                else
                     break;
-                case TokenType.STRING:
-                    value = valueToken.Literal?.ToString() ?? "";
-                    break;
-                case TokenType.BOOLEAN:
-                    value = valueToken.Literal ?? false;
-                    break;
-                case TokenType.IDENTIFIER:
-                    value = valueToken.Lexeme;
-                    break;
-                default:
-                    throw new ParserException($"Unexpected value type: {valueToken.Lexeme}", valueToken.Line, valueToken.Column);
             }
-            Advance();
-            node.Known[keyToken.Lexeme] = value;
+        }
+
+        // Parse FIND clause (Goal KL)
+        Consume(TokenType.FIND);
+        while (!Check(TokenType.SAVE) && !Check(TokenType.SEMICOLON) && !IsAtEnd())
+        {
+            var findToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected variable to find");
+            node.FindVariables.Add(findToken.Lexeme);
 
             if (Check(TokenType.COMMA))
                 Consume(TokenType.COMMA);
@@ -1402,11 +1419,11 @@ public class Parser
                 break;
         }
 
-        // Parse USING clause
-        if (Check(TokenType.USING))
+        // Parse Optional SAVE clause
+        if (Check(TokenType.SAVE))
         {
-            var usingToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected rule type");
-            node.RuleType = usingToken.Lexeme.ToLower();
+            Consume(TokenType.SAVE);
+            node.SaveResults = true;
         }
 
         return node;
