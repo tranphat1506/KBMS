@@ -331,7 +331,8 @@ public class InferenceEngine
                     }
                     catch (Exception ex)
                     {
-                        result.Steps.Add($"  - (ERROR) Solving Equation '{eq.Expression}' for {targetVar} failed: {ex.Message}");
+                        var loc = (eq.Line > 0) ? $" (at line {eq.Line}, col {eq.Column})" : "";
+                        result.Steps.Add($"  - (ERROR) Solving Equation '{eq.Expression}'{loc} for {targetVar} failed: {ex.Message}");
                     }
                 }
                 else if (unknownEqVars.Count == 2)
