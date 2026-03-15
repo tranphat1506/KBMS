@@ -256,7 +256,11 @@ public class Parser
             case TokenType.DATETIME:
             case TokenType.TIMESTAMP:
             case TokenType.OBJECT_TYPE:
+                Advance();
+                break;
             case TokenType.IDENTIFIER:
+                // Keep original case for concept-type references (e.g., Point, Triangle)
+                varDef.Type = typeToken.Lexeme;
                 Advance();
                 break;
             default:

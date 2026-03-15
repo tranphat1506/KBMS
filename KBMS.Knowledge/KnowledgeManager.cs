@@ -216,16 +216,65 @@ public class KnowledgeManager
 
     private object HandleCreateConcept(CreateConceptNode node, string kbName)
     {
+        // Auto-expand Concept-typed variables (e.g., p1: Point → p1.x, p1.y)
+        var expandedVariables = new List<Variable>();
+        var knownPrimitiveTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "TINYINT", "SMALLINT", "INT", "BIGINT", "FLOAT", "DOUBLE", "DECIMAL",
+            "NUMBER", "VARCHAR", "CHAR", "TEXT", "STRING", "BOOLEAN", "DATE",
+            "DATETIME", "TIMESTAMP", "OBJECT"
+        };
+
+        foreach (var v in node.Variables)
+        {
+            if (knownPrimitiveTypes.Contains(v.Type))
+            {
+                // Primitive type — keep as-is
+                expandedVariables.Add(new Variable
+                {
+                    Name = v.Name,
+                    Type = v.Type,
+                    Length = v.Length,
+                    Scale = v.Scale
+                });
+            }
+            else
+            {
+                // Possibly a Concept type — look it up
+                var referencedConcept = _storage.LoadConcept(kbName, v.Type);
+
+                if (referencedConcept != null && referencedConcept.Variables.Count > 0)
+                {
+                    // Expand: p1: Point → p1.x: DECIMAL, p1.y: DECIMAL, etc.
+                    foreach (var subVar in referencedConcept.Variables)
+                    {
+                        expandedVariables.Add(new Variable
+                        {
+                            Name = $"{v.Name}.{subVar.Name}",
+                            Type = subVar.Type,
+                            Length = subVar.Length,
+                            Scale = subVar.Scale
+                        });
+                    }
+                }
+                else
+                {
+                    // Unknown type or concept not found — keep as-is (treated as custom type)
+                    expandedVariables.Add(new Variable
+                    {
+                        Name = v.Name,
+                        Type = v.Type,
+                        Length = v.Length,
+                        Scale = v.Scale
+                    });
+                }
+            }
+        }
+
         var concept = new Concept
         {
             Name = node.ConceptName,
-            Variables = node.Variables.Select(v => new Variable
-            {
-                Name = v.Name,
-                Type = v.Type,
-                Length = v.Length,
-                Scale = v.Scale
-            }).ToList(),
+            Variables = expandedVariables,
             Aliases = node.Aliases,
             BaseObjects = node.BaseObjects,
             Constraints = node.Constraints.Select(c => new Constraint { Expression = c }).ToList(),
