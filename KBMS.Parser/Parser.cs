@@ -512,26 +512,30 @@ public class Parser
         // Parse TYPE clause
         if (Check(TokenType.TYPE))
         {
-            var typeToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected rule type");
+            Consume(TokenType.TYPE);
+            var typeToken = ConsumeIdentifier() ?? throw new ParserException("Expected rule type");
             node.RuleType = Enum.Parse<RuleType>(typeToken.Lexeme, true);
         }
 
         // Parse SCOPE clause
         if (Check(TokenType.SCOPE))
         {
-            var scopeToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected scope concept");
+            Consume(TokenType.SCOPE);
+            var scopeToken = ConsumeIdentifier() ?? throw new ParserException("Expected scope concept");
             node.ConceptName = scopeToken.Lexeme;
         }
 
         // Parse IF clause (hypothesis)
         if (Check(TokenType.IF))
         {
+            Consume(TokenType.IF);
             node.Hypothesis = ParseExpressionList();
         }
 
         // Parse THEN clause (conclusions)
         if (Check(TokenType.THEN))
         {
+            Consume(TokenType.THEN);
             node.Conclusions = ParseExpressionList();
         }
 

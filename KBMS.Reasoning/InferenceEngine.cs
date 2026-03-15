@@ -27,6 +27,9 @@ public class InferenceEngine
     public Func<string, Function?>? FunctionResolver { get; set; }
     public Func<string, Operator?>? OperatorResolver { get; set; }
 
+    // (RC8) Resolve hierarchies (IS-A)
+    public Func<string, List<string>>? HierarchyResolver { get; set; }
+
     public ReasoningResult FindClosure(Concept concept, Dictionary<string, object> initialFacts, List<string> targetVariables)
     {
         var result = new ReasoningResult();
@@ -317,7 +320,16 @@ public class InferenceEngine
 
     private Concept GetEffectiveConcept(Concept primary)
     {
-        if (primary.BaseObjects.Count == 0) return primary;
+        var allBaseObjects = new HashSet<string>(primary.BaseObjects);
+        
+        // (RC8) Add IS-A hierarchies
+        var additionalBases = HierarchyResolver?.Invoke(primary.Name);
+        if (additionalBases != null)
+        {
+            foreach (var b in additionalBases) allBaseObjects.Add(b);
+        }
+
+        if (allBaseObjects.Count == 0) return primary;
 
         var effective = new Concept
         {
@@ -330,7 +342,7 @@ public class InferenceEngine
             Equations = new List<Equation>(primary.Equations)
         };
 
-        foreach (var baseName in primary.BaseObjects)
+        foreach (var baseName in allBaseObjects)
         {
             var baseConcept = ConceptResolver?.Invoke(baseName);
             if (baseConcept != null)

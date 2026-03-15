@@ -1023,7 +1023,25 @@ public class KnowledgeManager
 
         // Initialize engine and solve
         var engine = new KBMS.Reasoning.InferenceEngine();
-        engine.ConceptResolver = (name) => _storage.LoadConcept(kbName, name);
+        
+        // (RC8) Pre-load rules to attach to concepts during resolution
+        var allRules = _storage.ListRules(kbName);
+
+        engine.ConceptResolver = (name) => {
+            var c = _storage.LoadConcept(kbName, name);
+            if (c != null) {
+                // Attach rules scoped to this concept
+                c.ConceptRules = allRules
+                    .Where(r => r != null && (r.Scope?.Equals(name, StringComparison.OrdinalIgnoreCase) ?? false))
+                    .Select(r => new Models.ConceptRule { 
+                        Id = r.Id, 
+                        Kind = r.RuleType ?? "deduction", 
+                        Hypothesis = r.Hypothesis?.Select(h => h.Content).Where(content => content != null).ToList() ?? new(), 
+                        Conclusion = r.Conclusion?.Select(conc => conc.Content).Where(content => content != null).ToList() ?? new()
+                    }).ToList();
+            }
+            return c;
+        };
         
         // (RC7) Provide Function and Operator resolvers
         var functions = _storage.ListFunctions(kbName);
@@ -1031,6 +1049,13 @@ public class KnowledgeManager
         
         var operators = _storage.ListOperators(kbName);
         engine.OperatorResolver = (symbol) => operators.FirstOrDefault(o => o.Symbol.Equals(symbol));
+
+        // (RC8) Provide Hierarchy resolver
+        var hierarchies = _storage.ListHierarchies(kbName);
+        engine.HierarchyResolver = (childName) => hierarchies
+            .Where(h => h.ChildConcept.Equals(childName, StringComparison.OrdinalIgnoreCase) && h.HierarchyType == Models.HierarchyType.IsA)
+            .Select(h => h.ParentConcept)
+            .ToList();
 
         var result = engine.FindClosure(concept, initialFacts, node.FindVariables);
 
