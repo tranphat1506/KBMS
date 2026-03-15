@@ -402,15 +402,18 @@ public class KnowledgeManager
 
     private object HandleCreateOperator(CreateOperatorNode node, string kbName)
     {
+        Console.WriteLine($"(DEBUG) Creating Operator '{node.Symbol}' with Body: '{node.Body}'");
         var op = new Operator
         {
             Symbol = node.Symbol,
             ParamTypes = node.ParamTypes,
             ReturnType = node.ReturnType,
+            Body = node.Body,
             Properties = node.Properties
         };
 
         var created = _storage.CreateOperator(kbName, op);
+
         return created != null
             ? new { success = true, message = $"Operator '{node.Symbol}' created successfully." }
             : new { error = $"Operator '{node.Symbol}' already exists." };
@@ -436,6 +439,7 @@ public class KnowledgeManager
         };
 
         var created = _storage.CreateFunction(kbName, func);
+
         return created != null
             ? new { success = true, message = $"Function '{node.FunctionName}' created successfully." }
             : new { error = $"Function '{node.FunctionName}' already exists." };
@@ -1020,6 +1024,14 @@ public class KnowledgeManager
         // Initialize engine and solve
         var engine = new KBMS.Reasoning.InferenceEngine();
         engine.ConceptResolver = (name) => _storage.LoadConcept(kbName, name);
+        
+        // (RC7) Provide Function and Operator resolvers
+        var functions = _storage.ListFunctions(kbName);
+        engine.FunctionResolver = (name) => functions.FirstOrDefault(f => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+        
+        var operators = _storage.ListOperators(kbName);
+        engine.OperatorResolver = (symbol) => operators.FirstOrDefault(o => o.Symbol.Equals(symbol));
+
         var result = engine.FindClosure(concept, initialFacts, node.FindVariables);
 
         if (result.Success && node.SaveResults)

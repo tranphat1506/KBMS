@@ -23,7 +23,11 @@ public class InferenceEngine
 
     public Func<string, Concept?>? ConceptResolver { get; set; }
 
-    public ReasoningResult FindClosure(Concept concept, Dictionary<string, object> initialFacts, List<string> targets)
+    // (RC7) Resolve custom functions and operators
+    public Func<string, Function?>? FunctionResolver { get; set; }
+    public Func<string, Operator?>? OperatorResolver { get; set; }
+
+    public ReasoningResult FindClosure(Concept concept, Dictionary<string, object> initialFacts, List<string> targetVariables)
     {
         var result = new ReasoningResult();
         var knownFacts = new Dictionary<string, object>(initialFacts);
@@ -31,7 +35,7 @@ public class InferenceEngine
         int stepCount = 0;
 
         result.Steps.Add($"Step {stepCount++}: Initializing GT (Known Facts) = {{ {string.Join(", ", initialFacts.Select(kv => $"{kv.Key}={kv.Value}"))} }}");
-        if (targets.Any()) result.Steps.Add($"Goal KL (Targets) = {{ {string.Join(", ", targets)} }}");
+        if (targetVariables.Any()) result.Steps.Add($"Goal KL (Targets) = {{ {string.Join(", ", targetVariables)} }}");
 
         // (RC6.1) Resolve Hierarchy (IS-A)
         var effectiveConcept = GetEffectiveConcept(concept);
@@ -212,13 +216,17 @@ public class InferenceEngine
             // (RC5) Equation Solving
             foreach (var eq in effectiveConcept.Equations)
             {
-                var unknownVars = eq.Variables.Where(v => !knownFacts.ContainsKey(v)).ToList();
-                if (unknownVars.Count == 1)
+                var eqVars = ExtractVariablesFromExpression(eq.Expression);
+                var unknownEqVars = eqVars.Where(v => !knownFacts.ContainsKey(v)).ToList();
+                
+                result.Steps.Add($"  - (DEBUG) Testing Equation '{eq.Expression}': Vars=[{string.Join(",", eqVars)}], Unknowns=[{string.Join(",", unknownEqVars)}]");
+
+                if (unknownEqVars.Count == 1)
                 {
-                    string targetVar = unknownVars[0];
+                    string targetVar = unknownEqVars[0];
                     try
                     {
-                        var root = Solve1DEquation(eq.Expression, targetVar, knownFacts);
+                        var root = Solve1DEquation(eq.Expression, targetVar, knownFacts, (msg) => result.Steps.Add(msg));
                         if (!double.IsNaN(root))
                         {
                             knownFacts[targetVar] = root;
@@ -227,20 +235,26 @@ public class InferenceEngine
                             factAdded = true;
                         }
                     }
-                    catch { } // Cannot solve yet, skip for now
+                    catch (Exception ex)
+                    {
+                        result.Steps.Add($"  - (ERROR) Solving Equation '{eq.Expression}' for {targetVar} failed: {ex.Message}");
+                    }
                 }
-                else if (unknownVars.Count == 2)
+                else if (unknownEqVars.Count == 2)
                 {
                     // Look for a pair of equations that share the same two unknowns
                     foreach (var eq2 in effectiveConcept.Equations)
                     {
                         if (eq == eq2) continue; // Don't pair an equation with itself
-                        var unknowns2 = eq2.Variables.Where(v => !knownFacts.ContainsKey(v)).ToHashSet();
-                        if (unknowns2.Count == 2 && unknowns2.SetEquals(unknownVars))
+                        var eq2Vars = ExtractVariablesFromExpression(eq2.Expression);
+                        var unknowns2 = eq2Vars.Where(v => !knownFacts.ContainsKey(v)).ToHashSet();
+                        
+                        if (unknowns2.Count == 2 && unknowns2.SetEquals(unknownEqVars))
                         {
                             try
                             {
-                                var sol = Solve2DEquationSystem(eq.Expression, eq2.Expression, unknownVars[0], unknownVars[1], knownFacts);
+                                var unknownList = unknownEqVars.ToList();
+                                var sol = Solve2DEquationSystem(eq.Expression, eq2.Expression, unknownList[0], unknownList[1], knownFacts);
                                 if (sol != null)
                                 {
                                     foreach (var kvp in sol)
@@ -253,7 +267,7 @@ public class InferenceEngine
                                         }
                                     }
                                     if (factAdded) // Only log if new facts were added
-                                        result.Steps.Add($"Step {stepCount++}: From Equation System {{'{eq.Expression}', '{eq2.Expression}'}} solved for {{{string.Join(", ", unknownVars)}}} => {{{string.Join(", ", sol.Values.Select(v => v.ToString("F4")))}}}");
+                                        result.Steps.Add($"Step {stepCount++}: From Equation System {{'{eq.Expression}', '{eq2.Expression}'}} solved for {{{string.Join(", ", unknownList)}}} => {{{string.Join(", ", sol.Values.Select(v => v.ToString("F4")))}}}");
                                 }
                             }
                             catch { } // Failed to solve system, skip
@@ -263,8 +277,9 @@ public class InferenceEngine
             }
 
             // Early exit if all targets KL met
-            if (targets.Any() && targets.All(t => knownFacts.ContainsKey(t)))
+            if (targetVariables.All(v => knownFacts.ContainsKey(v)))
             {
+                result.Success = true;
                 result.Steps.Add("=> Stopping condition met: All target variables KL are found in GT.");
                 break;
             }
@@ -291,7 +306,7 @@ public class InferenceEngine
             }
         }
 
-        if (targets.Any() && !targets.All(t => knownFacts.ContainsKey(t)))
+        if (targetVariables.Count > 0 && !targetVariables.All(v => knownFacts.ContainsKey(v)))
         {
             result.Success = false;
             result.ErrorMessage = "Reasoning engine halted: FClosure(GT) exhausted without reaching Goal(KL).";
@@ -380,10 +395,10 @@ public class InferenceEngine
         return (expr, "0"); // Default to expr = 0 if no simple '=' found
     }
 
-    private double Solve1DEquation(string expr, string target, Dictionary<string, object> parameters)
+    private double Solve1DEquation(string expr, string target, Dictionary<string, object> parameters, Action<string>? log = null)
     {
         var s = SplitEquation(expr);
-        Func<double, double> f = (x) => { var p = new Dictionary<string, object>(parameters) { [target] = x }; return Convert.ToDouble(EvaluateFormula(s.left, p)) - Convert.ToDouble(EvaluateFormula(s.right, p)); };
+        Func<double, double> f = (x) => { var p = new Dictionary<string, object>(parameters) { [target] = x }; return Convert.ToDouble(EvaluateFormula(s.left, p, log)) - Convert.ToDouble(EvaluateFormula(s.right, p, log)); };
         
         double lower = -1000, upper = 1000; // Default search range
         
@@ -412,22 +427,82 @@ public class InferenceEngine
         return MathNet.Numerics.RootFinding.Brent.FindRoot(f, lower, upper);
     }
 
-    private object EvaluateFormula(string formula, Dictionary<string, object> parameters)
+    private object EvaluateFormula(string formula, Dictionary<string, object> parameters, Action<string>? log = null)
     {
+        if (string.IsNullOrWhiteSpace(formula)) 
+        {
+            log?.Invoke("(DEBUG) EvaluateFormula received empty formula.");
+            return 0.0;
+        }
+
+        // Replace custom operators with internal function calls
+        string processed = PreProcessOperators(formula);
+
         // Replace base^exp with Pow(base, exp) - handle parenthesized bases like (x-y)^2
-        var powSafe = new Regex(@"(\([^()]+\)|[a-zA-Z0-9_\.\[\]]+)\^([a-zA-Z0-9_\.\[\]]+)").Replace(formula, "Pow($1, $2)");
+        var powSafe = new Regex(@"(\([^()]+\)|[a-zA-Z0-9_\.\[\]]+)\^([a-zA-Z0-9_\.\[\]]+)").Replace(processed, "Pow($1, $2)");
         // Wrap dot-notation variables (e.g., p1.x) with brackets ([p1.x])
         var safe = new Regex(@"\b([a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z0-9_\.]+)\b").Replace(powSafe, "[$1]");
+        
+        if (string.IsNullOrWhiteSpace(safe)) return 0.0;
+
         var e = new NCalc.Expression(safe);
         foreach (var p in parameters) e.Parameters[p.Key] = p.Value;
+        
+        // (RC7) Hook into NCalc's EvaluateFunction to support custom functions
+        e.EvaluateFunction += (name, args) => {
+            // Handle Custom Operators (syntactic sugar)
+            if (name.StartsWith("_op_"))
+            {
+                var symbol = GetSymbolFromOpName(name.Substring(4));
+                var op = OperatorResolver?.Invoke(symbol);
+                if (op != null)
+                {
+                    log?.Invoke($"(DEBUG) Found Custom Operator '{symbol}' with Body: '{op.Body}'");
+                    var bodyParams = new Dictionary<string, object>();
+                    var evalArgs = args.EvaluateParameters(System.Threading.CancellationToken.None);
+                    // Match by a, b (assuming binary)
+                    if (evalArgs.Length >= 2)
+                    {
+                        bodyParams["a"] = evalArgs[0];
+                        bodyParams["b"] = evalArgs[1];
+                    }
+                    args.Result = EvaluateFormula(op.Body, bodyParams, log);
+                    return;
+                }
+            }
+
+            var func = FunctionResolver?.Invoke(name);
+            if (func != null)
+            {
+                log?.Invoke($"(DEBUG) Found Custom Function '{name}' with Body: '{func.Body}'");
+                var bodyParams = new Dictionary<string, object>();
+                var evalArgs = args.EvaluateParameters(System.Threading.CancellationToken.None);
+                for (int i = 0; i < func.Parameters.Count && i < evalArgs.Length; i++)
+                {
+                    bodyParams[func.Parameters[i].Name] = evalArgs[i];
+                }
+                var funcRes = EvaluateFormula(func.Body, bodyParams, log);
+                log?.Invoke($"(DEBUG) Evaluated Custom Function '{name}'({string.Join(",", evalArgs)}) => {funcRes}");
+                args.Result = funcRes;
+            }
+            else
+            {
+                log?.Invoke($"(DEBUG) Custom Function '{name}' NOT FOUND.");
+            }
+        };
+
         var res = e.Evaluate();
+        log?.Invoke($"(DEBUG) EvaluateFormula('{safe}') => {res} (Type: {res?.GetType().Name})");
         return (res is int or long or double or float or decimal) ? Convert.ToDouble(res) : res;
     }
 
     private bool EvaluateConstraint(string expr, Dictionary<string, object> parameters)
     {
+        // Replace custom operators
+        string processed = PreProcessOperators(expr);
+
         // Convert single = to == for NCalc (avoiding >=, <=, etc.)
-        var safe = new Regex(@"(?<![><!= ])=(?!=)").Replace(expr, "==");
+        var safe = new Regex(@"(?<![><!= ])=(?!=)").Replace(processed, "==");
         // Replace base^exp with Pow(base, exp)
         safe = new Regex(@"(\([^()]+\)|[a-zA-Z0-9_\.\[\]]+)\^([a-zA-Z0-9_\.\[\]]+)").Replace(safe, "Pow($1, $2)");
         // Wrap dot-notation variables
@@ -435,10 +510,60 @@ public class InferenceEngine
         
         var e = new NCalc.Expression(safe);
         foreach (var p in parameters) e.Parameters[p.Key] = p.Value;
+
+        // (RC7) Support custom functions in constraints
+        e.EvaluateFunction += (name, args) => {
+            var func = FunctionResolver?.Invoke(name);
+            if (func != null)
+            {
+                var bodyParams = new Dictionary<string, object>();
+                var evalArgs = args.EvaluateParameters(System.Threading.CancellationToken.None);
+                for (int i = 0; i < func.Parameters.Count && i < evalArgs.Length; i++)
+                {
+                    bodyParams[func.Parameters[i].Name] = evalArgs[i];
+                }
+                args.Result = EvaluateFormula(func.Body, bodyParams);
+            }
+        };
+
         var res = e.Evaluate();
         if (res is bool b) return b;
         if (res is int or long or double or float or decimal) return Convert.ToDouble(res) != 0;
         return false;
+    }
+
+    private string PreProcessOperators(string expression)
+    {
+        if (string.IsNullOrWhiteSpace(expression)) return expression;
+
+        // Simple implementation for binary operators: a OP b -> _op_NAME(a, b)
+        var symbolToName = new Dictionary<string, string> {
+            { "#", "hash" }, { "@", "at" }, { "$", "dollar" }, { "&", "amp" }, 
+            { "|", "pipe" }, { "!", "bang" }, { "~", "tilde" }, { "?", "question" }, { ":", "colon" }
+        };
+        
+        var processed = expression;
+
+        foreach (var kvp in symbolToName)
+        {
+            var sym = kvp.Key;
+            var name = kvp.Value;
+            // Regex to find 'left sym right' where sym is the operator
+            var pattern = $@"(\b[a-zA-Z0-9_\[\]]+\b)\s*\{sym}\s*(\b[a-zA-Z0-9_\[\]]+\b)";
+            var replacement = $"_op_{name}($1, $2)";
+            processed = Regex.Replace(processed, pattern, replacement);
+        }
+
+        return processed; 
+    }
+
+    private string GetSymbolFromOpName(string name)
+    {
+        var nameToSymbol = new Dictionary<string, string> {
+            { "hash", "#" }, { "at", "@" }, { "dollar", "$" }, { "amp", "&" }, 
+            { "pipe", "|" }, { "bang", "!" }, { "tilde", "~" }, { "question", "?" }, { "colon", ":" }
+        };
+        return nameToSymbol.TryGetValue(name, out var sym) ? sym : name;
     }
 
     private List<string> ExtractVariablesFromExpression(string expression)
@@ -456,11 +581,23 @@ public class InferenceEngine
         foreach (Match m in matches)
         {
             // Exclude NCalc functions and numeric literals
-            if (!funcs.Contains(m.Value) && !double.TryParse(m.Value, out _))
-            {
-                vars.Add(m.Value);
-            }
+            if (funcs.Contains(m.Value) || double.TryParse(m.Value, out _))
+                continue;
+
+            // (RC7) Exclude Custom Functions
+            if (FunctionResolver?.Invoke(m.Value) != null)
+                continue;
+
+            // Basic check: if name is followed by '(', it's likely a function (even if not yet resolved)
+            // This is a safety measure for yet-to-be-loaded functions or built-ins not in our static list.
+            int index = m.Index + m.Length;
+            while (index < expression.Length && char.IsWhiteSpace(expression[index])) index++;
+            if (index < expression.Length && expression[index] == '(')
+                continue;
+
+            vars.Add(m.Value);
         }
+        // result.Steps.Add($"  - (DEBUG) Extracted vars from '{expression}': [{string.Join(",", vars)}]");
         return vars.ToList();
     }
 }

@@ -21,6 +21,11 @@ public class CreateOperatorNode : DdlNode
     public string ReturnType { get; set; } = string.Empty;
 
     /// <summary>
+    /// Operator body formula (e.g. "a * b")
+    /// </summary>
+    public string Body { get; set; } = string.Empty;
+
+    /// <summary>
     /// Optional properties (commutative, associative, etc.)
     /// </summary>
     public List<string> Properties { get; set; } = new();

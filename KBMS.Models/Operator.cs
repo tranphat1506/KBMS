@@ -7,5 +7,6 @@ public class Operator
     public string Symbol { get; set; } = string.Empty;
     public List<string> ParamTypes { get; set; } = new();
     public string ReturnType { get; set; } = string.Empty;
+    public string Body { get; set; } = string.Empty;
     public List<string> Properties { get; set; } = new();
 }

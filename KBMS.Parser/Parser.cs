@@ -355,9 +355,9 @@ public class Parser
         };
 
         // Parse PARAMS clause
-        if (Check(TokenType.PARAMS))
+        if (Check(TokenType.PARAMS) || Check(TokenType.LPAREN))
         {
-            Consume(TokenType.PARAMS);
+            if (Check(TokenType.PARAMS)) Consume(TokenType.PARAMS);
             Consume(TokenType.LPAREN);
             while (!Check(TokenType.RPAREN))
             {
@@ -378,6 +378,14 @@ public class Parser
             var returnToken = Peek() ?? throw new ParserException("Expected return type");
             node.ReturnType = returnToken.Lexeme.ToUpper();
             Advance();
+        }
+
+        // Parse BODY clause
+        if (Check(TokenType.BODY))
+        {
+            Consume(TokenType.BODY);
+            var bodyToken = Consume(TokenType.STRING) ?? throw new ParserException("Expected operator body string");
+            node.Body = bodyToken.Literal?.ToString() ?? "";
         }
 
         // Parse PROPERTIES clause
@@ -403,10 +411,10 @@ public class Parser
             Column = token.Column
         };
 
-        // Parse PARAMS clause
-        if (Check(TokenType.PARAMS))
+        // Parse PARAMS clause - handle both "PARAMS (x, y)" and "(x, y)"
+        if (Check(TokenType.PARAMS) || Check(TokenType.LPAREN))
         {
-            Consume(TokenType.PARAMS);
+            if (Check(TokenType.PARAMS)) Consume(TokenType.PARAMS);
             Consume(TokenType.LPAREN);
             while (!Check(TokenType.RPAREN))
             {
@@ -446,34 +454,45 @@ public class Parser
 
     private ParamDefinition ParseParamDefinition()
     {
-        var typeToken = Peek() ?? throw new ParserException("Expected parameter type");
-        var paramDef = new ParamDefinition
-        {
-            Type = typeToken.Lexeme.ToUpper()
-        };
+        var firstToken = Peek() ?? throw new ParserException("Expected parameter name or type");
         Advance();
 
-        // Parse length for VARCHAR, CHAR, DECIMAL
-        if (Check(TokenType.LPAREN))
+        // Check if next is a token that indicates end of this parameter (closing paren or comma)
+        if (Check(TokenType.RPAREN) || Check(TokenType.COMMA))
         {
-            Consume(TokenType.LPAREN);
-            var lengthToken = Consume(TokenType.NUMBER) ?? throw new ParserException("Expected length");
-            paramDef.Length = (int?)ConvertToDouble(lengthToken.Literal);
-
-            if (Check(TokenType.COMMA))
-            {
-                Consume(TokenType.COMMA);
-                var scaleToken = Consume(TokenType.NUMBER) ?? throw new ParserException("Expected scale");
-                paramDef.Scale = (int?)ConvertToDouble(scaleToken.Literal);
-            }
-            Consume(TokenType.RPAREN);
+            // Only one identifier was found, treat it as the name
+            return new ParamDefinition { Name = firstToken.Lexeme, Type = "DECIMAL" };
         }
 
-        // Parse parameter name
-        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected parameter name");
-        paramDef.Name = nameToken.Lexeme;
+        // If next is an identifier, then first was the type and second is the name
+        if (Check(TokenType.IDENTIFIER))
+        {
+            var nameToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected parameter name");
+            var paramDef = new ParamDefinition
+            {
+                Type = firstToken.Lexeme.ToUpper(),
+                Name = nameToken.Lexeme
+            };
 
-        return paramDef;
+            // Parse optional length (...) for types like VARCHAR(20)
+            if (Check(TokenType.LPAREN))
+            {
+                Consume(TokenType.LPAREN);
+                var lengthToken = Consume(TokenType.NUMBER) ?? throw new ParserException("Expected length");
+                paramDef.Length = (int?)ConvertToDouble(lengthToken.Literal);
+                if (Check(TokenType.COMMA))
+                {
+                    Consume(TokenType.COMMA);
+                    var scaleToken = Consume(TokenType.NUMBER) ?? throw new ParserException("Expected scale");
+                    paramDef.Scale = (int?)ConvertToDouble(scaleToken.Literal);
+                }
+                Consume(TokenType.RPAREN);
+            }
+            return paramDef;
+        }
+
+        // Default case: treat as name with default type
+        return new ParamDefinition { Name = firstToken.Lexeme, Type = "DECIMAL" };
     }
 
     private CreateRuleNode ParseCreateRule()
