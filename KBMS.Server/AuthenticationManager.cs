@@ -15,30 +15,21 @@ public class AuthenticationManager
 
     public User? Login(string username, string password)
     {
-        Console.WriteLine($"[AUTH] Login attempt for user: {username}");
-
         var users = _storage.LoadUsers();
-        Console.WriteLine($"[AUTH] Loaded {users.Count} users");
-
         var user = users.FirstOrDefault(u => u.Username == username);
 
         if (user == null)
         {
-            Console.WriteLine("[AUTH] User not found");
             return null;
         }
 
-        Console.WriteLine($"[AUTH] User found, verifying password...");
         var verified = _storage.VerifyPassword(password, user.PasswordHash);
-        Console.WriteLine($"[AUTH] Password verification result: {verified}");
 
         if (!verified)
         {
-            Console.WriteLine("[AUTH] Password verification failed");
             return null;
         }
 
-        Console.WriteLine($"[AUTH] Login successful for {username}");
         return user;
     }
 

@@ -154,7 +154,7 @@ public class Cli
         while (true)
         {
             string prompt = currentUser != null
-                ? $"kbms{(currentKb != null ? "" : $"/{currentKb}")}> "
+                ? $"kbms{(currentKb != null ? $"/{currentKb}" : "")}> "
                 : "login> ";
 
             Console.Write(prompt);
@@ -180,6 +180,12 @@ public class Cli
             if (input.ToUpper() == "HELP")
             {
                 ShowHelp();
+                continue;
+            }
+
+            if (input.ToUpper() == "CLEAR")
+            {
+                Console.Clear();
                 continue;
             }
 
@@ -213,7 +219,7 @@ public class Cli
                 }
                 else if (msg?.Type == MessageType.ERROR)
                 {
-                    Console.WriteLine($"Error: {msg.Content}");
+                    ResponseParser.DisplayError(msg.Content, input);
                 }
                 continue;
             }
@@ -237,12 +243,12 @@ public class Cli
                 }
                 else
                 {
-                    Console.WriteLine(response.Content);
+                    ResponseParser.DisplayResult(response, input);
                 }
             }
             else if (response?.Type == MessageType.ERROR)
             {
-                Console.WriteLine($"Error: {response.Content}");
+                ResponseParser.DisplayError(response.Content, input);
 
                 // If connection lost due to error, try auto-reconnect
                 if (response.Content.Contains("disconnected", StringComparison.OrdinalIgnoreCase) ||
@@ -268,20 +274,122 @@ public class Cli
 
     private void ShowHelp()
     {
-        Console.WriteLine("Available Commands:");
-        Console.WriteLine("  LOGIN <username> <password>     - Login to server");
-        Console.WriteLine("  CONNECT                      - Reconnect to server (auto-reconnect)");
-        Console.WriteLine("  CREATE KNOWLEDGE BASE <name>   - Create new knowledge base");
-        Console.WriteLine("  DROP KNOWLEDGE BASE <name>     - Drop knowledge base");
-        Console.WriteLine("  USE <name>                     - Select knowledge base");
-        Console.WriteLine("  SELECT <concept> WHERE <cond>   - Query objects");
-        Console.WriteLine("  INSERT INTO <concept> VALUES (...) - Insert object");
-        Console.WriteLine("  UPDATE <concept> SET ...      - Update object");
-        Console.WriteLine("  DELETE FROM <concept> WHERE ...   - Delete object");
-        Console.WriteLine("  SOLVE <concept> KNOWN ... FIND - Solve reasoning");
-        Console.WriteLine("  CREATE USER <name> PASSWORD <p>   - Create user");
-        Console.WriteLine("  GRANT <privilege> ON <kb> TO <user> - Grant privilege");
-        Console.WriteLine("  SHOW <type>                   - Show knowledge");
-        Console.WriteLine("  EXIT                           - Exit CLI");
+        Console.WriteLine("KBMS CLI - Knowledge Base Management System");
+        Console.WriteLine("============================================");
+        Console.WriteLine();
+
+        Console.WriteLine("CLI Commands:");
+        Console.WriteLine("  LOGIN <username> <password>  - Login to server");
+        Console.WriteLine("  CONNECT                      - Reconnect to server");
+        Console.WriteLine("  CLEAR                        - Clear the screen");
+        Console.WriteLine("  EXIT                         - Exit CLI");
+        Console.WriteLine("  HELP                         - Show this help message");
+        Console.WriteLine();
+
+        Console.WriteLine("Knowledge Base Management:");
+        Console.WriteLine("  CREATE KNOWLEDGE BASE <name> [DESCRIPTION '<desc>']");
+        Console.WriteLine("  DROP KNOWLEDGE BASE <name>");
+        Console.WriteLine("  USE <name>                   - Select current knowledge base");
+        Console.WriteLine();
+
+        Console.WriteLine("Concept Management:");
+        Console.WriteLine("  CREATE CONCEPT <name>");
+        Console.WriteLine("      VARIABLES (<var>:<type>, ...)");
+        Console.WriteLine("      [ALIASES <alias1>, ...]");
+        Console.WriteLine("      [BASE_OBJECTS <base1>, ...]");
+        Console.WriteLine("      [CONSTRAINTS <expr>, ...]");
+        Console.WriteLine("      [SAME_VARIABLES <v1>=<v2>, ...]");
+        Console.WriteLine("  ADD VARIABLE <var>:<type> TO CONCEPT <name>");
+        Console.WriteLine("  DROP CONCEPT <name>");
+        Console.WriteLine();
+
+        Console.WriteLine("Hierarchy Management:");
+        Console.WriteLine("  ADD HIERARCHY <parent> IS_A <child>");
+        Console.WriteLine("  ADD HIERARCHY <parent> PART_OF <child>");
+        Console.WriteLine("  REMOVE HIERARCHY <parent> IS_A <child>");
+        Console.WriteLine();
+
+        Console.WriteLine("Relation Management:");
+        Console.WriteLine("  CREATE RELATION <name> FROM <domain> TO <range>");
+        Console.WriteLine("      [PROPERTIES <prop1>, ...]");
+        Console.WriteLine("  DROP RELATION <name>");
+        Console.WriteLine();
+
+        Console.WriteLine("Operator & Function Management:");
+        Console.WriteLine("  CREATE OPERATOR <sym> PARAMS (<type>, ...) RETURNS <type>");
+        Console.WriteLine("  DROP OPERATOR <sym>");
+        Console.WriteLine("  CREATE FUNCTION <name> PARAMS (<type> <param>, ...)");
+        Console.WriteLine("      RETURNS <type> BODY '<formula>'");
+        Console.WriteLine("  DROP FUNCTION <name>");
+        Console.WriteLine();
+
+        Console.WriteLine("Computation Management:");
+        Console.WriteLine("  ADD COMPUTATION TO <concept>");
+        Console.WriteLine("      VARIABLES <var1>, ..., <result>");
+        Console.WriteLine("      FORMULA '<expr>' [COST <weight>]");
+        Console.WriteLine("  REMOVE COMPUTATION <var> FROM <concept>");
+        Console.WriteLine();
+
+        Console.WriteLine("Rule Management:");
+        Console.WriteLine("  CREATE RULE <name> [TYPE <type>] SCOPE <concept>");
+        Console.WriteLine("      IF <hypothesis> THEN <conclusion> [COST <weight>]");
+        Console.WriteLine("  DROP RULE <name>");
+        Console.WriteLine();
+
+        Console.WriteLine("Data Query (KBDML):");
+        Console.WriteLine("  SELECT <concept> [WHERE <conditions>]");
+        Console.WriteLine("  SELECT <concept> JOIN <relation> [WHERE <conditions>]");
+        Console.WriteLine("  SELECT <concept> [ORDER BY <var> [ASC|DESC]]");
+        Console.WriteLine("  SELECT <concept> [LIMIT <n> [OFFSET <m>]]");
+        Console.WriteLine("  SELECT COUNT(*) FROM <concept> [WHERE ...]");
+        Console.WriteLine("  SELECT SUM(<var>) FROM <concept> [WHERE ...]");
+        Console.WriteLine("  SELECT AVG(<var>) FROM <concept> [WHERE ...]");
+        Console.WriteLine("  SELECT MAX(<var>) FROM <concept> [WHERE ...]");
+        Console.WriteLine("  SELECT MIN(<var>) FROM <concept> [WHERE ...]");
+        Console.WriteLine();
+
+        Console.WriteLine("Data Manipulation:");
+        Console.WriteLine("  INSERT INTO <concept> VALUES (<field>=<value>, ...)");
+        Console.WriteLine("  UPDATE <concept> SET <field>=<value>, ... [WHERE ...]");
+        Console.WriteLine("  DELETE FROM <concept> [WHERE ...]");
+        Console.WriteLine();
+
+        Console.WriteLine("Reasoning:");
+        Console.WriteLine("  SOLVE <concept> FOR <var> GIVEN <conditions> [USING <type>]");
+        Console.WriteLine();
+
+        Console.WriteLine("User Management:");
+        Console.WriteLine("  CREATE USER <name> PASSWORD '<pass>' [ROLE <role>]");
+        Console.WriteLine("  DROP USER <name>");
+        Console.WriteLine();
+
+        Console.WriteLine("Privilege Management:");
+        Console.WriteLine("  GRANT <privilege> ON <kb> TO <user>");
+        Console.WriteLine("  REVOKE <privilege> ON <kb> FROM <user>");
+        Console.WriteLine("  Privilege types: READ, WRITE, ADMIN");
+        Console.WriteLine();
+
+        Console.WriteLine("Information Display:");
+        Console.WriteLine("  SHOW KNOWLEDGE BASES");
+        Console.WriteLine("  SHOW CONCEPTS [IN <kb>]");
+        Console.WriteLine("  SHOW CONCEPT <name> [IN <kb>]");
+        Console.WriteLine("  SHOW RULES [IN <kb>] [TYPE <type>]");
+        Console.WriteLine("  SHOW RELATIONS [IN <kb>]");
+        Console.WriteLine("  SHOW OPERATORS [IN <kb>]");
+        Console.WriteLine("  SHOW FUNCTIONS [IN <kb>]");
+        Console.WriteLine("  SHOW USERS");
+        Console.WriteLine("  SHOW PRIVILEGES ON <kb>");
+        Console.WriteLine("  SHOW PRIVILEGES OF <user>");
+        Console.WriteLine();
+
+        Console.WriteLine("Data Types:");
+        Console.WriteLine("  Number: TINYINT, SMALLINT, INT, BIGINT, FLOAT, DOUBLE, DECIMAL(p,s)");
+        Console.WriteLine("  String: VARCHAR(n), CHAR(n), TEXT");
+        Console.WriteLine("  Boolean: BOOLEAN");
+        Console.WriteLine("  Date/Time: DATE, DATETIME, TIMESTAMP");
+        Console.WriteLine("  Reference: object");
+        Console.WriteLine();
+
+        Console.WriteLine("For detailed syntax, see docs/sql-syntax.md");
     }
 }

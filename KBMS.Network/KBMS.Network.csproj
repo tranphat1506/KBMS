@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\KBMS.Models\KBMS.Models.csproj" />
+    <ProjectReference Include="..\KBMS.Parser\KBMS.Parser.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text.Json;
@@ -20,6 +21,7 @@ public class KbmsServer
     private readonly ConnectionManager _connectionManager;
     private readonly KnowledgeManager _knowledgeManager;
     private readonly StorageEngine _storage;
+    private readonly Logger _logger;
     private TcpListener? _listener;
     private bool _isRunning;
 
@@ -31,6 +33,7 @@ public class KbmsServer
         _host = host;
         _port = port;
         _storage = storage ?? new StorageEngine("data", "kbms_encryption_key");
+        _logger = new Logger(LogLevel.Info);
         _authManager = new AuthenticationManager(_storage);
         _connectionManager = new ConnectionManager();
         _knowledgeManager = new KnowledgeManager(_storage);
@@ -43,7 +46,7 @@ public class KbmsServer
         _listener.Start();
         _isRunning = true;
 
-        Console.WriteLine($"KBMS Server started on {_host}:{_port}");
+        _logger.Info("SERVER", $"KBMS Server started on {_host}:{_port}");
 
         while (_isRunning)
         {
@@ -74,7 +77,7 @@ public class KbmsServer
         try
         {
             var session = _connectionManager.CreateSession(clientId);
-            Console.WriteLine($"[{session.SessionId}] Client connected from {client.Client?.RemoteEndPoint}");
+            _logger.Info(session.SessionId, $"Client connected from {client.Client?.RemoteEndPoint}");
 
             using var stream = client.GetStream();
 
@@ -83,7 +86,7 @@ public class KbmsServer
                 var message = await Protocol.ReceiveMessageAsync(stream);
                 if (message == null)
                 {
-                    Console.WriteLine($"[{clientId}] Client disconnected gracefully");
+                    _logger.Info(clientId, "Client disconnected gracefully");
                     break;
                 }
 
@@ -95,17 +98,17 @@ public class KbmsServer
         }
         catch (IOException)
         {
-            Console.WriteLine($"[{clientId}] Client disconnected: Connection lost");
+            _logger.Info(clientId, "Client disconnected: Connection lost");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[{clientId}] Client error: {ex.Message}");
+            _logger.Error(clientId, $"Client error: {ex.Message}", ex);
         }
         finally
         {
             _connectionManager.RemoveSession(clientId);
             client.Close();
-            Console.WriteLine($"[{clientId}] Client disconnected");
+            _logger.Info(clientId, "Client disconnected");
         }
     }
 
@@ -113,31 +116,44 @@ public class KbmsServer
     {
         try
         {
+            var user = _connectionManager.GetCurrentUser(clientId);
+            var username = user?.Username;
+
+            Message response;
+
             switch (message.Type)
             {
                 case MessageType.LOGIN:
-                    return HandleLogin(message, clientId);
+                    response = HandleLogin(message, clientId);
+                    break;
 
                 case MessageType.QUERY:
-                    return HandleQuery(message, clientId);
+                    response = HandleQuery(message, clientId);
+                    break;
 
                 case MessageType.LOGOUT:
-                    return HandleLogout(message, clientId);
+                    response = HandleLogout(message, clientId);
+                    break;
 
                 default:
-                    return new Message
+                    response = new Message
                     {
                         Type = MessageType.ERROR,
-                        Content = $"Unknown message type: {message.Type}"
+                        Content = JsonSerializer.Serialize(ErrorResponse.RuntimeErrorResponse(new Exception($"Unknown message type: {message.Type}"), ""))
                     };
+                    break;
             }
+
+            _logger.LogResponse(clientId, response.Type.ToString(), response.Content.Length);
+            return response;
         }
         catch (Exception ex)
         {
+            _logger.Error(clientId, $"ProcessMessage error: {ex.Message}", ex);
             return new Message
             {
                 Type = MessageType.ERROR,
-                Content = $"Error: {ex.Message}"
+                Content = JsonSerializer.Serialize(ErrorResponse.RuntimeErrorResponse(ex, ""))
             };
         }
     }
@@ -152,10 +168,16 @@ public class KbmsServer
             content = content.Substring(6).Trim();
         }
 
+        _logger.LogRequest(clientId, message.Type.ToString());
+
         var parts = content.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length < 2)
         {
-            return new Message { Type = MessageType.ERROR, Content = "Invalid login format. Usage: LOGIN <username> <password>" };
+            return new Message
+            {
+                Type = MessageType.ERROR,
+                Content = JsonSerializer.Serialize(ErrorResponse.AuthenticationErrorResponse("Invalid login format. Usage: LOGIN <username> <password>"))
+            };
         }
 
         var username = parts[0];
@@ -165,7 +187,11 @@ public class KbmsServer
 
         if (user == null)
         {
-            return new Message { Type = MessageType.ERROR, Content = "Invalid credentials" };
+            return new Message
+            {
+                Type = MessageType.ERROR,
+                Content = JsonSerializer.Serialize(ErrorResponse.AuthenticationErrorResponse("Invalid credentials"))
+            };
         }
 
         _connectionManager.SetSessionUser(clientId, user);
@@ -183,67 +209,108 @@ public class KbmsServer
         var user = _connectionManager.GetCurrentUser(clientId);
         if (user == null)
         {
-            return new Message { Type = MessageType.ERROR, Content = "Not authenticated. Please login first." };
+            return new Message
+            {
+                Type = MessageType.ERROR,
+                Content = JsonSerializer.Serialize(
+                    ErrorResponse.AuthenticationErrorResponse("Not authenticated. Please login first."))
+            };
         }
 
+        _logger.LogRequest(clientId, message.Content, user?.Username);
+
         var currentKb = _connectionManager.GetCurrentKb(clientId);
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
         try
         {
             var lexer = new KBMS.Parser.Lexer(message.Content);
             var tokens = lexer.Tokenize();
             var parser = new KBMS.Parser.Parser(tokens);
             var ast = parser.Parse();
+
             var result = _knowledgeManager.Execute(ast, user, currentKb);
 
-            // Handle USE command - update session's current KB
+            stopwatch.Stop();
+            var elapsedSec = stopwatch.ElapsedMilliseconds / 1000.0;
+
+            if (result == null)
+            {
+                return new Message
+                {
+                    Type = MessageType.RESULT,
+                    Content = JsonSerializer.Serialize(new
+                    {
+                        success = true,
+                        executionTime = elapsedSec
+                    })
+                };
+            }
+
+            var resultType = result.GetType();
+
+            // Check error in result
+            var errorProp = resultType.GetProperty("error");
+            if (errorProp != null)
+            {
+                var errorValue = errorProp.GetValue(result);
+                if (errorValue != null)
+                {
+                    return new Message
+                    {
+                        Type = MessageType.ERROR,
+                        Content = JsonSerializer.Serialize(
+                            ErrorResponse.ExecutionErrorResponse(
+                                errorValue.ToString() ?? "Unknown error",
+                                message.Content))
+                    };
+                }
+            }
+
+            // Handle USE command
             if (message.Content.StartsWith("USE", StringComparison.OrdinalIgnoreCase))
             {
-                // Extract the KB name from the USE command result
-                if (result != null)
-                {
-                    var resultType = result.GetType();
-                    var currentKbProp = resultType.GetProperty("currentKb");
-                    var successProp = resultType.GetProperty("success");
+                var successProp = resultType.GetProperty("success");
+                var currentKbProp = resultType.GetProperty("currentKb");
 
-                    var success = successProp?.GetValue(result) as bool?;
-                    if (success == true && currentKbProp != null)
+                var success = successProp?.GetValue(result) as bool?;
+
+                if (success == true && currentKbProp != null)
+                {
+                    var kbName = currentKbProp.GetValue(result) as string;
+
+                    if (kbName != null)
                     {
-                        var kbName = currentKbProp.GetValue(result) as string;
-                        if (kbName != null)
+                        if (!_authManager.CheckPrivilege(user, "SELECT", kbName))
                         {
-                            if (!_authManager.CheckPrivilege(user, "SELECT", kbName))
+                            return new Message
                             {
-                                return new Message { Type = MessageType.ERROR, Content = "Permission denied" };
-                            }
-                            _connectionManager.SetSessionKb(clientId, kbName);
+                                Type = MessageType.ERROR,
+                                Content = JsonSerializer.Serialize(
+                                    ErrorResponse.PermissionErrorResponse("SELECT", kbName))
+                            };
                         }
+
+                        _connectionManager.SetSessionKb(clientId, kbName);
                     }
                 }
             }
 
-            // Check if result contains an error
-            if (result != null)
+            // Convert result object → dictionary
+            var response = new Dictionary<string, object?>();
+
+            foreach (var prop in resultType.GetProperties())
             {
-                var resultType = result.GetType();
-                var errorProp = resultType.GetProperty("error");
-                if (errorProp != null)
-                {
-                    var errorValue = errorProp.GetValue(result);
-                    if (errorValue != null)
-                    {
-                        return new Message
-                        {
-                            Type = MessageType.ERROR,
-                            Content = errorValue.ToString() ?? "Unknown error"
-                        };
-                    }
-                }
+                response[prop.Name] = prop.GetValue(result);
             }
+
+            // add execution time
+            response["executionTime"] = elapsedSec;
 
             return new Message
             {
                 Type = MessageType.RESULT,
-                Content = JsonSerializer.Serialize(result)
+                Content = JsonSerializer.Serialize(response)
             };
         }
         catch (ParserException ex)
@@ -251,7 +318,8 @@ public class KbmsServer
             return new Message
             {
                 Type = MessageType.ERROR,
-                Content = $"Parse error: {ex}"
+                Content = JsonSerializer.Serialize(
+                    ErrorResponse.ParserErrorResponse(ex, message.Content))
             };
         }
         catch (Exception ex)
@@ -259,11 +327,11 @@ public class KbmsServer
             return new Message
             {
                 Type = MessageType.ERROR,
-                Content = $"Error: {ex.Message}"
+                Content = JsonSerializer.Serialize(
+                    ErrorResponse.RuntimeErrorResponse(ex, message.Content))
             };
         }
     }
-
     private Message HandleLogout(Message message, string clientId)
     {
         _connectionManager.SetSessionUser(clientId, null);

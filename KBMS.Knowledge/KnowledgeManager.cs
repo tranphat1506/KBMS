@@ -463,6 +463,12 @@ public class KnowledgeManager
                 objects = objects.Skip(offset).Take(node.Limit.Limit).ToList();
             }
 
+            // Return error if no results found
+            if (objects.Count == 0)
+            {
+                return new { error = $"No objects found for concept '{node.ConceptName}'" };
+            }
+
             return new
             {
                 success = true,
