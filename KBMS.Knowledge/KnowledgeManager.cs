@@ -295,8 +295,7 @@ public class KnowledgeManager
             ConstructRelations = node.ConstructRelations.Select(cr => new ConstructRelation
             {
                 RelationName = cr.RelationName,
-                FromConcept = cr.FromConcept,
-                ToConcept = cr.ToConcept
+                Arguments = cr.Arguments
             }).ToList(),
             Properties = node.Properties.Select(p => new Property
             {
@@ -383,7 +382,20 @@ public class KnowledgeManager
             Name = node.RelationName,
             Domain = node.DomainConcept,
             Range = node.RangeConcept,
-            Properties = node.Properties
+            Properties = node.Properties,
+            ParamNames = node.ParamNames,
+            Equations = node.Equations.Select(e => new Equation
+            {
+                Id = Guid.NewGuid(),
+                Expression = e.Expression
+            }).ToList(),
+            Rules = node.ConceptRules.Select(r => new ConceptRule
+            {
+                Id = Guid.NewGuid(),
+                Kind = r.Kind,
+                Hypothesis = r.Hypothesis,
+                Conclusion = r.Conclusion
+            }).ToList()
         };
 
         var created = _storage.CreateRelation(kbName, relation);
@@ -1056,6 +1068,16 @@ public class KnowledgeManager
             .Where(h => h.ChildConcept.Equals(childName, StringComparison.OrdinalIgnoreCase) && h.HierarchyType == Models.HierarchyType.IsA)
             .Select(h => h.ParentConcept)
             .ToList();
+
+        // (Phase 15) Provide PART_OF resolver — find child concepts that are PART_OF parentName
+        engine.PartOfResolver = (parentName) => hierarchies
+            .Where(h => h.ParentConcept.Equals(parentName, StringComparison.OrdinalIgnoreCase) && h.HierarchyType == Models.HierarchyType.PartOf)
+            .Select(h => h.ChildConcept)
+            .ToList();
+
+        // (Phase 16) Provide Relation resolver
+        var relations = _storage.ListRelations(kbName);
+        engine.RelationResolver = (name) => relations.FirstOrDefault(r => r.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
 
         var result = engine.FindClosure(concept, initialFacts, node.FindVariables);
 

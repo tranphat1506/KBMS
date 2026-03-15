@@ -30,6 +30,12 @@ public class InferenceEngine
     // (RC8) Resolve hierarchies (IS-A)
     public Func<string, List<string>>? HierarchyResolver { get; set; }
 
+    // (Phase 15) Resolve PART_OF components
+    public Func<string, List<string>>? PartOfResolver { get; set; }
+
+    // (Phase 16) Resolve Relations for CONSTRUCT_RELATIONS expansion
+    public Func<string, Relation?>? RelationResolver { get; set; }
+
     public ReasoningResult FindClosure(Concept concept, Dictionary<string, object> initialFacts, List<string> targetVariables)
     {
         var result = new ReasoningResult();
@@ -329,8 +335,6 @@ public class InferenceEngine
             foreach (var b in additionalBases) allBaseObjects.Add(b);
         }
 
-        if (allBaseObjects.Count == 0) return primary;
-
         var effective = new Concept
         {
             Name = primary.Name,
@@ -339,25 +343,105 @@ public class InferenceEngine
             CompRels = new List<ComputationRelation>(primary.CompRels),
             SameVariables = new List<SameVariable>(primary.SameVariables),
             ConceptRules = new List<ConceptRule>(primary.ConceptRules),
-            Equations = new List<Equation>(primary.Equations)
+            Equations = new List<Equation>(primary.Equations),
+            ConstructRelations = new List<ConstructRelation>(primary.ConstructRelations)
         };
 
-        foreach (var baseName in allBaseObjects)
+        // IS_A merging
+        if (allBaseObjects.Count > 0)
         {
-            var baseConcept = ConceptResolver?.Invoke(baseName);
-            if (baseConcept != null)
+            foreach (var baseName in allBaseObjects)
             {
-                var flattendBase = GetEffectiveConcept(baseConcept); // Recursively flatten base concepts
-                // Merge base into effective (avoid duplicates for variables, add all others)
-                effective.Variables.AddRange(flattendBase.Variables.Where(v => !effective.Variables.Any(ev => ev.Name == v.Name)));
-                effective.Constraints.AddRange(flattendBase.Constraints);
-                effective.CompRels.AddRange(flattendBase.CompRels);
-                effective.SameVariables.AddRange(flattendBase.SameVariables);
-                effective.ConceptRules.AddRange(flattendBase.ConceptRules);
-                effective.Equations.AddRange(flattendBase.Equations);
+                var baseConcept = ConceptResolver?.Invoke(baseName);
+                if (baseConcept != null)
+                {
+                    var flattendBase = GetEffectiveConcept(baseConcept);
+                    effective.Variables.AddRange(flattendBase.Variables.Where(v => !effective.Variables.Any(ev => ev.Name == v.Name)));
+                    effective.Constraints.AddRange(flattendBase.Constraints);
+                    effective.CompRels.AddRange(flattendBase.CompRels);
+                    effective.SameVariables.AddRange(flattendBase.SameVariables);
+                    effective.ConceptRules.AddRange(flattendBase.ConceptRules);
+                    effective.Equations.AddRange(flattendBase.Equations);
+                    effective.ConstructRelations.AddRange(flattendBase.ConstructRelations);
+                }
             }
         }
+
+        // (Phase 15) PART_OF expansion: auto-discover component sub-concepts
+        var partOfChildren = PartOfResolver?.Invoke(primary.Name);
+        if (partOfChildren != null && partOfChildren.Count > 0 && ConceptResolver != null)
+        {
+            foreach (var partConceptName in partOfChildren)
+            {
+                // Find variables of this type that already exist as concept-typed vars
+                // E.g., if "Canh" PART_OF "TamGiac" and TamGiac has variables "a: Canh, b: Canh, c: Canh"
+                // then the sub-concept expansion is already handled by RC6.2
+                // But if there are NO variables of this type, we auto-register hidden vars
+                var existingVarsOfType = effective.Variables
+                    .Where(v => v.Type.Equals(partConceptName, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+                if (existingVarsOfType.Count == 0)
+                {
+                    // Auto-create a single implicit variable for this part
+                    var implicitVarName = partConceptName.ToLower();
+                    if (!effective.Variables.Any(v => v.Name.Equals(implicitVarName, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        effective.Variables.Add(new Variable { Name = implicitVarName, Type = partConceptName });
+                    }
+                }
+            }
+        }
+
+        // (Phase 16) CONSTRUCT_RELATIONS expansion: inject relation knowledge
+        if (effective.ConstructRelations.Count > 0 && RelationResolver != null)
+        {
+            foreach (var cr in effective.ConstructRelations)
+            {
+                var rel = RelationResolver(cr.RelationName);
+                if (rel != null)
+                {
+                    // Map parameters to arguments
+                    var binding = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    for (int i = 0; i < Math.Min(rel.ParamNames.Count, cr.Arguments.Count); i++)
+                    {
+                        binding[rel.ParamNames[i]] = cr.Arguments[i];
+                    }
+
+                    // Inject equations with substitution
+                    foreach (var eq in rel.Equations)
+                    {
+                        var substitutedExpr = SubstituteVariables(eq.Expression, binding);
+                        effective.Equations.Add(new Equation { Expression = substitutedExpr });
+                    }
+
+                    // Inject rules with substitution
+                    foreach (var rule in rel.Rules)
+                    {
+                        effective.ConceptRules.Add(new ConceptRule
+                        {
+                            Kind = rule.Kind,
+                            Hypothesis = rule.Hypothesis.Select(h => SubstituteVariables(h, binding)).ToList(),
+                            Conclusion = rule.Conclusion.Select(c => SubstituteVariables(c, binding)).ToList()
+                        });
+                    }
+                }
+            }
+        }
+
         return effective;
+    }
+
+    private string SubstituteVariables(string expression, Dictionary<string, string> binding)
+    {
+        var result = expression;
+        foreach (var kvp in binding)
+        {
+            // Use regex to replace whole word only, allowing for dot notation access
+            string pattern = $@"\b{Regex.Escape(kvp.Key)}\b";
+            result = Regex.Replace(result, pattern, kvp.Value);
+        }
+        return result;
     }
 
     private bool IsConceptType(string type) => !new[] { "DECIMAL", "INT", "FLOAT", "DOUBLE", "BOOLEAN", "STRING" }.Contains(type.ToUpper());

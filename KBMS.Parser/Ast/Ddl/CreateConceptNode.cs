@@ -132,6 +132,5 @@ public class PropertyDef
 public class ConstructRelationDef
 {
     public string RelationName { get; set; } = string.Empty;
-    public string FromConcept { get; set; } = string.Empty;
-    public string ToConcept { get; set; } = string.Empty;
+    public List<string> Arguments { get; set; } = new();  // e.g., ["d1", "d2"]
 }

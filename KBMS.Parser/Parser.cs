@@ -299,18 +299,60 @@ public class Parser
             Column = token.Column
         };
 
-        Consume(TokenType.FROM);
-        var domainToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected domain concept");
-        node.DomainConcept = domainToken.Lexeme;
-
-        Consume(TokenType.TO);
-        var rangeToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected range concept");
-        node.RangeConcept = rangeToken.Lexeme;
-
-        // Parse PROPERTIES clause
-        if (Check(TokenType.PROPERTIES))
+        // Parse optional clauses in any order
+        while (!IsAtEnd())
         {
-            node.Properties = ParseIdentifierList();
+            var nextType = Peek()?.Type;
+            if (nextType == TokenType.FROM)
+            {
+                Consume(TokenType.FROM);
+                var domainToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected domain concept");
+                node.DomainConcept = domainToken.Lexeme;
+            }
+            else if (nextType == TokenType.TO)
+            {
+                Consume(TokenType.TO);
+                var rangeToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected range concept");
+                node.RangeConcept = rangeToken.Lexeme;
+            }
+            else if (nextType == TokenType.PARAMS)
+            {
+                Consume(TokenType.PARAMS);
+                if (Check(TokenType.LPAREN))
+                {
+                    Consume(TokenType.LPAREN);
+                    while (!Check(TokenType.RPAREN) && !IsAtEnd())
+                    {
+                        var paramToken = ConsumeIdentifier() ?? throw new ParserException("Expected param name");
+                        node.ParamNames.Add(paramToken.Lexeme);
+                        if (Check(TokenType.COMMA)) Consume(TokenType.COMMA);
+                    }
+                    Consume(TokenType.RPAREN);
+                }
+                else
+                {
+                    node.ParamNames = ParseIdentifierList();
+                }
+            }
+            else if (nextType == TokenType.PROPERTIES)
+            {
+                Consume(TokenType.PROPERTIES);
+                node.Properties = ParseIdentifierList();
+            }
+            else if (nextType == TokenType.EQUATIONS)
+            {
+                Consume(TokenType.EQUATIONS);
+                node.Equations = ParseEquationList();
+            }
+            else if (nextType == TokenType.RULES)
+            {
+                Consume(TokenType.RULES);
+                node.ConceptRules = ParseConceptRuleList();
+            }
+            else
+            {
+                break;
+            }
         }
 
         return node;
@@ -1887,15 +1929,31 @@ public class Parser
 
         while (!IsAtEnd() && !IsClauseKeyword(Peek()?.Type))
         {
-            var relToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected relation name");
-            var fromToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected domain concept");
-            var toToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected range concept");
-            
-            list.Add(new ConstructRelationDef {
-                RelationName = relToken.Lexeme,
-                FromConcept = fromToken.Lexeme,
-                ToConcept = toToken.Lexeme
-            });
+            var relToken = ConsumeIdentifier() ?? throw new ParserException("Expected relation name");
+            var def = new ConstructRelationDef { RelationName = relToken.Lexeme };
+
+            // Parse function-style arguments: RelName(arg1, arg2, ...)
+            if (Check(TokenType.LPAREN))
+            {
+                Consume(TokenType.LPAREN);
+                while (!Check(TokenType.RPAREN) && !IsAtEnd())
+                {
+                    var argToken = ConsumeIdentifier() ?? throw new ParserException("Expected argument name");
+                    def.Arguments.Add(argToken.Lexeme);
+                    if (Check(TokenType.COMMA)) Consume(TokenType.COMMA);
+                }
+                Consume(TokenType.RPAREN);
+            }
+            else
+            {
+                // Fallback: old syntax with two identifiers
+                var arg1 = ConsumeIdentifier();
+                var arg2 = ConsumeIdentifier();
+                if (arg1 != null) def.Arguments.Add(arg1.Lexeme);
+                if (arg2 != null) def.Arguments.Add(arg2.Lexeme);
+            }
+
+            list.Add(def);
 
             if (Check(TokenType.COMMA))
                 Consume(TokenType.COMMA);
