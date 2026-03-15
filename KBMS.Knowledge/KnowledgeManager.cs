@@ -286,7 +286,13 @@ public class KnowledgeManager
             Variables = expandedVariables,
             Aliases = node.Aliases,
             BaseObjects = node.BaseObjects,
-            Constraints = node.Constraints.Select(c => new Constraint { Expression = c }).ToList(),
+            Constraints = node.Constraints.Select(c => new Constraint 
+            { 
+                Name = c.Name, 
+                Expression = c.Expression,
+                Line = c.Line,
+                Column = c.Column
+            }).ToList(),
             SameVariables = node.SameVariables.Select(sv => new SameVariable
             {
                 Variable1 = sv.Var1,
@@ -314,7 +320,9 @@ public class KnowledgeManager
             {
                 Id = Guid.NewGuid(),
                 Expression = e.Expression,
-                Variables = ExtractVariablesFromExpression(e.Expression)
+                Variables = ExtractVariablesFromExpression(e.Expression),
+                Line = e.Line,
+                Column = e.Column
             }).ToList()
         };
 
@@ -387,7 +395,9 @@ public class KnowledgeManager
             Equations = node.Equations.Select(e => new Equation
             {
                 Id = Guid.NewGuid(),
-                Expression = e.Expression
+                Expression = e.Expression,
+                Line = e.Line,
+                Column = e.Column
             }).ToList(),
             Rules = node.ConceptRules.Select(r => new ConceptRule
             {

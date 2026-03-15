@@ -2045,21 +2045,46 @@ public class Parser
         var list = new List<EquationDef>();
         while (!IsAtEnd() && !IsClauseKeyword(Peek()?.Type))
         {
-            list.Add(new EquationDef { Expression = ParseExpressionString() });
+            var startToken = Peek() ?? throw new ParserException("Expected equation");
+            list.Add(new EquationDef 
+            { 
+                Expression = ParseExpressionString(),
+                Line = startToken.Line,
+                Column = startToken.Column
+            });
+
             if (Check(TokenType.COMMA)) Consume(TokenType.COMMA);
             else break;
         }
         return list;
     }
 
-    private List<string> ParseConstraintList()
+    private List<ConstraintDef> ParseConstraintList()
     {
-        var list = new List<string>();
+        var list = new List<ConstraintDef>();
 
         while (!IsAtEnd() && !IsClauseKeyword(Peek()?.Type))
         {
-            var constraint = ParseExpressionString();
-            list.Add(constraint);
+            string name = string.Empty;
+            var startToken = Peek() ?? throw new ParserException("Expected constraint");
+
+            // Lookahead for named constraint: name: expression
+            if (Peek()?.Type == TokenType.IDENTIFIER && PeekNext()?.Type == TokenType.COLON)
+            {
+                name = Advance().Lexeme;
+                Consume(TokenType.COLON);
+                // The actual expression starts after the colon
+                startToken = Peek() ?? throw new ParserException("Expected constraint expression after ':'");
+            }
+
+            var expression = ParseExpressionString();
+            list.Add(new ConstraintDef
+            {
+                Name = name,
+                Expression = expression,
+                Line = startToken.Line,
+                Column = startToken.Column
+            });
 
             if (Check(TokenType.COMMA))
                 Consume(TokenType.COMMA);

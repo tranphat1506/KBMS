@@ -23,6 +23,8 @@ public class Equation
     public Guid Id { get; set; }
     public string Expression { get; set; } = string.Empty;
     public List<string> Variables { get; set; } = new();
+    public int Line { get; set; }
+    public int Column { get; set; }
 }
 
 public class Variable
@@ -35,7 +37,10 @@ public class Variable
 
 public class Constraint
 {
+    public string Name { get; set; } = string.Empty;
     public string Expression { get; set; } = string.Empty;
+    public int Line { get; set; }
+    public int Column { get; set; }
 }
 
 public class ComputationRelation

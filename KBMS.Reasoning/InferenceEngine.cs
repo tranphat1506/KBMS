@@ -66,6 +66,9 @@ public class InferenceEngine
         {
             foreach (var constraint in effectiveConcept.Constraints)
             {
+                var constraintLabel = string.IsNullOrEmpty(constraint.Name) ? constraint.Expression : $"{constraint.Name}: {constraint.Expression}";
+                var locationLabel = (constraint.Line > 0) ? $" (at line {constraint.Line}, col {constraint.Column})" : "";
+
                 try
                 {
                     var needed = ExtractVariablesFromExpression(constraint.Expression);
@@ -75,8 +78,8 @@ public class InferenceEngine
                         if (!ok)
                         {
                             result.Success = false;
-                            result.ErrorMessage = $"Input constraint violated: {constraint.Expression}.";
-                            result.Steps.Add($"  ✗ Input constraint VIOLATED: {constraint.Expression}");
+                            result.ErrorMessage = $"Input constraint violated: {constraintLabel}{locationLabel}.";
+                            result.Steps.Add($"  ✗ Input constraint VIOLATED: {constraintLabel}{locationLabel}");
                             return result;
                         }
                     }
@@ -382,18 +385,21 @@ public class InferenceEngine
             result.Steps.Add($"Step {stepCount++}: Validating {effectiveConcept.Constraints.Count} constraint(s)...");
             foreach (var constraint in effectiveConcept.Constraints)
             {
+                var constraintLabel = string.IsNullOrEmpty(constraint.Name) ? constraint.Expression : $"{constraint.Name}: {constraint.Expression}";
+                var locationLabel = (constraint.Line > 0) ? $" (at line {constraint.Line}, col {constraint.Column})" : "";
+
                 try
                 {
                     var ok = EvaluateConstraint(constraint.Expression, knownFacts);
-                    if (ok) result.Steps.Add($"  ✓ Constraint satisfied: {constraint.Expression}");
+                    if (ok) result.Steps.Add($"  ✓ Constraint satisfied: {constraintLabel}{locationLabel}");
                     else
                     {
-                        result.Steps.Add($"  ✗ Constraint VIOLATED: {constraint.Expression}");
+                        result.Steps.Add($"  ✗ Constraint VIOLATED: {constraintLabel}{locationLabel}");
                         result.Success = false;
-                        result.ErrorMessage = $"Constraint violated: {constraint.Expression}";
+                        result.ErrorMessage = $"Constraint violated: {constraintLabel}{locationLabel}";
                     }
                 }
-                catch { result.Steps.Add($"  ? Constraint skipped (missing vars): {constraint.Expression}"); } // Cannot evaluate, assume not violated for now
+                catch { result.Steps.Add($"  ? Constraint skipped (missing vars): {constraintLabel}{locationLabel}"); } // Cannot evaluate, assume not violated for now
             }
         }
 

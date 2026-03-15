@@ -68,9 +68,9 @@ public class CreateConceptNode : DdlNode
     public List<string> BaseObjects { get; set; } = new();
 
     /// <summary>
-    /// List of constraint expressions
+    /// List of constraint definitions
     /// </summary>
-    public List<string> Constraints { get; set; } = new();
+    public List<ConstraintDef> Constraints { get; set; } = new();
 
     /// <summary>
     /// List of same variable groups
@@ -98,12 +98,22 @@ public class CreateConceptNode : DdlNode
     public List<EquationDef> Equations { get; set; } = new();
 }
 
-/// <summary>
-/// Definition for an equation bound to a concept
-/// </summary>
 public class EquationDef
 {
     public string Expression { get; set; } = string.Empty;
+    public int Line { get; set; }
+    public int Column { get; set; }
+}
+
+/// <summary>
+/// Definition for a constraint bound to a concept
+/// </summary>
+public class ConstraintDef
+{
+    public string Name { get; set; } = string.Empty;
+    public string Expression { get; set; } = string.Empty;
+    public int Line { get; set; }
+    public int Column { get; set; }
 }
 
 /// <summary>

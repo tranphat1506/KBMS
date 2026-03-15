@@ -820,10 +820,11 @@ public static class ResponseParser
         // Try to parse as structured error response
         try
         {
-            var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(content);
-            if (errorResponse != null)
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(content, options);
+            if (errorResponse != null && (!string.IsNullOrEmpty(errorResponse.Message) || !string.IsNullOrEmpty(errorResponse.Type)))
             {
-                DisplayErrorPlain(errorResponse.Message);
+                DisplayStructuredError(errorResponse);
                 return;
             }
         }
@@ -834,6 +835,39 @@ public static class ResponseParser
 
         // Fallback: display as plain text
         DisplayErrorPlain(content);
+    }
+
+    private static void DisplayStructuredError(ErrorResponse error)
+    {
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.WriteLine($"ERROR: {error.Message}");
+        Console.ResetColor();
+
+        if (error.Line.HasValue && error.Column.HasValue && !string.IsNullOrEmpty(error.Query))
+        {
+            var lines = error.Query.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+            if (error.Line.Value > 0 && error.Line.Value <= lines.Length)
+            {
+                var errorLine = lines[error.Line.Value - 1];
+                string lineNumberPart = $"  {error.Line.Value} | ";
+                Console.WriteLine($"\n{lineNumberPart}{errorLine}");
+                
+                // Print pointer ^
+                Console.Write(new string(' ', lineNumberPart.Length));
+                
+                // Handle tabs for alignment
+                for (int i = 0; i < error.Column.Value - 1; i++)
+                {
+                    if (i < errorLine.Length && errorLine[i] == '\t') Console.Write("\t");
+                    else Console.Write(" ");
+                }
+                
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("^");
+                Console.ResetColor();
+                Console.WriteLine($"(Line: {error.Line.Value}, Column: {error.Column.Value})\n");
+            }
+        }
     }
 
     private static string GetDisplayString(JsonElement element)
@@ -894,14 +928,28 @@ public static class ResponseParser
 
         if (success)
         {
+            Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine("STATUS: SUCCESS");
+            Console.ResetColor();
         }
         else
         {
+            Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine("STATUS: FAILED or HALTED");
+            Console.ResetColor();
             if (root.TryGetProperty("ErrorMessage", out var errProp))
             {
-                Console.WriteLine($"Error: {errProp.GetString()}");
+                var errMsg = errProp.GetString();
+                if (errMsg != null && errMsg.Contains("violated", StringComparison.OrdinalIgnoreCase))
+                {
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine($"Violation: {errMsg}");
+                    Console.ResetColor();
+                }
+                else
+                {
+                    Console.WriteLine($"Error: {errMsg}");
+                }
             }
         }
 
