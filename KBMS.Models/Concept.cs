@@ -12,6 +12,9 @@ public class Concept
     public List<string> Aliases { get; set; } = new();
     public List<string> BaseObjects { get; set; } = new();
     public List<SameVariable> SameVariables { get; set; } = new();
+    public List<ConstructRelation> ConstructRelations { get; set; } = new();
+    public List<Property> Properties { get; set; } = new();
+    public List<ConceptRule> ConceptRules { get; set; } = new();
 }
 
 public class Variable
@@ -29,9 +32,13 @@ public class Constraint
 
 public class ComputationRelation
 {
-    public string FromVariable { get; set; } = string.Empty;
-    public string ToVariable { get; set; } = string.Empty;
-    public string Formula { get; set; } = string.Empty;
+    public Guid Id { get; set; }
+    public string ConceptName { get; set; } = string.Empty;
+    public int Flag { get; set; }
+    public List<string> InputVariables { get; set; } = new();
+    public int Rank { get; set; }
+    public string? ResultVariable { get; set; }
+    public string Expression { get; set; } = string.Empty;
     public int Cost { get; set; } = 1;
 }
 
@@ -39,4 +46,26 @@ public class SameVariable
 {
     public string Variable1 { get; set; } = string.Empty;
     public string Variable2 { get; set; } = string.Empty;
+}
+
+public class ConstructRelation
+{
+    public string RelationName { get; set; } = string.Empty;
+    public string FromConcept { get; set; } = string.Empty;
+    public string ToConcept { get; set; } = string.Empty;
+}
+
+public class Property
+{
+    public string Key { get; set; } = string.Empty;
+    public object Value { get; set; } = null!;
+}
+
+public class ConceptRule
+{
+    public Guid Id { get; set; }
+    public string Kind { get; set; } = string.Empty;
+    public List<Variable> Variables { get; set; } = new();
+    public List<string> Hypothesis { get; set; } = new();
+    public List<string> Conclusion { get; set; } = new();
 }

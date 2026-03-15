@@ -232,6 +232,25 @@ public class KnowledgeManager
             {
                 Variable1 = sv.Var1,
                 Variable2 = sv.Var2
+            }).ToList(),
+            ConstructRelations = node.ConstructRelations.Select(cr => new ConstructRelation
+            {
+                RelationName = cr.RelationName,
+                FromConcept = cr.FromConcept,
+                ToConcept = cr.ToConcept
+            }).ToList(),
+            Properties = node.Properties.Select(p => new Property
+            {
+                Key = p.Key,
+                Value = p.Value
+            }).ToList(),
+            ConceptRules = node.ConceptRules.Select(r => new ConceptRule
+            {
+                Id = Guid.NewGuid(),
+                Kind = r.Kind,
+                Variables = r.Variables.Select(v => new Variable { Name = v.Name, Type = v.Type, Length = v.Length, Scale = v.Scale }).ToList(),
+                Hypothesis = r.Hypothesis,
+                Conclusion = r.Conclusion
             }).ToList()
         };
 

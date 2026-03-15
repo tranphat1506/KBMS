@@ -72,6 +72,7 @@ public enum TokenType
     CONSTRAINTS,    // CONSTRAINTS
     SAME_VARIABLES, // SAME_VARIABLES
     VARIABLE,       // VARIABLE (singular)
+    CONSTRUCT_RELATIONS, // CONSTRUCT_RELATIONS
 
     // Keywords - Hierarchy
     IS_A,           // IS_A

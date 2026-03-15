@@ -76,4 +76,49 @@ public class CreateConceptNode : DdlNode
     /// List of same variable groups
     /// </summary>
     public List<SameVariableGroup> SameVariables { get; set; } = new();
+
+    /// <summary>
+    /// List of construct relations
+    /// </summary>
+    public List<ConstructRelationDef> ConstructRelations { get; set; } = new();
+
+    /// <summary>
+    /// List of concept properties
+    /// </summary>
+    public List<PropertyDef> Properties { get; set; } = new();
+
+    /// <summary>
+    /// List of local rules
+    /// </summary>
+    public List<ConceptRuleDef> ConceptRules { get; set; } = new();
+}
+
+/// <summary>
+/// Definition for a rule bound to a concept
+/// </summary>
+public class ConceptRuleDef
+{
+    public string Kind { get; set; } = string.Empty;
+    public List<VariableDefinition> Variables { get; set; } = new();
+    public List<string> Hypothesis { get; set; } = new();
+    public List<string> Conclusion { get; set; } = new();
+}
+
+/// <summary>
+/// Definition for a property string-value pair
+/// </summary>
+public class PropertyDef
+{
+    public string Key { get; set; } = string.Empty;
+    public string Value { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Definition for a construct relation
+/// </summary>
+public class ConstructRelationDef
+{
+    public string RelationName { get; set; } = string.Empty;
+    public string FromConcept { get; set; } = string.Empty;
+    public string ToConcept { get; set; } = string.Empty;
 }

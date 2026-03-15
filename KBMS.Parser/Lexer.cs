@@ -75,6 +75,7 @@ public class Lexer
         { "BASE_OBJECTS", TokenType.BASE_OBJECTS },
         { "CONSTRAINTS", TokenType.CONSTRAINTS },
         { "SAME_VARIABLES", TokenType.SAME_VARIABLES },
+        { "CONSTRUCT_RELATIONS", TokenType.CONSTRUCT_RELATIONS },
 
         // Hierarchy Keywords
         { "HIERARCHY", TokenType.HIERARCHY },

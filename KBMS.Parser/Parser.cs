@@ -195,6 +195,27 @@ public class Parser
             node.SameVariables = ParseSameVariablesList();
         }
 
+        // Parse CONSTRUCT_RELATIONS clause
+        if (Check(TokenType.CONSTRUCT_RELATIONS))
+        {
+            Consume(TokenType.CONSTRUCT_RELATIONS);
+            node.ConstructRelations = ParseConstructRelationList();
+        }
+
+        // Parse PROPERTIES clause
+        if (Check(TokenType.PROPERTIES))
+        {
+            Consume(TokenType.PROPERTIES);
+            node.Properties = ParsePropertyList();
+        }
+
+        // Parse RULES clause
+        if (Check(TokenType.RULES))
+        {
+            Consume(TokenType.RULES);
+            node.ConceptRules = ParseConceptRuleList();
+        }
+
         return node;
     }
 
@@ -873,6 +894,7 @@ public class Parser
         // Parse COST clause
         if (Check(TokenType.COST))
         {
+            Consume(TokenType.COST);
             var costToken = Consume(TokenType.NUMBER) ?? throw new ParserException("Expected cost number");
             node.Cost = (int?)ConvertToDouble(costToken.Literal);
         }
@@ -1817,6 +1839,105 @@ public class Parser
         return list;
     }
 
+    private List<ConstructRelationDef> ParseConstructRelationList()
+    {
+        var list = new List<ConstructRelationDef>();
+
+        while (!IsAtEnd() && !IsClauseKeyword(Peek()?.Type))
+        {
+            var relToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected relation name");
+            var fromToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected domain concept");
+            var toToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected range concept");
+            
+            list.Add(new ConstructRelationDef {
+                RelationName = relToken.Lexeme,
+                FromConcept = fromToken.Lexeme,
+                ToConcept = toToken.Lexeme
+            });
+
+            if (Check(TokenType.COMMA))
+                Consume(TokenType.COMMA);
+            else
+                break;
+        }
+
+        return list;
+    }
+
+    private List<PropertyDef> ParsePropertyList()
+    {
+        var list = new List<PropertyDef>();
+
+        while (!IsAtEnd() && !IsClauseKeyword(Peek()?.Type))
+        {
+            var keyToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected property key");
+            Consume(TokenType.EQUALS);
+            var valToken = Advance() ?? throw new ParserException("Expected property value");
+            
+            list.Add(new PropertyDef {
+                Key = keyToken.Lexeme,
+                Value = valToken.Literal?.ToString() ?? valToken.Lexeme
+            });
+
+            if (Check(TokenType.COMMA))
+                Consume(TokenType.COMMA);
+            else
+                break;
+        }
+
+        return list;
+    }
+
+    private List<ConceptRuleDef> ParseConceptRuleList()
+    {
+        var list = new List<ConceptRuleDef>();
+
+        while (!IsAtEnd() && !IsClauseKeyword(Peek()?.Type))
+        {
+            var rule = new ConceptRuleDef();
+            
+            if (Check(TokenType.TYPE))
+            {
+                Consume(TokenType.TYPE);
+                var typeToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected rule type");
+                rule.Kind = typeToken.Lexeme;
+            }
+
+            if (Check(TokenType.VARIABLES))
+            {
+                Consume(TokenType.VARIABLES);
+                Consume(TokenType.LPAREN);
+                while (!Check(TokenType.RPAREN))
+                {
+                    rule.Variables.Add(ParseVariableDefinition());
+                    if (!Check(TokenType.RPAREN)) Consume(TokenType.COMMA);
+                }
+                Consume(TokenType.RPAREN);
+            }
+
+            if (Check(TokenType.IF))
+            {
+                Consume(TokenType.IF);
+                rule.Hypothesis = ParseExpressionList();
+            }
+
+            if (Check(TokenType.THEN))
+            {
+                Consume(TokenType.THEN);
+                rule.Conclusion = ParseExpressionList();
+            }
+
+            list.Add(rule);
+
+            if (Check(TokenType.COMMA))
+                Consume(TokenType.COMMA);
+            else
+                break;
+        }
+
+        return list;
+    }
+
     private List<string> ParseConstraintList()
     {
         var list = new List<string>();
@@ -2049,6 +2170,8 @@ public class Parser
                type == TokenType.BASE_OBJECTS ||
                type == TokenType.CONSTRAINTS ||
                type == TokenType.SAME_VARIABLES ||
+               type == TokenType.CONSTRUCT_RELATIONS ||
+               type == TokenType.RULES ||
                type == TokenType.RETURNS ||
                type == TokenType.BODY ||
                type == TokenType.PROPERTIES ||

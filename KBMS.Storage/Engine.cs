@@ -641,14 +641,18 @@ public class StorageEngine
             return false;
 
         // Check if computation already exists
-        if (concept.CompRels.Any(c => c.ToVariable == resultVariable))
+        if (concept.CompRels.Any(c => c.ResultVariable == resultVariable))
             return false;
 
         var computation = new ComputationRelation
         {
-            ToVariable = resultVariable,
-            FromVariable = string.Join(", ", inputVariables),
-            Formula = formula,
+            Id = Guid.NewGuid(),
+            ConceptName = conceptName,
+            Flag = 0,
+            InputVariables = inputVariables,
+            Rank = 0,
+            ResultVariable = resultVariable,
+            Expression = formula,
             Cost = cost
         };
 
@@ -666,7 +670,7 @@ public class StorageEngine
         if (concept == null)
             return false;
 
-        var computation = concept.CompRels.FirstOrDefault(c => c.ToVariable == resultVariable);
+        var computation = concept.CompRels.FirstOrDefault(c => c.ResultVariable == resultVariable);
         if (computation == null)
             return false;
 
