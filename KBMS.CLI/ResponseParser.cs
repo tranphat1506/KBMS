@@ -838,17 +838,27 @@ public static class ResponseParser
 
     private static string GetDisplayString(JsonElement element)
     {
-        return element.ValueKind switch
+        switch (element.ValueKind)
         {
-            JsonValueKind.Null => "NULL",
-            JsonValueKind.String => element.GetString() ?? "",
-            JsonValueKind.Number => element.GetRawText(),
-            JsonValueKind.True => "true",
-            JsonValueKind.False => "false",
-            JsonValueKind.Array => $"[{element.GetArrayLength()} items]",
-            JsonValueKind.Object => "{...}",
-            _ => element.ToString()
-        };
+            case JsonValueKind.Null: return "NULL";
+            case JsonValueKind.String: return element.GetString() ?? "";
+            case JsonValueKind.Number:
+                if (element.TryGetDouble(out double val))
+                {
+                    // If the value is extremely close to an integer, round it
+                    if (Math.Abs(val - Math.Round(val)) < 1e-10)
+                        return Math.Round(val).ToString();
+                    
+                    // Otherwise format with a reasonable number of digits
+                    return val.ToString("G10");
+                }
+                return element.GetRawText();
+            case JsonValueKind.True: return "true";
+            case JsonValueKind.False: return "false";
+            case JsonValueKind.Array: return $"[{element.GetArrayLength()} items]";
+            case JsonValueKind.Object: return "{...}";
+            default: return element.ToString();
+        }
     }
 
     private static string Pad(string str, int width, char padChar = ' ')
