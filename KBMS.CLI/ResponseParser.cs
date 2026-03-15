@@ -882,7 +882,6 @@ public static class ResponseParser
                 var step = steps[i].GetString();
                 if (i == steps.Count - 1)
                 {
-                    // Last step might be a success/stop message, tint it if possible but we print normally
                     Console.WriteLine($"  => {step}");
                 }
                 else
@@ -903,6 +902,36 @@ public static class ResponseParser
             if (root.TryGetProperty("ErrorMessage", out var errProp))
             {
                 Console.WriteLine($"Error: {errProp.GetString()}");
+            }
+        }
+
+        // (Phase 17) Explanations
+        if (root.TryGetProperty("Traces", out var tracesProp) && tracesProp.ValueKind == JsonValueKind.Array)
+        {
+            var traces = tracesProp.EnumerateArray().ToList();
+            if (traces.Count > 0)
+            {
+                Console.WriteLine("\nExplanations (How facts were derived):");
+                foreach (var trace in traces)
+                {
+                    var target = trace.GetProperty("TargetVariable").GetString();
+                    var value = GetDisplayString(trace.GetProperty("Value"));
+                    var mechanism = trace.GetProperty("Mechanism").GetString();
+                    var source = trace.GetProperty("Source").GetString();
+                    
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.Write($"  • {target} = {value}");
+                    Console.ResetColor();
+                    Console.WriteLine($" derived via {mechanism}");
+                    Console.WriteLine($"    Source: {source}");
+                    
+                    if (trace.TryGetProperty("Inputs", out var inputsProp) && inputsProp.ValueKind == JsonValueKind.Object)
+                    {
+                        var inputs = inputsProp.EnumerateObject().Select(p => $"{p.Name}={GetDisplayString(p.Value)}");
+                        Console.WriteLine($"    Inputs: {string.Join(", ", inputs)}");
+                    }
+                    Console.WriteLine();
+                }
             }
         }
 

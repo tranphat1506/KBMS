@@ -13,11 +13,21 @@ namespace KBMS.Reasoning;
 /// </summary>
 public class InferenceEngine
 {
+    public class DerivationTrace
+    {
+        public string TargetVariable { get; set; } = "";
+        public object? Value { get; set; }
+        public string Mechanism { get; set; } = ""; // Equation, Rule, Computation, SameVariable
+        public string Source { get; set; } = "";    // Original expression or rule name
+        public Dictionary<string, object> Inputs { get; set; } = new();
+    }
+
     public class ReasoningResult
     {
         public bool Success { get; set; } = true;
         public Dictionary<string, object> DerivedFacts { get; set; } = new();
         public List<string> Steps { get; set; } = new();
+        public List<DerivationTrace> Traces { get; set; } = new();
         public string? ErrorMessage { get; set; }
     }
 
@@ -131,6 +141,17 @@ public class InferenceEngine
                     knownFacts[sv.Variable2] = val;
                     result.DerivedFacts[sv.Variable2] = val;
                     result.Steps.Add($"Step {stepCount++}: From SameVariable {sv.Variable1} = {sv.Variable2} => {sv.Variable2} = {val}");
+                    
+                    // (Phase 17) Trace
+                    result.Traces.Add(new DerivationTrace
+                    {
+                        TargetVariable = sv.Variable2,
+                        Value = val,
+                        Mechanism = "SameVariable",
+                        Source = $"{sv.Variable1} = {sv.Variable2}",
+                        Inputs = new Dictionary<string, object> { { sv.Variable1, val } }
+                    });
+
                     factAdded = true;
                 }
                 else if (knownFacts.ContainsKey(sv.Variable2) && !knownFacts.ContainsKey(sv.Variable1))
@@ -139,6 +160,17 @@ public class InferenceEngine
                     knownFacts[sv.Variable1] = val;
                     result.DerivedFacts[sv.Variable1] = val;
                     result.Steps.Add($"Step {stepCount++}: From SameVariable {sv.Variable1} = {sv.Variable2} => {sv.Variable1} = {val}");
+                    
+                    // (Phase 17) Trace
+                    result.Traces.Add(new DerivationTrace
+                    {
+                        TargetVariable = sv.Variable1,
+                        Value = val,
+                        Mechanism = "SameVariable",
+                        Source = $"{sv.Variable1} = {sv.Variable2}",
+                        Inputs = new Dictionary<string, object> { { sv.Variable2, val } }
+                    });
+
                     factAdded = true;
                 }
             }
@@ -156,6 +188,17 @@ public class InferenceEngine
                             knownFacts[rel.ResultVariable] = value;
                             result.DerivedFacts[rel.ResultVariable] = value;
                             result.Steps.Add($"Step {stepCount++}: From Computation {{{string.Join(", ", rel.InputVariables)}}} => {rel.ResultVariable} = {value}");
+                            
+                            // (Phase 17) Trace
+                            result.Traces.Add(new DerivationTrace
+                            {
+                                TargetVariable = rel.ResultVariable,
+                                Value = value,
+                                Mechanism = "Computation",
+                                Source = rel.Expression,
+                                Inputs = rel.InputVariables.ToDictionary(v => v, v => knownFacts[v])
+                            });
+
                             factAdded = true;
                         }
                         catch (Exception ex)
@@ -201,6 +244,21 @@ public class InferenceEngine
                                     knownFacts[varName] = val;
                                     result.DerivedFacts[varName] = val;
                                     result.Steps.Add($"Step {stepCount++}: From Rule [{rule.Kind}] IF {{{string.Join(", ", rule.Hypothesis)}}} => {varName} = {val}");
+                                    
+                                    // (Phase 17) Trace
+                                    var formulaVars = ExtractVariablesFromExpression(exprStr);
+                                    var hypothesisVars = rule.Hypothesis.SelectMany(h => ExtractVariablesFromExpression(h)).Distinct();
+                                    var allInputs = formulaVars.Concat(hypothesisVars).Distinct();
+
+                                    result.Traces.Add(new DerivationTrace
+                                    {
+                                        TargetVariable = varName,
+                                        Value = val,
+                                        Mechanism = "Rule",
+                                        Source = $"IF {string.Join(" AND ", rule.Hypothesis)} THEN {conclusion}",
+                                        Inputs = allInputs.Where(v => knownFacts.ContainsKey(v)).ToDictionary(v => v, v => knownFacts[v])
+                                    });
+
                                     factAdded = true;
                                 }
                                 catch { } // Cannot evaluate yet, skip for now
@@ -215,6 +273,18 @@ public class InferenceEngine
                                 knownFacts[flagName] = 1.0; // Represent boolean true as 1.0
                                 result.DerivedFacts[flagName] = 1.0;
                                 result.Steps.Add($"Step {stepCount++}: From Rule [{rule.Kind}] IF {{{string.Join(", ", rule.Hypothesis)}}} => {flagName} = 1");
+                                
+                                // (Phase 17) Trace
+                                var hypothesisVars = rule.Hypothesis.SelectMany(h => ExtractVariablesFromExpression(h)).Distinct();
+                                result.Traces.Add(new DerivationTrace
+                                {
+                                    TargetVariable = flagName,
+                                    Value = 1.0,
+                                    Mechanism = "Rule",
+                                    Source = $"IF {string.Join(" AND ", rule.Hypothesis)} THEN {conclusion}",
+                                    Inputs = hypothesisVars.Where(v => knownFacts.ContainsKey(v)).ToDictionary(v => v, v => knownFacts[v])
+                                });
+
                                 factAdded = true;
                             }
                         }
@@ -241,6 +311,18 @@ public class InferenceEngine
                             knownFacts[targetVar] = root;
                             result.DerivedFacts[targetVar] = root;
                             result.Steps.Add($"Step {stepCount++}: From Equation '{eq.Expression}' solved for {targetVar} => {root:F4}");
+                            
+                            // (Phase 17) Trace
+                            result.Traces.Add(new DerivationTrace
+                            {
+                                TargetVariable = targetVar,
+                                Value = root,
+                                Mechanism = "Equation",
+                                Source = eq.Expression,
+                                Inputs = eqVars.Where(v => v != targetVar && knownFacts.ContainsKey(v))
+                                               .ToDictionary(v => v, v => knownFacts[v])
+                            });
+
                             factAdded = true;
                         }
                     }
