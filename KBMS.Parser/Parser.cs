@@ -1077,6 +1077,7 @@ public class Parser
         // Parse JOIN clauses
         while (Check(TokenType.JOIN))
         {
+            Consume(TokenType.JOIN);
             node.Joins.Add(ParseJoinClause());
         }
 
@@ -1145,6 +1146,7 @@ public class Parser
         // Parse ON clause
         if (Check(TokenType.ON))
         {
+            Consume(TokenType.ON);
             join.OnCondition = ParseCondition();
         }
 

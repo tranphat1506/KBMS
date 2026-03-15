@@ -24,6 +24,16 @@ public class KbmsServer
     private readonly Logger _logger;
     private TcpListener? _listener;
     private bool _isRunning;
+    
+    private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
+    {
+        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+    };
+
+    private static string ToJson(object obj)
+    {
+        return JsonSerializer.Serialize(obj, _jsonOptions);
+    }
 
     public KbmsServer(
         string host = "0.0.0.0",
@@ -139,7 +149,7 @@ public class KbmsServer
                     response = new Message
                     {
                         Type = MessageType.ERROR,
-                        Content = JsonSerializer.Serialize(ErrorResponse.RuntimeErrorResponse(new Exception($"Unknown message type: {message.Type}"), ""))
+                        Content = ToJson(ErrorResponse.RuntimeErrorResponse(new Exception($"Unknown message type: {message.Type}"), ""))
                     };
                     break;
             }
@@ -153,7 +163,7 @@ public class KbmsServer
             return new Message
             {
                 Type = MessageType.ERROR,
-                Content = JsonSerializer.Serialize(ErrorResponse.RuntimeErrorResponse(ex, ""))
+                Content = ToJson(ErrorResponse.RuntimeErrorResponse(ex, ""))
             };
         }
     }
@@ -176,7 +186,7 @@ public class KbmsServer
             return new Message
             {
                 Type = MessageType.ERROR,
-                Content = JsonSerializer.Serialize(ErrorResponse.AuthenticationErrorResponse("Invalid login format. Usage: LOGIN <username> <password>"))
+                Content = ToJson(ErrorResponse.AuthenticationErrorResponse("Invalid login format. Usage: LOGIN <username> <password>"))
             };
         }
 
@@ -190,7 +200,7 @@ public class KbmsServer
             return new Message
             {
                 Type = MessageType.ERROR,
-                Content = JsonSerializer.Serialize(ErrorResponse.AuthenticationErrorResponse("Invalid credentials"))
+                Content = ToJson(ErrorResponse.AuthenticationErrorResponse("Invalid credentials"))
             };
         }
 
@@ -212,7 +222,7 @@ public class KbmsServer
             return new Message
             {
                 Type = MessageType.ERROR,
-                Content = JsonSerializer.Serialize(
+                Content = ToJson(
                     ErrorResponse.AuthenticationErrorResponse("Not authenticated. Please login first."))
             };
         }
@@ -239,7 +249,7 @@ public class KbmsServer
                 return new Message
                 {
                     Type = MessageType.RESULT,
-                    Content = JsonSerializer.Serialize(new
+                    Content = ToJson(new
                     {
                         success = true,
                         executionTime = elapsedSec
@@ -259,7 +269,7 @@ public class KbmsServer
                     return new Message
                     {
                         Type = MessageType.ERROR,
-                        Content = JsonSerializer.Serialize(
+                        Content = ToJson(
                             ErrorResponse.ExecutionErrorResponse(
                                 errorValue.ToString() ?? "Unknown error",
                                 message.Content))
@@ -286,7 +296,7 @@ public class KbmsServer
                             return new Message
                             {
                                 Type = MessageType.ERROR,
-                                Content = JsonSerializer.Serialize(
+                                Content = ToJson(
                                     ErrorResponse.PermissionErrorResponse("SELECT", kbName))
                             };
                         }
@@ -310,7 +320,7 @@ public class KbmsServer
             return new Message
             {
                 Type = MessageType.RESULT,
-                Content = JsonSerializer.Serialize(response)
+                Content = ToJson(response)
             };
         }
         catch (ParserException ex)
@@ -318,7 +328,7 @@ public class KbmsServer
             return new Message
             {
                 Type = MessageType.ERROR,
-                Content = JsonSerializer.Serialize(
+                Content = ToJson(
                     ErrorResponse.ParserErrorResponse(ex, message.Content))
             };
         }
@@ -327,7 +337,7 @@ public class KbmsServer
             return new Message
             {
                 Type = MessageType.ERROR,
-                Content = JsonSerializer.Serialize(
+                Content = ToJson(
                     ErrorResponse.RuntimeErrorResponse(ex, message.Content))
             };
         }

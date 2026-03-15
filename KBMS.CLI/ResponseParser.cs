@@ -120,11 +120,11 @@ public static class ResponseParser
         }
         else if (root.TryGetProperty("relations", out var relationsProp))
         {
-            DisplaySimpleListAsTable(relationsProp, "Relation", executionTime);
+            DisplayRelationsAsTable(relationsProp, executionTime);
         }
         else if (root.TryGetProperty("operators", out var operatorsProp))
         {
-            DisplaySimpleListAsTable(operatorsProp, "Operator", executionTime);
+            DisplayOperatorsAsTable(operatorsProp, executionTime);
         }
         else if (root.TryGetProperty("functions", out var functionsProp))
         {
@@ -167,23 +167,78 @@ public static class ResponseParser
         }
 
         var objectArray = objects.EnumerateArray().ToList();
-        var first = objectArray[0];
+        
+        // Find all dynamic column names from the "Values" dictionary across all objects
+        var columns = new HashSet<string>();
+        foreach (var obj in objectArray)
+        {
+            if (obj.TryGetProperty("Values", out var valuesProp) && valuesProp.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var prop in valuesProp.EnumerateObject())
+                {
+                    columns.Add(prop.Name);
+                }
+            }
+        }
+        var columnList = columns.ToList();
 
-        // Get all column names from first object, excluding Id and KbId
-        var columns = first.EnumerateObject()
-            .Select(p => p.Name)
-            .Where(c => !string.Equals(c, "Id", StringComparison.OrdinalIgnoreCase) &&
-                        !string.Equals(c, "KbId", StringComparison.OrdinalIgnoreCase))
-            .ToList();
+        if (columnList.Count == 0)
+        {
+            // Fallback to old behavior if no "Values" found (e.g., grouped queries that don't return standard Objects)
+            columnList = objectArray[0].EnumerateObject()
+                .Select(p => p.Name)
+                .Where(c => !string.Equals(c, "Id", StringComparison.OrdinalIgnoreCase) &&
+                            !string.Equals(c, "KbId", StringComparison.OrdinalIgnoreCase))
+                .ToList();
 
-        // Calculate column widths
+            if (columnList.Count == 0)
+            {
+                Console.WriteLine($"Empty set ({executionTime} sec)");
+                return;
+            }
+            
+            var widthsFallback = new Dictionary<string, int>();
+            foreach (var col in columnList)
+            {
+                var maxWidth = col.Length;
+                foreach (var obj in objectArray)
+                {
+                    if (obj.TryGetProperty(col, out var value))
+                    {
+                        var str = GetDisplayString(value);
+                        maxWidth = Math.Max(maxWidth, str.Length);
+                    }
+                }
+                widthsFallback[col] = maxWidth;
+            }
+
+            var headerPartsFallback = columnList.Select(c => Pad(c, widthsFallback[c]));
+            Console.WriteLine("| " + string.Join(" | ", headerPartsFallback) + " |");
+            Console.WriteLine("|" + string.Join("+", columnList.Select(c => new string('-', widthsFallback[c] + 2))) + "|");
+
+            foreach (var obj in objectArray)
+            {
+                var rowParts = columnList.Select(c =>
+                {
+                    if (obj.TryGetProperty(c, out var value))
+                        return Pad(GetDisplayString(value), widthsFallback[c]);
+                    return Pad("NULL", widthsFallback[c]);
+                });
+                Console.WriteLine("| " + string.Join(" | ", rowParts) + " |");
+            }
+
+            Console.WriteLine($"{objectArray.Count} row(s) in set ({executionTime} sec)");
+            return;
+        }
+
+        // Calculate column widths for "Values" extraction
         var widths = new Dictionary<string, int>();
-        foreach (var col in columns)
+        foreach (var col in columnList)
         {
             var maxWidth = col.Length;
             foreach (var obj in objectArray)
             {
-                if (obj.TryGetProperty(col, out var value))
+                if (obj.TryGetProperty("Values", out var valuesProp) && valuesProp.TryGetProperty(col, out var value))
                 {
                     var str = GetDisplayString(value);
                     maxWidth = Math.Max(maxWidth, str.Length);
@@ -193,17 +248,19 @@ public static class ResponseParser
         }
 
         // Print header
-        var headerParts = columns.Select(c => Pad(c, widths[c]));
+        var headerParts = columnList.Select(c => Pad(c, widths[c]));
         Console.WriteLine("| " + string.Join(" | ", headerParts) + " |");
-        Console.WriteLine("|" + string.Join("+", columns.Select(c => new string('-', widths[c] + 2))) + "|");
+        Console.WriteLine("|" + string.Join("+", columnList.Select(c => new string('-', widths[c] + 2))) + "|");
 
         // Print rows
         foreach (var obj in objectArray)
         {
-            var rowParts = columns.Select(c =>
+            var rowParts = columnList.Select(c =>
             {
-                if (obj.TryGetProperty(c, out var value))
+                if (obj.TryGetProperty("Values", out var valuesProp) && valuesProp.TryGetProperty(c, out var value))
+                {
                     return Pad(GetDisplayString(value), widths[c]);
+                }
                 return Pad("NULL", widths[c]);
             });
             Console.WriteLine("| " + string.Join(" | ", rowParts) + " |");
@@ -249,26 +306,64 @@ public static class ResponseParser
         }
 
         var conceptArray = concepts.EnumerateArray().ToList();
-        var maxWidth = "Concept".Length;
+        var nameWidth = "Name".Length;
+        var variablesWidth = "Variables".Length;
+        var aliasesWidth = "Aliases".Length;
+        var basesWidth = "BaseObjects".Length;
 
         foreach (var c in conceptArray)
         {
             if (c.TryGetProperty("Name", out var name))
-            {
-                maxWidth = Math.Max(maxWidth, (name.GetString() ?? "").Length);
-            }
+                nameWidth = Math.Max(nameWidth, (name.GetString() ?? "").Length);
+            
+            var vars = GetVariablesString(c);
+            variablesWidth = Math.Max(variablesWidth, vars.Length);
+            
+            var aliases = GetStringArrayProperty(c, "Aliases");
+            aliasesWidth = Math.Max(aliasesWidth, aliases.Length);
+            
+            var bases = GetStringArrayProperty(c, "BaseObjects");
+            basesWidth = Math.Max(basesWidth, bases.Length);
         }
 
-        Console.WriteLine($"| {Pad("Concept", maxWidth)} |");
-        Console.WriteLine($"|{new string('-', maxWidth + 2)}|");
+        Console.WriteLine($"| {Pad("Name", nameWidth)} | {Pad("Variables", variablesWidth)} | {Pad("Aliases", aliasesWidth)} | {Pad("BaseObjects", basesWidth)} |");
+        var separator = "+" + new string('-', nameWidth + 2) + "+" +
+                      new string('-', variablesWidth + 2) + "+" +
+                      new string('-', aliasesWidth + 2) + "+" +
+                      new string('-', basesWidth + 2) + "+";
+        Console.WriteLine(separator);
 
         foreach (var c in conceptArray)
         {
-            var name = c.TryGetProperty("Name", out var nameProp) ? nameProp.GetString() : "";
-            Console.WriteLine($"| {Pad(name ?? "", maxWidth)} |");
+            var name = c.TryGetProperty("Name", out var nameProp) ? nameProp.GetString() ?? "" : "";
+            var vars = GetVariablesString(c);
+            var aliases = GetStringArrayProperty(c, "Aliases");
+            var bases = GetStringArrayProperty(c, "BaseObjects");
+            
+            Console.WriteLine($"| {Pad(name, nameWidth)} | {Pad(vars, variablesWidth)} | {Pad(aliases, aliasesWidth)} | {Pad(bases, basesWidth)} |");
         }
 
         Console.WriteLine($"{conceptArray.Count} row(s) in set ({executionTime} sec)");
+    }
+
+    private static string GetStringArrayProperty(JsonElement element, string propertyName)
+    {
+        if (element.TryGetProperty(propertyName, out var arrayProp) && arrayProp.ValueKind == JsonValueKind.Array)
+        {
+            var items = arrayProp.EnumerateArray().Select(e => e.GetString() ?? "").Where(s => !string.IsNullOrEmpty(s));
+            return string.Join(", ", items);
+        }
+        return "";
+    }
+
+    private static string GetVariablesString(JsonElement concept)
+    {
+        if (concept.TryGetProperty("Variables", out var varsProp) && varsProp.ValueKind == JsonValueKind.Array)
+        {
+            var items = varsProp.EnumerateArray().Select(v => v.TryGetProperty("Name", out var n) ? n.GetString() ?? "" : "").Where(s => !string.IsNullOrEmpty(s));
+            return string.Join(", ", items);
+        }
+        return "";
     }
 
     private static void DisplayConceptDetail(JsonElement concept, string executionTime = "0.00")
@@ -307,6 +402,9 @@ public static class ResponseParser
         var nameWidth = "Name".Length;
         var typeWidth = "Type".Length;
         var scopeWidth = "Scope".Length;
+        var ifWidth = "If".Length;
+        var thenWidth = "Then".Length;
+        var costWidth = "Cost".Length;
 
         foreach (var r in ruleArray)
         {
@@ -316,12 +414,24 @@ public static class ResponseParser
                 typeWidth = Math.Max(typeWidth, (type.GetString() ?? "").Length);
             if (r.TryGetProperty("Scope", out var scope))
                 scopeWidth = Math.Max(scopeWidth, (scope.GetString() ?? "").Length);
+            
+            var ifStr = GetExpressionListString(r, "Hypothesis");
+            ifWidth = Math.Max(ifWidth, ifStr.Length);
+            
+            var thenStr = GetExpressionListString(r, "Conclusion");
+            thenWidth = Math.Max(thenWidth, thenStr.Length);
+            
+            if (r.TryGetProperty("Cost", out var cost))
+                costWidth = Math.Max(costWidth, cost.GetRawText().Length);
         }
 
-        Console.WriteLine($"| {Pad("Name", nameWidth)} | {Pad("Type", typeWidth)} | {Pad("Scope", scopeWidth)} |");
+        Console.WriteLine($"| {Pad("Name", nameWidth)} | {Pad("Type", typeWidth)} | {Pad("Scope", scopeWidth)} | {Pad("If", ifWidth)} | {Pad("Then", thenWidth)} | {Pad("Cost", costWidth)} |");
         var separator = "+" + new string('-', nameWidth + 2) + "+" +
                       new string('-', typeWidth + 2) + "+" +
-                      new string('-', scopeWidth + 2) + "+";
+                      new string('-', scopeWidth + 2) + "+" +
+                      new string('-', ifWidth + 2) + "+" +
+                      new string('-', thenWidth + 2) + "+" +
+                      new string('-', costWidth + 2) + "+";
         Console.WriteLine(separator);
 
         foreach (var r in ruleArray)
@@ -329,10 +439,24 @@ public static class ResponseParser
             var name = r.TryGetProperty("Name", out var nameProp) ? nameProp.GetString() ?? "" : "";
             var type = r.TryGetProperty("RuleType", out var typeProp) ? typeProp.GetString() ?? "" : "";
             var scope = r.TryGetProperty("Scope", out var scopeProp) ? scopeProp.GetString() ?? "" : "";
-            Console.WriteLine($"| {Pad(name, nameWidth)} | {Pad(type, typeWidth)} | {Pad(scope, scopeWidth)} |");
+            var ifStr = GetExpressionListString(r, "Hypothesis");
+            var thenStr = GetExpressionListString(r, "Conclusion");
+            var cost = r.TryGetProperty("Cost", out var costProp) ? costProp.GetRawText() : "";
+            
+            Console.WriteLine($"| {Pad(name, nameWidth)} | {Pad(type, typeWidth)} | {Pad(scope, scopeWidth)} | {Pad(ifStr, ifWidth)} | {Pad(thenStr, thenWidth)} | {Pad(cost, costWidth)} |");
         }
 
         Console.WriteLine($"{ruleArray.Count} row(s) in set ({executionTime} sec)");
+    }
+
+    private static string GetExpressionListString(JsonElement rule, string propertyName)
+    {
+        if (rule.TryGetProperty(propertyName, out var exprArray) && exprArray.ValueKind == JsonValueKind.Array)
+        {
+            var items = exprArray.EnumerateArray().Select(e => e.TryGetProperty("Content", out var c) ? c.GetString() ?? "" : "").Where(s => !string.IsNullOrEmpty(s));
+            return string.Join(", ", items);
+        }
+        return "";
     }
 
     private static void DisplayFunctionsAsTable(JsonElement functions, string executionTime = "0.00")
@@ -346,6 +470,8 @@ public static class ResponseParser
         var funcArray = functions.EnumerateArray().ToList();
         var nameWidth = "Name".Length;
         var returnTypeWidth = "Returns".Length;
+        var paramsWidth = "Params".Length;
+        var bodyWidth = "Body".Length;
 
         foreach (var f in funcArray)
         {
@@ -353,21 +479,145 @@ public static class ResponseParser
                 nameWidth = Math.Max(nameWidth, (name.GetString() ?? "").Length);
             if (f.TryGetProperty("ReturnType", out var ret))
                 returnTypeWidth = Math.Max(returnTypeWidth, (ret.GetString() ?? "").Length);
+                
+            var pStr = GetFunctionParamsString(f);
+            paramsWidth = Math.Max(paramsWidth, pStr.Length);
+            
+            if (f.TryGetProperty("Body", out var body))
+                bodyWidth = Math.Max(bodyWidth, (body.GetString() ?? "").Length);
         }
 
-        Console.WriteLine($"| {Pad("Name", nameWidth)} | {Pad("Returns", returnTypeWidth)} |");
+        Console.WriteLine($"| {Pad("Name", nameWidth)} | {Pad("Params", paramsWidth)} | {Pad("Returns", returnTypeWidth)} | {Pad("Body", bodyWidth)} |");
         var separator = "+" + new string('-', nameWidth + 2) + "+" +
-                      new string('-', returnTypeWidth + 2) + "+";
+                      new string('-', paramsWidth + 2) + "+" +
+                      new string('-', returnTypeWidth + 2) + "+" +
+                      new string('-', bodyWidth + 2) + "+";
         Console.WriteLine(separator);
 
         foreach (var f in funcArray)
         {
             var name = f.TryGetProperty("Name", out var nameProp) ? nameProp.GetString() ?? "" : "";
+            var pStr = GetFunctionParamsString(f);
             var ret = f.TryGetProperty("ReturnType", out var retProp) ? retProp.GetString() ?? "" : "";
-            Console.WriteLine($"| {Pad(name, nameWidth)} | {Pad(ret, returnTypeWidth)} |");
+            var body = f.TryGetProperty("Body", out var bodyProp) ? bodyProp.GetString() ?? "" : "";
+            
+            Console.WriteLine($"| {Pad(name, nameWidth)} | {Pad(pStr, paramsWidth)} | {Pad(ret, returnTypeWidth)} | {Pad(body, bodyWidth)} |");
         }
 
         Console.WriteLine($"{funcArray.Count} row(s) in set ({executionTime} sec)");
+    }
+
+    private static string GetFunctionParamsString(JsonElement func)
+    {
+        if (func.TryGetProperty("Parameters", out var paramArray) && paramArray.ValueKind == JsonValueKind.Array)
+        {
+            var items = paramArray.EnumerateArray()
+                .Select(p => 
+                {
+                    var type = p.TryGetProperty("Type", out var tProp) ? tProp.GetString() ?? "" : "";
+                    var name = p.TryGetProperty("Name", out var nProp) ? nProp.GetString() ?? "" : "";
+                    return $"{type} {name}".Trim();
+                })
+                .Where(s => !string.IsNullOrEmpty(s));
+            return string.Join(", ", items);
+        }
+        return "";
+    }
+
+    private static void DisplayRelationsAsTable(JsonElement relations, string executionTime = "0.00")
+    {
+        if (relations.ValueKind == JsonValueKind.Null || !relations.EnumerateArray().Any())
+        {
+            Console.WriteLine($"Empty set ({executionTime} sec)");
+            return;
+        }
+
+        var relArray = relations.EnumerateArray().ToList();
+        var nameWidth = "Name".Length;
+        var domainWidth = "Domain".Length;
+        var rangeWidth = "Range".Length;
+        var propertiesWidth = "Properties".Length;
+
+        foreach (var r in relArray)
+        {
+            if (r.TryGetProperty("Name", out var name))
+                nameWidth = Math.Max(nameWidth, (name.GetString() ?? "").Length);
+            if (r.TryGetProperty("Domain", out var domain))
+                domainWidth = Math.Max(domainWidth, (domain.GetString() ?? "").Length);
+            if (r.TryGetProperty("Range", out var range))
+                rangeWidth = Math.Max(rangeWidth, (range.GetString() ?? "").Length);
+                
+            var props = GetStringArrayProperty(r, "Properties");
+            propertiesWidth = Math.Max(propertiesWidth, props.Length);
+        }
+
+        Console.WriteLine($"| {Pad("Name", nameWidth)} | {Pad("Domain", domainWidth)} | {Pad("Range", rangeWidth)} | {Pad("Properties", propertiesWidth)} |");
+        var separator = "+" + new string('-', nameWidth + 2) + "+" +
+                      new string('-', domainWidth + 2) + "+" +
+                      new string('-', rangeWidth + 2) + "+" +
+                      new string('-', propertiesWidth + 2) + "+";
+        Console.WriteLine(separator);
+
+        foreach (var r in relArray)
+        {
+            var name = r.TryGetProperty("Name", out var nameProp) ? nameProp.GetString() ?? "" : "";
+            var domain = r.TryGetProperty("Domain", out var domainProp) ? domainProp.GetString() ?? "" : "";
+            var range = r.TryGetProperty("Range", out var rangeProp) ? rangeProp.GetString() ?? "" : "";
+            var props = GetStringArrayProperty(r, "Properties");
+            
+            Console.WriteLine($"| {Pad(name, nameWidth)} | {Pad(domain, domainWidth)} | {Pad(range, rangeWidth)} | {Pad(props, propertiesWidth)} |");
+        }
+
+        Console.WriteLine($"{relArray.Count} row(s) in set ({executionTime} sec)");
+    }
+
+    private static void DisplayOperatorsAsTable(JsonElement operators, string executionTime = "0.00")
+    {
+        if (operators.ValueKind == JsonValueKind.Null || !operators.EnumerateArray().Any())
+        {
+            Console.WriteLine($"Empty set ({executionTime} sec)");
+            return;
+        }
+
+        var opArray = operators.EnumerateArray().ToList();
+        var symbolWidth = "Symbol".Length;
+        var paramsWidth = "Params".Length;
+        var returnsWidth = "Returns".Length;
+        var propertiesWidth = "Properties".Length;
+
+        foreach (var o in opArray)
+        {
+            if (o.TryGetProperty("Symbol", out var symbol))
+                symbolWidth = Math.Max(symbolWidth, (symbol.GetString() ?? "").Length);
+                
+            var paramTypes = GetStringArrayProperty(o, "ParamTypes");
+            paramsWidth = Math.Max(paramsWidth, paramTypes.Length);
+            
+            if (o.TryGetProperty("ReturnType", out var ret))
+                returnsWidth = Math.Max(returnsWidth, (ret.GetString() ?? "").Length);
+                
+            var props = GetStringArrayProperty(o, "Properties");
+            propertiesWidth = Math.Max(propertiesWidth, props.Length);
+        }
+
+        Console.WriteLine($"| {Pad("Symbol", symbolWidth)} | {Pad("Params", paramsWidth)} | {Pad("Returns", returnsWidth)} | {Pad("Properties", propertiesWidth)} |");
+        var separator = "+" + new string('-', symbolWidth + 2) + "+" +
+                      new string('-', paramsWidth + 2) + "+" +
+                      new string('-', returnsWidth + 2) + "+" +
+                      new string('-', propertiesWidth + 2) + "+";
+        Console.WriteLine(separator);
+
+        foreach (var o in opArray)
+        {
+            var symbol = o.TryGetProperty("Symbol", out var symbolProp) ? symbolProp.GetString() ?? "" : "";
+            var paramTypes = GetStringArrayProperty(o, "ParamTypes");
+            var ret = o.TryGetProperty("ReturnType", out var retProp) ? retProp.GetString() ?? "" : "";
+            var props = GetStringArrayProperty(o, "Properties");
+            
+            Console.WriteLine($"| {Pad(symbol, symbolWidth)} | {Pad(paramTypes, paramsWidth)} | {Pad(ret, returnsWidth)} | {Pad(props, propertiesWidth)} |");
+        }
+
+        Console.WriteLine($"{opArray.Count} row(s) in set ({executionTime} sec)");
     }
 
     private static void DisplayHierarchiesAsTable(JsonElement hierarchies, string executionTime = "0.00")

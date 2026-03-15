@@ -24,6 +24,11 @@ public class KnowledgeManager
     /// </summary>
     public object Execute(AstNode ast, User user, string? currentKb)
     {
+        if (ast == null)
+        {
+            return new { error = "Query is empty, a comment, or could not be parsed." };
+        }
+
         // Determine KB name
         var kbName = DetermineKbName(ast) ?? currentKb;
 
