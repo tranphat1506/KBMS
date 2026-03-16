@@ -1,0 +1,614 @@
+# HỆ QUẢN TRỊ CƠ SỞ TRI THỨC (KBMS) CHO MÔ HÌNH COKB
+
+# CHƯƠNG 1. GIỚI THIỆU ĐỀ TÀI VÀ ĐẶT VẤN ĐỀ
+
+## 1.1 Giới thiệu đề tài
+
+Trong lĩnh vực trí tuệ nhân tạo, tri thức đóng vai trò quan trọng trong việc xây dựng các hệ thống có khả năng suy luận và giải quyết vấn đề. Khác với dữ liệu thông thường, tri thức bao gồm các khái niệm, quan hệ giữa các khái niệm và các luật suy luận cho phép hệ thống rút ra thông tin mới từ thông tin đã biết.
+
+Các hệ quản trị cơ sở dữ liệu truyền thống (DBMS) như MySQL, PostgreSQL hay SQL Server được thiết kế chủ yếu để lưu trữ và truy vấn dữ liệu dạng bảng. Tuy nhiên các hệ thống này không hỗ trợ trực tiếp việc biểu diễn và suy luận tri thức. Do đó, trong các hệ thống trí tuệ nhân tạo, việc xây dựng một hệ quản trị cơ sở tri thức (Knowledge Base Management System – KBMS) là cần thiết.
+
+Đề tài này tập trung vào việc xây dựng một hệ quản trị cơ sở tri thức dành cho mô hình tri thức dạng COKB. Hệ thống cho phép lưu trữ, quản lý, truy vấn và suy luận tri thức một cách hiệu quả.
+
+## 1.2 Lý do chọn đề tài
+
+Trong nhiều hệ thống AI, tri thức thường được xây dựng dưới dạng các tập luật, các khái niệm và các quan hệ. Tuy nhiên nếu không có một hệ thống quản lý tri thức hiệu quả thì việc mở rộng và bảo trì hệ thống sẽ gặp nhiều khó khăn.
+
+Việc xây dựng một KBMS mang lại nhiều lợi ích như:
+
+* Quản lý tri thức có cấu trúc
+* Cho phép truy vấn tri thức
+* Hỗ trợ suy luận tự động
+* Tái sử dụng tri thức
+
+Vì vậy đề tài hướng tới việc thiết kế và xây dựng một hệ quản trị cơ sở tri thức cho mô hình COKB.
+
+## 1.3 Đặt vấn đề
+
+Các vấn đề chính cần giải quyết trong đề tài bao gồm:
+
+* Làm thế nào để biểu diễn tri thức dạng COKB trong hệ thống máy tính.
+* Thiết kế kiến trúc của hệ quản trị cơ sở tri thức.
+* Xây dựng ngôn ngữ truy vấn tri thức.
+* Thiết kế cơ chế suy luận tri thức.
+
+---
+
+# CHƯƠNG 2. CƠ SỞ LÝ THUYẾT VỀ TRI THỨC DẠNG COKB
+
+## 2.1 Khái niệm tri thức
+
+Tri thức (Knowledge) là tập hợp các thông tin, kinh nghiệm và quy tắc được con người sử dụng để hiểu và giải quyết các vấn đề trong thế giới thực.
+
+Trong khoa học máy tính, tri thức thường được biểu diễn dưới nhiều dạng khác nhau như:
+
+* Logic vị từ
+* Mạng ngữ nghĩa
+* Frame
+* Ontology
+* Hệ luật dẫn
+
+## 2.2 Tri thức dạng COKB
+
+COKB (Computational Object Knowledge Base) là một mô hình biểu diễn tri thức dựa trên các đối tượng tính toán. Trong mô hình này, tri thức được tổ chức thành các thành phần chính sau:
+
+* Tập các khái niệm (Concepts)
+* Tập các quan hệ (Relations)
+* Tập các toán tử (Operators)
+* Tập các hàm (Functions)
+* Tập các luật suy luận (Rules)
+
+Các thành phần này cho phép hệ thống biểu diễn các đối tượng trong miền tri thức cùng với các mối quan hệ và quy tắc suy luận giữa chúng.
+
+## 2.3 Các thành phần của COKB
+
+### Concepts
+
+Concept đại diện cho các đối tượng trong miền tri thức. Ví dụ trong miền hình học có thể có các concept như Point, Line, Triangle.
+
+### Relations
+
+Relations mô tả mối quan hệ giữa các đối tượng.
+
+### Rules
+
+Rules là các luật suy luận cho phép hệ thống rút ra tri thức mới từ tri thức đã biết.
+
+---
+
+# CHƯƠNG 3. THIẾT KẾ CƠ SỞ TRI THỨC VÀ HỆ QUẢN TRỊ CƠ SỞ TRI THỨC
+
+## 3.1 Vì sao cần lưu trữ tri thức
+
+Trong các hệ thống trí tuệ nhân tạo, tri thức đóng vai trò trung tâm. Nếu tri thức không được lưu trữ và quản lý một cách có hệ thống thì việc mở rộng và sử dụng lại tri thức sẽ trở nên rất khó khăn.
+
+Một hệ quản trị cơ sở tri thức giúp:
+
+* Lưu trữ tri thức có cấu trúc
+* Cho phép truy vấn tri thức
+* Hỗ trợ suy luận tự động
+* Quản lý tri thức hiệu quả
+
+## 3.2 Ontology trong biểu diễn tri thức
+
+Ontology là mô hình mô tả các khái niệm trong một miền tri thức và các quan hệ giữa chúng. Ontology giúp chuẩn hóa cách biểu diễn tri thức và cho phép các hệ thống hiểu được ý nghĩa của dữ liệu.
+
+## 3.3 Kiến trúc tổng thể hệ thống KBMS
+
+Hệ thống KBMS được thiết kế theo kiến trúc 4 tầng:
+
+1. Application Layer
+2. Server Layer
+3. Storage Layer
+4. Physical Storage Layer
+
+```mermaid
+graph TD
+A[Application Layer] --> B[KBMS Server]
+B --> C[Server Layer]
+C --> D[Storage Layer]
+D --> E[Physical Storage Layer]
+```
+
+## 3.4 Application Layer
+
+Application Layer là tầng giao tiếp với người dùng. Tầng này cung cấp các công cụ để người dùng gửi truy vấn tri thức tới hệ thống.
+
+Ví dụ:
+
+* Command Line Interface
+* API client
+* GUI application
+
+## 3.5 Server Layer
+
+Server Layer là trung tâm xử lý của hệ thống. Tầng này bao gồm nhiều module quan trọng.
+
+Các module chính:
+
+* Connection Manager
+* Authentication Manager
+* Query Parser
+* Query Optimizer
+* Reasoning Engine
+
+## 3.6 Network và Authentication
+
+Hệ thống KBMS hoạt động theo mô hình client – server. Các client kết nối tới server thông qua giao thức mạng.
+
+Quy trình xử lý kết nối:
+
+1. Client gửi request kết nối.
+2. Server xác thực người dùng.
+3. Nếu xác thực thành công, client có thể gửi truy vấn.
+
+Protocol của hệ thống được thiết kế dựa trên message JSON để truyền dữ liệu giữa client và server.
+
+## 3.7 Ngôn ngữ truy vấn KBQL
+
+KBQL (Knowledge Base Query Language) là ngôn ngữ truy vấn tri thức được thiết kế cho hệ KBMS.
+
+Ngôn ngữ này cho phép:
+
+* tạo khái niệm
+* thêm tri thức
+* truy vấn tri thức
+* giải bài toán
+
+Ví dụ:
+
+CREATE CONCEPT TRIANGLE
+
+INSERT INTO TRIANGLE VALUES (a=3,b=4,c=5)
+
+SELECT TRIANGLE WHERE a=3
+
+## 3.8 Cấu trúc dữ liệu của tri thức COKB
+
+Tri thức trong hệ thống được tổ chức thành các thành phần:
+
+* CONCEPTS
+* RELATIONS
+* RULES
+* FUNCTIONS
+* OBJECTS
+
+Trong mỗi OBJECT có thể bao gồm:
+
+* attributes
+* relations
+* computations
+
+## 3.9 Lexer và Parser
+
+Lexer chuyển câu truy vấn thành các token.
+
+Parser sử dụng các token để xây dựng cây cú pháp trừu tượng (AST).
+
+```mermaid
+graph TD
+A[SelectNode]
+A --> B[Concept]
+A --> C[Condition]
+```
+
+## 3.10 Query Optimizer
+
+Query Optimizer có nhiệm vụ tối ưu kế hoạch thực thi truy vấn nhằm giảm thời gian xử lý.
+
+Các kỹ thuật tối ưu bao gồm:
+
+* sử dụng index
+* lọc điều kiện sớm
+
+## 3.11 Reasoning Engine
+
+Reasoning Engine thực hiện suy luận dựa trên các luật tri thức.
+
+Các phương pháp suy luận:
+
+* Forward Chaining
+* Backward Chaining
+
+```mermaid
+flowchart TD
+A[Facts] --> B[Rule Matching]
+B --> C[Inference]
+C --> D[New Facts]
+```
+
+## 3.12 Storage Layer
+
+Storage Layer chịu trách nhiệm quản lý việc đọc và ghi dữ liệu tri thức.
+
+Các thành phần bao gồm:
+
+* Storage Manager
+* Index Manager
+
+## 3.13 Physical Storage Layer
+
+Physical Storage Layer lưu trữ tri thức dưới dạng file nhị phân.
+
+Ví dụ cấu trúc thư mục:
+
+* concepts.bin
+* relations.bin
+* rules.bin
+* facts.bin
+
+Dữ liệu có thể được mã hóa hoặc nén để tăng hiệu năng và bảo mật.
+
+---
+
+## 3.14 Kiến trúc hệ thống (Architecture theo kiểu paper hệ CSDL)
+
+Kiến trúc tổng thể của hệ KBMS được thiết kế tương tự các hệ quản trị cơ sở dữ liệu hiện đại. Hệ thống được chia thành các lớp xử lý độc lập để đảm bảo khả năng mở rộng, bảo trì và tối ưu hiệu năng.
+
+```mermaid
+flowchart LR
+User[Client Application]
+
+subgraph Application Layer
+A1[CLI / GUI]
+A2[API Client]
+end
+
+subgraph Server Layer
+B1[Connection Manager]
+B2[Authentication Manager]
+B3[Query Parser]
+B4[Query Optimizer]
+B5[Reasoning Engine]
+end
+
+subgraph Storage Layer
+C1[Storage Manager]
+C2[Index Manager]
+C3[Cache Manager]
+end
+
+subgraph Physical Storage
+D1[Concept Files]
+D2[Rule Files]
+D3[Relation Files]
+D4[Fact Files]
+end
+
+User --> A1
+User --> A2
+
+A1 --> B1
+A2 --> B1
+
+B1 --> B2
+B2 --> B3
+
+B3 --> B4
+B4 --> B5
+
+B5 --> C1
+C1 --> C2
+C1 --> C3
+
+C1 --> D1
+C1 --> D2
+C1 --> D3
+C1 --> D4
+```
+
+Luồng xử lý truy vấn:
+
+1. Client gửi truy vấn KBQL.
+2. Query Parser phân tích cú pháp.
+3. Query Optimizer tối ưu kế hoạch thực thi.
+4. Reasoning Engine suy luận nếu cần.
+5. Storage Manager truy xuất dữ liệu.
+6. Kết quả trả về client.
+
+---
+
+## 3.15 Thiết kế ngữ pháp KBQL (BNF)
+
+Ngôn ngữ KBQL được thiết kế tương tự SQL nhưng mở rộng cho tri thức.
+
+Dạng BNF:
+
+```
+<query> ::= <create_stmt>
+          | <insert_stmt>
+          | <select_stmt>
+          | <solve_stmt>
+
+<create_stmt> ::= CREATE CONCEPT <identifier>
+
+<insert_stmt> ::= INSERT INTO <identifier> VALUES '(' <attr_list> ')'
+
+<select_stmt> ::= SELECT <identifier> WHERE <condition>
+
+<solve_stmt> ::= SOLVE <problem>
+
+<attr_list> ::= <attribute>
+              | <attribute> ',' <attr_list>
+
+<attribute> ::= <identifier> '=' <value>
+
+<condition> ::= <attribute>
+              | <attribute> AND <condition>
+
+<identifier> ::= letter (letter | digit)*
+
+<value> ::= number | string
+```
+
+Ví dụ truy vấn:
+
+```
+CREATE CONCEPT TRIANGLE
+
+INSERT INTO TRIANGLE VALUES (a=3,b=4,c=5)
+
+SELECT TRIANGLE WHERE a=3
+
+SOLVE TRIANGLE
+```
+
+---
+
+## 3.16 Thuật toán Lexer
+
+Lexer có nhiệm vụ chuyển chuỗi truy vấn thành danh sách token.
+
+Các loại token:
+
+* KEYWORD (CREATE, INSERT, SELECT)
+* IDENTIFIER
+* NUMBER
+* OPERATOR
+* SYMBOL
+
+Thuật toán Lexer:
+
+Pseudo code:
+
+```
+function tokenize(input):
+    tokens = []
+    i = 0
+
+    while i < length(input):
+        if input[i] is whitespace:
+            i++
+
+        else if isLetter(input[i]):
+            start = i
+            while isLetterOrDigit(input[i]):
+                i++
+            word = substring(start,i)
+
+            if word in KEYWORDS:
+                tokens.add(KEYWORD)
+            else
+                tokens.add(IDENTIFIER)
+
+        else if isDigit(input[i]):
+            start = i
+            while isDigit(input[i]):
+                i++
+            tokens.add(NUMBER)
+
+        else:
+            tokens.add(SYMBOL)
+            i++
+
+    return tokens
+```
+
+Kết quả của lexer là danh sách token phục vụ cho parser.
+
+---
+
+## 3.17 Thuật toán Parser
+
+Parser xây dựng **Abstract Syntax Tree (AST)** từ danh sách token.
+
+Ví dụ câu truy vấn:
+
+```
+SELECT TRIANGLE WHERE a=3
+```
+
+Cây AST:
+
+```mermaid
+graph TD
+Select
+Select --> Concept
+Select --> Condition
+
+Concept --> TRIANGLE
+Condition --> a_equals_3
+```
+
+Thuật toán Parser (recursive descent):
+
+Pseudo code:
+
+```
+function parseQuery():
+    if token == CREATE:
+        return parseCreate()
+
+    if token == INSERT:
+        return parseInsert()
+
+    if token == SELECT:
+        return parseSelect()
+
+function parseSelect():
+    match(SELECT)
+    concept = match(IDENTIFIER)
+
+    match(WHERE)
+    condition = parseCondition()
+
+    return SelectNode(concept, condition)
+```
+
+Parser tạo ra AST dùng cho bước tối ưu và suy luận.
+
+---
+
+## 3.18 Suy luận tri thức
+
+Hệ thống sử dụng hai cơ chế suy luận:
+
+* Forward Chaining
+* Backward Chaining
+
+### Forward Chaining
+
+Forward chaining là phương pháp suy luận **từ dữ kiện → kết luận**.
+
+Quy trình:
+
+1. Bắt đầu với tập fact ban đầu.
+2. Tìm rule có điều kiện thỏa mãn.
+3. Áp dụng rule để tạo fact mới.
+4. Lặp lại cho đến khi không có rule nào áp dụng được.
+
+Thuật toán:
+
+```
+facts = initial_facts
+repeat
+    applied = false
+
+    for rule in rules:
+        if rule.conditions satisfied by facts:
+            new_fact = rule.result
+
+            if new_fact not in facts:
+                add new_fact to facts
+                applied = true
+
+until applied == false
+```
+
+### Backward Chaining
+
+Backward chaining suy luận **từ mục tiêu → dữ kiện**.
+
+Quy trình:
+
+1. Xác định goal cần chứng minh.
+2. Tìm rule có kết luận là goal.
+3. Kiểm tra điều kiện của rule.
+4. Nếu điều kiện chưa biết → tạo subgoal.
+
+Thuật toán:
+
+```
+function prove(goal):
+
+    if goal in facts:
+        return true
+
+    for rule in rules:
+        if rule.result == goal:
+
+            if prove(rule.condition1) and prove(rule.condition2):
+                return true
+
+    return false
+```
+
+---
+
+## 3.19 Thiết kế định dạng file lưu trữ tri thức
+
+Tri thức được lưu dưới dạng file nhị phân để tăng tốc độ truy xuất.
+
+Cấu trúc thư mục:
+
+```
+/knowledge_base
+
+concepts.bin
+relations.bin
+rules.bin
+facts.bin
+index.bin
+```
+
+### concepts.bin
+
+Lưu định nghĩa concept.
+
+Cấu trúc record:
+
+```
+ConceptID
+ConceptName
+AttributeCount
+Attributes
+```
+
+### rules.bin
+
+Lưu các luật suy luận.
+
+```
+RuleID
+ConditionCount
+Conditions
+Result
+```
+
+### facts.bin
+
+Lưu các fact hiện có.
+
+```
+FactID
+ConceptID
+Attributes
+```
+
+### index.bin
+
+Index giúp tăng tốc truy vấn.
+
+Ví dụ:
+
+```
+ConceptName -> Offset trong concepts.bin
+FactID -> Offset trong facts.bin
+```
+
+---
+
+# CHƯƠNG 4. CÀI ĐẶT VÀ THỬ NGHIỆM
+
+Chương này trình bày quá trình cài đặt hệ thống KBMS và các thử nghiệm được thực hiện để kiểm tra chức năng của hệ thống.
+
+Hệ thống được xây dựng bằng ngôn ngữ lập trình C#. Các module chính bao gồm:
+
+* Network server
+* Query parser
+* Reasoning engine
+* Storage manager
+
+Các thử nghiệm được thực hiện trên miền tri thức hình học để kiểm tra khả năng truy vấn và suy luận của hệ thống.
+
+---
+
+# CHƯƠNG 5. KẾT LUẬN
+
+Đề tài đã nghiên cứu và xây dựng một hệ quản trị cơ sở tri thức dựa trên mô hình COKB. Hệ thống cho phép lưu trữ, truy vấn và suy luận tri thức.
+
+Trong tương lai, hệ thống có thể được phát triển thêm các tính năng như:
+
+* tối ưu hóa truy vấn nâng cao
+* hỗ trợ cơ sở tri thức phân tán
+* tích hợp với các hệ thống trí tuệ nhân tạo khác
