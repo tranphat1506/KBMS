@@ -612,6 +612,13 @@ public class InferenceEngine
         return MathNet.Numerics.RootFinding.Brent.FindRoot(f, lower, upper);
     }
 
+    private double Factorial(double n)
+    {
+        if (n < 0) return double.NaN;
+        if (n > 170) return double.PositiveInfinity; // Limit for double
+        return MathNet.Numerics.SpecialFunctions.Factorial((int)n);
+    }
+
     private object EvaluateFormula(string formula, Dictionary<string, object> parameters, Action<string>? log = null)
     {
         if (string.IsNullOrWhiteSpace(formula)) 
@@ -635,6 +642,18 @@ public class InferenceEngine
         
         // (RC7) Hook into NCalc's EvaluateFunction to support custom functions
         e.EvaluateFunction += (name, args) => {
+            // Handle Factorial
+            if (name.Equals("Factorial", StringComparison.OrdinalIgnoreCase))
+            {
+                var evalArgs = args.EvaluateParameters(System.Threading.CancellationToken.None);
+                if (evalArgs.Length >= 1)
+                {
+                    double n = Convert.ToDouble(evalArgs[0]);
+                    args.Result = Factorial(n);
+                    return;
+                }
+            }
+
             // Handle Custom Operators (syntactic sugar)
             if (name.StartsWith("_op_"))
             {
@@ -698,6 +717,18 @@ public class InferenceEngine
 
         // (RC7) Support custom functions in constraints
         e.EvaluateFunction += (name, args) => {
+            // Handle Factorial
+            if (name.Equals("Factorial", StringComparison.OrdinalIgnoreCase))
+            {
+                var evalArgs = args.EvaluateParameters(System.Threading.CancellationToken.None);
+                if (evalArgs.Length >= 1)
+                {
+                    double n = Convert.ToDouble(evalArgs[0]);
+                    args.Result = Factorial(n);
+                    return;
+                }
+            }
+
             var func = FunctionResolver?.Invoke(name);
             if (func != null)
             {
@@ -760,6 +791,7 @@ public class InferenceEngine
         var funcs = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { 
             "Abs", "Acos", "Asin", "Atan", "Atan2", "Ceiling", "Cos", "Cosh", "Exp", "Floor", "Log", "Log10", 
             "Max", "Min", "Pow", "Round", "Sign", "Sin", "Sinh", "Sqrt", "Tan", "Tanh", "Truncate",
+            "Factorial",
             "Iif", "In", "Contains", "Replace", "Substring", "Length", "ToUpper", "ToLower", "Trim", "IsNullOrEmpty",
             "DateTime", "DateAdd", "DateDiff", "TimeSpan"
         };

@@ -15,12 +15,17 @@ public class LineEditor
 
     public string ReadLine(string prompt, List<string> history)
     {
+        if (Console.IsInputRedirected)
+        {
+            return Console.ReadLine() ?? string.Empty;
+        }
+
         _buffer.Clear();
         _cursorPos = 0;
         _history = history;
         _historyIndex = _history.Count;
         _escCount = 0;
-
+        
         Console.Write(prompt);
 
         while (true)
