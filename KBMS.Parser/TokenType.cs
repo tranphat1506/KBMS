@@ -1,7 +1,7 @@
 namespace KBMS.Parser;
 
 /// <summary>
-/// All token types for KBQL (KBDDL + KBDML)
+/// All token types for KBQL (KDL + KML + KQL + KCL + TCL)
 /// </summary>
 public enum TokenType
 {
@@ -39,13 +39,20 @@ public enum TokenType
     FUNCTIONS,      // FUNCTIONS
     USERS,          // USERS
 
-    // Keywords - DML
+    // Keywords - DML/KML
     SELECT,         // SELECT
     INSERT,         // INSERT
     UPDATE,         // UPDATE
     DELETE,         // DELETE
     SOLVE,          // SOLVE
     SHOW,           // SHOW
+    ATTRIBUTE,      // ATTRIBUTE
+
+    // Keywords - TCL (Transaction Control Language)
+    BEGIN,          // BEGIN
+    TRANSACTION,    // TRANSACTION
+    COMMIT,         // COMMIT
+    ROLLBACK,       // ROLLBACK
 
     // Keywords - Clauses
     WHERE,          // WHERE

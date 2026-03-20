@@ -295,6 +295,43 @@ public class InferenceEngine
                 }
             }
 
+            // (V2) Treat Constraints as Equations during solving
+            foreach (var constraint in effectiveConcept.Constraints)
+            {
+                var eqVars = ExtractVariablesFromExpression(constraint.Expression);
+                var unknownEqVars = eqVars.Where(v => !knownFacts.ContainsKey(v)).ToList();
+                
+                result.Steps.Add($"  - Checking Constraint: '{constraint.Expression}' (Unknowns: {string.Join(",", unknownEqVars)})");
+
+                if (unknownEqVars.Count == 1)
+                {
+                    string targetVar = unknownEqVars[0];
+                    try
+                    {
+                        var root = Solve1DEquation(constraint.Expression, targetVar, knownFacts);
+                        if (!double.IsNaN(root))
+                        {
+                            knownFacts[targetVar] = root;
+                            result.DerivedFacts[targetVar] = root;
+                            result.Steps.Add($"Step {stepCount++}: From Constraint '{constraint.Expression}' solved for {targetVar} => {root:F4}");
+                            
+                            result.Traces.Add(new DerivationTrace
+                            {
+                                TargetVariable = targetVar,
+                                Value = root,
+                                Mechanism = "Constraint (Equation)",
+                                Source = constraint.Expression,
+                                Inputs = eqVars.Where(v => v != targetVar && knownFacts.ContainsKey(v))
+                                               .ToDictionary(v => v, v => knownFacts[v])
+                            });
+
+                            factAdded = true;
+                        }
+                    }
+                    catch { }
+                }
+            }
+
             // (RC5) Equation Solving
             foreach (var eq in effectiveConcept.Equations)
             {
@@ -590,26 +627,33 @@ public class InferenceEngine
         // Try to find a bracket with a sign change
         if (f(0) * f(10000) < 0) { lower = 0; upper = 10000; }
         else if (f(-10000) * f(0) < 0) { lower = -10000; upper = 0; }
-        else {
+        else 
+        {
             bool found = false;
-            // Scan a wider range with larger steps
-            for (double st = -100000; st < 100000; st += 1000)
+            // Scan a wider range with adaptive steps
+            double[] scanRanges = { 100, 1000, 10000, 100000, 1000000 };
+            foreach (var range in scanRanges)
             {
-                try
+                for (double st = -range; st < range; st += range / 100)
                 {
-                    if (f(st) * f(st + 1000) <= 0)
+                    try
                     {
-                        lower = st;
-                        upper = st + 1000;
-                        found = true;
-                        break;
+                        if (f(st) * f(st + (range / 100)) <= 0)
+                        {
+                            lower = st;
+                            upper = st + (range / 100);
+                            found = true;
+                            break;
+                        }
                     }
+                    catch { }
                 }
-                catch { /* Evaluation might fail for some values, continue scanning */ }
+                if (found) break;
             }
-            if (!found) throw new Exception("No root found in extended range for 1D equation.");
+
+            if (!found) throw new Exception($"No root found in extended range for 1D equation: {expr}");
         }
-        return MathNet.Numerics.RootFinding.Brent.FindRoot(f, lower, upper);
+        return MathNet.Numerics.RootFinding.Brent.FindRoot(f, lower, upper, 1e-8);
     }
 
     private double Factorial(double n)
@@ -784,9 +828,13 @@ public class InferenceEngine
 
     private List<string> ExtractVariablesFromExpression(string expression)
     {
+        if (string.IsNullOrWhiteSpace(expression)) return new List<string>();
+
         // Regex to find potential variable names (alphanumeric, underscore, dot-notation)
+        // Ensure we don't match numeric literals as variables
         var matches = new Regex(@"\b[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*\b").Matches(expression);
         var vars = new HashSet<string>();
+        
         // List of common NCalc functions to exclude
         var funcs = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { 
             "Abs", "Acos", "Asin", "Atan", "Atan2", "Ceiling", "Cos", "Cosh", "Exp", "Floor", "Log", "Log10", 
@@ -795,24 +843,34 @@ public class InferenceEngine
             "Iif", "In", "Contains", "Replace", "Substring", "Length", "ToUpper", "ToLower", "Trim", "IsNullOrEmpty",
             "DateTime", "DateAdd", "DateDiff", "TimeSpan"
         };
+
         foreach (Match m in matches)
         {
-            // Exclude NCalc functions and numeric literals
-            if (funcs.Contains(m.Value) || double.TryParse(m.Value, out _))
+            var val = m.Value;
+
+            // Exclude NCalc functions
+            if (funcs.Contains(val))
+                continue;
+
+            // Exclude booleans or other common literals that might look like words
+            if (val.Equals("true", StringComparison.OrdinalIgnoreCase) || val.Equals("false", StringComparison.OrdinalIgnoreCase) || val.Equals("null", StringComparison.OrdinalIgnoreCase))
                 continue;
 
             // (RC7) Exclude Custom Functions
-            if (FunctionResolver?.Invoke(m.Value) != null)
+            if (FunctionResolver?.Invoke(val) != null)
                 continue;
 
             // Basic check: if name is followed by '(', it's likely a function (even if not yet resolved)
-            // This is a safety measure for yet-to-be-loaded functions or built-ins not in our static list.
-            int index = m.Index + m.Length;
-            while (index < expression.Length && char.IsWhiteSpace(expression[index])) index++;
-            if (index < expression.Length && expression[index] == '(')
+            int peekIdx = m.Index + m.Length;
+            while (peekIdx < expression.Length && char.IsWhiteSpace(expression[peekIdx])) peekIdx++;
+            if (peekIdx < expression.Length && expression[peekIdx] == '(')
                 continue;
 
-            vars.Add(m.Value);
+            // Safety: Ensure it's not a numeric literal (double-check after regex)
+            if (double.TryParse(val, out _))
+                continue;
+
+            vars.Add(val);
         }
         // result.Steps.Add($"  - (DEBUG) Extracted vars from '{expression}': [{string.Join(",", vars)}]");
         return vars.ToList();

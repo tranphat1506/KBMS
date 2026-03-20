@@ -1,7 +1,18 @@
+using KBMS.Parser.Ast.Kdl;
+using KBMS.Parser.Ast.Kml;
+using KBMS.Parser.Ast.Kql;
+using KBMS.Parser.Ast.Kcl;
+using KBMS.Parser.Ast.Tcl;
+
 using System;
 using System.Collections.Generic;
 using KBMS.Parser;
 using KBMS.Parser.Ast;
+using KBMS.Parser.Ast.Kdl;
+using KBMS.Parser.Ast.Kml;
+using KBMS.Parser.Ast.Kql;
+using KBMS.Parser.Ast.Kcl;
+using KBMS.Parser.Ast.Tcl;
 using Xunit;
 
 namespace KBMS.Tests;
@@ -522,9 +533,9 @@ public class ParserTests
         var node = ParseStatement("SOLVE ON CONCEPT Triangle GIVEN a = 3, b = 4 FIND area SAVE");
 
         Assert.NotNull(node);
-        Assert.IsType<KBMS.Parser.Ast.Dml.SolveNode>(node);
+        Assert.IsType<SolveNode>(node);
 
-        var solveNode = (KBMS.Parser.Ast.Dml.SolveNode)node;
+        var solveNode = (SolveNode)node;
         Assert.Equal("SOLVE", solveNode.Type);
         Assert.Equal("Triangle", solveNode.ConceptName);
         Assert.Equal("area", solveNode.FindVariables[0]);

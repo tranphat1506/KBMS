@@ -3,7 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using KBMS.Models;
 using KBMS.Parser.Ast;
-using KBMS.Parser.Ast.Dml;
+using KBMS.Parser.Ast.Kdl;
+using KBMS.Parser.Ast.Kml;
+using KBMS.Parser.Ast.Kql;
+using KBMS.Parser.Ast.Kcl;
+using KBMS.Parser.Ast.Tcl;
+using KBMS.Parser.Ast.Expressions;
 using KBMS.Storage;
 
 namespace KBMS.Knowledge;
@@ -61,6 +66,10 @@ public class KnowledgeManager
             DropUserNode => false,
             GrantNode => false,
             RevokeNode => false,
+            // TCL never needs a specific KB selected
+            KBMS.Parser.Ast.Tcl.BeginTransactionNode => false,
+            KBMS.Parser.Ast.Tcl.CommitNode => false,
+            KBMS.Parser.Ast.Tcl.RollbackNode => false,
             ShowNode show => show.ShowType != ShowType.KnowledgeBases && show.ShowType != ShowType.Users,
             _ => true
         };
@@ -83,6 +92,9 @@ public class KnowledgeManager
             "GRANT" => "GRANT",
             "REVOKE" => "REVOKE",
             "USE" => "USE",
+            "BEGIN" => "USE",    // TCL - allow any authenticated user
+            "COMMIT" => "USE",
+            "ROLLBACK" => "USE",
             _ => ast.Type
         };
     }
@@ -186,8 +198,42 @@ public class KnowledgeManager
             "SHOW_PRIVILEGES_ON" => HandleShowPrivilegesOnKb((ShowNode)ast),
             "SHOW_PRIVILEGES_OF" => HandleShowPrivilegesOfUser((ShowNode)ast),
 
+            // TCL - Transaction Control Language
+            "BEGIN_TRANSACTION" => HandleBeginTransaction(),
+            "COMMIT" => HandleCommit(kbName),
+            "ROLLBACK" => HandleRollback(),
+
             _ => new { error = $"Unknown command type: {ast.Type}" }
         };
+    }
+
+    // ==================== TCL Handlers ====================
+
+    private object HandleBeginTransaction()
+    {
+        if (_storage.IsTransactionActive())
+            return new { error = "A transaction is already active. COMMIT or ROLLBACK first." };
+
+        _storage.BeginTransaction();
+        return new { success = true, message = "Transaction started. Changes are buffered in RAM until COMMIT." };
+    }
+
+    private object HandleCommit(string? kbName)
+    {
+        if (!_storage.IsTransactionActive())
+            return new { error = "No active transaction. Use BEGIN TRANSACTION first." };
+
+        _storage.CommitTransaction(kbName ?? string.Empty);
+        return new { success = true, message = "Transaction committed. All changes flushed to disk." };
+    }
+
+    private object HandleRollback()
+    {
+        if (!_storage.IsTransactionActive())
+            return new { error = "No active transaction. Use BEGIN TRANSACTION first." };
+
+        _storage.RollbackTransaction();
+        return new { success = true, message = "Transaction rolled back. All uncommitted changes discarded." };
     }
 
     // ==================== DDL Handlers ====================
@@ -1052,9 +1098,13 @@ public class KnowledgeManager
         engine.ConceptResolver = (name) => {
             var c = _storage.LoadConcept(kbName, name);
             if (c != null) {
-                // Attach rules scoped to this concept
+                // (RC8) Logic: Rules scoped to this concept OR any parent concept (Inference)
+                var hierarchy = _storage.ListHierarchies(kbName);
+                var ancestors = GetAncestors(name, hierarchy);
+                ancestors.Add(name);
+
                 c.ConceptRules = allRules
-                    .Where(r => r != null && (r.Scope?.Equals(name, StringComparison.OrdinalIgnoreCase) ?? false))
+                    .Where(r => r != null && ancestors.Any(a => a.Equals(r.Scope, StringComparison.OrdinalIgnoreCase)))
                     .Select(r => new Models.ConceptRule { 
                         Id = r.Id, 
                         Kind = r.RuleType ?? "deduction", 
@@ -1206,5 +1256,25 @@ public class KnowledgeManager
         }
 
         return new { success = true, username = node.Username, privileges = user.KbPrivileges };
+    }
+
+    private List<string> GetAncestors(string conceptName, List<Models.Hierarchy> hierarchies)
+    {
+        var ancestors = new List<string>();
+        var directParents = hierarchies
+            .Where(h => h.ChildConcept.Equals(conceptName, StringComparison.OrdinalIgnoreCase) && h.HierarchyType == Models.HierarchyType.IsA)
+            .Select(h => h.ParentConcept)
+            .ToList();
+
+        foreach (var parent in directParents)
+        {
+            if (!ancestors.Contains(parent))
+            {
+                ancestors.Add(parent);
+                ancestors.AddRange(GetAncestors(parent, hierarchies).Where(a => !ancestors.Contains(a)));
+            }
+        }
+
+        return ancestors;
     }
 }

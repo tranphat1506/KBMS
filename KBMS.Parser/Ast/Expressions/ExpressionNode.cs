@@ -1,4 +1,6 @@
-namespace KBMS.Parser.Ast;
+using KBMS.Parser.Ast.Expressions;
+using KBMS.Parser.Ast;
+namespace KBMS.Parser.Ast.Expressions;
 
 /// <summary>
 /// Base class for all expression nodes

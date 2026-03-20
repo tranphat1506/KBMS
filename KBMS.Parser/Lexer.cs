@@ -43,13 +43,20 @@ public class Lexer
         { "USER", TokenType.USER },
         { "USERS", TokenType.USERS },
 
-        // DML Keywords
+        // DML/KML Keywords
         { "SELECT", TokenType.SELECT },
         { "INSERT", TokenType.INSERT },
         { "UPDATE", TokenType.UPDATE },
         { "DELETE", TokenType.DELETE },
         { "SOLVE", TokenType.SOLVE },
         { "SHOW", TokenType.SHOW },
+        { "ATTRIBUTE", TokenType.ATTRIBUTE },
+
+        // TCL Keywords
+        { "BEGIN", TokenType.BEGIN },
+        { "TRANSACTION", TokenType.TRANSACTION },
+        { "COMMIT", TokenType.COMMIT },
+        { "ROLLBACK", TokenType.ROLLBACK },
 
         // Clause Keywords
         { "WHERE", TokenType.WHERE },

@@ -2,7 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using KBMS.Parser.Ast;
-using KBMS.Parser.Ast.Dml;
+using KBMS.Parser.Ast.Kdl;
+using KBMS.Parser.Ast.Kml;
+using KBMS.Parser.Ast.Kql;
+using KBMS.Parser.Ast.Kcl;
+using KBMS.Parser.Ast.Tcl;
+using KBMS.Parser.Ast.Expressions;
 
 namespace KBMS.Parser;
 
@@ -99,6 +104,10 @@ public class Parser
             TokenType.DELETE => ParseDelete(),
             TokenType.SOLVE => ParseSolve(),
             TokenType.SHOW => ParseShow(),
+            // TCL
+            TokenType.BEGIN => ParseBeginTransaction(),
+            TokenType.COMMIT => ParseCommit(),
+            TokenType.ROLLBACK => ParseRollback(),
             _ => throw new ParserException($"Unexpected token: {token.Lexeme}", token.Line, token.Column)
         };
     }
@@ -166,23 +175,30 @@ public class Parser
             Column = token.Column
         };
 
-        while (!IsAtEnd())
+        if (!Check(TokenType.LPAREN))
+            throw new ParserException("Expected '(' after concept name");
+        Consume(TokenType.LPAREN);
+
+        bool hasVariables = false;
+
+        while (!IsAtEnd() && !Check(TokenType.RPAREN))
         {
             var nextType = Peek()?.Type;
             if (nextType == TokenType.VARIABLES)
             {
                 Consume(TokenType.VARIABLES);
                 if (!Check(TokenType.LPAREN))
-                    throw new ParserException("Expected '(' after VARIABLES");
+                    throw new ParserException("Expected '(' after VARIABLES", Peek()?.Line ?? 0, Peek()?.Column ?? 0);
                 Consume(TokenType.LPAREN);
-                while (!Check(TokenType.RPAREN))
+                while (!IsAtEnd() && !Check(TokenType.RPAREN))
                 {
                     var varNode = ParseVariableDefinition();
                     node.Variables.Add(varNode);
-                    if (!Check(TokenType.RPAREN))
+                    if (Check(TokenType.COMMA))
                         Consume(TokenType.COMMA);
                 }
                 Consume(TokenType.RPAREN);
+                hasVariables = true;
             }
             else if (nextType == TokenType.ALIASES)
             {
@@ -226,9 +242,21 @@ public class Parser
             }
             else
             {
-                break;
+                // Consume comma or other noise between blocks
+                if (Check(TokenType.COMMA))
+                    Consume(TokenType.COMMA);
+                else
+                    break;
             }
+            
+            // Optional comma after any block
+            if (Check(TokenType.COMMA)) Consume(TokenType.COMMA);
         }
+
+        if (!hasVariables)
+            throw new ParserException("Concept must have a VARIABLES block");
+
+        Consume(TokenType.RPAREN);
 
         return node;
     }
@@ -1273,12 +1301,12 @@ public class Parser
             Column = token.Column
         };
 
-        Consume(TokenType.VALUES);
+        Consume(TokenType.ATTRIBUTE);
         Consume(TokenType.LPAREN);
 
         // Parse values - support both positional and named syntax
-        // Positional: VALUES (value1, value2, value3)
-        // Named: VALUES (field1 = value1, field2 = value2)
+        // Positional: ATTRIBUTE (value1, value2, value3)
+        // Named: ATTRIBUTE (field1 : value1, field2 : value2)
         int positionIndex = 0;
         while (!Check(TokenType.RPAREN))
         {
@@ -1286,15 +1314,15 @@ public class Parser
             if (firstToken == null)
                 throw new ParserException("Expected value");
 
-            // Check if this is named syntax: IDENTIFIER = value
+            // Check if this is named syntax: IDENTIFIER : value
             if (firstToken.Type == TokenType.IDENTIFIER)
             {
                 var nextToken = PeekNext();
-                if (nextToken?.Type == TokenType.EQUALS)
+                if (nextToken?.Type == TokenType.COLON)
                 {
                     // Named syntax
                     var fieldToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected field name");
-                    Consume(TokenType.EQUALS);
+                    Consume(TokenType.COLON);
                     var valueNode = ParseValueNode();
                     node.Values[fieldToken.Lexeme] = valueNode;
                 }
@@ -1380,21 +1408,26 @@ public class Parser
             Column = token.Column
         };
 
+        Consume(TokenType.ATTRIBUTE);
+        Consume(TokenType.LPAREN);
         Consume(TokenType.SET);
 
         // Parse SET values
-        while (!Check(TokenType.WHERE) && !Check(TokenType.SEMICOLON) && !IsAtEnd())
+        while (!Check(TokenType.RPAREN) && !IsAtEnd())
         {
             var fieldToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected field name");
-            Consume(TokenType.EQUALS);
+            Consume(TokenType.COLON);
             var expr = ParseExpression();
             node.SetValues[fieldToken.Lexeme] = expr;
 
             if (Check(TokenType.COMMA))
                 Consume(TokenType.COMMA);
-            else
+            else if (Check(TokenType.RPAREN))
                 break;
+            else
+                throw new ParserException("Expected ',' or ')' in ATTRIBUTE block");
         }
+        Consume(TokenType.RPAREN);
 
         // Parse WHERE clause
         if (Check(TokenType.WHERE))
@@ -1410,7 +1443,9 @@ public class Parser
     {
         var token = Peek() ?? throw new ParserException("Unexpected end of input");
         Consume(TokenType.DELETE);
-        Consume(TokenType.FROM);
+        
+        if (Check(TokenType.FROM))
+            Consume(TokenType.FROM);
 
         var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected concept name");
         var node = new DeleteNode
@@ -1456,7 +1491,7 @@ public class Parser
             while (!Check(TokenType.FIND) && !Check(TokenType.SEMICOLON) && !IsAtEnd())
             {
                 var keyToken = ConsumeIdentifier() ?? throw new ParserException("Expected variable name");
-                Consume(TokenType.EQUALS);
+                Consume(TokenType.COLON);
                 var valueToken = Peek() ?? throw new ParserException("Expected value");
                 string value;
 
@@ -2078,8 +2113,23 @@ public class Parser
     {
         var list = new List<ConstraintDef>();
 
-        while (!IsAtEnd() && !IsClauseKeyword(Peek()?.Type))
+        // (V2) Check for optional block parentheses
+        bool hasBlockParens = false;
+        if (Check(TokenType.LPAREN))
         {
+            Consume(TokenType.LPAREN);
+            hasBlockParens = true;
+        }
+
+        while (!IsAtEnd())
+        {
+            if (hasBlockParens && Check(TokenType.RPAREN))
+                break;
+            if (!hasBlockParens && IsClauseKeyword(Peek()?.Type))
+                break;
+            if (Check(TokenType.RPAREN)) // Safety for nested cases
+                break;
+
             string name = string.Empty;
             var startToken = Peek() ?? throw new ParserException("Expected constraint");
 
@@ -2103,8 +2153,11 @@ public class Parser
 
             if (Check(TokenType.COMMA))
                 Consume(TokenType.COMMA);
-            else
-                break;
+        }
+
+        if (hasBlockParens)
+        {
+            Consume(TokenType.RPAREN);
         }
 
         return list;
@@ -2121,14 +2174,14 @@ public class Parser
             if (token == null) break;
 
             // Stop at comma or clause keyword (unless inside parentheses)
-            if (parenCount == 0 && (token.Type == TokenType.COMMA || IsClauseKeyword(token.Type)))
+            if (parenCount == 0 && (token.Type == TokenType.COMMA || token.Type == TokenType.RPAREN || IsClauseKeyword(token.Type)))
                 break;
-
-            sb.Append(token.Lexeme);
-            Advance();
 
             if (token.Type == TokenType.LPAREN) parenCount++;
             if (token.Type == TokenType.RPAREN) parenCount--;
+
+            sb.Append(token.Lexeme);
+            Advance();
         }
 
         return sb.ToString().Trim();
@@ -2385,5 +2438,28 @@ public class Parser
                type == TokenType.COST || 
                type == TokenType.DATE ||
                type == TokenType.TIMESTAMP;
+    }
+
+    // ==================== TCL Parsers ====================
+
+    private AstNode ParseBeginTransaction()
+    {
+        Consume(TokenType.BEGIN);
+        // Optionally consume TRANSACTION keyword
+        if (Peek()?.Type == TokenType.TRANSACTION)
+            Consume(TokenType.TRANSACTION);
+        return new Ast.Tcl.BeginTransactionNode();
+    }
+
+    private AstNode ParseCommit()
+    {
+        Consume(TokenType.COMMIT);
+        return new Ast.Tcl.CommitNode();
+    }
+
+    private AstNode ParseRollback()
+    {
+        Consume(TokenType.ROLLBACK);
+        return new Ast.Tcl.RollbackNode();
     }
 }

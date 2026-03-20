@@ -1,4 +1,6 @@
-namespace KBMS.Parser.Ast;
+using KBMS.Parser.Ast.Expressions;
+using KBMS.Parser.Ast;
+namespace KBMS.Parser.Ast.Expressions;
 
 /// <summary>
 /// Represents a binary expression (e.g., a + b, x AND y)
