@@ -152,81 +152,86 @@ public class Cli
 
         string? currentKb = null;
         string? currentUser = null;
+        var commandBuilder = new System.Text.StringBuilder();
 
         while (true)
         {
-            string prompt = currentUser != null
-                ? $"kbms{(currentKb != null ? $"/{currentKb}" : "")}> "
-                : "login> ";
+            string prompt;
+            if (commandBuilder.Length > 0)
+            {
+                // Line continuation prompt
+                prompt = "    -> ";
+            }
+            else
+            {
+                prompt = currentUser != null
+                    ? $"kbms{(currentKb != null ? $"/{currentKb}" : "")}> "
+                    : "login> ";
+            }
 
-            var input = _editor.ReadLine(prompt, _history.GetHistory());
+            var inputLine = _editor.ReadLine(prompt, _history.GetHistory());
 
             // Handle EOF or non-interactive terminal
-            if (input == null)
+            if (inputLine == null)
             {
                 Console.WriteLine("\nExiting (EOF)...");
                 break;
             }
 
-            input = input.Trim();
-            if (string.IsNullOrEmpty(input))
+            var trimmedLine = inputLine.Trim();
+            if (string.IsNullOrEmpty(trimmedLine) && commandBuilder.Length == 0)
                 continue;
 
-            // Add to history (privacy filter inside HistoryManager)
-            _history.AddCommand(input);
-
-            if (input.ToUpper() == "EXIT")
+            // Handle immediate meta-commands (no semicolon required, bypass buffer)
+            var upperLine = trimmedLine.ToUpper();
+            if (commandBuilder.Length == 0 && (upperLine == "EXIT" || upperLine == "HELP" || upperLine == "CLEAR" || upperLine == "CONNECT" || upperLine.StartsWith("LOGIN ")))
             {
-                Console.WriteLine("Exiting...");
-                break;
-            }
-
-            if (input.ToUpper() == "HELP")
-            {
-                ShowHelp();
-                continue;
-            }
-
-            if (input.ToUpper() == "CLEAR")
-            {
-                Console.Clear();
-                continue;
-            }
-
-            if (input.ToUpper() == "CONNECT")
-            {
-                Console.WriteLine("Attempting to reconnect...");
-                await DisconnectAsync();
-                await ConnectAsync(true); // Auto-reconnect
-                continue;
-            }
-
-            // Handle LOGIN separately
-            if (input.StartsWith("LOGIN", StringComparison.OrdinalIgnoreCase))
-            {
-                var parts = input.Split(' ');
-                if (parts.Length < 3)
+                // Process immediately
+                if (upperLine == "EXIT")
                 {
-                    Console.WriteLine("Usage: LOGIN <username> <password>");
+                    Console.WriteLine("Exiting...");
+                    break;
+                }
+                if (upperLine == "HELP")
+                {
+                    ShowHelp();
                     continue;
                 }
-
-                var username = parts[1];
-                var password = parts[2];
-
-                var msg = await ExecuteCommandAsync(input);
-                if (msg?.Type == MessageType.RESULT && msg.Content.StartsWith("LOGIN_SUCCESS"))
+                if (upperLine == "CLEAR")
                 {
-                    var resultParts = msg.Content.Split(':');
-                    currentUser = resultParts[1];
-                    Console.WriteLine($"Logged in as {currentUser} ({resultParts[2]})");
+                    Console.Clear();
+                    continue;
                 }
-                else if (msg?.Type == MessageType.ERROR)
+                if (upperLine == "CONNECT")
                 {
-                    ResponseParser.DisplayError(msg.Content, input);
+                    Console.WriteLine("Attempting to reconnect...");
+                    await DisconnectAsync();
+                    await ConnectAsync(true);
+                    continue;
                 }
+                if (upperLine.StartsWith("LOGIN "))
+                {
+                    var loggedInUser = await HandleLoginCommand(trimmedLine);
+                    if (loggedInUser != null) currentUser = loggedInUser;
+                    continue;
+                }
+            }
+
+            // Accumulate command
+            commandBuilder.AppendLine(inputLine);
+
+            // Check if command is finished (ends with ;)
+            if (!trimmedLine.EndsWith(";"))
+            {
                 continue;
             }
+
+            // Command is complete
+            var fullCommand = commandBuilder.ToString().Trim();
+            commandBuilder.Clear();
+
+            // Add to history
+            _history.AddCommand(fullCommand);
 
             // Check if logged in
             if (currentUser == null)
@@ -235,24 +240,28 @@ public class Cli
                 continue;
             }
 
-            var response = await ExecuteCommandAsync(input);
+            var response = await ExecuteCommandAsync(fullCommand);
 
             if (response?.Type == MessageType.RESULT)
             {
                 // Handle USE command
-                if (input.StartsWith("USE", StringComparison.OrdinalIgnoreCase))
+                if (fullCommand.StartsWith("USE", StringComparison.OrdinalIgnoreCase))
                 {
-                    currentKb = input.Split()[1];
-                    Console.WriteLine($"Using knowledge base: {currentKb}");
+                    var parts = fullCommand.Split(new[] { ' ', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length > 1)
+                    {
+                        currentKb = parts[1];
+                        Console.WriteLine($"Using knowledge base: {currentKb}");
+                    }
                 }
                 else
                 {
-                    ResponseParser.DisplayResult(response, input);
+                    ResponseParser.DisplayResult(response, fullCommand);
                 }
             }
             else if (response?.Type == MessageType.ERROR)
             {
-                ResponseParser.DisplayError(response.Content, input);
+                ResponseParser.DisplayError(response.Content, fullCommand);
 
                 // If connection lost due to error, try auto-reconnect
                 if (response.Content.Contains("disconnected", StringComparison.OrdinalIgnoreCase) ||
@@ -335,5 +344,29 @@ public class Cli
         Console.WriteLine("\nNote: Commands like LOGIN and CREATE USER are not stored in history for your safety.");
         Console.ResetColor();
         Console.WriteLine("======================================================\n");
+    }
+
+    private async Task<string?> HandleLoginCommand(string input)
+    {
+        var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 3)
+        {
+            Console.WriteLine("Usage: LOGIN <username> <password>");
+            return null;
+        }
+
+        var msg = await ExecuteCommandAsync(input);
+        if (msg?.Type == MessageType.RESULT && msg.Content.StartsWith("LOGIN_SUCCESS"))
+        {
+            var resultParts = msg.Content.Split(':');
+            var username = resultParts[1];
+            Console.WriteLine($"Logged in as {username} ({resultParts[2]})");
+            return username;
+        }
+        else if (msg?.Type == MessageType.ERROR)
+        {
+            ResponseParser.DisplayError(msg.Content, input);
+        }
+        return null;
     }
 }

@@ -234,93 +234,50 @@ public class KbmsServer
 
         try
         {
-            var lexer = new KBMS.Parser.Lexer(message.Content);
-            var tokens = lexer.Tokenize();
-            var parser = new KBMS.Parser.Parser(tokens);
-            var ast = parser.Parse();
+            var parser = new KBMS.Parser.Parser(message.Content);
+            var asts = parser.ParseAll();
 
-            var result = _knowledgeManager.Execute(ast, user, currentKb);
-
-            stopwatch.Stop();
-            var elapsedSec = stopwatch.ElapsedMilliseconds / 1000.0;
-
-            if (result == null)
+            if (asts.Count == 0)
             {
                 return new Message
                 {
                     Type = MessageType.RESULT,
-                    Content = ToJson(new
-                    {
-                        success = true,
-                        executionTime = elapsedSec
-                    })
+                    Content = ToJson(new { message = "Empty query or comments ignored." })
                 };
             }
 
-            var resultType = result.GetType();
-
-            // Check error in result
-            var errorProp = resultType.GetProperty("error");
-            if (errorProp != null)
+            var results = new List<object>();
+            foreach (var ast in asts)
             {
-                var errorValue = errorProp.GetValue(result);
-                if (errorValue != null)
+                var result = _knowledgeManager.Execute(ast, user, currentKb);
+                if (result != null) results.Add(result);
+
+                // Handle USE command - updates current session KB
+                if (ast is UseKbNode useNode)
                 {
-                    return new Message
-                    {
-                        Type = MessageType.ERROR,
-                        Content = ToJson(
-                            ErrorResponse.ExecutionErrorResponse(
-                                errorValue.ToString() ?? "Unknown error",
-                                message.Content))
-                    };
+                    _connectionManager.SetSessionKb(clientId, useNode.KbName);
                 }
             }
 
-            // Handle USE command
-            if (message.Content.StartsWith("USE", StringComparison.OrdinalIgnoreCase))
+            stopwatch.Stop();
+            var elapsedSec = stopwatch.ElapsedMilliseconds / 1000.0;
+
+            if (results.Count == 0)
             {
-                var successProp = resultType.GetProperty("success");
-                var currentKbProp = resultType.GetProperty("currentKb");
-
-                var success = successProp?.GetValue(result) as bool?;
-
-                if (success == true && currentKbProp != null)
+                return new Message
                 {
-                    var kbName = currentKbProp.GetValue(result) as string;
-
-                    if (kbName != null)
-                    {
-                        if (!_authManager.CheckPrivilege(user, "SELECT", kbName))
-                        {
-                            return new Message
-                            {
-                                Type = MessageType.ERROR,
-                                Content = ToJson(
-                                    ErrorResponse.PermissionErrorResponse("SELECT", kbName))
-                            };
-                        }
-
-                        _connectionManager.SetSessionKb(clientId, kbName);
-                    }
-                }
+                    Type = MessageType.RESULT,
+                    Content = ToJson(new { success = true, executionTime = elapsedSec })
+                };
             }
 
-            // Convert result object → dictionary
-            var response = new Dictionary<string, object?>();
-
-            foreach (var prop in resultType.GetProperties())
-            {
-                response[prop.Name] = prop.GetValue(result);
-            }
-
-            // add execution time
-            response["executionTime"] = elapsedSec;
+            // If only one result, return it directly for backward compatibility
+            var finalResult = results.Count == 1 ? results[0] : results;
 
             return new Message
             {
                 Type = MessageType.RESULT,
-                Content = ToJson(response)
+                Content = ToJson(finalResult)
             };
         }
         catch (ParserException ex)
@@ -328,17 +285,16 @@ public class KbmsServer
             return new Message
             {
                 Type = MessageType.ERROR,
-                Content = ToJson(
-                    ErrorResponse.ParserErrorResponse(ex, message.Content))
+                Content = ToJson(ErrorResponse.ParserErrorResponse(ex, message.Content))
             };
         }
         catch (Exception ex)
         {
+            _logger.Error(clientId, $"HandleQuery error: {ex.Message}", ex);
             return new Message
             {
                 Type = MessageType.ERROR,
-                Content = ToJson(
-                    ErrorResponse.RuntimeErrorResponse(ex, message.Content))
+                Content = ToJson(ErrorResponse.RuntimeErrorResponse(ex, message.Content))
             };
         }
     }

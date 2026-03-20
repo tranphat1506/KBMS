@@ -34,10 +34,17 @@ public class Parser
     {
         if (IsAtEnd()) return null;
 
-        var token = Peek();
-        _originalQuery = string.Join(" ", _tokens.ConvertAll(t => t.Lexeme));
+        var stmt = ParseStatement();
 
-        return ParseStatement();
+        // Enforce semicolon for single Parse() call as well
+        if (!Check(TokenType.SEMICOLON))
+        {
+            var next = Peek();
+            throw new ParserException("Semicolon ';' expected at end of statement", next?.Line ?? 0, next?.Column ?? 0);
+        }
+        Consume(TokenType.SEMICOLON);
+
+        return stmt;
     }
 
     /// <summary>
@@ -56,8 +63,16 @@ public class Parser
                 statements.Add(stmt);
             }
 
-            // Consume optional semicolon
-            if (Check(TokenType.SEMICOLON)) Advance();
+            // Enforce semicolon after each statement
+            if (Check(TokenType.SEMICOLON))
+            {
+                Advance();
+            }
+            else
+            {
+                var next = Peek();
+                throw new ParserException("Semicolon ';' expected", next?.Line ?? 0, next?.Column ?? 0);
+            }
         }
 
         return statements;
