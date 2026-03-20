@@ -1,60 +1,63 @@
-# Hệ Quản Trị Cơ Sở Tri Thức (KBMS V2)
-**Knowledge Base Management System**
+# KBMS - Knowledge-Based Management System
 
-KBMS là một hệ quản trị tri thức mạnh mẽ, cung cấp mô hình lưu trữ ObjectInstance & Concept linh hoạt kết hợp với Inference Engine (Bộ suy diễn chuyên gia) tối ưu. 
+KBMS is a high-performance, transactional knowledge-based management system designed for storing, managing, and reasoning over complex symbolic and numeric knowledge. Distinct from traditional relational or NoSQL databases, KBMS combines a powerful 4-tier architecture with a sophisticated inference engine capable of both logical deduction (Forward/Backward Chaining) and advanced numeric constraint solving.
 
-Phiên bản V2 đánh dấu sự lột xác kiến trúc, biến KBMS từ một công cụ đơn lẻ thành hệ cấu trúc Data Engine Chuẩn Thương Mại (Commercial Grade) thông qua **Kiến trúc CSDL Đa Tầng (Multi-Tier Architecture)**. Nó gánh vác cả năng lực truyền thống của hệ cơ sở dữ liệu (DBMS) lẫn quyền năng lập luận Logic mờ.
+## Key Features
 
----
+### Advanced Reasoning Engine
+- **Inference Types**: Built-in support for Forward and Backward Chaining.
+- **Numeric Solver**: Integrated numeric constraint solver (using Brent's method) for resolving algebraic equations within knowledge concepts.
+- **Inheritance & Hierarchy**: First-class support for `IS_A` relationships with full property and rule inheritance.
 
-## ⚡ Các Tính Năng Đỉnh Cao Của V2
+### Transactional Integrity & Storage
+- **Buffer Pool**: High-speed memory-mapped RAM cache for lazy-loading and rapid data access.
+- **Shadow Paging**: Ensures atomic transactions. Changes are buffered in a shadow pool and only promoted to main memory and disk upon a successful `COMMIT`.
+- **Write-Ahead Logging (WAL)**: Robust `.klf` logging for crash recovery and transactional safety.
+- **Unified Format**: Custom binary serialization (`.kdf`, `.kmf`) with built-in encryption.
 
-### 1. Kiến Trúc Lưu Trữ Ổ Cứng (Physical Custom Engine)
-Thay thế định dạng nhị phân rác chung chung, KBMS V2 sở hữu hệ sinh thái file mở rộng định hình thương hiệu:
-- **`.kmf` (Knowledge Meta File)**: Chứa cấu trúc Schema, Metadata, Constraints cố định.
-- **`.kdf` (Knowledge Data File)**: Lưu dạng B-Tree các thực thể đối tượng (hàng tỷ ObjectInstances).
-- **`.klf` (Knowledge Log File)**: Nhật ký tĩnh `WAL` (Write-Ahead-Log). Xóa tan nỗi lo sập nguồn, duy trì tính ACID, phục hồi nguyên trạng bộ nhớ RAM siêu tốc khi khởi động lại ứng dụng.
+### 4-Tier Architecture
+1. **Physical Layer**: Manages file I/O, paging, and the binary storage format.
+2. **Storage Layer**: Implements the Buffer Pool, WAL, and Shadow Paging.
+3. **Knowledge Layer**: Handles Concepts, Variables, Attributes, and Hierarchy.
+4. **Reasoning Layer**: Executes KBQL queries, solves constraints, and performs inference.
 
-### 2. Bộ Đệm Truy Xuất Ánh Sáng (RAM Buffer Pool)
-Chấm dứt hoàn toàn tình trạng nghẽn cổ chai (I/O Bottleneck) vì phải đọc ổ đĩa cứng khi truy vấn. KBMS cung cấp hệ thống RAM Cache tự trị cho từng Knowledge Base.
-Mọi truy vấn toán học, KQL `SELECT` hay `SOLVE` đều lướt qua mảng List trên bộ nhớ động của môi trường C# với tốc độ phản xạ micro-seconds (O(1)).
+## Quick Start
 
-### 3. Vòng Đời Phiên Giao Dịch (TCL Shadow Paging)
-- `BEGIN TRANSACTION`: Kích hoạt Sandbox RAM ẩn danh. Mọi thao tác đều thao tác vào rác RAM, không bao giờ gây hỏng dữ liệu hệ thống bên dưới nếu lỗi văng giữa chừng.
-- `COMMIT`: Tính năng duy nhất đổ RAM đã xác nhận Flush xuống ổ cứng đĩa vật lý của hệ thống.
-- `ROLLBACK`: Nút thắt xóa mảng rác để đảo ngược quá trình (Undo) mượt mà bằng hệ thống dọn rác (GC).
+### Prerequisites
+- [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
 
----
+### Installation
+1. Clone the repository: `git clone https://github.com/tranphat1506/KBMS.git`
+2. Build the project: `dotnet build`
+3. Run the Server: `dotnet run --project KBMS.Server`
+4. Connect via CLI: `dotnet run --project KBMS.CLI`
 
-## 🔍 KBQL (Knowledge Base Query Language) V2
+### Basic Usage
+```kbql
+CREATE KNOWLEDGE BASE world_kb;
+USE world_kb;
 
-Bộ Parser C# tự viết được phân nhánh thành **5 Dòng Ngôn Ngữ riêng rẽ** sử dụng cú pháp đóng gói **Block Ngoặc Tròn `()`**, nâng cấp cấu trúc dễ đọc đáng sợ.
+CREATE CONCEPT Rectangle (
+    VARIABLES (
+        width: double,
+        height: double,
+        area: double
+    )
+    CONSTRAINTS (
+        area = width * height
+    )
+);
 
-1. **KDL (Định Nghĩa Mạng Lưới Khái Niệm)**
-   - Khởi tạo: `CREATE CONCEPT <TAM> ( VARIABLES(...) RULES(...) )`
-   - Tiến hóa CSDL không mất Data: `ALTER CONCEPT <TAM> ( ADD ( RULES(...) ) )`
+INSERT INTO Rectangle ATTRIBUTE ( width:5.0, height:10.0 );
 
-2. **KML (Sự Kiện Thực Thể)**
-   - Thay đổi các sự kiện trên RAM: `INSERT INTO <TAMGIAC> ATTRIBUTE ( A: 1 );`
-   - Cập nhật linh hoạt: `UPDATE <TAMGIAC> ATTRIBUTE ( SET A: 10 ) WHERE A = 5;`
+SOLVE ON CONCEPT Rectangle GIVEN width:2.0, height:4.0 FIND area SAVE;
+```
 
-3. **KQL (Chắt Lọc & Đi Cửa Sau Não Bộ Toán Học)**
-   - Truy vấn CSDL tĩnh nhúng hàm Join đa cấp: `SELECT * FROM <TAMGIAC>;`
-   - Giao việc tự động cho Não Bộ Máy (Inference): `SOLVE ON CONCEPT <TAMGIAC> GIVEN A=1, B=2 FIND CanhC;`
+## 📚 Documentation
+- [Architecture Details](docs/ARCHITECTURE.md)
+- [KBQL Reference](docs/KBQL_REFERENCE.md)
+- [Installation Guide](docs/INSTALLATION.md)
+- [Usage Guide & Examples](docs/USAGE_GUIDE.md)
 
-4. **KCL (Luật Quyền Hệ Thống)**
-   - Phân mảnh quyền User bằng hệ thống Role Base Access System (RBAS): `GRANT READ ON <ToanHoc> TO admin;`
-
-5. **TCL (Khóa An Toàn)**
-   - Bộ 3 từ khóa quyền lực: `BEGIN TRANSACTION`, `COMMIT`, `ROLLBACK`.
-
----
-
-## 🚀 Hướng Dẫn Kịch Bản Test (Benchmarking)
-Với cấu hình Buffer Array RAM Cache, KBMS thách thức mọi giới hạn phần cứng nhỏ nhất. Dưới đây là chiến lược thử tải cho dự án này:
-
-- **Giới hạn Hệ Thống OOM (Out Of Memory OOM)**: Viết script đẩy 1.000.000 sự kiện bằng `KML INSERT` lên RAM Pool để nhận diện khả năng thu gom hệ điều hành (Garbage Collector Eviction) trước và sau khi kích hoạt `ROLLBACK` hoặc xả đĩa cứng bằng `COMMIT`.
-- **Đồ thị Giới Hạn Minimal SysReqs**: Tìm ngưỡng RAM giới hạn cuối cùng từ mốc `50MB RAM Idle` của C#. 
-
----
-_Đây là hệ tư tưởng và đỉnh cao Đồ Án Kỹ Thuật Hệ Quản Trị CSDL Tri Thức!_
+## ⚖️ License
+Distributed under the MIT License. See `LICENSE` for more information.
