@@ -1,221 +1,122 @@
-# Toàn tập Cú Pháp Ngôn ngữ Truy vấn Tri Thức (KBQL V2)
+# Hướng Dẫn Cú Pháp KBQL Chi Tiết (v1.0)
 
-KBQL (Knowledge Base Query Language) phiên bản V2 là ngôn ngữ đặc thù quản trị hệ sinh thái KBMS thông qua tính năng đóng gói **Khối Block ngoặc tròn `()`**. 
+KBQL (Knowledge Base Query Language) là ngôn ngữ cốt lõi của KBMS, được thiết kế để xử lý tri thức dựa trên mô hình COKB. KBQL v1.0 bao gồm 6 phân nhánh ngôn ngữ chuyên biệt.
 
-Tài liệu này là Tự điển (Dictionary) liệt kê **ĐẦY ĐỦ 100% CÁC LỆNH** hiện hành cấu thành nên 5 mảng: KDL, KML, KQL, KCL, và TCL.
+## 1. KDL (Knowledge Definition Language) - Định nghĩa Tri thức
+Dùng để thiết kế cấu trúc (Schema) của cơ sở tri thức.
 
----
-
-## 1. KDL (Knowledge Definition Language) - Khởi tạo Cấu trúc
-KDL (nâng cấp từ DDL truyền thống) cho phép bạn khởi tạo và thay đổi Schema trên file `.kmf`.
-
-### **1.1. Quản lý Không Gian Tri Thức (Knowledge Bases)**
+### 1.1. Tạo CSDL Tri thức (CREATE KNOWLEDGE BASE)
 ```sql
-CREATE KNOWLEDGE BASE <Ten_Du_An>;
-DROP KNOWLEDGE BASE <Ten_Du_An>;
-USE <Ten_Du_An>;
+CREATE KNOWLEDGE BASE MyProject DESCRIPTION "Dự án quản lý hình học";
+USE MyProject;
 ```
 
-### **1.2. Khởi tạo Concept (Khuôn đúc Thực thể)**
-Gồm nhiều Block tham số hỗ trợ quy trình thiết kế Dữ liệu + Toán học.
+### 1.2. Định nghĩa Khái niệm (CREATE CONCEPT)
+Hỗ trợ các ràng buộc toán học (Constraints) và biến (Variables).
 ```sql
-CREATE CONCEPT <HinhHoc> 
-(
-    VARIABLES (
-        A: DIEM,
-        B: DIEM,
-        Canh: INT
-    )
-    ALIASES (
-        Hinh, Shape
-    )
-    BASE_OBJECTS (
-        BaseShape
-    )
-    CONSTRAINTS (
-        C1: "A > 0",
-        C2: "Canh >= A + B"
-    )
-    SAME_VARIABLES (
-        A = B
-    )
-    CONSTRUCT_RELATIONS (
-        ToaDo(A, B)
-    )
-    PROPERTIES (
-        Author: "Tran Phat",
-        Version: "2.0"
-    )
-    RULES (
-        Rule1, Rule2
-    )
-    EQUATIONS (
-        Eq1: "ChuVi = A + B + Canh",
-        Eq2: "DienTich = A * B"
-    )
+CREATE CONCEPT <Rectangle> (
+    VARIABLES ( width: double, height: double, area: double ),
+    CONSTRAINTS ( area = width * height )
 );
 ```
 
-### **1.3. Cập nhật Concept Động (Evolving Schema)**
-Chỉnh sửa nóng cấu trúc mà không phải `DROP` làm mất dữ liệu sự kiện:
+### 1.3. Cập nhật Khái niệm (ALTER CONCEPT) - Cú pháp Block-Centric
 ```sql
-ALTER CONCEPT <HinhHoc> 
-(
-    ADD (
-        VARIABLES ( M: INT, N: INT ),
-        RULES ( Rule3 )
-    )
-    REMOVE (
-        CONSTRAINTS ( C1, C2 ),
-        PROPERTIES ( Version, Author )
-    )
-    EDIT (
-        EQUATIONS ( Eq1: "ChuVi = A + B + Canh + M" )
-    )
+-- Thêm biến và ràng buộc
+ALTER CONCEPT <Rectangle> ( 
+    ADD ( VARIABLE ( color: string ), CONSTRAINT ( pos_w: width > 0 ) ) 
 );
-```
-
-### **1.4. Xóa Concept / Entity**
-```sql
-DROP CONCEPT <HinhHoc>;
-```
-
-### **1.5. Các Đối tượng Logic Suy Diễn / Ngữ Nghĩa khác**
-Hệ thống cho phép gõ các lệnh tạo lập siêu cấu trúc:
-```sql
--- Tạo Hàm hệ thống
-CREATE FUNCTION <TinhDienTich> ( PARAMS(...) RETURNS(...) BODY(...) PROPERTIES(...) );
-DROP FUNCTION <TinhDienTich>;
-
--- Tạo Toán tử suy diễn
-CREATE OPERATOR <PhanGiao> ( PARAMS(...) RETURNS(...) BODY(...) PROPERTIES(...) );
-DROP OPERATOR <PhanGiao>;
-
--- Tạo Mạng ngữ nghĩa (Relations)
-CREATE RELATION <ThuocVe> ( FROM(...) TO(...) PARAMS(...) RULES(...) EQUATIONS(...) PROPERTIES(...) );
-DROP RELATION <ThuocVe>;
-
--- Tạo Luật độc lập (Independent Rules)
-CREATE RULE <LuatPytago> ( TYPE(...) SCOPE(...) IF(...) THEN(...) COST(...) );
-DROP RULE <LuatPytago>;
+-- Đổi tên biến
+ALTER CONCEPT <Rectangle> ( RENAME ( VARIABLE width TO w ) );
+-- Xóa biến
+ALTER CONCEPT <Rectangle> ( DROP ( VARIABLE color ) );
 ```
 
 ---
 
-## 2. KML (Knowledge Manipulation Language) - Thao Tác Sự Kiện
-Nhóm KML (tương đương DML truyền thống) tương tác trực tiếp với RAM Buffer Pool hoặc file `.kdf` khi nạp dữ kiện/sự kiện thực tế (Fact Injection/Instantiation).
+## 2. KML (Knowledge Manipulation Language) - Thao tác Dữ liệu
+Quản lý các đối tượng cụ thể (Instances) trong CSDL.
 
-### **2.1. Thêm Sự Kiện (INSERT)**
-Điền dữ kiện vào thuộc tính (Map cứng qua khối block `ATTRIBUTES`):
+### 2.1. Thêm Đối tượng (INSERT)
 ```sql
--- Dựa trên Từ khóa (Named Fields)
-INSERT INTO <HinhHoc> ATTRIBUTE ( A:1, B:2, Canh:3 );
-
--- Dựa trên Giá trị vị trí (Positional Fields)
-INSERT INTO <HinhHoc> ATTRIBUTE ( 1, 2, 3 );
+INSERT INTO <Rectangle> ATTRIBUTE ( width: 10.5, height: 20.0 );
 ```
 
-### **2.2. Sửa Sự Kiện (UPDATE)**
+### 2.2. Xuất/Nhập Dữ liệu (IMPORT/EXPORT)
+Hỗ trợ định dạng JSON để trao đổi dữ liệu với hệ thống khác.
 ```sql
-UPDATE <HinhHoc> ATTRIBUTE ( SET A: 10, Canh: 15 ) WHERE B = 2;
-```
-
-### **2.3. Xóa Sự Kiện (DELETE)**
-Xóa bỏ các Instance/Facts đang chạy trên vùng nhớ:
-```sql
-DELETE FROM <HinhHoc> WHERE Canh < 0;
+EXPORT ( CONCEPT: <Rectangle>, FORMAT: JSON, FILE: "rect_backup.json" );
+IMPORT ( FILE: "rect_data.json", INTO: <Rectangle> );
 ```
 
 ---
 
-## 3. KQL (Knowledge Query Language) - Truy Vấn Động & Tĩnh (Cốt Lõi)
-Ngôn ngữ này tách biệt hoàn toàn giữa việc `Đọc dữ liệu thụ động` (Static Query) và `Giải toán tự động` (Inference Problem Solving).
+## 3. KQL (Knowledge Query Language) - Truy vấn & Suy luận
+Đây là phần mạnh mẽ nhất của KBMS, cho phép giải toán và tìm kiếm thông minh.
 
-### **3.1. Truy Vấn Chuẩn (SELECT - RDBMS Equivalency)**
-Cú pháp SELECT của KBMS hỗ trợ sức mạnh truy xuất khổng lồ kết hợp Filtering, Grouping.
+### 3.1. Truy vấn Dữ liệu (SELECT)
 ```sql
--- Đọc tất cả
-SELECT * FROM <HinhHoc>;
-
--- Đổi tên và đếm dòng
-SELECT COUNT(*), A, Canh AS ChieuDai FROM <HinhHoc>;
-
--- Ghép bảng (Join) và Lọc sâu
-SELECT A, B FROM <HinhHoc> 
-JOIN <ToaDo> ON HinhHoc.A = ToaDo.X
-WHERE A > 0 AND Canh != NULL
-GROUP BY Canh 
-HAVING Canh >= 2 
-ORDER BY Canh DESC 
-LIMIT 10 OFFSET 0;
+SELECT * FROM <Rectangle> WHERE width > 10 AND height < 50;
+SELECT COUNT(*) FROM <Rectangle> AS TotalRect;
 ```
 
-### **3.2. Chức Năng Cốt Lõi: Giải Toán Kéo Theo (SOLVE / INFERENCE)**
-Giao việc cho Não Bộ Suy Diễn (KnowledgeManager/Forward & Backward Chaining Engine):
+### 3.2. Giải toán Tự động (SOLVE)
+Giải các biến chưa biết dựa trên ràng buộc và tri thức đã nạp.
 ```sql
--- Cung cấp A và B, tự động tính C và lưu xuống Database nếu muốn
-SOLVE ON CONCEPT <HinhHoc> GIVEN A=1, B=2 FIND CanhC SAVE true;
+SOLVE ON CONCEPT <Rectangle> GIVEN width: 5, height: 10 FIND area SAVE;
 ```
 
-### **3.3. Hiển thị Metadata (SHOW)**
-Giao tiếp để xem danh sách sơ đồ CSDL:
+### 3.3. Kiểm tra Metadata (DESCRIBE)
+Xem cấu trúc của một Concept hoặc CSDL.
 ```sql
-SHOW KNOWLEDGE BASES;
-SHOW CONCEPTS;
-SHOW CONCEPT <HinhHoc>;
-SHOW RULES;
-SHOW RELATIONS;
-SHOW OPERATORS;
-SHOW FUNCTIONS;
-SHOW HIERARCHIES;
-SHOW USERS;
+DESCRIBE CONCEPT <Rectangle>;
+DESCRIBE KNOWLEDGE BASE MyProject;
 ```
+
+> [!NOTE]
+> **Tính năng Subquery**: Hiện tại KBMS 1.0 chưa hỗ trợ truy vấn con trực tiếp (ví dụ: `WHERE id IN (SELECT...)`). Tính năng này dự kiến sẽ có trong bản cập nhật 2.0.
 
 ---
 
-## 4. KCL (Knowledge Control Language) - Phân Quyền & Bảo Mật
-Nhóm lệnh hệ thống thiết lập RBAS (Role-Based Access System).
-
-### **4.1. Account Management (Tạo & Xóa Người Dùng)**
+## 4. TCL (Transaction Control Language) - Điều khiển Giao dịch
+Đảm bảo tính toàn vẹn dữ liệu (ACID) trên RAM Buffer Pool.
 ```sql
-CREATE USER root PASSWORD '123' ROLE 'ADMIN' SYSTEM_ADMIN true;
-DROP USER lechautranphat;
-```
-
-### **4.2. Access Delegation (Gán và Tước Quyền)**
-Cho phép hạn chế quyền `READ`, `WRITE`, `EXECUTE`, `ALL` trên từng Knowledge Base cụ thể.
-```sql
-GRANT READ ON <DuAnToanHoc> TO lechautranphat;
-GRANT ALL ON <DuAnVatLy> TO root;
-
-REVOKE WRITE ON <DuAnToanHoc> FROM lechautranphat;
-```
-
-### **4.3. Kiểm Tra Quyền Hạn**
-```sql
-SHOW PRIVILEGES ON <DuAnToanHoc>;
-SHOW PRIVILEGES OF lechautranphat;
-```
-
----
-
-## 5. TCL (Transaction Control Language) - Quản Trị Phiên Giao Dịch RAM
-Đây là khối bảo vệ tầng `Storage Layer (RAM)` trước sự cố của `Physical Storage Layer (.kdf)`.
-
-```sql
--- KHỞI TẠO: Mở một vòng bo Shadow Paging cho RAM Session hiện tại. 
--- Các lệnh KML sẽ ngừng rải xuống .kdf.
 BEGIN TRANSACTION;
-
--- LỆNH BỊ TREO VÀO LOG WAL:
-INSERT INTO <HinhHoc> ATTRIBUTE ( A:1 );
-UPDATE <HinhHoc> ATTRIBUTE ( SET A:10 ) WHERE A = 1;
-
--- CHỐT SỔ (XẢ RAM XUỐNG ĐĨA .KDF VÀ TIÊU DIỆT BUFFER TẠM):
-COMMIT; 
-
--- BỎ SUỘC: Vứt bỏ mọi thay đổi KML đang treo, khôi phục RAM.
-ROLLBACK; 
+INSERT INTO <Rectangle> ATTRIBUTE ( width: 2, height: 3 );
+-- Nếu xảy ra lỗi:
+ROLLBACK;
+-- Nếu thành công:
+COMMIT;
 ```
 
-Với cấu trúc tổng hợp **đầy đủ của hơn 30+ Câu lệnh hệ thống khổng lồ**, KBQL V2 chứng minh nó không hề thua kém T-SQL hay PL/SQL truyền thống, mà còn vượt mặt khi kết hợp hệ suy diễn tư duy `SOLVE` và `ALTER CONCEPT Block` chuyên sâu.
+---
+
+## 5. KCL (Knowledge Control Language) - Kiểm soát Truy cập
+Phân quyền và bảo mật cho người dùng.
+```sql
+CREATE USER gemini PASSWORD 'secure123' ROLE ADMIN;
+GRANT PRIVILEGE ADMIN ON MyProject TO gemini;
+```
+
+---
+
+## 6. KHL (Knowledge Help & Maintenance) - Bảo trì & Trợ giúp
+Tối ưu hóa hệ thống và gỡ lỗi.
+
+### 6.1. Tối ưu hóa (MAINTENANCE)
+```sql
+MAINTENANCE ( VACUUM, REINDEX (*) );
+```
+
+### 6.2. Phân tích Truy vấn (EXPLAIN)
+```sql
+EXPLAIN ( SELECT * FROM <Rectangle> WHERE width > 10 );
+```
+
+### 6.3. Tạo Chỉ mục (CREATE INDEX)
+```sql
+CREATE INDEX ON <Rectangle> ( width );
+```
+
+---
+*Lưu ý: Luôn kết thúc câu lệnh bằng dấu chấm phẩy (;) khi sử dụng Command Line.*

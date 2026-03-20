@@ -1,27 +1,49 @@
-# Bộ Công Cụ Dịch Toán Học (Parser & Lexer Architecture)
+# Bộ Biên Dịch KBQL (Parser & Lexer Architecture)
 
-Lexer và Parser của KBMS đóng chung một vai là Compiler (Trình Biên dịch siêu nhỏ). Thay vì dịch ra mã máy Assemble, chúng dịch các ký tự Text thành Cấu trúc Cây Đối tượng Toán học C# gọi là AST (Abstract Syntax Tree).
+Bộ biên dịch của KBMS v1.0 đóng vai trò là "cửa ngõ" trung tâm, có nhiệm vụ chuyển đổi các câu lệnh văn bản thô (KBQL) thành cấu trúc dữ liệu mà máy tính có thể hiểu và thực thi được.
 
-## 1. Trình Phân Tính Ký Tự Từ Vựng (Lexer)
-Lexer không hiểu ngôn ngữ KBQL, nó chỉ làm nhiệm vụ Cảm Nhận Ký Tự.
-Ví dụ:
-`BEGIN TRANSACTION;`
-- Nó quét gặp chữ `B, E, G, I, N`. Dò từ điển Token. Biết đây là **`TokenType.BEGIN`**.
-- Nó quét gặp không gian trống (Space). Cắt đứt lệnh, chuyển qua chuỗi mới.
-- Nó tiếp tục cho đến tận dấu `;`. Chốt thẻ kết thúc `EOF`.
-- **Thế mạnh V2**: Khả năng phân tách linh hoạt ngoặc trái `LPAREN` `(` và ngoặc phải `RPAREN` `)` đếm số lớp (Nested Levels). Dấu ngoặc tròn là công cụ rào luồng code tốt nhất hiện tại thay vì chữ `begin...end`.
+## 1. Trình Phân Tích Từ Vựng (Lexer)
+Lexer là bước đầu tiên trong quá trình biên dịch. Nhiệm vụ của nó là đọc luồng ký tự và nhóm chúng thành các **Token** có ý nghĩa.
 
-## 2. Quá trình Biến hình Thành Cây 5 Nhánh (Parser -> AST)
-Trình Parser mới chia cắt nhiệm vụ của cái hàm Update khủng long, thành 5 Trình Điều Phối riêng biệt:
-Cây gọi hàm (Call Stack Function):
-1. `ParseStatement()`
-   - Đọc Keyword đầu (VD: `ALTER`, `CREATE`, `INSERT`).
-   - Rẽ nhánh dựa trên đó xuống Tầng thấp hơn -> Kéo dãn tốc độ phản xạ của cây Switch-case.
-2. `ParseKDL() - Kiến Trúc Định Nghĩa`
-   - Bắt Token lệnh: `ALTER CONCEPT` -> Nuốt `(` -> Đọc `ADD` -> Nuốt `(` -> Chui xuống `ParseRuleList()` hoặc `ParseVariableList()`. Nuốt `)` kết thúc Block. Trả về đối tượng `AlterConceptStmt` béo mầm Data.
-3. `ParseKML() - Sự Kiện Manipulation`
-   - Bắt Token lệnh: `UPDATE` -> Đánh cắp Keyword `ATTRIBUTE` (Dùng để xác định sửa dữ liệu thay vì sửa Concept Schema KDL) -> Trả về đối tượng `UpdateAttributeStmt`.
-4. `ParseTCL() - Giao Dịch Buffer`
-   - Nhận định quá dễ: Không bắt Ngoặc hay Giá Trị gì ráo trọi. Nhận một chữ `COMMIT` -> Nhè về Obejct `CommitStmt`.
+- **Tokenization**: Chia câu lệnh thành các phần: `Keyword` (SELECT, CREATE), `Identifier` (Rectangle, width), `Literal` (3.14, 'Red'), và `Symbol` ( ( , ) , ; ).
+- **Block Identification**: Lexer của KBMS 1.0 được tối ưu đặc biệt để nhận diện các khối ngoặc tròn lồng nhau `()`, nền tảng cho cú pháp **Block-Centric** của hệ thống.
+- **Xử lý đa dòng**: Hỗ trợ tích lũy câu lệnh từ CLI cho đến khi gặp dấu chấm phẩy (`;`).
 
-Đầu ra cuối ròng của tầng thư mục CLI sẽ gọi `Server.ExecuteNode(AST_Object)`. Giao thoa sức mạnh với Engine Backend (Hầm ngầm Logical/Buffer Memory).
+## 2. Trình Phân Tích Cú Pháp (Parser)
+Parser nhận danh sách Token từ Lexer và xây dựng một **Cây Cú Pháp Trừu Tượng (Abstract Syntax Tree - AST)**.
+
+### 2.1. Cấu trúc 6 Nhánh Ngôn ngữ
+Parser của KBMS được tổ chức theo 6 module xử lý chuyên biệt:
+1.  **KDL (Knowledge Definition)**: Xử lý định nghĩa Concept, Trigger, Index.
+2.  **KML (Knowledge Manipulation)**: Xử lý Insert, Update, Delete, Import, Export.
+3.  **KQL (Knowledge Query)**: Xử lý Select, Solve, Describe.
+4.  **TCL (Transaction Control)**: Xử lý Begin, Commit, Rollback.
+5.  **KCL (Knowledge Control)**: Xử lý Grant, Revoke, Create User.
+6.  **KHL (Knowledge Help)**: Xử lý Explain, Maintenance.
+
+### 2.2. Chiến lược Phân tích (Recursive Descent)
+Hệ thống sử dụng kỹ thuật **Recursive Descent Parsing** (Phân tích từ trên xuống), giúp Parser dễ dàng mở rộng và cung cấp thông báo lỗi chi tiết (vị trí dòng, cột) khi cú pháp không hợp lệ.
+
+## 3. Cấu Trúc Cây AST (Abstract Syntax Tree)
+Ví dụ về cấu trúc cây AST cho câu lệnh `SELECT Rectangle WHERE width > 10`:
+
+```mermaid
+graph TD
+    Root[SelectNode]
+    Root --> Target[Concept: Rectangle]
+    Root --> Cond[ConditionGroup]
+    Cond --> Left[Field: width]
+    Cond --> Op[Operator: >]
+    Cond --> Right[Value: 10]
+```
+
+---
+
+## 4. Xử Lý Lỗi (Error Handling)
+KBMS 1.0 cung cấp hệ thống thông báo lỗi trực quan:
+- **Lexical Error**: Khi gặp ký tự lạ hoặc chuỗi không đóng ngoặc.
+- **Syntax Error**: Khi câu lệnh thiếu thành phần bắt buộc (ví dụ: `CREATE CONCEPT` mà không có `VARIABLES`).
+- **Semantic Error**: Khi truy vấn vào một Concept chưa tồn tại hoặc sai quyền hạn.
+
+---
+*Parser & Lexer là thành phần quan trọng nhất giúp KBMS hỗ trợ các ngôn ngữ tri thức tính toán (COKB) phức tạp.*

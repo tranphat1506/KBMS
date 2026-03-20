@@ -1340,6 +1340,19 @@ public class KnowledgeManager
                     case AlterActionType.DropConstraint:
                         concept.Constraints.RemoveAll(c => c.Name.Equals(action.TargetName, StringComparison.OrdinalIgnoreCase));
                         break;
+                    case AlterActionType.AddRule:
+                        if (action.Rule != null)
+                            concept.ConceptRules.Add(new ConceptRule { 
+                                Id = Guid.NewGuid(),
+                                Kind = action.Rule.Kind,
+                                Variables = action.Rule.Variables.Select(v => new Variable { Name = v.Name, Type = v.Type, Length = v.Length, Scale = v.Scale }).ToList(),
+                                Hypothesis = action.Rule.Hypothesis.ToList(),
+                                Conclusion = action.Rule.Conclusion.ToList()
+                            });
+                        break;
+                    case AlterActionType.DropRule:
+                        concept.ConceptRules.RemoveAll(r => r.Kind.Equals(action.TargetName, StringComparison.OrdinalIgnoreCase) || (r.Id.ToString() == action.TargetName));
+                        break;
                 }
             }
             _storage.FlushConceptsToDisk(kbName, _storage.ListConcepts(kbName));

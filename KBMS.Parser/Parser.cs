@@ -805,7 +805,8 @@ public class Parser
                     break;
 
                 case TokenType.DROP:
-                    Consume(TokenType.DROP);
+                case TokenType.REMOVE:
+                    Consume(actionTypeToken.Type);
                     Consume(TokenType.LPAREN);
                     while (!Check(TokenType.RPAREN) && !IsAtEnd())
                     {

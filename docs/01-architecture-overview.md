@@ -1,30 +1,51 @@
-# Kiến trúc Hệ Quản Trị Tri Thức (KBMS V2)
+# Tổng Quan Kiến Trúc KBMS (4-Tier Architecture)
 
-Knowledge Base Management System (KBMS) được thiết kế xoay quanh mô hình client-server, cho phép người dùng nhập các lệnh truy vấn KBQL (Knowledge Base Query Language) và hệ thống dưới nền sẽ thực thi, lưu trữ, và suy diễn dữ liệu một cách an toàn, mạnh mẽ.
+Hệ thống KBMS v1.0 được xây dựng dựa trên mô hình kiến trúc 4 tầng hiện đại, giúp tách biệt các trách nhiệm và tối ưu hóa hiệu năng xử lý tri thức.
 
-Với phiên bản V2, kiến trúc của KBMS được chia ra làm **3 Tầng Rõ Rệt (3-Tier Architecture)** nhằm đảm bảo tính toàn vẹn dữ liệu (ACID) hiệu năng tốc độ bứt phá.
+## 1. Sơ Đồ Kiến Trúc Tổng Thể
 
-## 1. Mạng lưới Môi trường và Front-end (Client / CLI)
-- **KBMS.CLI**: Giao diện dòng lệnh tương tác trực tiếp với người dùng. Nhận text input từ bàn phím (Multiline support qua dấu chấm phẩy `;`). Lệnh sau đó chuyển thành gói tin TCP truyền thẳng tới Server.
-- **KBMS.Network**: Xử lý giao tiếp giao thức TCP/IP giữa Application và Core DBMS Engine.
+```mermaid
+graph TD
+    A[Application Layer] --> B[Server Layer]
+    B --> C[Storage Layer]
+    C --> D[Physical Storage Layer]
+```
 
-## 2. Tầng Cảm Biến Cú Pháp (Parser & AST Layer)
-Tầng này nằm trên Server thụ lý các string text từ Network. Gồm quá trình biên dịch (Compile) chuỗi:
-1. **Lexer**: Chặt một câu lệnh như `ALTER CONCEPT <TAM> ( ADD ( RULES(R1) ) )` thành một mảng hàng chục mảnh Token riêng biệt. Nó hiểu được đâu là Keywords, Symbol `(`, `)`, hay Identifier.
-2. **Parser**: Chịu trách nhiệm chắp nối các Token rời rạc thành **Khối Cây Cú Pháp Trừu Tượng (Abstract Syntax Tree - AST)**.
-   Quá trình Parser sẽ phân mảnh query thành 1 trong 5 nhánh ngôn ngữ gốc (KDL, KML, KQL, KCL, TCL) để điều tiết xuống tầng dưới rành mạch tránh chồng chéo luồng xử lý.
+### 1.1. Tầng Ứng dụng (Application Layer)
+- **CLI Client**: Giao diện dòng lệnh giúp người dùng nhập câu lệnh KBQL.
+- **TCP Client**: Đảm nhận việc kết nối và truyền tin qua giao thức TCP/IP tới Server.
+- **JSON Protocol**: Dữ liệu được đóng gói dưới dạng JSON để đảm bảo tính linh hoạt.
 
-## 3. Storage Layer (Tầng Lưu Trữ Logical & Bộ Nhớ RAM)
-Đây là Lõi Cảm Biến Khối Lượng và Năng Lực Giải Toán (Reasoning), hoạt động hoàn toàn trên RAM (Random Access Memory).
-- Nhận Tree AST từ tầng Parser.
-- **Buffer Pool (Cache Manager)**: Không bao giờ đọc dữ liệu trực tiếp từ đĩa Cốc Cốc cho mỗi câu query. Thay vào đó, tải các `Concept` và file danh sách các `ObjectInstance` lên trong một cái "Bể chứa" ở bộ nhớ trong (Singleton List). Tốc độ `SELECT` và toán học (Inference Engine `SOLVE`) sẽ vận hành ở tốc độ tối đa của máy tính CPU thay vì bị tắc nghẽn ở thẻ nhớ SSD/HDD.
-- **Shadow Paging (Transaction RAM)**: Khi dính từ khóa TCL (`BEGIN TRANSACTION`), Tầng này lập tức che mờ cấu trúc RAM gốc, tạo một bảng Copy cho Frontend xào nấu `INSERT/UPDATE` thoải mái mà không lo hỏng dữ liệu hệ thống, cũng chưa thèm ghi xuống đĩa cứng.
+### 1.2. Tầng Máy chủ (Server Layer - Lõi Xử lý)
+- **Connection Manager**: Quản lý các kết nối đồng thời từ nhiều Client.
+- **Authentication**: Xác thực người dùng và phân quyền (RBAC).
+- **Parser & Lexer**: Dịch câu lệnh KBQL thành cây AST (Abstract Syntax Tree).
+- **Reasoning Engine**: Bộ não của hệ thống, thực hiện suy luận Forward/Backward Chaining.
+- **Knowledge Manager**: Điều phối các hoạt động giữa tầng Server và tầng Storage.
 
-## 4. Physical Storage Layer (Tầng Bộ Nhớ Vật Lý - Ổ Đĩa bền vững)
-Tầng cuối cùng đảm bảo Durability (Toàn vẹn không mất dữ liệu).
-- Khi TCL `COMMIT` khởi động từ Tầng Storage (RAM), Tầng Physical chạy chức năng Serialization Binary đóng gói toàn bộ dung lượng RAM xuống ổ đĩa, đè thành các tệp tin lưu trữ vật lý với định dạng riêng biệt chuẩn quốc tế KBMS:
-  - **`.kmf`** (Knowledge Meta File)
-  - **`.kdf`** (Knowledge Data File)
-  - **`.klf`** (Knowledge Log File / Write-Ahead Log)
+### 1.3. Tầng Quản lý Lưu trữ (Storage Layer)
+- **Buffer Pool (Cache)**: Lưu trữ các đối tượng tri thức trên RAM để truy xuất tức thời.
+- **WAL Manager**: Ghi nhận mọi thay đổi vào nhật ký giao dịch (`.klf`) trước khi ghi xuống đĩa.
+- **Index Manager**: Quản lý các cây chỉ mục (`.kif`) để tăng tốc độ tìm kiếm.
+- **Transaction Manager**: Đảm bảo các giao dịch tuân thủ tính chất ACID (Atomicity, Consistency, Isolation, Durability).
 
-Quy trình tuần tự này giúp KBMS giữ vững tốc độ cực cao, nhưng cũng cực kỳ an toàn trước mọi lỗi mất điện, văng App hay chập cháy ổ đĩa!
+### 1.4. Tầng Lưu trữ Vật lý (Physical Storage Layer)
+- **.kmf (Metadata)**: Lưu trữ cấu trúc Concept, Rules, và thông tin CSDL.
+- **.kdf (Data)**: Lưu trữ các đối tượng (instances) thực tế.
+- **.klf (Log)**: Lưu nhật ký giao dịch để phục hồi sau sự cố.
+- **.kif (Index)**: Lưu trữ chỉ mục tăng lực.
+
+---
+
+## 2. Luồng Xử Lý Một Câu Lệnh (Query Workflow)
+
+1.  **Gửi yêu cầu**: Client gửi chuỗi KBQL qua TCP.
+2.  **Xác thực**: Server kiểm tra quyền hạn của người dùng đối với CSDL mục tiêu.
+3.  **Biên dịch**: Parser xây dựng cây AST từ câu lệnh.
+4.  **Tối ưu**: Query Optimizer phân tích xem có thể dùng Index hay không.
+5.  **Thực thi & Suy luận**: Reasoning Engine tính toán dữ liệu mới nếu cần.
+6.  **Ghi Log (WAL)**: Nếu là lệnh thay đổi dữ liệu, hành động được ghi vào file `.klf`.
+7.  **Kết quả**: Server trả về JSON thông báo thành công hoặc dữ liệu kết quả cho Client.
+
+---
+*Kiến trúc này đảm bảo KBMS có thể mở rộng lên đến hàng triệu Object mà vẫn giữ được độ trễ thấp.*
