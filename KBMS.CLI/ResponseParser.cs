@@ -11,6 +11,9 @@ namespace KBMS.CLI;
 /// </summary>
 public static class ResponseParser
 {
+    private static List<string>? _streamingColumns;
+    private static Dictionary<string, int>? _streamingWidths;
+    private static int _streamingCount;
     /// <summary>
     /// Display a result message with plain text table formatting (MySQL-like)
     /// </summary>
@@ -44,14 +47,89 @@ public static class ResponseParser
         // Try to parse as JSON and display as table
         try
         {
-            var jsonDoc = JsonDocument.Parse(message.Content);
-            DisplayJsonAsTable(jsonDoc);
+            switch (message.Type)
+            {
+                case MessageType.METADATA:
+                    DisplayMetadata(message.Content);
+                    break;
+                case MessageType.ROW:
+                    DisplayRow(message.Content);
+                    break;
+                case MessageType.FETCH_DONE:
+                    DisplayFetchDone(message.Content);
+                    break;
+                default:
+                    var jsonDoc = JsonDocument.Parse(message.Content);
+                    DisplayJsonAsTable(jsonDoc);
+                    break;
+            }
         }
         catch (JsonException)
         {
             // Not valid JSON, display as-is (plain text message)
             Console.WriteLine(message.Content);
         }
+    }
+
+    private static void DisplayMetadata(string content)
+    {
+        try
+        {
+            var doc = JsonDocument.Parse(content);
+            var root = doc.RootElement;
+            _streamingColumns = root.GetProperty("Columns").EnumerateArray().Select(e => e.GetString() ?? "").ToList();
+            _streamingWidths = new Dictionary<string, int>();
+            _streamingCount = 0;
+
+            foreach (var col in _streamingColumns)
+            {
+                _streamingWidths[col] = Math.Max(col.Length, 15); // Default width 15
+            }
+
+            // Print header
+            var headerParts = _streamingColumns.Select(c => Pad(c, _streamingWidths[c]));
+            Console.WriteLine("\n| " + string.Join(" | ", headerParts) + " |");
+            Console.WriteLine("|" + string.Join("+", _streamingColumns.Select(c => new string('-', _streamingWidths[c] + 2))) + "|");
+        }
+        catch { Console.WriteLine("Error parsing metadata"); }
+    }
+
+    private static void DisplayRow(string content)
+    {
+        if (_streamingColumns == null || _streamingWidths == null) return;
+
+        try
+        {
+            var doc = JsonDocument.Parse(content);
+            var values = doc.RootElement;
+            _streamingCount++;
+
+            var rowParts = _streamingColumns.Select(c =>
+            {
+                if (values.TryGetProperty(c, out var val))
+                    return Pad(GetDisplayString(val), _streamingWidths[c]);
+                return Pad("NULL", _streamingWidths[c]);
+            });
+
+            Console.WriteLine("| " + string.Join(" | ", rowParts) + " |");
+        }
+        catch { /* Skip malformed rows */ }
+    }
+
+    private static void DisplayFetchDone(string content)
+    {
+        try
+        {
+            var doc = JsonDocument.Parse(content);
+            var executionTime = doc.RootElement.TryGetProperty("executionTime", out var et) ? et.GetDouble().ToString("F2") : "0.00";
+            
+            Console.WriteLine($"{_streamingCount} row(s) in set ({executionTime} sec)");
+            
+            // Reset for next possible stream
+            _streamingColumns = null;
+            _streamingWidths = null;
+        }
+        catch { }
     }
 
     /// <summary>

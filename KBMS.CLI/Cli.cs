@@ -113,7 +113,27 @@ public class Cli
             };
 
             await Protocol.SendMessageAsync(_stream, queryMessage);
-            return await Protocol.ReceiveMessageAsync(_stream);
+            
+            Message? lastResponse = null;
+            while (true)
+            {
+                var response = await Protocol.ReceiveMessageAsync(_stream);
+                if (response == null) break;
+
+                // If it's a streaming component, display it immediately and keep waiting
+                if (response.Type == MessageType.METADATA || 
+                    response.Type == MessageType.ROW || 
+                    response.Type == MessageType.FETCH_DONE)
+                {
+                    ResponseParser.DisplayResult(response, command);
+                    continue;
+                }
+
+                // If it's a terminal message (RESULT or ERROR), return it
+                lastResponse = response;
+                break;
+            }
+            return lastResponse;
         }
         catch (IOException)
         {

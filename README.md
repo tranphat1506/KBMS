@@ -19,6 +19,7 @@ Dưới đây là các hướng dẫn chi tiết về KBMS 1.0 (Tiếng Việt):
 3.  **[Cơ chế Lưu trữ Nội bộ](docs/03-storage-engine-internals.md)**: Giải thích về WAL, Buffer Pool và định dạng file `.kmf`, `.kdf`, `.klf`, `.kif`.
 4.  **[Thiết kế Parser & Lexer](docs/04-parser-and-lexer-design.md)**: Cách KBMS phân tích và dịch các câu lệnh phức tạp.
 5.  **[Cài đặt & Hướng dẫn Sử dụng](docs/05-installation-and-usage-guide.md)**: Cách triển khai Server/Client và 5 kịch bản sử dụng thực tế.
+6.  **[Giao thức Mạng & Truyền tin Dòng](docs/06-networking-and-protocol.md)**: Đặc tả chi tiết về header 5-byte, các loại Message và kiến trúc Row-based Streaming.
 
 ## Cài đặt nhanh
 Yêu cầu: .NET 8.0 SDK.

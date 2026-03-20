@@ -6,5 +6,8 @@ public enum MessageType : byte
     QUERY = 2,
     RESULT = 3,
     ERROR = 4,
-    LOGOUT = 5
+    LOGOUT = 5,
+    METADATA = 6,
+    ROW = 7,
+    FETCH_DONE = 8
 }

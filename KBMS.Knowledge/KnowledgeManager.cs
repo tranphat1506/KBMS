@@ -692,12 +692,12 @@ public class KnowledgeManager
                 return new { error = $"No objects found for concept '{node.ConceptName}'" };
             }
 
-            return new
+            return new QueryResultSet
             {
-                success = true,
-                conceptName = node.ConceptName,
-                count = objects.Count,
-                objects
+                Success = true,
+                ConceptName = node.ConceptName,
+                Count = objects.Count,
+                Objects = objects
             };
         }
         catch (Exception ex)
@@ -885,7 +885,7 @@ public class KnowledgeManager
             result.Add(row);
         }
 
-        return new { success = true, count = result.Count, groups = result };
+        return new QueryResultSet { Success = true, Count = result.Count, Groups = result };
     }
 
     private object EvaluateAggregates(List<ObjectInstance> objects, List<AggregateClause> aggregates)
@@ -898,7 +898,7 @@ public class KnowledgeManager
             result[agg.Alias ?? agg.AggregateType] = value;
         }
 
-        return new { success = true, aggregates = result };
+        return new QueryResultSet { Success = true, Aggregates = result };
     }
 
     private object EvaluateAggregate(List<ObjectInstance> objects, AggregateClause aggregate)

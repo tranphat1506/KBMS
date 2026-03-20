@@ -104,8 +104,11 @@ public class KbmsServer
 
                 _connectionManager.UpdateActivity(clientId);
 
-                var response = ProcessMessage(message, clientId);
-                await Protocol.SendMessageAsync(stream, response);
+                var responses = await ProcessMessageAsync(message, clientId, stream);
+                foreach (var response in responses)
+                {
+                    await Protocol.SendMessageAsync(stream, response);
+                }
             }
         }
         catch (IOException)
@@ -124,49 +127,40 @@ public class KbmsServer
         }
     }
 
-    private Message ProcessMessage(Message message, string clientId)
+    private async Task<IEnumerable<Message>> ProcessMessageAsync(Message message, string clientId, Stream stream)
     {
         try
         {
             var user = _connectionManager.GetCurrentUser(clientId);
             var username = user?.Username;
 
-            Message response;
-
             switch (message.Type)
             {
                 case MessageType.LOGIN:
-                    response = HandleLogin(message, clientId);
-                    break;
+                    return new[] { HandleLogin(message, clientId) };
 
                 case MessageType.QUERY:
-                    response = HandleQuery(message, clientId);
-                    break;
+                    return await HandleQueryAsync(message, clientId, stream);
 
                 case MessageType.LOGOUT:
-                    response = HandleLogout(message, clientId);
-                    break;
+                    return new[] { HandleLogout(message, clientId) };
 
                 default:
-                    response = new Message
+                    return new[] { new Message
                     {
                         Type = MessageType.ERROR,
                         Content = ToJson(ErrorResponse.RuntimeErrorResponse(new Exception($"Unknown message type: {message.Type}"), ""))
-                    };
-                    break;
+                    } };
             }
-
-            _logger.LogResponse(clientId, response.Type.ToString(), response.Content.Length);
-            return response;
         }
         catch (Exception ex)
         {
             _logger.Error(clientId, $"ProcessMessage error: {ex.Message}", ex);
-            return new Message
+            return new[] { new Message
             {
                 Type = MessageType.ERROR,
                 Content = ToJson(ErrorResponse.RuntimeErrorResponse(ex, ""))
-            };
+            } };
         }
     }
 
@@ -216,17 +210,16 @@ public class KbmsServer
         };
     }
 
-    private Message HandleQuery(Message message, string clientId)
+    private async Task<IEnumerable<Message>> HandleQueryAsync(Message message, string clientId, Stream stream)
     {
         var user = _connectionManager.GetCurrentUser(clientId);
         if (user == null)
         {
-            return new Message
+            return new[] { new Message
             {
                 Type = MessageType.ERROR,
-                Content = ToJson(
-                    ErrorResponse.AuthenticationErrorResponse("Not authenticated. Please login first."))
-            };
+                Content = ToJson(ErrorResponse.AuthenticationErrorResponse("Not authenticated. Please login first."))
+            } };
         }
 
         _logger.LogRequest(clientId, message.Content, user?.Username);
@@ -241,20 +234,39 @@ public class KbmsServer
 
             if (asts.Count == 0)
             {
-                return new Message
+                return new[] { new Message
                 {
                     Type = MessageType.RESULT,
                     Content = ToJson(new { message = "Empty query or comments ignored." })
-                };
+                } };
             }
 
             var results = new List<object>();
             foreach (var ast in asts)
             {
                 var result = _knowledgeManager.Execute(ast, user, currentKb);
-                if (result != null) results.Add(result);
+                
+                // (RC8) Streaming logic: if result is QueryResultSet, stream it!
+                if (result is QueryResultSet qrs && qrs.Success && qrs.Objects.Count > 0)
+                {
+                    // 1. Send METADATA
+                    var metadata = new { qrs.ConceptName, qrs.Count, Columns = qrs.Objects[0].Values.Keys.ToList() };
+                    await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.METADATA, Content = ToJson(metadata) });
 
-                // Handle USE command - updates current session KB
+                    // 2. Send each ROW
+                    foreach (var obj in qrs.Objects)
+                    {
+                        await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.ROW, Content = ToJson(obj.Values) });
+                    }
+
+                    // 3. Add to results as "Streaming completed"
+                    results.Add(new { success = true, streaming = true, count = qrs.Count });
+                }
+                else if (result != null)
+                {
+                    results.Add(result);
+                }
+
                 if (ast is UseKbNode useNode)
                 {
                     _connectionManager.SetSessionKb(clientId, useNode.KbName);
@@ -266,38 +278,23 @@ public class KbmsServer
 
             if (results.Count == 0)
             {
-                return new Message
-                {
-                    Type = MessageType.RESULT,
-                    Content = ToJson(new { success = true, executionTime = elapsedSec })
-                };
+                return new[] { new Message { Type = MessageType.RESULT, Content = ToJson(new { success = true, executionTime = elapsedSec }) } };
             }
 
-            // If only one result, return it directly for backward compatibility
-            var finalResult = results.Count == 1 ? results[0] : results;
+            // Send standard FETCH_DONE at the end of all results
+            await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.FETCH_DONE, Content = ToJson(new { executionTime = elapsedSec }) });
 
-            return new Message
-            {
-                Type = MessageType.RESULT,
-                Content = ToJson(finalResult)
-            };
+            var finalResult = results.Count == 1 ? results[0] : results;
+            return new[] { new Message { Type = MessageType.RESULT, Content = ToJson(finalResult) } };
         }
         catch (ParserException ex)
         {
-            return new Message
-            {
-                Type = MessageType.ERROR,
-                Content = ToJson(ErrorResponse.ParserErrorResponse(ex, message.Content))
-            };
+            return new[] { new Message { Type = MessageType.ERROR, Content = ToJson(ErrorResponse.ParserErrorResponse(ex, message.Content)) } };
         }
         catch (Exception ex)
         {
             _logger.Error(clientId, $"HandleQuery error: {ex.Message}", ex);
-            return new Message
-            {
-                Type = MessageType.ERROR,
-                Content = ToJson(ErrorResponse.RuntimeErrorResponse(ex, message.Content))
-            };
+            return new[] { new Message { Type = MessageType.ERROR, Content = ToJson(ErrorResponse.RuntimeErrorResponse(ex, message.Content)) } };
         }
     }
     private Message HandleLogout(Message message, string clientId)
