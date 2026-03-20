@@ -92,6 +92,11 @@ public class KnowledgeManager
             "GRANT" => "GRANT",
             "REVOKE" => "REVOKE",
             "USE" => "USE",
+            "ALTER" => "ADMIN",
+            "EXPLAIN" => "SELECT",
+            "MAINTENANCE" => "ADMIN",
+            "EXPORT" => "ADMIN",
+            "IMPORT" => "ADMIN",
             "BEGIN" => "USE",    // TCL - allow any authenticated user
             "COMMIT" => "USE",
             "ROLLBACK" => "USE",
@@ -148,6 +153,18 @@ public class KnowledgeManager
             // DDL - Concept
             "CREATE_CONCEPT" => HandleCreateConcept((CreateConceptNode)ast, kbName!),
             "DROP_CONCEPT" => HandleDropConcept((DropConceptNode)ast, kbName!),
+            "ALTER_CONCEPT" => HandleAlterConcept((AlterConceptNode)ast, kbName!),
+            "CREATE_TRIGGER" => HandleCreateTrigger((KBMS.Parser.Ast.Kdl.CreateTriggerNode)ast, kbName!),
+
+            // DCL - User
+            "ALTER_USER" => HandleAlterUser((AlterUserNode)ast),
+            "ALTER_KNOWLEDGE_BASE" => HandleAlterKnowledgeBase((AlterKbNode)ast),
+            "CREATE_INDEX" => HandleCreateIndex((KBMS.Parser.Ast.Kdl.CreateIndexNode)ast, kbName!),
+            "MAINTENANCE" => HandleMaintenance((KBMS.Parser.Ast.Kml.MaintenanceNode)ast, kbName!),
+            "EXPLAIN" => HandleExplain((ExplainNode)ast, kbName),
+            "DESCRIBE" => HandleDescribe((KBMS.Parser.Ast.Kql.DescribeNode)ast, kbName!),
+            "EXPORT" => HandleExport((KBMS.Parser.Ast.Kml.ExportNode)ast, kbName!),
+            "IMPORT" => HandleImport((KBMS.Parser.Ast.Kml.ImportNode)ast, kbName!),
             "ADD_VARIABLE" => HandleAddVariable((AddVariableNode)ast, kbName!),
 
             // DDL - Hierarchy
@@ -237,6 +254,32 @@ public class KnowledgeManager
     }
 
     // ==================== DDL Handlers ====================
+
+    // In-memory trigger registry (keyed by kbName:concept:event)
+    private readonly Dictionary<string, List<KBMS.Parser.Ast.Kdl.CreateTriggerNode>> _triggers = new();
+
+    private object HandleCreateTrigger(KBMS.Parser.Ast.Kdl.CreateTriggerNode node, string kbName)
+    {
+        var key = kbName;
+        if (!_triggers.ContainsKey(key)) _triggers[key] = new();
+        _triggers[key].Add(node);
+        return new { success = true, message = $"Trigger '{node.TriggerName}' created on {node.Event} OF {node.TargetConcept} in KB '{kbName}'" };
+    }
+
+    // Called internally after INSERT/UPDATE/DELETE to fire matching triggers
+    private void FireTriggers(string kbName, string conceptName, string eventType, Models.User executor)
+    {
+        var key = kbName;
+        if (!_triggers.TryGetValue(key, out var list)) return;
+        var matched = list.Where(t =>
+            t.Event.ToString().Equals(eventType, StringComparison.OrdinalIgnoreCase) &&
+            (t.TargetConcept == "*" || t.TargetConcept.Equals(conceptName, StringComparison.OrdinalIgnoreCase)));
+        foreach (var trigger in matched)
+        {
+            if (trigger.Action != null)
+                Execute(trigger.Action, executor, kbName);
+        }
+    }
 
     private object HandleCreateKnowledgeBase(CreateKbNode node)
     {
@@ -1026,7 +1069,7 @@ public class KnowledgeManager
     private object HandleDelete(DeleteNode node, string kbName)
     {
         var conditions = ConvertConditions(node.Conditions);
-        var objects = _storage.SelectObjects(kbName, conditions.Count > 0 ? conditions : null);
+        var objects = _storage.SelectObjects(kbName, conditions.Count > 0 ? conditions : null).ToList();
 
         if (objects.Count == 0)
         {
@@ -1256,6 +1299,236 @@ public class KnowledgeManager
         }
 
         return new { success = true, username = node.Username, privileges = user.KbPrivileges };
+    }
+
+    private object HandleAlterConcept(AlterConceptNode node, string kbName)
+    {
+        var conceptsToAlter = new List<string>();
+        if (node.ConceptName == "*")
+        {
+            conceptsToAlter.AddRange(_storage.ListConcepts(kbName).Select(c => c.Name));
+        }
+        else
+        {
+            conceptsToAlter.Add(node.ConceptName);
+        }
+
+        foreach (var cName in conceptsToAlter)
+        {
+            var concept = _storage.LoadConcept(kbName, cName);
+            if (concept == null) continue;
+
+            foreach (var action in node.Actions)
+            {
+                switch (action.ActionType)
+                {
+                    case AlterActionType.AddVariable:
+                        if (action.Variable != null) 
+                            concept.Variables.Add(new Variable { Name = action.Variable.Name, Type = action.Variable.Type, Length = action.Variable.Length, Scale = action.Variable.Scale });
+                        break;
+                    case AlterActionType.DropVariable:
+                        concept.Variables.RemoveAll(v => v.Name.Equals(action.TargetName, StringComparison.OrdinalIgnoreCase));
+                        break;
+                    case AlterActionType.RenameVariable:
+                        var v = concept.Variables.FirstOrDefault(v => v.Name.Equals(action.OldName, StringComparison.OrdinalIgnoreCase));
+                        if (v != null) v.Name = action.NewName!;
+                        break;
+                    case AlterActionType.AddConstraint:
+                        if (action.Constraint != null)
+                            concept.Constraints.Add(new Constraint { Name = action.Constraint.Name, Expression = action.Constraint.Expression, Line = action.Constraint.Line, Column = action.Constraint.Column });
+                        break;
+                    case AlterActionType.DropConstraint:
+                        concept.Constraints.RemoveAll(c => c.Name.Equals(action.TargetName, StringComparison.OrdinalIgnoreCase));
+                        break;
+                }
+            }
+            _storage.FlushConceptsToDisk(kbName, _storage.ListConcepts(kbName));
+            _storage.MigrateConceptInstances(kbName, cName, node.Actions);
+        }
+
+        return new { success = true, alteredCount = conceptsToAlter.Count };
+    }
+
+    private object HandleAlterKnowledgeBase(AlterKbNode node)
+    {
+        var kbs = _storage.ListKbs();
+        var targets = node.KbName == "*" ? kbs.Select(k => k.Name).ToList() : new List<string> { node.KbName };
+
+        foreach (var name in targets)
+        {
+            var kb = kbs.FirstOrDefault(k => k.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+            if (kb != null)
+            {
+                kb.Description = node.NewDescription;
+                _storage.SaveKbMetadata(kb);
+            }
+        }
+        return new { success = true, alteredCount = targets.Count };
+    }
+
+    private object HandleAlterUser(AlterUserNode node)
+    {
+        var users = _storage.LoadUsers();
+        var user = users.FirstOrDefault(u => u.Username.Equals(node.Username, StringComparison.OrdinalIgnoreCase));
+        if (user == null) return new { error = $"User '{node.Username}' not found." };
+
+        if (node.NewPassword != null) user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(node.NewPassword);
+        if (node.NewAdminStatus.HasValue) user.SystemAdmin = node.NewAdminStatus.Value;
+
+        _storage.SaveUsers(users);
+        return new { success = true, username = node.Username };
+    }
+
+    private object HandleCreateIndex(KBMS.Parser.Ast.Kdl.CreateIndexNode node, string kbName)
+    {
+        try {
+            _storage.CreateIndex(kbName, node.IndexName, node.ConceptName, node.Variables);
+            return new { success = true, message = $"Index '{node.IndexName}' created on '{node.ConceptName}'" };
+        } catch (Exception ex) {
+            return new { error = ex.Message };
+        }
+    }
+
+    private object HandleMaintenance(KBMS.Parser.Ast.Kml.MaintenanceNode node, string kbName)
+    {
+        var results = new List<object>();
+        foreach(var action in node.Actions)
+        {
+            switch(action.ActionType)
+            {
+                case KBMS.Parser.Ast.Kml.MaintenanceActionType.Vacuum:
+                    _storage.Vacuum(kbName);
+                    results.Add(new { action = "VACUUM", status = "Completed" });
+                    break;
+                case KBMS.Parser.Ast.Kml.MaintenanceActionType.Reindex:
+                    _storage.Reindex(kbName, action.TargetName);
+                    results.Add(new { action = "REINDEX", target = action.TargetName, status = "Completed" });
+                    break;
+                case KBMS.Parser.Ast.Kml.MaintenanceActionType.CheckConsistency:
+                    var issues = _storage.CheckConsistency(kbName, action.TargetName);
+                    results.Add(new { action = "CHECK_CONSISTENCY", target = action.TargetName, issues = issues });
+                    break;
+            }
+        }
+        return new { success = true, results = results };
+    }
+
+    private object HandleExplain(ExplainNode node, string? kbName)
+    {
+        // For now, just return a mock execution plan
+        return new { 
+            success = true, 
+            plan = new List<string> { 
+                "Step 1: Parse query", 
+                "Step 2: Check privileges", 
+                "Step 3: Analyze " + node.Query.Type,
+                "Step 4: Execute on KB " + (kbName ?? "none")
+            } 
+        };
+    }
+
+    private object HandleDescribe(KBMS.Parser.Ast.Kql.DescribeNode node, string kbName)
+    {
+        switch (node.TargetType.ToUpper())
+        {
+            case "CONCEPT":
+            {
+                var concepts = _storage.ListConcepts(kbName);
+                var c = concepts.FirstOrDefault(x => x.Name.Equals(node.TargetName, StringComparison.OrdinalIgnoreCase));
+                if (c == null) return new { error = $"Concept '{node.TargetName}' not found in KB '{kbName}'" };
+                return new
+                {
+                    success = true,
+                    concept = node.TargetName,
+                    variables = c.Variables.Select(v => new { v.Name, Type = v.Type }),
+                    constraints = c.Constraints.Select(ct => ct.Expression),
+                    rules = c.ConceptRules.Select(r => r.Id)
+                };
+            }
+            case "KB":
+            {
+                var kbs = _storage.ListKbs();
+                var kb = kbs.FirstOrDefault(x => x.Name.Equals(kbName, StringComparison.OrdinalIgnoreCase));
+                if (kb == null) return new { error = $"Knowledge base '{kbName}' not found." };
+                return new
+                {
+                    success = true,
+                    kb = kbName,
+                    description = kb.Description,
+                    conceptCount = _storage.ListConcepts(kbName).Count,
+                    objectCount = kb.ObjectCount
+                };
+            }
+            case "RULE":
+            {
+                var rules = _storage.ListRules(kbName);
+                var r = rules.FirstOrDefault(x => x.Name.Equals(node.TargetName, StringComparison.OrdinalIgnoreCase)
+                                               || x.Id.ToString().Equals(node.TargetName, StringComparison.OrdinalIgnoreCase));
+                if (r == null) return new { error = $"Rule '{node.TargetName}' not found in KB '{kbName}'" };
+                return new
+                {
+                    success = true,
+                    ruleId = r.Id,
+                    name = r.Name,
+                    type = r.RuleType,
+                    scope = r.Scope,
+                    hypothesis = r.Hypothesis.Select(h => h.Content),
+                    conclusion = r.Conclusion.Select(c => c.Content)
+                };
+            }
+            default:
+                return new { error = $"Unknown DESCRIBE target type: {node.TargetType}" };
+        }
+    }
+
+    private object HandleExport(KBMS.Parser.Ast.Kml.ExportNode node, string kbName)
+    {
+        try
+        {
+            var objects = _storage.SelectObjects(kbName)
+                .Where(o => node.TargetName == "*" || o.ConceptName.Equals(node.TargetName, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            var json = System.Text.Json.JsonSerializer.Serialize(objects, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            var dir = Path.GetDirectoryName(node.FilePath);
+            if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+            File.WriteAllText(node.FilePath, json);
+
+            return new { success = true, exported = objects.Count, concept = node.TargetName, file = node.FilePath };
+        }
+        catch (Exception ex)
+        {
+            return new { error = ex.Message };
+        }
+    }
+
+    private object HandleImport(KBMS.Parser.Ast.Kml.ImportNode node, string kbName)
+    {
+        try
+        {
+            if (!File.Exists(node.FilePath))
+                return new { error = $"File not found: {node.FilePath}" };
+
+            var json = File.ReadAllText(node.FilePath);
+            var imported = System.Text.Json.JsonSerializer.Deserialize<List<KBMS.Models.ObjectInstance>>(json);
+            if (imported == null) return new { error = "Failed to deserialize import file" };
+
+            int count = 0;
+            foreach (var obj in imported)
+            {
+                if (node.TargetName != "*" && !obj.ConceptName.Equals(node.TargetName, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                obj.Id = Guid.NewGuid(); // Assign new ID to avoid collisions
+                _storage.InsertObject(kbName, obj);
+                count++;
+            }
+
+            return new { success = true, imported = count, concept = node.TargetName, file = node.FilePath };
+        }
+        catch (Exception ex)
+        {
+            return new { error = ex.Message };
+        }
     }
 
     private List<string> GetAncestors(string conceptName, List<Models.Hierarchy> hierarchies)

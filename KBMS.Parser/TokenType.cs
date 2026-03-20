@@ -20,6 +20,7 @@ public enum TokenType
     USE,            // USE
     ADD,            // ADD
     REMOVE,         // REMOVE
+    ALTER,          // ALTER
 
     // Keywords - Objects
     KNOWLEDGE,      // KNOWLEDGE
@@ -47,6 +48,19 @@ public enum TokenType
     SOLVE,          // SOLVE
     SHOW,           // SHOW
     ATTRIBUTE,      // ATTRIBUTE
+    INDEX,          // INDEX
+    EXPLAIN,        // EXPLAIN
+    DESCRIBE,       // DESCRIBE
+    MAINTENANCE,    // MAINTENANCE
+    VACUUM,         // VACUUM
+    REINDEX,        // REINDEX
+    CHECK,          // CHECK
+    CONSISTENCY,    // CONSISTENCY
+    EXPORT,         // EXPORT
+    IMPORT,         // IMPORT
+    FORMAT,         // FORMAT
+    FILE,           // FILE
+    TRIGGER,        // TRIGGER
 
     // Keywords - TCL (Transaction Control Language)
     BEGIN,          // BEGIN
@@ -104,6 +118,7 @@ public enum TokenType
     SCOPE,          // SCOPE
     IF,             // IF
     THEN,           // THEN
+    DO,             // DO (trigger action)
 
     // Keywords - User/Privilege
     PASSWORD,       // PASSWORD
@@ -137,6 +152,7 @@ public enum TokenType
     DESCRIPTION,    // DESCRIPTION
     ASC,            // ASC
     DESC,           // DESC
+    RENAME,         // RENAME
 
     // Data Types - Numeric
     TINYINT,

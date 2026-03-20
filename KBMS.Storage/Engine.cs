@@ -1,4 +1,3 @@
-using System.IO;
 using KBMS.Models;
 
 namespace KBMS.Storage;
@@ -232,7 +231,7 @@ public class StorageEngine
         return kbs;
     }
 
-    private void SaveKbMetadata(KnowledgeBase kb)
+    public void SaveKbMetadata(KnowledgeBase kb)
     {
         var kbPath = Path.Combine(_dataDir, kb.Name);
         var metadataPath = Path.Combine(kbPath, META_EXT);
@@ -884,7 +883,7 @@ public class StorageEngine
         File.WriteAllBytes(Path.Combine(kbPath, OBJ_EXT), data);
     }
 
-    private void FlushConceptsToDisk(string kbName, List<Concept> concepts)
+    public void FlushConceptsToDisk(string kbName, List<Concept> concepts)
     {
         var kbPath = Path.Combine(_dataDir, kbName);
         var data = BinaryFormat.Serialize(concepts, _encryption);
@@ -941,7 +940,118 @@ public class StorageEngine
         };
     }
 
-    // ==================== AUTH HELPERS ====================
+    public void MigrateConceptInstances(string kbName, string conceptName, List<AlterAction> actions)
+    {
+        var pool = _transactionActive ? _shadowObjectPool : _objectPool;
+        if (pool == null || !pool.ContainsKey(kbName)) return;
+
+        var instances = pool[kbName].Where(o => o.ConceptName.Equals(conceptName, StringComparison.OrdinalIgnoreCase)).ToList();
+
+        foreach (var inst in instances)
+        {
+            foreach (var action in actions)
+            {
+                switch (action.ActionType)
+                {
+                    case AlterActionType.AddVariable:
+                        if (action.Variable != null && !inst.Values.ContainsKey(action.Variable.Name))
+                            inst.Values[action.Variable.Name] = null!;
+                        break;
+                    case AlterActionType.DropVariable:
+                        if (action.TargetName != null)
+                            inst.Values.Remove(action.TargetName);
+                        break;
+                    case AlterActionType.RenameVariable:
+                        if (action.OldName != null && action.NewName != null && inst.Values.ContainsKey(action.OldName))
+                        {
+                            var val = inst.Values[action.OldName];
+                            inst.Values.Remove(action.OldName);
+                            inst.Values[action.NewName] = val;
+                        }
+                        break;
+                }
+            }
+        }
+        
+        // Finalize flush to disk for non-transactional migration
+        if (!_transactionActive)
+        {
+            var kbPath = Path.Combine(_dataDir, kbName);
+            var objects = pool[kbName];
+            var data = BinaryFormat.Serialize(objects, _encryption);
+            File.WriteAllBytes(Path.Combine(kbPath, OBJ_EXT), data);
+        }
+    }
+
+    // ==================== OPTIMIZATION & MAINTENANCE ====================
+
+    public void CreateIndex(string kbName, string indexName, string conceptName, List<string> variables)
+    {
+        var kbPath = Path.Combine(_dataDir, kbName);
+        _indexManager.CreateIndex(kbPath);
+        Reindex(kbName, conceptName);
+    }
+
+    public void Vacuum(string kbName)
+    {
+        var kbPath = Path.Combine(_dataDir, kbName);
+        
+        if (_objectPool.TryGetValue(kbName, out var objects))
+            FlushObjectsToDisk(kbName, objects);
+        if (_conceptPool.TryGetValue(kbName, out var concepts))
+            FlushConceptsToDisk(kbName, concepts);
+        if (_rulePool.TryGetValue(kbName, out var rules))
+            SaveToDisk(kbName, RULE_EXT, rules);
+        if (_relationPool.TryGetValue(kbName, out var relations))
+            SaveToDisk(kbName, RELATION_EXT, relations);
+        if (_operatorPool.TryGetValue(kbName, out var operators))
+            SaveToDisk(kbName, OPERATOR_EXT, operators);
+        if (_functionPool.TryGetValue(kbName, out var functions))
+            SaveToDisk(kbName, FUNCTION_EXT, functions);
+        if (_hierarchyPool.TryGetValue(kbName, out var hierarchies))
+            SaveToDisk(kbName, HIERARCHY_EXT, hierarchies);
+
+        _wal.Checkpoint(kbPath);
+    }
+
+    public void Reindex(string kbName, string conceptName)
+    {
+        var kbPath = Path.Combine(_dataDir, kbName);
+        var objects = SelectObjects(kbName);
+        foreach (var obj in objects.Where(o => conceptName == "*" || o.ConceptName.Equals(conceptName, StringComparison.OrdinalIgnoreCase)))
+        {
+            _indexManager.UpdateIndex(kbPath, obj.Id, obj.ConceptName, obj.Values);
+        }
+    }
+
+    public List<string> CheckConsistency(string kbName, string conceptName)
+    {
+        var issues = new List<string>();
+        var concepts = ListConcepts(kbName);
+        var objects = SelectObjects(kbName);
+
+        foreach (var obj in objects.Where(o => conceptName == "*" || o.ConceptName.Equals(conceptName, StringComparison.OrdinalIgnoreCase)))
+        {
+            var concept = concepts.FirstOrDefault(c => c.Name.Equals(obj.ConceptName, StringComparison.OrdinalIgnoreCase));
+            if (concept == null)
+            {
+                issues.Add($"Object {obj.Id} references missing concept '{obj.ConceptName}'");
+                continue;
+            }
+
+            foreach (var v in concept.Variables)
+            {
+                if (!obj.Values.ContainsKey(v.Name))
+                {
+                    issues.Add($"Object {obj.Id} of '{concept.Name}' missing variable '{v.Name}'");
+                }
+            }
+        }
+
+        return issues;
+    }
+
+    // ==================== AUTH HELPERS = ===================
 
     private string HashPassword(string password) => BCrypt.Net.BCrypt.HashPassword(password);
     public bool VerifyPassword(string password, string hash) => BCrypt.Net.BCrypt.Verify(password, hash);

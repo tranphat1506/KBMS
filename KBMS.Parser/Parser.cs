@@ -104,6 +104,12 @@ public class Parser
             TokenType.DELETE => ParseDelete(),
             TokenType.SOLVE => ParseSolve(),
             TokenType.SHOW => ParseShow(),
+            TokenType.ALTER => ParseAlter(),
+            TokenType.DESCRIBE => ParseDescribe(),
+            TokenType.EXPLAIN => ParseExplain(),
+            TokenType.MAINTENANCE => ParseMaintenance(),
+            TokenType.EXPORT => ParseExport(),
+            TokenType.IMPORT => ParseImport(),
             // TCL
             TokenType.BEGIN => ParseBeginTransaction(),
             TokenType.COMMIT => ParseCommit(),
@@ -131,7 +137,23 @@ public class Parser
             TokenType.FUNCTION => ParseCreateFunction(),
             TokenType.RULE => ParseCreateRule(),
             TokenType.USER => ParseCreateUser(),
+            TokenType.INDEX => ParseCreateIndex(),
+            TokenType.TRIGGER => ParseCreateTrigger(),
             _ => throw new ParserException($"Unexpected token after CREATE: {token.Lexeme}", token.Line, token.Column)
+        };
+    }
+
+    private AstNode ParseAlter()
+    {
+        Consume(TokenType.ALTER);
+        var token = Peek() ?? throw new ParserException("Expected token after ALTER");
+
+        return token.Type switch
+        {
+            TokenType.CONCEPT => ParseAlterConcept(),
+            TokenType.KNOWLEDGE => ParseAlterKnowledgeBase(),
+            TokenType.USER => ParseAlterUser(),
+            _ => throw new ParserException($"Unexpected token after ALTER: {token.Lexeme}", token.Line, token.Column)
         };
     }
 
@@ -694,6 +716,436 @@ public class Parser
         return node;
     }
 
+    private AlterConceptNode ParseAlterConcept()
+    {
+        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        Consume(TokenType.CONCEPT);
+
+        string conceptName;
+        if (Check(TokenType.STAR))
+        {
+            conceptName = Advance().Lexeme;
+        }
+        else
+        {
+            var idToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected concept name or '*' after ALTER CONCEPT");
+            conceptName = idToken.Lexeme;
+        }
+
+        var node = new AlterConceptNode
+        {
+            ConceptName = conceptName,
+            Line = token.Line,
+            Column = token.Column
+        };
+
+        Consume(TokenType.LPAREN);
+
+        while (!Check(TokenType.RPAREN) && !IsAtEnd())
+        {
+            var actionTypeToken = Peek() ?? throw new ParserException("Expected ALTER action (ADD, DROP, RENAME)");
+            switch (actionTypeToken.Type)
+            {
+                case TokenType.ADD:
+                    Consume(TokenType.ADD);
+                    Consume(TokenType.LPAREN);
+                    while (!Check(TokenType.RPAREN) && !IsAtEnd())
+                    {
+                        var target = Peek() ?? throw new ParserException("Expected ADD target (VARIABLE, CONSTRAINT, RULE)");
+                        if (target.Type == TokenType.VARIABLE || target.Type == TokenType.VARIABLES)
+                        {
+                            Consume(target.Type);
+                            Consume(TokenType.LPAREN);
+                            while (!Check(TokenType.RPAREN))
+                            {
+                                var vDef = ParseVariableDefinition();
+                                node.Actions.Add(new KBMS.Models.AlterAction { 
+                                    ActionType = KBMS.Models.AlterActionType.AddVariable, 
+                                    Variable = new KBMS.Models.Variable { Name = vDef.Name, Type = vDef.Type, Length = vDef.Length, Scale = vDef.Scale } 
+                                });
+                                if (Check(TokenType.COMMA)) Consume(TokenType.COMMA);
+                            }
+                            Consume(TokenType.RPAREN);
+                        }
+                        else if (target.Type == TokenType.CONSTRAINTS)
+                        {
+                            Consume(target.Type);
+                            Consume(TokenType.LPAREN);
+                            var constraints = ParseConstraintList();
+                            foreach (var c in constraints)
+                                node.Actions.Add(new KBMS.Models.AlterAction { 
+                                    ActionType = KBMS.Models.AlterActionType.AddConstraint, 
+                                    Constraint = new KBMS.Models.Constraint { Name = c.Name, Expression = c.Expression, Line = c.Line, Column = c.Column } 
+                                });
+                            Consume(TokenType.RPAREN);
+                        }
+                        else if (target.Type == TokenType.RULE || target.Type == TokenType.RULES)
+                        {
+                            Consume(target.Type);
+                            Consume(TokenType.LPAREN);
+                            var rules = ParseConceptRuleList();
+                            foreach (var r in rules)
+                                node.Actions.Add(new KBMS.Models.AlterAction { 
+                                    ActionType = KBMS.Models.AlterActionType.AddRule, 
+                                    Rule = new KBMS.Models.ConceptRule { 
+                                        Id = Guid.NewGuid(),
+                                        Kind = r.Kind,
+                                        Variables = r.Variables.Select(v => new KBMS.Models.Variable { Name = v.Name, Type = v.Type }).ToList(),
+                                        Hypothesis = r.Hypothesis.ToList(),
+                                        Conclusion = r.Conclusion.ToList()
+                                    } 
+                                });
+                            Consume(TokenType.RPAREN);
+                        }
+                        
+                        if (Check(TokenType.COMMA)) Consume(TokenType.COMMA);
+                        else break;
+                    }
+                    Consume(TokenType.RPAREN);
+                    break;
+
+                case TokenType.DROP:
+                    Consume(TokenType.DROP);
+                    Consume(TokenType.LPAREN);
+                    while (!Check(TokenType.RPAREN) && !IsAtEnd())
+                    {
+                        var dropTarget = Peek() ?? throw new ParserException("Expected drop target (VARIABLE, etc.)");
+                        Consume(dropTarget.Type);
+                        var name = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected name to drop");
+                        
+                        KBMS.Models.AlterActionType type = dropTarget.Type switch {
+                            TokenType.VARIABLE => KBMS.Models.AlterActionType.DropVariable,
+                            TokenType.VARIABLES => KBMS.Models.AlterActionType.DropVariable,
+                            TokenType.CONSTRAINTS => KBMS.Models.AlterActionType.DropConstraint,
+                            TokenType.RULE => KBMS.Models.AlterActionType.DropRule,
+                            TokenType.RULES => KBMS.Models.AlterActionType.DropRule,
+                            _ => throw new ParserException("Invalid drop target")
+                        };
+
+                        node.Actions.Add(new KBMS.Models.AlterAction { ActionType = type, TargetName = name.Lexeme });
+                        if (Check(TokenType.COMMA)) Consume(TokenType.COMMA);
+                    }
+                    Consume(TokenType.RPAREN);
+                    break;
+
+                case TokenType.RENAME:
+                    Consume(TokenType.RENAME);
+                    Consume(TokenType.LPAREN);
+                    Consume(TokenType.VARIABLE);
+                    var oldVar = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected old variable name");
+                    Consume(TokenType.TO);
+                    var newVar = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected new variable name");
+                    node.Actions.Add(new KBMS.Models.AlterAction { 
+                        ActionType = KBMS.Models.AlterActionType.RenameVariable, 
+                        OldName = oldVar.Lexeme, 
+                        NewName = newVar.Lexeme 
+                    });
+                    Consume(TokenType.RPAREN);
+                    break;
+
+                default:
+                    throw new ParserException($"Unexpected ALTER action: {actionTypeToken.Lexeme}");
+            }
+
+            if (Check(TokenType.COMMA)) Consume(TokenType.COMMA);
+        }
+
+        Consume(TokenType.RPAREN);
+        return node;
+    }
+
+    private AstNode ParseAlterKnowledgeBase()
+    {
+        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        Consume(TokenType.KNOWLEDGE);
+        Consume(TokenType.BASE);
+
+        var node = new AlterKbNode
+        {
+            KbName = (Check(TokenType.STAR) ? Advance().Lexeme : (Consume(TokenType.IDENTIFIER)?.Lexeme ?? throw new ParserException("Expected KB name or '*'"))),
+            Line = token.Line,
+            Column = token.Column
+        };
+
+        Consume(TokenType.LPAREN);
+        Consume(TokenType.SET);
+        Consume(TokenType.LPAREN);
+        Consume(TokenType.DESCRIPTION);
+        Consume(TokenType.COLON);
+        node.NewDescription = Consume(TokenType.STRING)?.Literal?.ToString() ?? throw new ParserException("Expected description string");
+        Consume(TokenType.RPAREN);
+        Consume(TokenType.RPAREN);
+
+        return node;
+    }
+
+    private AstNode ParseAlterUser()
+    {
+        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        Consume(TokenType.USER);
+        var uname = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected username");
+
+        var node = new AlterUserNode
+        {
+            Username = uname.Lexeme,
+            Line = token.Line,
+            Column = token.Column
+        };
+
+        Consume(TokenType.LPAREN);
+        Consume(TokenType.SET);
+        Consume(TokenType.LPAREN);
+
+        while (!Check(TokenType.RPAREN) && !IsAtEnd())
+        {
+            var fieldToken = Advance();
+            if (fieldToken.Type != TokenType.IDENTIFIER && fieldToken.Type != TokenType.PASSWORD)
+                throw new ParserException("Expected SET field (PASSWORD or ADMIN)");
+
+            Consume(TokenType.COLON);
+            if (fieldToken.Lexeme.Equals("PASSWORD", StringComparison.OrdinalIgnoreCase))
+            {
+                node.NewPassword = Consume(TokenType.STRING)?.Literal?.ToString() ?? Consume(TokenType.IDENTIFIER)?.Lexeme;
+            }
+            else if (fieldToken.Lexeme.Equals("ADMIN", StringComparison.OrdinalIgnoreCase))
+            {
+                node.NewAdminStatus = bool.Parse(Consume(TokenType.BOOLEAN)?.Lexeme ?? "false");
+            }
+
+            if (Check(TokenType.COMMA)) Consume(TokenType.COMMA);
+        }
+
+        Consume(TokenType.RPAREN);
+        Consume(TokenType.RPAREN);
+        return node;
+    }
+
+    private CreateIndexNode ParseCreateIndex()
+    {
+        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        Consume(TokenType.INDEX);
+        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected index name");
+        Consume(TokenType.ON);
+        var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected concept name");
+        Consume(TokenType.LPAREN);
+        var vs = ParseIdentifierList();
+        Consume(TokenType.RPAREN);
+        return new CreateIndexNode { 
+            IndexName = nameToken.Lexeme,
+            ConceptName = conceptToken.Lexeme,
+            Variables = vs,
+            Line = token.Line,
+            Column = token.Column
+        }; 
+    }
+    
+    private KBMS.Parser.Ast.Kdl.CreateTriggerNode ParseCreateTrigger()
+    {
+        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        Consume(TokenType.TRIGGER);
+
+        var nameToken = Advance() ?? throw new ParserException("Expected trigger name");
+
+        if (Consume(TokenType.LPAREN) == null) throw new ParserException("Expected '(' after TRIGGER name");
+
+        // ON block: ON ( INSERT|UPDATE|DELETE OF ConceptName )
+        if (Consume(TokenType.ON) == null) throw new ParserException("Expected 'ON' in TRIGGER definition");
+        if (Consume(TokenType.LPAREN) == null) throw new ParserException("Expected '(' before TRIGGER dynamic event");
+        var eventToken = Advance() ?? throw new ParserException("Expected event type (INSERT, UPDATE, DELETE)");
+        var triggerEvent = eventToken.Lexeme.ToUpper() switch
+        {
+            "INSERT" => KBMS.Parser.Ast.Kdl.TriggerEvent.Insert,
+            "UPDATE" => KBMS.Parser.Ast.Kdl.TriggerEvent.Update,
+            "DELETE" => KBMS.Parser.Ast.Kdl.TriggerEvent.Delete,
+            _ => throw new ParserException($"Unknown trigger event: {eventToken.Lexeme}", eventToken.Line, eventToken.Column)
+        };
+        if (Consume(TokenType.OF) == null) throw new ParserException("Expected 'OF' after trigger event");
+        // Concept name might be an identifier; use Advance() so keywords like a concept named after a keyword aren't rejected
+        string conceptName = Check(TokenType.STAR) 
+            ? Advance().Lexeme 
+            : (Advance()?.Lexeme ?? throw new ParserException("Expected concept name or '*'"));
+        if (Consume(TokenType.RPAREN) == null) throw new ParserException("Expected ')' after trigger event concept");
+
+        if (Consume(TokenType.COMMA) == null) throw new ParserException("Expected ',' between ON and DO blocks");
+
+        // DO block: DO ( <statement> )
+        // We parse the action as a statement; the statement parser will stop before the closing ')'
+        if (Consume(TokenType.DO) == null) throw new ParserException("Expected 'DO' in TRIGGER definition");
+        if (Consume(TokenType.LPAREN) == null) throw new ParserException("Expected '(' before TRIGGER action");
+        
+        var action = ParseStatement() ?? throw new ParserException("Expected action statement in TRIGGER DO block");
+        
+        // Consume trailing semicolon from inner statement if present
+        if (Check(TokenType.SEMICOLON)) Consume(TokenType.SEMICOLON);
+        
+        if (Consume(TokenType.RPAREN) == null) throw new ParserException("Expected ')' after TRIGGER action");
+        if (Consume(TokenType.RPAREN) == null) throw new ParserException("Expected ')' at end of TRIGGER definition");
+
+        return new KBMS.Parser.Ast.Kdl.CreateTriggerNode 
+        { 
+            TriggerName = nameToken.Lexeme,
+            Event = triggerEvent,
+            TargetConcept = conceptName,
+            Action = action,
+            Line = token.Line,
+            Column = token.Column
+        };
+    }
+
+    private AstNode ParseExplain()
+    {
+        Consume(TokenType.EXPLAIN);
+        Consume(TokenType.LPAREN);
+        var inner = ParseStatement() ?? throw new ParserException("Expected statement to explain");
+        Consume(TokenType.RPAREN);
+        return new ExplainNode { Query = inner };
+    }
+    
+    private MaintenanceNode ParseMaintenance() 
+    { 
+        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        Consume(TokenType.MAINTENANCE); 
+        
+        var node = new MaintenanceNode() { Line = token.Line, Column = token.Column };
+        Consume(TokenType.LPAREN);
+
+        while (!Check(TokenType.RPAREN) && !IsAtEnd())
+        {
+            var actionToken = Advance() ?? throw new ParserException("Expected maintenance action (VACUUM, REINDEX, CHECK)");
+            
+            if (actionToken.Type == TokenType.VACUUM)
+            {
+                node.Actions.Add(new MaintenanceAction { ActionType = MaintenanceActionType.Vacuum });
+            }
+            else if (actionToken.Type == TokenType.REINDEX)
+            {
+                Consume(TokenType.LPAREN);
+                string target = Check(TokenType.STAR) ? Advance().Lexeme : (Consume(TokenType.IDENTIFIER)?.Lexeme ?? throw new ParserException("Expected concept name or '*'"));
+                Consume(TokenType.RPAREN);
+                node.Actions.Add(new MaintenanceAction { ActionType = MaintenanceActionType.Reindex, TargetName = target });
+            }
+            else if (actionToken.Type == TokenType.CHECK)
+            {
+                Consume(TokenType.LPAREN);
+                Consume(TokenType.CONSISTENCY);
+                Consume(TokenType.COLON);
+                string target = Check(TokenType.STAR) ? Advance().Lexeme : (Consume(TokenType.IDENTIFIER)?.Lexeme ?? throw new ParserException("Expected concept name or '*'"));
+                Consume(TokenType.RPAREN);
+                node.Actions.Add(new MaintenanceAction { ActionType = MaintenanceActionType.CheckConsistency, TargetName = target });
+            }
+            else
+            {
+                throw new ParserException($"Unexpected maintenance action: {actionToken.Lexeme}");
+            }
+
+            if (Check(TokenType.COMMA)) Consume(TokenType.COMMA);
+        }
+
+        Consume(TokenType.RPAREN);
+        return node;
+    }
+    private KBMS.Parser.Ast.Kql.DescribeNode ParseDescribe()
+    {
+        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        Consume(TokenType.DESCRIBE);
+        if (Consume(TokenType.LPAREN) == null) throw new ParserException("Expected '(' after DESCRIBE");
+
+        var typeToken = Advance() ?? throw new ParserException("Expected target type (CONCEPT, KB, RULE)");
+        string typeStr = typeToken.Lexeme.ToUpper();
+        if (typeStr == "KNOWLEDGE") {
+            if (Consume(TokenType.BASE) == null) throw new ParserException("Expected 'BASE' after 'KNOWLEDGE'");
+            typeStr = "KB";
+        }
+        else if (typeStr == "KB") {
+            // Valid
+        }
+        else if (typeStr == "CONCEPT" || typeStr == "RULE") {
+            // Valid
+        }
+        else {
+            throw new ParserException($"Unexpected target type: {typeStr}", typeToken.Line, typeToken.Column);
+        }
+
+        if (Consume(TokenType.COLON) == null) throw new ParserException("Expected ':' after target type");
+        var nameToken = Advance() ?? throw new ParserException("Expected target name or id");
+
+        if (Consume(TokenType.RPAREN) == null) throw new ParserException("Expected ')' at end of DESCRIBE");
+
+        return new KBMS.Parser.Ast.Kql.DescribeNode 
+        { 
+            TargetType = typeStr, 
+            TargetName = nameToken.Lexeme, 
+            Line = token.Line, 
+            Column = token.Column 
+        };
+    }
+
+    private KBMS.Parser.Ast.Kml.ExportNode ParseExport() 
+    { 
+        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        Consume(TokenType.EXPORT);
+        if (Consume(TokenType.LPAREN) == null) throw new ParserException("Expected '(' after EXPORT");
+        
+        if (Consume(TokenType.CONCEPT) == null) throw new ParserException("Expected 'CONCEPT' in EXPORT parameters");
+        if (Consume(TokenType.COLON) == null) throw new ParserException("Expected ':' after 'CONCEPT'");
+        string name = Check(TokenType.STAR) ? Advance().Lexeme : (ConsumeIdentifier()?.Lexeme ?? throw new ParserException("Expected concept name or '*'"));
+        
+        if (Consume(TokenType.COMMA) == null) throw new ParserException("Expected ',' after concept parameter");
+        if (Consume(TokenType.FORMAT) == null) throw new ParserException("Expected 'FORMAT' in EXPORT parameters");
+        if (Consume(TokenType.COLON) == null) throw new ParserException("Expected ':' after 'FORMAT'");
+        var formatToken = Advance() ?? throw new ParserException("Expected format (JSON)");
+
+        if (Consume(TokenType.COMMA) == null) throw new ParserException("Expected ',' after format parameter");
+        if (Consume(TokenType.FILE) == null) throw new ParserException("Expected 'FILE' in EXPORT parameters");
+        if (Consume(TokenType.COLON) == null) throw new ParserException("Expected ':' after 'FILE'");
+        var fileToken = Consume(TokenType.STRING) ?? throw new ParserException("Expected file path string");
+
+        if (Consume(TokenType.RPAREN) == null) throw new ParserException("Expected ')' at end of EXPORT");
+        
+        return new KBMS.Parser.Ast.Kml.ExportNode 
+        { 
+            TargetType = "CONCEPT",
+            TargetName = name,
+            Format = formatToken.Lexeme,
+            FilePath = fileToken.Literal?.ToString() ?? fileToken.Lexeme.Trim('\'', '"'),
+            Line = token.Line,
+            Column = token.Column
+        }; 
+    }
+    
+    private KBMS.Parser.Ast.Kml.ImportNode ParseImport() 
+    { 
+        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        Consume(TokenType.IMPORT);
+        if (Consume(TokenType.LPAREN) == null) throw new ParserException("Expected '(' after IMPORT");
+        
+        if (Consume(TokenType.CONCEPT) == null) throw new ParserException("Expected 'CONCEPT' in IMPORT parameters");
+        if (Consume(TokenType.COLON) == null) throw new ParserException("Expected ':' after 'CONCEPT'");
+        string name = Check(TokenType.STAR) ? Advance().Lexeme : (ConsumeIdentifier()?.Lexeme ?? throw new ParserException("Expected concept name or '*'"));
+        
+        if (Consume(TokenType.COMMA) == null) throw new ParserException("Expected ',' after concept parameter");
+        if (Consume(TokenType.FORMAT) == null) throw new ParserException("Expected 'FORMAT' in IMPORT parameters");
+        if (Consume(TokenType.COLON) == null) throw new ParserException("Expected ':' after 'FORMAT'");
+        var formatToken = Advance() ?? throw new ParserException("Expected format (CSV|JSON)");
+
+        if (Consume(TokenType.COMMA) == null) throw new ParserException("Expected ',' after format parameter");
+        if (Consume(TokenType.FILE) == null) throw new ParserException("Expected 'FILE' in IMPORT parameters");
+        if (Consume(TokenType.COLON) == null) throw new ParserException("Expected ':' after 'FILE'");
+        var fileToken = Consume(TokenType.STRING) ?? throw new ParserException("Expected file path string");
+
+        if (Consume(TokenType.RPAREN) == null) throw new ParserException("Expected ')' at end of IMPORT");
+        
+        return new KBMS.Parser.Ast.Kml.ImportNode 
+        { 
+            TargetType = "CONCEPT",
+            TargetName = name,
+            Format = formatToken.Lexeme,
+            FilePath = fileToken.Literal?.ToString() ?? fileToken.Lexeme.Trim('\'', '"'),
+            Line = token.Line,
+            Column = token.Column
+        };
+    }
+
     private AstNode ParseDrop()
     {
         Consume(TokenType.DROP);
@@ -1037,7 +1489,7 @@ public class Parser
         var parentToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected parent concept");
 
         var typeToken = Peek() ?? throw new ParserException("Expected hierarchy type");
-        HierarchyType hierarchyType;
+        KBMS.Parser.Ast.Kdl.HierarchyType hierarchyType;
 
         if (typeToken.Type == TokenType.IS_A)
         {

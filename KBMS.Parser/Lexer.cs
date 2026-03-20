@@ -26,6 +26,7 @@ public class Lexer
         { "USE", TokenType.USE },
         { "ADD", TokenType.ADD },
         { "REMOVE", TokenType.REMOVE },
+        { "ALTER", TokenType.ALTER },
 
         // Object Keywords
         { "KNOWLEDGE", TokenType.KNOWLEDGE },
@@ -51,6 +52,19 @@ public class Lexer
         { "SOLVE", TokenType.SOLVE },
         { "SHOW", TokenType.SHOW },
         { "ATTRIBUTE", TokenType.ATTRIBUTE },
+        { "INDEX", TokenType.INDEX },
+        { "EXPLAIN", TokenType.EXPLAIN },
+        { "DESCRIBE", TokenType.DESCRIBE },
+        { "MAINTENANCE", TokenType.MAINTENANCE },
+        { "VACUUM", TokenType.VACUUM },
+        { "REINDEX", TokenType.REINDEX },
+        { "CHECK", TokenType.CHECK },
+        { "CONSISTENCY", TokenType.CONSISTENCY },
+        { "EXPORT", TokenType.EXPORT },
+        { "IMPORT", TokenType.IMPORT },
+        { "FORMAT", TokenType.FORMAT },
+        { "FILE", TokenType.FILE },
+        { "TRIGGER", TokenType.TRIGGER },
 
         // TCL Keywords
         { "BEGIN", TokenType.BEGIN },
@@ -80,6 +94,7 @@ public class Lexer
         { "VARIABLES", TokenType.VARIABLES },
         { "ALIASES", TokenType.ALIASES },
         { "BASE_OBJECTS", TokenType.BASE_OBJECTS },
+        { "CONSTRAINT", TokenType.CONSTRAINTS },
         { "CONSTRAINTS", TokenType.CONSTRAINTS },
         { "SAME_VARIABLES", TokenType.SAME_VARIABLES },
         { "CONSTRUCT_RELATIONS", TokenType.CONSTRUCT_RELATIONS },
@@ -107,6 +122,7 @@ public class Lexer
         { "SCOPE", TokenType.SCOPE },
         { "IF", TokenType.IF },
         { "THEN", TokenType.THEN },
+        { "DO", TokenType.DO },
 
         // User/Privilege Keywords
         { "PASSWORD", TokenType.PASSWORD },
@@ -140,6 +156,7 @@ public class Lexer
         { "DESCRIPTION", TokenType.DESCRIPTION },
         { "ASC", TokenType.ASC },
         { "DESC", TokenType.DESC },
+        { "RENAME", TokenType.RENAME },
 
         // Data Types - Numeric
         { "TINYINT", TokenType.TINYINT },
@@ -170,7 +187,8 @@ public class Lexer
         // Special
         { "NULL", TokenType.NULL_TOKEN },
         { "TRUE", TokenType.BOOLEAN },
-        { "FALSE", TokenType.BOOLEAN }
+        { "FALSE", TokenType.BOOLEAN },
+        { "OF", TokenType.OF }
     };
 
     public Lexer(string source)

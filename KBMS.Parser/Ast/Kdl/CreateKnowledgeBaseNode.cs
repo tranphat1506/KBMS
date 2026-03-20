@@ -1,5 +1,6 @@
 using KBMS.Parser.Ast.Expressions;
 using KBMS.Parser.Ast;
+
 namespace KBMS.Parser.Ast.Kdl;
 
 /// <summary>
@@ -11,7 +12,7 @@ public class CreateKbNode : KdlNode
     /// <summary>
     /// Name of Knowledge Base
     /// </summary>
-    public string KbName { get; set; } = string.Empty;
+    public new string KbName { get; set; } = string.Empty;
 
     /// <summary>
     /// Optional description

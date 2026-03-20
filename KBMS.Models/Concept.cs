@@ -81,3 +81,25 @@ public class ConceptRule
     public List<string> Hypothesis { get; set; } = new();
     public List<string> Conclusion { get; set; } = new();
 }
+
+public enum AlterActionType
+{
+    AddVariable,
+    AddConstraint,
+    AddRule,
+    DropVariable,
+    DropConstraint,
+    DropRule,
+    RenameVariable
+}
+
+public class AlterAction
+{
+    public AlterActionType ActionType { get; set; }
+    public Variable? Variable { get; set; }
+    public Constraint? Constraint { get; set; }
+    public ConceptRule? Rule { get; set; }
+    public string? TargetName { get; set; } // For Drop
+    public string? OldName { get; set; }    // For Rename
+    public string? NewName { get; set; }    // For Rename
+}
