@@ -128,7 +128,7 @@ public class CliServerIntegrationTests : IAsyncLifetime
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
         Assert.StartsWith("LOGIN_SUCCESS:root", response.Content);
     }
 
@@ -158,7 +158,7 @@ public class CliServerIntegrationTests : IAsyncLifetime
     public async Task TC006_Login_ShouldFailWithMissingArguments()
     {
         // Act
-        var response = await _cli!.ExecuteCommandAsync("LOGIN root");
+        var response = await _cli!.ExecuteCommandAsync("LOGIN root;");
 
         // Assert
         Assert.NotNull(response);
@@ -174,7 +174,7 @@ public class CliServerIntegrationTests : IAsyncLifetime
         await _cli!.ExecuteCommandAsync("LOGIN root root");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE test_kb DESCRIPTION 'Test knowledge base'");
+        var response = await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE test_kb DESCRIPTION 'Test knowledge base';");
 
         // Assert
         Assert.NotNull(response);
@@ -186,7 +186,7 @@ public class CliServerIntegrationTests : IAsyncLifetime
     public async Task TC011_CreateKnowledgeBase_ShouldFailWhenNotLoggedIn()
     {
         // Act
-        var response = await _cli!.ExecuteCommandAsync("CREATE KNOWLEDGE BASE test_kb2");
+        var response = await _cli!.ExecuteCommandAsync("CREATE KNOWLEDGE BASE test_kb2;");
 
         // Assert - Should fail due to not logged in
         // Note: The server might allow this for root, behavior depends on implementation
@@ -198,10 +198,10 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE duplicate_kb");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE duplicate_kb;");
 
         // Act - Try to create again
-        var response = await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE duplicate_kb");
+        var response = await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE duplicate_kb;");
 
         // Assert
         Assert.NotNull(response);
@@ -213,14 +213,14 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE kb_to_drop");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE kb_to_drop;");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("DROP KNOWLEDGE BASE kb_to_drop");
+        var response = await _cli.ExecuteCommandAsync("DROP KNOWLEDGE BASE kb_to_drop;");
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
         Assert.Contains("dropped successfully", response.Content);
     }
 
@@ -231,7 +231,7 @@ public class CliServerIntegrationTests : IAsyncLifetime
         await _cli!.ExecuteCommandAsync("LOGIN root root");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("DROP KNOWLEDGE BASE nonexistent_kb");
+        var response = await _cli.ExecuteCommandAsync("DROP KNOWLEDGE BASE nonexistent_kb;");
 
         // Assert
         Assert.NotNull(response);
@@ -243,14 +243,14 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE kb_to_use");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE kb_to_use;");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("USE kb_to_use");
+        var response = await _cli.ExecuteCommandAsync("USE kb_to_use;");
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
         Assert.Contains("kb_to_use", response.Content);
     }
 
@@ -261,7 +261,7 @@ public class CliServerIntegrationTests : IAsyncLifetime
         await _cli!.ExecuteCommandAsync("LOGIN root root");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("USE nonexistent_kb");
+        var response = await _cli.ExecuteCommandAsync("USE nonexistent_kb;");
 
         // Assert
         Assert.NotNull(response);
@@ -275,16 +275,16 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE concept_test_kb");
-        await _cli.ExecuteCommandAsync("USE concept_test_kb");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE concept_test_kb;");
+        await _cli.ExecuteCommandAsync("USE concept_test_kb;");
 
         // Act
         var response = await _cli.ExecuteCommandAsync(
-            "CREATE CONCEPT Person VARIABLES (name: STRING, age: INT)");
+            "CREATE CONCEPT Person ( VARIABLES (name: STRING, age: INT) );");
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
     }
 
     [Fact]
@@ -295,7 +295,7 @@ public class CliServerIntegrationTests : IAsyncLifetime
 
         // Act
         var response = await _cli.ExecuteCommandAsync(
-            "CREATE CONCEPT Person VARIABLES (name STRING)");
+            "CREATE CONCEPT Person ( VARIABLES (name: STRING) );");
 
         // Assert
         Assert.NotNull(response);
@@ -307,17 +307,17 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE hierarchy_test_kb");
-        await _cli.ExecuteCommandAsync("USE hierarchy_test_kb");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Animal VARIABLES (name STRING)");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Dog VARIABLES (name STRING, breed STRING)");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE hierarchy_test_kb;");
+        await _cli.ExecuteCommandAsync("USE hierarchy_test_kb;");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT Animal ( VARIABLES (name: STRING) );");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT Dog ( VARIABLES (name: STRING, breed: STRING) );");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("ADD HIERARCHY Dog IS_A Animal");
+        var response = await _cli.ExecuteCommandAsync("CREATE HIERARCHY Dog ISA Animal;");
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
     }
 
     [Fact]
@@ -325,16 +325,16 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE drop_concept_kb");
-        await _cli.ExecuteCommandAsync("USE drop_concept_kb");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT ToDrop VARIABLES (x: INT)");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE drop_concept_kb;");
+        await _cli.ExecuteCommandAsync("USE drop_concept_kb;");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT ToDrop ( VARIABLES (x: INT) );");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("DROP CONCEPT ToDrop");
+        var response = await _cli.ExecuteCommandAsync("DROP CONCEPT ToDrop;");
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
     }
 
     [Fact]
@@ -342,16 +342,16 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE add_var_kb");
-        await _cli.ExecuteCommandAsync("USE add_var_kb");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Person VARIABLES (name: STRING)");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE add_var_kb;");
+        await _cli.ExecuteCommandAsync("USE add_var_kb;");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT Person ( VARIABLES (name: STRING) );");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("ADD VARIABLE email STRING TO Person");
+        var response = await _cli.ExecuteCommandAsync("ADD VARIABLE email STRING TO Person;");
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
     }
 
     // ==================== RELATION DDL TESTS ====================
@@ -361,10 +361,10 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE relation_test_kb");
-        await _cli.ExecuteCommandAsync("USE relation_test_kb");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Person VARIABLES (name STRING)");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Car VARIABLES (model STRING)");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE relation_test_kb;");
+        await _cli.ExecuteCommandAsync("USE relation_test_kb;");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT Person ( VARIABLES (name: STRING) );");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT Car ( VARIABLES (model: STRING) );");
 
         // Act
         var response = await _cli.ExecuteCommandAsync(
@@ -372,7 +372,7 @@ public class CliServerIntegrationTests : IAsyncLifetime
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
     }
 
     [Fact]
@@ -380,15 +380,15 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE drop_relation_kb");
-        await _cli.ExecuteCommandAsync("USE drop_relation_kb");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT A VARIABLES (x INT)");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT B VARIABLES (y INT)");
-        await _cli.ExecuteCommandAsync("CREATE RELATION rel DOMAIN A RANGE B");
-        await _cli.ExecuteCommandAsync("DROP RELATION rel");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE drop_relation_kb;");
+        await _cli.ExecuteCommandAsync("USE drop_relation_kb;");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT A ( VARIABLES (x: INT) );");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT B ( VARIABLES (y: INT) );");
+        await _cli.ExecuteCommandAsync("CREATE RELATION rel DOMAIN A RANGE B;");
+        await _cli.ExecuteCommandAsync("DROP RELATION rel;");
 
         // Act & Assert - Verify it's gone (would fail to drop again)
-        var response = await _cli.ExecuteCommandAsync("DROP RELATION rel");
+        var response = await _cli.ExecuteCommandAsync("DROP RELATION rel;");
         Assert.NotNull(response);
     }
 
@@ -399,8 +399,8 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE operator_test_kb");
-        await _cli.ExecuteCommandAsync("USE operator_test_kb");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE operator_test_kb;");
+        await _cli.ExecuteCommandAsync("USE operator_test_kb;");
 
         // Act
         var response = await _cli.ExecuteCommandAsync(
@@ -408,7 +408,7 @@ public class CliServerIntegrationTests : IAsyncLifetime
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
     }
 
     [Fact]
@@ -416,16 +416,16 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE drop_op_kb");
-        await _cli.ExecuteCommandAsync("USE drop_op_kb");
-        await _cli.ExecuteCommandAsync("CREATE OPERATOR testOp PARAMS (INT) RETURNS INT");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE drop_op_kb;");
+        await _cli.ExecuteCommandAsync("USE drop_op_kb;");
+        await _cli.ExecuteCommandAsync("CREATE OPERATOR testOp PARAMS (INT) RETURNS INT;");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("DROP OPERATOR testOp");
+        var response = await _cli.ExecuteCommandAsync("DROP OPERATOR testOp;");
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
     }
 
     // ==================== FUNCTION DDL TESTS ====================
@@ -435,8 +435,8 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE function_test_kb");
-        await _cli.ExecuteCommandAsync("USE function_test_kb");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE function_test_kb;");
+        await _cli.ExecuteCommandAsync("USE function_test_kb;");
 
         // Act
         var response = await _cli.ExecuteCommandAsync(
@@ -444,7 +444,7 @@ public class CliServerIntegrationTests : IAsyncLifetime
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
     }
 
     [Fact]
@@ -452,16 +452,16 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE drop_func_kb");
-        await _cli.ExecuteCommandAsync("USE drop_func_kb");
-        await _cli.ExecuteCommandAsync("CREATE FUNCTION testFunc PARAMS (INT x) RETURNS INT BODY 'x'");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE drop_func_kb;");
+        await _cli.ExecuteCommandAsync("USE drop_func_kb;");
+        await _cli.ExecuteCommandAsync("CREATE FUNCTION testFunc PARAMS (INT x) RETURNS INT BODY 'x';");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("DROP FUNCTION testFunc");
+        var response = await _cli.ExecuteCommandAsync("DROP FUNCTION testFunc;");
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
     }
 
     // ==================== RULE DDL TESTS ====================
@@ -471,17 +471,17 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE rule_test_kb");
-        await _cli.ExecuteCommandAsync("USE rule_test_kb");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Person VARIABLES name STRING, age INT, isAdult BOOLEAN");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE rule_test_kb;");
+        await _cli.ExecuteCommandAsync("USE rule_test_kb;");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT Person ( VARIABLES (name: STRING, age: INT, isAdult: BOOLEAN) );");
 
         // Act
         var response = await _cli.ExecuteCommandAsync(
-            "CREATE RULE adultRule IF Person.age >= 18 THEN SET Person.isAdult = true");
+            "CREATE RULE adultRule IF Person.age >= 18 THEN SET Person.isAdult = true;");
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
     }
 
     [Fact]
@@ -489,17 +489,17 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE drop_rule_kb");
-        await _cli.ExecuteCommandAsync("USE drop_rule_kb");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT X VARIABLES (a INT)");
-        await _cli.ExecuteCommandAsync("CREATE RULE testRule IF X.a > 0 THEN SET X.a = 1");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE drop_rule_kb;");
+        await _cli.ExecuteCommandAsync("USE drop_rule_kb;");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT X ( VARIABLES (a: INT, b: BOOLEAN) );");
+        await _cli.ExecuteCommandAsync("CREATE RULE rule1 IF X.a > 10 THEN SET X.b = true;");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("DROP RULE testRule");
+        var response = await _cli.ExecuteCommandAsync("DROP RULE rule1;");
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
     }
 
     // ==================== USER MANAGEMENT TESTS ====================
@@ -513,7 +513,7 @@ public class CliServerIntegrationTests : IAsyncLifetime
         Assert.Equal(MessageType.RESULT, loginResponse!.Type);
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("CREATE USER testuser PASSWORD testpass123 ROLE USER");
+        var response = await _cli.ExecuteCommandAsync("CREATE USER testuser PASSWORD testpass123 ROLE USER;");
 
         // Assert
         Assert.NotNull(response);
@@ -525,14 +525,14 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE USER newuser PASSWORD newpass ROLE USER");
+        await _cli.ExecuteCommandAsync("CREATE USER newuser PASSWORD newpass ROLE USER;");
 
         // Act
         var response = await _cli.ExecuteCommandAsync("LOGIN newuser newpass");
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
         Assert.StartsWith("LOGIN_SUCCESS:newuser", response!.Content);
     }
 
@@ -541,14 +541,14 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE USER userToDrop PASSWORD pass ROLE USER");
+        await _cli.ExecuteCommandAsync("CREATE USER userToDrop PASSWORD pass ROLE USER;");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("DROP USER userToDrop");
+        var response = await _cli.ExecuteCommandAsync("DROP USER userToDrop;");
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
     }
 
     [Fact]
@@ -556,15 +556,15 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE grant_test_kb");
-        await _cli.ExecuteCommandAsync("CREATE USER grantuser PASSWORD pass ROLE USER");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE grant_test_kb;");
+        await _cli.ExecuteCommandAsync("CREATE USER grantuser PASSWORD pass ROLE USER;");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("GRANT SELECT ON grant_test_kb TO grantuser");
+        var response = await _cli.ExecuteCommandAsync("GRANT SELECT ON grant_test_kb TO grantuser;");
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
     }
 
     [Fact]
@@ -572,16 +572,16 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE revoke_test_kb");
-        await _cli.ExecuteCommandAsync("CREATE USER revokeuser PASSWORD pass ROLE USER");
-        await _cli.ExecuteCommandAsync("GRANT SELECT ON revoke_test_kb TO revokeuser");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE revoke_test_kb;");
+        await _cli.ExecuteCommandAsync("CREATE USER revokeuser PASSWORD pass ROLE USER;");
+        await _cli.ExecuteCommandAsync("GRANT SELECT ON revoke_test_kb TO revokeuser;");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("REVOKE SELECT ON revoke_test_kb FROM revokeuser");
+        var response = await _cli.ExecuteCommandAsync("REVOKE SELECT ON revoke_test_kb FROM revokeuser;");
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
     }
 
     // ==================== DML SELECT TESTS ====================
@@ -591,14 +591,14 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE select_test_kb");
-        await _cli.ExecuteCommandAsync("USE select_test_kb");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Product VARIABLES (name STRING, price DOUBLE)");
-        await _cli.ExecuteCommandAsync("INSERT INTO Product VALUES ('Laptop', 999.99)");
-        await _cli.ExecuteCommandAsync("INSERT INTO Product VALUES ('Mouse', 29.99)");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE select_test_kb;");
+        await _cli.ExecuteCommandAsync("USE select_test_kb;");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT Product ( VARIABLES (name: STRING, price: DOUBLE) );");
+        await _cli.ExecuteCommandAsync("INSERT INTO Product ATTRIBUTE ('Laptop', 999.99);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Product ATTRIBUTE ('Mouse', 29.99);");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("SELECT * FROM Product");
+        var response = await _cli.ExecuteCommandAsync("SELECT * FROM Product;");
 
         // Assert
         Assert.NotNull(response);
@@ -610,19 +610,19 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE select_where_kb");
-        await _cli.ExecuteCommandAsync("USE select_where_kb");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Employee VARIABLES (name STRING, salary DOUBLE)");
-        await _cli.ExecuteCommandAsync("INSERT INTO Employee VALUES ('Alice', 50000)");
-        await _cli.ExecuteCommandAsync("INSERT INTO Employee VALUES ('Bob', 30000)");
-        await _cli.ExecuteCommandAsync("INSERT INTO Employee VALUES ('Charlie', 70000)");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE select_where_kb;");
+        await _cli.ExecuteCommandAsync("USE select_where_kb;");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT Employee ( VARIABLES (name: STRING, salary: DOUBLE) );");
+        await _cli.ExecuteCommandAsync("INSERT INTO Employee ATTRIBUTE ('Alice', 50000);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Employee ATTRIBUTE ('Bob', 30000);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Employee ATTRIBUTE ('Charlie', 70000);");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("SELECT * FROM Employee WHERE salary > 40000");
+        var response = await _cli.ExecuteCommandAsync("SELECT * FROM Employee WHERE salary > 40000;");
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
     }
 
     [Fact]
@@ -630,15 +630,15 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE select_order_kb");
-        await _cli.ExecuteCommandAsync("USE select_order_kb");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Item VARIABLES (name STRING, quantity INT)");
-        await _cli.ExecuteCommandAsync("INSERT INTO Item VALUES ('A', 10)");
-        await _cli.ExecuteCommandAsync("INSERT INTO Item VALUES ('B', 5)");
-        await _cli.ExecuteCommandAsync("INSERT INTO Item VALUES ('C', 20)");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE select_order_kb;");
+        await _cli.ExecuteCommandAsync("USE select_order_kb;");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT Item ( VARIABLES (name: STRING, quantity: INT) );");
+        await _cli.ExecuteCommandAsync("INSERT INTO Item ATTRIBUTE ('A', 10);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Item ATTRIBUTE ('B', 5);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Item ATTRIBUTE ('C', 20);");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("SELECT * FROM Item ORDER BY quantity DESC");
+        var response = await _cli.ExecuteCommandAsync("SELECT * FROM Item ORDER BY quantity DESC;");
 
         // Assert
         Assert.NotNull(response);
@@ -646,7 +646,7 @@ public class CliServerIntegrationTests : IAsyncLifetime
         {
             Console.WriteLine($"Error: {response.Content}");
         }
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
     }
 
     [Fact]
@@ -654,19 +654,19 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE select_limit_kb");
-        await _cli.ExecuteCommandAsync("USE select_limit_kb");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Number VARIABLES (value: INT)");
-        var insertResult = await _cli.ExecuteCommandAsync("INSERT INTO Number VALUES (1)");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE select_limit_kb;");
+        await _cli.ExecuteCommandAsync("USE select_limit_kb;");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT Number ( VARIABLES (value: INT) );");
+        var insertResult = await _cli.ExecuteCommandAsync("INSERT INTO Number ATTRIBUTE (1);");
         Assert.True(insertResult!.Type == MessageType.RESULT, $"INSERT failed: {insertResult.Content}");
 
         for (int i = 2; i <= 10; i++)
         {
-            await _cli.ExecuteCommandAsync($"INSERT INTO Number VALUES ({i})");
+            await _cli.ExecuteCommandAsync($"INSERT INTO Number ATTRIBUTE ({i});");
         }
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("SELECT * FROM Number LIMIT 5");
+        var response = await _cli.ExecuteCommandAsync("SELECT * FROM Number LIMIT 5;");
 
         // Assert
         Assert.NotNull(response);
@@ -680,15 +680,15 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE insert_test_kb");
-        await _cli.ExecuteCommandAsync("USE insert_test_kb");
-        var conceptResponse = await _cli.ExecuteCommandAsync("CREATE CONCEPT Book VARIABLES (title: STRING, author: STRING, pages: INT)");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE insert_test_kb;");
+        await _cli.ExecuteCommandAsync("USE insert_test_kb;");
+        var conceptResponse = await _cli.ExecuteCommandAsync("CREATE CONCEPT Book ( VARIABLES (title: STRING, author: STRING, pages: INT) );");
         Assert.NotNull(conceptResponse);
         Assert.True(conceptResponse!.Type == MessageType.RESULT, $"CREATE CONCEPT failed: {conceptResponse.Content}");
 
         // Act
         var response = await _cli.ExecuteCommandAsync(
-            "INSERT INTO Book VALUES ('The Great Gatsby', 'F. Scott Fitzgerald', 180)");
+            "INSERT INTO Book ATTRIBUTE ('The Great Gatsby', 'F. Scott Fitzgerald', 180);");
 
         // Assert
         Assert.NotNull(response);
@@ -700,14 +700,14 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE insert_multi_kb");
-        await _cli.ExecuteCommandAsync("USE insert_multi_kb");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Color VARIABLES (name: STRING, code: STRING)");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE insert_multi_kb;");
+        await _cli.ExecuteCommandAsync("USE insert_multi_kb;");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT Color ( VARIABLES (name: STRING, code: STRING) );");
 
         // Act
-        var response1 = await _cli.ExecuteCommandAsync("INSERT INTO Color VALUES ('Red', '#FF0000')");
-        var response2 = await _cli.ExecuteCommandAsync("INSERT INTO Color VALUES ('Green', '#00FF00')");
-        var response3 = await _cli.ExecuteCommandAsync("INSERT INTO Color VALUES ('Blue', '#0000FF')");
+        var response1 = await _cli.ExecuteCommandAsync("INSERT INTO Color ATTRIBUTE ('Red', '#FF0000');");
+        var response2 = await _cli.ExecuteCommandAsync("INSERT INTO Color ATTRIBUTE ('Green', '#00FF00');");
+        var response3 = await _cli.ExecuteCommandAsync("INSERT INTO Color ATTRIBUTE ('Blue', '#0000FF');");
 
         // Assert
         Assert.Equal(MessageType.RESULT, response1!.Type);
@@ -720,11 +720,11 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE insert_invalid_kb");
-        await _cli.ExecuteCommandAsync("USE insert_invalid_kb");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE insert_invalid_kb;");
+        await _cli.ExecuteCommandAsync("USE insert_invalid_kb;");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("INSERT INTO NonExistent VALUES ('test')");
+        var response = await _cli.ExecuteCommandAsync("INSERT INTO NonExistent ATTRIBUTE ('test');");
 
         // Assert
         Assert.NotNull(response);
@@ -738,16 +738,16 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE update_test_kb");
-        await _cli.ExecuteCommandAsync("USE update_test_kb");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Account VARIABLES (name: STRING, balance: DOUBLE)");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE update_test_kb;");
+        await _cli.ExecuteCommandAsync("USE update_test_kb;");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT Account ( VARIABLES (name: STRING, balance: DOUBLE) );");
 
-        var insertResponse = await _cli.ExecuteCommandAsync("INSERT INTO Account VALUES ('Savings', 1000.00)");
+        var insertResponse = await _cli.ExecuteCommandAsync("INSERT INTO Account ATTRIBUTE ('Savings', 1000.00);");
         Assert.True(insertResponse!.Type == MessageType.RESULT, $"INSERT failed: {insertResponse.Content}");
 
         // Act
         var response = await _cli.ExecuteCommandAsync(
-            "UPDATE Account SET balance = 1500.00 WHERE name = 'Savings'");
+            "UPDATE Account ATTRIBUTE (SET balance: 1500.00) WHERE name = 'Savings';");
 
         // Assert
         Assert.NotNull(response);
@@ -759,20 +759,20 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE update_where_kb");
-        await _cli.ExecuteCommandAsync("USE update_where_kb");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Status VARIABLES (name: STRING, active: BOOLEAN)");
-        await _cli.ExecuteCommandAsync("INSERT INTO Status VALUES ('Item1', true)");
-        await _cli.ExecuteCommandAsync("INSERT INTO Status VALUES ('Item2', true)");
-        await _cli.ExecuteCommandAsync("INSERT INTO Status VALUES ('Item3', false)");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE update_where_kb;");
+        await _cli.ExecuteCommandAsync("USE update_where_kb;");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT Status ( VARIABLES (name: STRING, active: BOOLEAN) );");
+        await _cli.ExecuteCommandAsync("INSERT INTO Status ATTRIBUTE ('Item1', true);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Status ATTRIBUTE ('Item2', true);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Status ATTRIBUTE ('Item3', false);");
 
         // Act
         var response = await _cli.ExecuteCommandAsync(
-            "UPDATE Status SET active = false WHERE name = 'Item1'");
+            "UPDATE Status ATTRIBUTE (SET active: false) WHERE name = 'Item1';");
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
     }
 
     // ==================== DML DELETE TESTS ====================
@@ -782,14 +782,14 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE delete_test_kb");
-        await _cli.ExecuteCommandAsync("USE delete_test_kb");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Temp VARIABLES (id: INT, value: STRING)");
-        var insertResponse = await _cli.ExecuteCommandAsync("INSERT INTO Temp VALUES (1, 'to delete')");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE delete_test_kb;");
+        await _cli.ExecuteCommandAsync("USE delete_test_kb;");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT Temp ( VARIABLES (id: INT, value: STRING) );");
+        var insertResponse = await _cli.ExecuteCommandAsync("INSERT INTO Temp ATTRIBUTE (1, 'to delete');");
         Assert.True(insertResponse!.Type == MessageType.RESULT, $"INSERT failed: {insertResponse.Content}");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("DELETE FROM Temp WHERE id = 1");
+        var response = await _cli.ExecuteCommandAsync("DELETE FROM Temp WHERE id = 1;");
 
         // Assert
         Assert.NotNull(response);
@@ -801,19 +801,19 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE delete_all_kb");
-        await _cli.ExecuteCommandAsync("USE delete_all_kb");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Log VARIABLES (message: STRING)");
-        await _cli.ExecuteCommandAsync("INSERT INTO Log VALUES ('msg1')");
-        await _cli.ExecuteCommandAsync("INSERT INTO Log VALUES ('msg2')");
-        await _cli.ExecuteCommandAsync("INSERT INTO Log VALUES ('msg3')");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE delete_all_kb;");
+        await _cli.ExecuteCommandAsync("USE delete_all_kb;");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT Log ( VARIABLES (message: STRING) );");
+        await _cli.ExecuteCommandAsync("INSERT INTO Log ATTRIBUTE ('msg1');");
+        await _cli.ExecuteCommandAsync("INSERT INTO Log ATTRIBUTE ('msg2');");
+        await _cli.ExecuteCommandAsync("INSERT INTO Log ATTRIBUTE ('msg3');");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("DELETE FROM Log");
+        var response = await _cli.ExecuteCommandAsync("DELETE FROM Log;");
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
     }
 
     // ==================== SHOW COMMANDS TESTS ====================
@@ -823,14 +823,14 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE show_kb_test");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE show_kb_test;");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("SHOW KNOWLEDGE BASES");
+        var response = await _cli.ExecuteCommandAsync("SHOW KNOWLEDGE BASES;");
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
     }
 
     [Fact]
@@ -838,17 +838,17 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE show_concepts_kb");
-        await _cli.ExecuteCommandAsync("USE show_concepts_kb");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT A VARIABLES (x INT)");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT B VARIABLES (y STRING)");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE show_concepts_kb;");
+        await _cli.ExecuteCommandAsync("USE show_concepts_kb;");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT A ( VARIABLES (x: INT) );");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT B ( VARIABLES (y: STRING) );");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("SHOW CONCEPTS");
+        var response = await _cli.ExecuteCommandAsync("SHOW CONCEPTS;");
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
     }
 
     [Fact]
@@ -856,17 +856,17 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE show_rules_kb");
-        await _cli.ExecuteCommandAsync("USE show_rules_kb");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT X VARIABLES (a INT, b BOOLEAN)");
-        await _cli.ExecuteCommandAsync("CREATE RULE rule1 IF X.a > 10 THEN SET X.b = true");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE show_rules_kb;");
+        await _cli.ExecuteCommandAsync("USE show_rules_kb;");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT X ( VARIABLES (a: INT, b: BOOLEAN) );");
+        await _cli.ExecuteCommandAsync("CREATE RULE rule1 IF X.a > 10 THEN SET X.b = true;");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("SHOW RULES");
+        var response = await _cli.ExecuteCommandAsync("SHOW RULES;");
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
     }
 
     [Fact]
@@ -874,18 +874,18 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE show_rel_kb");
-        await _cli.ExecuteCommandAsync("USE show_rel_kb");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT P VARIABLES (x INT)");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Q VARIABLES (y INT)");
-        await _cli.ExecuteCommandAsync("CREATE RELATION has DOMAIN P RANGE Q");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE show_rel_kb;");
+        await _cli.ExecuteCommandAsync("USE show_rel_kb;");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT P ( VARIABLES (x: INT) );");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT Q ( VARIABLES (y: INT) );");
+        await _cli.ExecuteCommandAsync("CREATE RELATION has DOMAIN P RANGE Q;");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("SHOW RELATIONS");
+        var response = await _cli.ExecuteCommandAsync("SHOW RELATIONS;");
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
     }
 
     [Fact]
@@ -895,11 +895,11 @@ public class CliServerIntegrationTests : IAsyncLifetime
         await _cli!.ExecuteCommandAsync("LOGIN root root");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("SHOW USERS");
+        var response = await _cli.ExecuteCommandAsync("SHOW USERS;");
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
     }
 
     // ==================== SOLVE (REASONING) TESTS ====================
@@ -909,10 +909,10 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE solve_test_kb");
-        await _cli.ExecuteCommandAsync("USE solve_test_kb");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Triangle VARIABLES a DOUBLE, b DOUBLE, c DOUBLE, area DOUBLE");
-        await _cli.ExecuteCommandAsync("INSERT INTO Triangle VALUES (3, 4, 5, null)");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE solve_test_kb;");
+        await _cli.ExecuteCommandAsync("USE solve_test_kb;");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT Triangle ( VARIABLES (a: DOUBLE, b: DOUBLE, c: DOUBLE, area: DOUBLE) );");
+        await _cli.ExecuteCommandAsync("INSERT INTO Triangle ATTRIBUTE (3, 4, 5, null);");
 
         // Act
         var response = await _cli.ExecuteCommandAsync(
@@ -930,19 +930,19 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE agg_count_kb");
-        await _cli.ExecuteCommandAsync("USE agg_count_kb");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Item VARIABLES (name STRING, value INT)");
-        await _cli.ExecuteCommandAsync("INSERT INTO Item VALUES ('A', 1)");
-        await _cli.ExecuteCommandAsync("INSERT INTO Item VALUES ('B', 2)");
-        await _cli.ExecuteCommandAsync("INSERT INTO Item VALUES ('C', 3)");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE agg_count_kb;");
+        await _cli.ExecuteCommandAsync("USE agg_count_kb;");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT Item ( VARIABLES (name: STRING, value: INT) );");
+        await _cli.ExecuteCommandAsync("INSERT INTO Item ATTRIBUTE ('A', 1);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Item ATTRIBUTE ('B', 2);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Item ATTRIBUTE ('C', 3);");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("SELECT COUNT(*) FROM Item");
+        var response = await _cli.ExecuteCommandAsync("SELECT COUNT(*) FROM Item;");
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
     }
 
     [Fact]
@@ -950,19 +950,19 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE agg_sum_kb");
-        await _cli.ExecuteCommandAsync("USE agg_sum_kb");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Sales VARIABLES (product STRING, amount DOUBLE)");
-        await _cli.ExecuteCommandAsync("INSERT INTO Sales VALUES ('P1', 100)");
-        await _cli.ExecuteCommandAsync("INSERT INTO Sales VALUES ('P2', 200)");
-        await _cli.ExecuteCommandAsync("INSERT INTO Sales VALUES ('P3', 300)");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE agg_sum_kb;");
+        await _cli.ExecuteCommandAsync("USE agg_sum_kb;");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT Sales ( VARIABLES (product: STRING, amount: DOUBLE) );");
+        await _cli.ExecuteCommandAsync("INSERT INTO Sales ATTRIBUTE ('P1', 100);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Sales ATTRIBUTE ('P2', 200);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Sales ATTRIBUTE ('P3', 300);");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("SELECT SUM(amount) FROM Sales");
+        var response = await _cli.ExecuteCommandAsync("SELECT SUM(amount) FROM Sales;");
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
     }
 
     [Fact]
@@ -970,19 +970,19 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE agg_avg_kb");
-        await _cli.ExecuteCommandAsync("USE agg_avg_kb");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Score VARIABLES (student: STRING, score: DOUBLE)");
-        await _cli.ExecuteCommandAsync("INSERT INTO Score VALUES ('Alice', 85)");
-        await _cli.ExecuteCommandAsync("INSERT INTO Score VALUES ('Bob', 90)");
-        await _cli.ExecuteCommandAsync("INSERT INTO Score VALUES ('Charlie', 80)");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE agg_avg_kb;");
+        await _cli.ExecuteCommandAsync("USE agg_avg_kb;");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT Score ( VARIABLES (student: STRING, score: DOUBLE) );");
+        await _cli.ExecuteCommandAsync("INSERT INTO Score ATTRIBUTE ('Alice', 85);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Score ATTRIBUTE ('Bob', 90);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Score ATTRIBUTE ('Charlie', 80);");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("SELECT AVG(score) FROM Score");
+        var response = await _cli.ExecuteCommandAsync("SELECT AVG(score) FROM Score;");
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
     }
 
     // ==================== ERROR HANDLING TESTS ====================
@@ -994,7 +994,7 @@ public class CliServerIntegrationTests : IAsyncLifetime
         await _cli!.ExecuteCommandAsync("LOGIN root root");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("CREATE INVALID SYNTAX HERE");
+        var response = await _cli.ExecuteCommandAsync("CREATE INVALID SYNTAX HERE;");
 
         // Assert
         Assert.NotNull(response);
@@ -1022,7 +1022,7 @@ public class CliServerIntegrationTests : IAsyncLifetime
         await _cli!.ExecuteCommandAsync("LOGIN root root");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("UNKNOWN_COMMAND test");
+        var response = await _cli.ExecuteCommandAsync("UNKNOWN_COMMAND test;");
 
         // Assert
         Assert.NotNull(response);
@@ -1036,11 +1036,11 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE USER regularuser PASSWORD pass ROLE USER");
+        await _cli.ExecuteCommandAsync("CREATE USER regularuser PASSWORD pass ROLE USER;");
         await _cli.ExecuteCommandAsync("LOGIN regularuser pass");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE unauthorized_kb");
+        var response = await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE unauthorized_kb;");
 
         // Assert - Regular user may not have permission to create KB
         Assert.NotNull(response);
@@ -1051,16 +1051,16 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE private_kb");
-        await _cli.ExecuteCommandAsync("USE private_kb");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Secret VARIABLES (data STRING)");
-        await _cli.ExecuteCommandAsync("INSERT INTO Secret VALUES ('confidential')");
-        await _cli.ExecuteCommandAsync("CREATE USER restricteduser PASSWORD pass ROLE USER");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE private_kb;");
+        await _cli.ExecuteCommandAsync("USE private_kb;");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT Secret ( VARIABLES (data: STRING) );");
+        await _cli.ExecuteCommandAsync("INSERT INTO Secret ATTRIBUTE ('confidential');");
+        await _cli.ExecuteCommandAsync("CREATE USER restricteduser PASSWORD pass ROLE USER;");
         // Note: Not granting any privilege on private_kb
         await _cli.ExecuteCommandAsync("LOGIN restricteduser pass");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("USE private_kb");
+        var response = await _cli.ExecuteCommandAsync("USE private_kb;");
 
         // Assert
         Assert.NotNull(response);
@@ -1074,7 +1074,7 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE disconnect_test");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE disconnect_test;");
 
         // Act
         await _cli.DisconnectAsync();
@@ -1090,17 +1090,17 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE special_chars_kb");
-        await _cli.ExecuteCommandAsync("USE special_chars_kb");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Message VARIABLES (text: STRING)");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE special_chars_kb;");
+        await _cli.ExecuteCommandAsync("USE special_chars_kb;");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT Message ( VARIABLES (text: STRING) );");
 
         // Act
         var response = await _cli.ExecuteCommandAsync(
-            "INSERT INTO Message VALUES ('Hello, World! @#$%^&*()')");
+            "INSERT INTO Message ATTRIBUTE ('Hello, World! @#$%^&*()')");
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
     }
 
     [Fact]
@@ -1108,16 +1108,16 @@ public class CliServerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         await _cli!.ExecuteCommandAsync("LOGIN root root");
-        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE unicode_kb");
-        await _cli.ExecuteCommandAsync("USE unicode_kb");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Greeting VARIABLES (text: STRING)");
+        await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE unicode_kb;");
+        await _cli.ExecuteCommandAsync("USE unicode_kb;");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT Greeting ( VARIABLES (text: STRING) );");
 
         // Act
         var response = await _cli.ExecuteCommandAsync(
-            "INSERT INTO Greeting VALUES ('Xin chào - 你好 - مرحبا')");
+            "INSERT INTO Greeting ATTRIBUTE ('Xin chào - 你好 - مرحبا')");
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.True(response!.Type == MessageType.RESULT, response.Content);
     }
 }

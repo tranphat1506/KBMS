@@ -151,7 +151,7 @@ public class CliServerIntegrationTestsV2 : IAsyncLifetime
         await _cli.ExecuteCommandAsync("USE hybrid_kb;");
 
         // 2. Base Concept
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Shape VARIABLES (name: string, color: string);");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT Shape ( VARIABLES (name: string, color: string) );");
 
         // 3. Circle Concept inheriting Shape
         var createCircle = @"

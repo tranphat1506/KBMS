@@ -10,7 +10,7 @@ export default function Navbar() {
   const alt = isMac ? '⌥' : 'Alt';
 
   return (
-    <div className={`h-10 bg-white flex items-center px-4 justify-between border-b border-slate-200 shadow-[0_1px_3px_rgba(0,0,0,0.02)] z-20 font-sans select-none ${isMac ? 'pl-[74px]' : ''}`} style={{ WebkitAppRegion: 'drag' } as any}>
+    <div className={`h-11 bg-white flex items-center px-4 justify-between border-b border-slate-200 shadow-[0_1px_3px_rgba(0,0,0,0.02)] z-20 font-sans select-none ${isMac ? 'pl-[90px]' : ''}`} style={{ WebkitAppRegion: 'drag' } as any}>
       <div className="flex items-center space-x-5" style={{ WebkitAppRegion: 'no-drag' } as any}>
         <div className="flex items-center space-x-1.5 text-emerald-600 select-none">
           <DatabaseZap className="w-4 h-4 fill-emerald-100" />

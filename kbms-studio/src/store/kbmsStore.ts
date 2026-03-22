@@ -19,8 +19,8 @@ export interface ServerProfile {
 
 export interface KbmsState {
   status: 'disconnected' | 'connecting' | 'connected' | 'error';
-  connectionDetails: { host: string; port: number } | null;
-  lastCredentials: { host: string; port: number; user: string; pass: string } | null;
+  connectionDetails: { host: string; port: number; name?: string } | null;
+  lastCredentials: { host: string; port: number; user: string; pass: string; name?: string } | null;
   tabs: QueryTab[];
   activeTabId: string;
   isExecuting: boolean;
@@ -56,7 +56,7 @@ export interface KbmsState {
   stopExecution: () => void;
   fetchMetadata: () => Promise<void>;
   changeKnowledgeBase: (kb: string) => Promise<void>;
-  connect: (host: string, port: number, user: string, pass: string) => Promise<{ success: boolean, error?: string }>;
+  connect: (host: string, port: number, user: string, pass: string, name?: string) => Promise<{ success: boolean, error?: string }>;
   disconnect: () => Promise<void>;
   saveProfile: (p: ServerProfile) => void;
   deleteProfile: (id: string) => void;
@@ -317,15 +317,15 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
     }
   },
 
-  connect: async (host, port, user, pass) => {
+  connect: async (host, port, user, pass, name) => {
     set({ status: 'connecting', isExecuting: true });
     try {
       // @ts-ignore
       const res = await window.kbmsApi.connect(host, port, user, pass);
       set({ isExecuting: false });
       if (res.success) {
-        const details = { host, port };
-        const creds = { host, port, user, pass };
+        const details = { host, port, name };
+        const creds = { host, port, user, pass, name };
         localStorage.setItem('kbms_connection_details', JSON.stringify(details));
         localStorage.setItem('kbms_last_credentials', JSON.stringify(creds));
         set({

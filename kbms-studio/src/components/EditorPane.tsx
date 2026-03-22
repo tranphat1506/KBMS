@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Editor, { useMonaco } from '@monaco-editor/react';
 import { useKbmsStore } from '../store/kbmsStore';
 import { FileCode, X, PlayCircle, Settings2, Plus, Save, SquareTerminal } from 'lucide-react';
@@ -20,7 +20,14 @@ export default function EditorPane() {
   const stopExecution = useKbmsStore(state => state.stopExecution);
   const metadata = useKbmsStore(state => state.metadata);
   const editorMarkers = useKbmsStore(state => state.editorMarkers);
+  const clearEditorMarkers = useKbmsStore(state => state.clearEditorMarkers);
   const monaco = useMonaco();
+  
+  const [editorInstance, setEditorInstance] = useState<any>(null);
+
+  const handleEditorDidMount = (editor: any) => {
+    setEditorInstance(editor);
+  };
   
   const isMac = navigator.userAgent.indexOf('Mac') > -1;
   const cmd = isMac ? '⌘' : 'Ctrl';
@@ -64,10 +71,8 @@ export default function EditorPane() {
 
   // Apply server error markers (red squiggles) to the Monaco editor
   useEffect(() => {
-    if (!monaco) return;
-    const editors = monaco.editor.getEditors();
-    if (editors.length === 0) return;
-    const model = editors[0].getModel();
+    if (!monaco || !editorInstance) return;
+    const model = editorInstance.getModel();
     if (!model) return;
 
     if (editorMarkers && editorMarkers.length > 0) {
@@ -75,7 +80,7 @@ export default function EditorPane() {
     } else {
       monaco.editor.setModelMarkers(model, 'kbms-server', []);
     }
-  }, [monaco, editorMarkers]);
+  }, [monaco, editorInstance, editorMarkers]);
   useEffect(() => {
     if (monaco) {
       const kbmsKeywords = [
@@ -254,7 +259,13 @@ export default function EditorPane() {
             suggestSelection: 'first',
           }}
           value={query}
-          onChange={(val) => setQuery(val || '')}
+          onMount={handleEditorDidMount}
+          onChange={(val) => {
+             setQuery(val || '');
+             if (editorMarkers && editorMarkers.length > 0) {
+                clearEditorMarkers();
+             }
+          }}
         />
       </div>
     </div>

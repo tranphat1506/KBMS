@@ -379,7 +379,9 @@ function createWindow() {
 	ipcMain.handle("kbms:execute", async (_, query) => {
 		try {
 			console.log("Execute called from UI:", query);
-			return await kbmsClient.execute(query);
+			const result = await kbmsClient.execute(query);
+			console.log("[DEBUG] Execute result returned to UI:", JSON.stringify(result, null, 2));
+			return result;
 		} catch (err) {
 			return {
 				success: false,
@@ -406,12 +408,13 @@ function createWindow() {
 		kbmsClient.disconnect();
 		return { success: true };
 	});
-	ipcMain.handle("kbms:save-file", async (_e, content, currentPath, isNewFile = true) => {
+	ipcMain.handle("kbms:save-file", async (_e, content, currentPath, isNewFile = false) => {
 		if (!win) return { success: false };
 		let targetPath = currentPath;
-		if (isNewFile || !targetPath) {
+		const isAbsolutePath = targetPath && path.isAbsolute(targetPath);
+		if (isNewFile || !isAbsolutePath) {
 			const { canceled, filePath } = await dialog.showSaveDialog(win, {
-				title: "Save KBQL Query",
+				title: isNewFile ? "Save As" : "Save KBQL Query",
 				defaultPath: targetPath || "Query.kbql",
 				filters: [{
 					name: "KBMS Query",
@@ -429,6 +432,10 @@ function createWindow() {
 			targetPath = filePath;
 		}
 		try {
+			if (!targetPath) return {
+				success: false,
+				error: "No target path"
+			};
 			fs.writeFileSync(targetPath, content, "utf8");
 			return {
 				success: true,

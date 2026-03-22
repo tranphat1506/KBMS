@@ -31,6 +31,7 @@ function createWindow() {
      try {
        console.log('Execute called from UI:', query);
        const result = await kbmsClient.execute(query);
+       console.log('[DEBUG] Execute result returned to UI:', JSON.stringify(result, null, 2));
        return result;
      } catch (err: any) {
        return { success: false, messages: [err.message], rows: [], headers: [] };
@@ -55,14 +56,16 @@ function createWindow() {
      return { success: true };
   });
 
-  ipcMain.handle('kbms:save-file', async (_e, content: string, currentPath?: string, isNewFile: boolean = true) => {
+  ipcMain.handle('kbms:save-file', async (_e, content: string, currentPath?: string, isNewFile: boolean = false) => {
      if (!win) return { success: false };
      
      let targetPath = currentPath;
+     const isAbsolutePath = targetPath && path.isAbsolute(targetPath);
      
-     if (isNewFile || !targetPath) {
+     // Only show dialog if it's explicitly a new file, or we don't have an absolute path yet
+     if (isNewFile || !isAbsolutePath) {
          const { canceled, filePath } = await dialog.showSaveDialog(win, {
-            title: 'Save KBQL Query',
+            title: isNewFile ? 'Save As' : 'Save KBQL Query',
             defaultPath: targetPath || 'Query.kbql',
             filters: [{ name: 'KBMS Query', extensions: ['kbql', 'sql', 'txt'] }]
          });
@@ -72,6 +75,7 @@ function createWindow() {
      }
      
      try {
+        if (!targetPath) return { success: false, error: 'No target path' };
         fs.writeFileSync(targetPath, content, 'utf8');
         return { success: true, filePath: targetPath };
      } catch (err: any) {

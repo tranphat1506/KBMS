@@ -71,7 +71,7 @@ export default function ResultsPane() {
           <div className="flex-1 w-full h-full relative">
             {activeTab === 'results' && (
               <div className="w-full h-full overflow-auto custom-scrollbar bg-white">
-                {result.rows && result.rows.length > 0 ? (
+                {result.headers && result.headers.length > 0 ? (
                   result.ConceptName && result.ConceptName.startsWith('Describe_') ? (
                     /* Vertical Key-Value View for DESCRIBE */
                     <div className="p-6 max-w-4xl mx-auto space-y-4 font-sans animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -117,25 +117,33 @@ export default function ResultsPane() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {result.rows?.map((row: Record<string, any>, rIdx: number) => (
-                          <tr key={rIdx} className="hover:bg-emerald-50/40 border-b border-slate-100 last:border-b-0 group transition-colors">
-                            {/* Row Counter Node */}
-                            <td className="px-2 py-1.5 border-r border-slate-100 bg-[#fafbfc] w-12 text-center text-[11px] font-mono text-slate-400 select-none">
-                              {rIdx + 1}
-                            </td>
-
-                            {result.headers?.map((h: string, cIdx: number) => (
-                              <td key={cIdx} className="px-4 py-1.5 text-slate-600 border-r border-slate-50 last:border-r-0 whitespace-nowrap group-hover:text-slate-900 focus-within:bg-emerald-50 focus-within:outline-none" tabIndex={0}>
-                                <div className="max-h-24 overflow-auto custom-scrollbar whitespace-pre-wrap leading-normal">
-                                  {row?.[h] !== null && row?.[h] !== undefined ?
-                                    <span className={typeof row?.[h] === 'number' ? 'text-blue-600 font-mono font-medium' : ''}>{String(row?.[h])}</span>
-                                    : <span className="text-slate-300 italic font-mono text-[11px]">NULL</span>
-                                  }
-                                </div>
+                        {result.rows?.length > 0 ? (
+                          result.rows.map((row: Record<string, any>, rIdx: number) => (
+                            <tr key={rIdx} className="hover:bg-emerald-50/40 border-b border-slate-100 last:border-b-0 group transition-colors">
+                              {/* Row Counter Node */}
+                              <td className="px-2 py-1.5 border-r border-slate-100 bg-[#fafbfc] w-12 text-center text-[11px] font-mono text-slate-400 select-none">
+                                {rIdx + 1}
                               </td>
-                            ))}
+
+                              {result.headers?.map((h: string, cIdx: number) => (
+                                <td key={cIdx} className="px-4 py-1.5 text-slate-600 border-r border-slate-50 last:border-r-0 whitespace-nowrap group-hover:text-slate-900 focus-within:bg-emerald-50 focus-within:outline-none" tabIndex={0}>
+                                  <div className="max-h-24 overflow-auto custom-scrollbar whitespace-pre-wrap leading-normal">
+                                    {row?.[h] !== null && row?.[h] !== undefined ?
+                                      <span className={typeof row?.[h] === 'number' ? 'text-blue-600 font-mono font-medium' : ''}>{String(row?.[h])}</span>
+                                      : <span className="text-slate-300 italic font-mono text-[11px]">NULL</span>
+                                    }
+                                  </div>
+                                </td>
+                              ))}
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={(result.headers?.length || 0) + 1} className="px-4 py-8 text-center text-slate-400 italic bg-white transition-colors">
+                               No results matching this query.
+                            </td>
                           </tr>
-                        ))}
+                        )}
                       </tbody>
                     </table>
                   )

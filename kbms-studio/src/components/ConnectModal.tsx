@@ -56,7 +56,7 @@ export default function ConnectModal() {
     handleSave(); // Auto save fields on connect
     setErrorVisible(false);
 
-    const res = await connect(host, parseInt(port), user, pass);
+    const res = await connect(host, parseInt(port), user, pass, name);
     if (!res.success) {
        setErrorVisible(true);
        setErrorMsg(res.error || 'Connection failed. Please check credentials or network.');

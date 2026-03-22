@@ -9,10 +9,11 @@ export default function Sidebar() {
   const {
     metadata, fetchMetadata, status, connectionDetails,
     lastCredentials, setQuery, execute, setConnectModalOpen,
-    connect, changeKnowledgeBase, metadataDetails, selectedKb
+    connect, disconnect, changeKnowledgeBase, metadataDetails, selectedKb
   } = useKbmsStore();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ 'server': true, 'databases': true, 'system': true });
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, concept: any } | null>(null);
+  const [serverContextMenu, setServerContextMenu] = useState<{ x: number, y: number } | null>(null);
 
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -35,19 +36,33 @@ export default function Sidebar() {
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setContextMenu(null);
+        setServerContextMenu(null);
       }
     };
     document.addEventListener('click', handleClickOutside);
-    document.addEventListener('scroll', () => setContextMenu(null));
+    document.addEventListener('scroll', () => {
+      setContextMenu(null);
+      setServerContextMenu(null);
+    });
     return () => {
       document.removeEventListener('click', handleClickOutside);
-      document.removeEventListener('scroll', () => setContextMenu(null));
+      document.removeEventListener('scroll', () => {
+        setContextMenu(null);
+        setServerContextMenu(null);
+      });
     };
   }, []);
 
   const handleContextMenu = (e: React.MouseEvent, concept: any) => {
     e.preventDefault();
+    setServerContextMenu(null);
     setContextMenu({ x: e.pageX, y: e.pageY, concept });
+  };
+
+  const handleServerContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setContextMenu(null);
+    setServerContextMenu({ x: e.pageX, y: e.pageY });
   };
 
   const handleAction = (action: 'select' | 'drop' | 'insert') => {
@@ -115,6 +130,7 @@ export default function Sidebar() {
             <li>
               <div
                 onClick={() => toggle('server')}
+                onContextMenu={handleServerContextMenu}
                 className={`flex items-center space-x-1 p-1 rounded cursor-pointer group transition-colors ${expanded['server'] ? 'bg-emerald-50/50' : 'hover:bg-slate-200/60'}`}
               >
                 {expanded['server'] ? <ChevronDown className="w-3 h-3 text-slate-400 group-hover:text-emerald-600 transition-transform" /> : <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-emerald-600 transition-transform" />}
@@ -122,7 +138,7 @@ export default function Sidebar() {
                 <div className="flex flex-col min-w-0 pr-2">
                   <div className="flex items-center space-x-1.5">
                     <span className={`truncate group-hover:text-emerald-700 ${expanded['server'] ? 'text-emerald-800 font-medium' : ''}`}>
-                      {connectionDetails ? `${connectionDetails.host}:${connectionDetails.port}` : (lastCredentials ? `${lastCredentials.host}:${lastCredentials.port}` : 'Connected Server')}
+                      {connectionDetails?.name || (connectionDetails ? `${connectionDetails.host}:${connectionDetails.port}` : (lastCredentials?.name || (lastCredentials ? `${lastCredentials.host}:${lastCredentials.port}` : 'Connected Server')))}
                     </span>
                     {status !== 'connected' && lastCredentials && (
                       <button
@@ -536,7 +552,24 @@ export default function Sidebar() {
         )}
       </div>
 
-      {/* Floating Context Menu */}
+      {/* Server Context Menu */}
+      {serverContextMenu && (
+        <div
+          ref={menuRef}
+          className="fixed z-50 bg-white border border-slate-200 rounded shadow-xl py-1 w-36 text-[11px] font-medium text-slate-700 animate-in fade-in zoom-in-95 duration-100"
+          style={{ top: serverContextMenu.y, left: serverContextMenu.x }}
+        >
+          <button 
+            onClick={() => { disconnect(); setServerContextMenu(null); }} 
+            className="w-full flex items-center space-x-2 px-3 py-1.5 hover:bg-red-50 hover:text-red-600 text-left text-red-500 transition-colors"
+          >
+            <Unplug className="w-3.5 h-3.5 shrink-0" />
+            <span>Disconnect (Thoát)</span>
+          </button>
+        </div>
+      )}
+
+      {/* Concept Context Menu */}
       {contextMenu && (
         <div
           ref={menuRef}

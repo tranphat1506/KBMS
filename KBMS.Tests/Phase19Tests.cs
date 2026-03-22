@@ -21,7 +21,7 @@ namespace KBMS.Tests
         [Fact]
         public void Parser_ConstraintLineColumn_ShouldWork()
         {
-            var parser = new KBMS.Parser.Parser("CREATE CONCEPT T1\nCONSTRAINTS\n  c1: x > 0,\n  y < 10");
+            var parser = new KBMS.Parser.Parser("CREATE CONCEPT T1 (\nCONSTRAINTS\n  c1: x > 0,\n  y < 10\n);");
             var node = (CreateConceptNode)parser.Parse();
 
             Assert.Equal(2, node.Constraints.Count);

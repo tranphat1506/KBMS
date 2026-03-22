@@ -40,7 +40,7 @@ public class ParserTests
     [Fact]
     public void Parser_CreateKnowledgeBase_ShouldParseCorrectly()
     {
-        var node = ParseStatement("CREATE KNOWLEDGE BASE test_kb");
+        var node = ParseStatement("CREATE KNOWLEDGE BASE test_kb;");
 
         Assert.NotNull(node);
         Assert.IsType<CreateKbNode>(node);
@@ -53,7 +53,7 @@ public class ParserTests
     [Fact]
     public void Parser_CreateKnowledgeBase_WithDescription_ShouldParseCorrectly()
     {
-        var node = ParseStatement("CREATE KNOWLEDGE BASE my_kb DESCRIPTION 'Test knowledge base'");
+        var node = ParseStatement("CREATE KNOWLEDGE BASE my_kb DESCRIPTION 'Test knowledge base';");
 
         Assert.NotNull(node);
         Assert.IsType<CreateKbNode>(node);
@@ -66,7 +66,7 @@ public class ParserTests
     [Fact]
     public void Parser_CreateKnowledgeBase_CaseInsensitive_ShouldParseCorrectly()
     {
-        var node = ParseStatement("CREATE knowledge BASE TestKb");
+        var node = ParseStatement("CREATE knowledge BASE TestKb;");
 
         Assert.NotNull(node);
         Assert.IsType<CreateKbNode>(node);
@@ -80,7 +80,7 @@ public class ParserTests
     [Fact]
     public void Parser_DropKnowledgeBase_ShouldParseCorrectly()
     {
-        var node = ParseStatement("DROP KNOWLEDGE BASE myKbs");
+        var node = ParseStatement("DROP KNOWLEDGE BASE myKbs;");
 
         Assert.NotNull(node);
         Assert.IsType<DropKbNode>(node);
@@ -95,7 +95,7 @@ public class ParserTests
     [Fact]
     public void Parser_UseKnowledgeBase_ShouldParseCorrectly()
     {
-        var node = ParseStatement("USE my_kb");
+        var node = ParseStatement("USE my_kb;");
 
         Assert.NotNull(node);
         Assert.IsType<UseKbNode>(node);
@@ -110,7 +110,7 @@ public class ParserTests
     [Fact]
     public void Parser_CreateConcept_ShouldParseCorrectly()
     {
-        var node = ParseStatement("CREATE CONCEPT Person VARIABLES (name: STRING, age: INT)");
+        var node = ParseStatement("CREATE CONCEPT Person ( VARIABLES (name: STRING, age: INT) );");
 
         Assert.NotNull(node);
         Assert.IsType<CreateConceptNode>(node);
@@ -124,7 +124,7 @@ public class ParserTests
     [Fact]
     public void Parser_CreateConcept_WithMultipleVariables_ShouldParseCorrectly()
     {
-        var node = ParseStatement("CREATE CONCEPT Employee VARIABLES (id: INT, name: VARCHAR(100), salary: DOUBLE, active: BOOLEAN)");
+        var node = ParseStatement("CREATE CONCEPT Employee ( VARIABLES (id: INT, name: VARCHAR(100), salary: DOUBLE, active: BOOLEAN) );");
 
         Assert.NotNull(node);
         Assert.IsType<CreateConceptNode>(node);
@@ -143,7 +143,7 @@ public class ParserTests
     [Fact]
     public void Parser_DropConcept_ShouldParseCorrectly()
     {
-        var node = ParseStatement("DROP CONCEPT Person");
+        var node = ParseStatement("DROP CONCEPT Person;");
 
         Assert.NotNull(node);
         Assert.IsType<DropConceptNode>(node);
@@ -158,7 +158,7 @@ public class ParserTests
     [Fact]
     public void Parser_CreateRelation_ShouldParseCorrectly()
     {
-        var node = ParseStatement("CREATE RELATION owns FROM Person TO Car");
+        var node = ParseStatement("CREATE RELATION owns FROM Person TO Car;");
 
         Assert.NotNull(node);
         Assert.IsType<CreateRelationNode>(node);
@@ -175,7 +175,7 @@ public class ParserTests
     [Fact]
     public void Parser_DropRelation_ShouldParseCorrectly()
     {
-        var node = ParseStatement("DROP RELATION owns");
+        var node = ParseStatement("DROP RELATION owns;");
 
         Assert.NotNull(node);
         Assert.IsType<DropRelationNode>(node);
@@ -190,7 +190,7 @@ public class ParserTests
     [Fact]
     public void Parser_CreateOperator_ShouldParseCorrectly()
     {
-        var node = ParseStatement("CREATE OPERATOR add PARAMS (INT, INT) RETURNS INT");
+        var node = ParseStatement("CREATE OPERATOR add PARAMS (INT, INT) RETURNS INT;");
 
         Assert.NotNull(node);
         Assert.IsType<CreateOperatorNode>(node);
@@ -207,7 +207,7 @@ public class ParserTests
     [Fact]
     public void Parser_DropOperator_ShouldParseCorrectly()
     {
-        var node = ParseStatement("DROP OPERATOR add");
+        var node = ParseStatement("DROP OPERATOR add;");
 
         Assert.NotNull(node);
         Assert.IsType<DropOperatorNode>(node);
@@ -222,7 +222,7 @@ public class ParserTests
     [Fact]
     public void Parser_CreateFunction_ShouldParseCorrectly()
     {
-        var node = ParseStatement("CREATE FUNCTION calculateArea PARAMS (DOUBLE width, DOUBLE height) RETURNS DOUBLE BODY 'width * height'");
+        var node = ParseStatement("CREATE FUNCTION calculateArea PARAMS (DOUBLE width, DOUBLE height) RETURNS DOUBLE BODY 'width * height';");
 
         Assert.NotNull(node);
         Assert.IsType<CreateFunctionNode>(node);
@@ -240,7 +240,7 @@ public class ParserTests
     [Fact]
     public void Parser_DropFunction_ShouldParseCorrectly()
     {
-        var node = ParseStatement("DROP FUNCTION calculateArea");
+        var node = ParseStatement("DROP FUNCTION calculateArea;");
 
         Assert.NotNull(node);
         Assert.IsType<DropFunctionNode>(node);
@@ -255,7 +255,7 @@ public class ParserTests
     [Fact]
     public void Parser_CreateRule_ShouldParseCorrectly()
     {
-        var node = ParseStatement("CREATE RULE adultRule IF age >= 18 THEN isAdult = true");
+        var node = ParseStatement("CREATE RULE adultRule IF age >= 18 THEN isAdult = true;");
 
         Assert.NotNull(node);
         Assert.IsType<CreateRuleNode>(node);
@@ -270,7 +270,7 @@ public class ParserTests
     [Fact]
     public void Parser_DropRule_ShouldParseCorrectly()
     {
-        var node = ParseStatement("DROP RULE adultRule");
+        var node = ParseStatement("DROP RULE adultRule;");
 
         Assert.NotNull(node);
         Assert.IsType<DropRuleNode>(node);
@@ -285,7 +285,7 @@ public class ParserTests
     [Fact]
     public void Parser_CreateUser_ShouldParseCorrectly()
     {
-        var node = ParseStatement("CREATE USER testuser PASSWORD 'testpass123' ROLE USER");
+        var node = ParseStatement("CREATE USER testuser PASSWORD 'testpass123' ROLE USER;");
 
         Assert.NotNull(node);
         Assert.IsType<CreateUserNode>(node);
@@ -302,7 +302,7 @@ public class ParserTests
     [Fact]
     public void Parser_DropUser_ShouldParseCorrectly()
     {
-        var node = ParseStatement("DROP USER testuser");
+        var node = ParseStatement("DROP USER testuser;");
 
         Assert.NotNull(node);
         Assert.IsType<DropUserNode>(node);
@@ -317,7 +317,7 @@ public class ParserTests
     [Fact]
     public void Parser_AddVariable_ShouldParseCorrectly()
     {
-        var node = ParseStatement("ADD VARIABLE email: STRING TO CONCEPT Person");
+        var node = ParseStatement("ADD VARIABLE email: STRING TO CONCEPT Person;");
 
         Assert.NotNull(node);
         Assert.IsType<AddVariableNode>(node);
@@ -334,7 +334,7 @@ public class ParserTests
     [Fact]
     public void Parser_AddHierarchy_IsA_ShouldParseCorrectly()
     {
-        var node = ParseStatement("ADD HIERARCHY Dog IS_A Animal");
+        var node = ParseStatement("ADD HIERARCHY Dog IS_A Animal;");
 
         Assert.NotNull(node);
         Assert.IsType<AddHierarchyNode>(node);
@@ -349,7 +349,7 @@ public class ParserTests
     [Fact]
     public void Parser_AddHierarchy_PartOf_ShouldParseCorrectly()
     {
-        var node = ParseStatement("ADD HIERARCHY Wheel PART_OF Car");
+        var node = ParseStatement("ADD HIERARCHY Wheel PART_OF Car;");
 
         Assert.NotNull(node);
         Assert.IsType<AddHierarchyNode>(node);
@@ -366,7 +366,7 @@ public class ParserTests
     [Fact]
     public void Parser_Grant_ShouldParseCorrectly()
     {
-        var node = ParseStatement("GRANT SELECT ON my_kb TO testuser");
+        var node = ParseStatement("GRANT SELECT ON my_kb TO testuser;");
 
         Assert.NotNull(node);
         Assert.IsType<GrantNode>(node);
@@ -381,7 +381,7 @@ public class ParserTests
     [Fact]
     public void Parser_Revoke_ShouldParseCorrectly()
     {
-        var node = ParseStatement("REVOKE SELECT ON my_kb FROM testuser");
+        var node = ParseStatement("REVOKE SELECT ON my_kb FROM testuser;");
 
         Assert.NotNull(node);
         Assert.IsType<RevokeNode>(node);
@@ -398,7 +398,7 @@ public class ParserTests
     [Fact]
     public void Parser_Select_ShouldParseCorrectly()
     {
-        var node = ParseStatement("SELECT Person");
+        var node = ParseStatement("SELECT Person;");
 
         Assert.NotNull(node);
         Assert.IsType<SelectNode>(node);
@@ -411,7 +411,7 @@ public class ParserTests
     [Fact]
     public void Parser_Select_WithFromClause_ShouldParseCorrectly()
     {
-        var node = ParseStatement("SELECT * FROM Person");
+        var node = ParseStatement("SELECT * FROM Person;");
 
         Assert.NotNull(node);
         Assert.IsType<SelectNode>(node);
@@ -423,7 +423,7 @@ public class ParserTests
     [Fact]
     public void Parser_Select_WithWhereClause_ShouldParseCorrectly()
     {
-        var node = ParseStatement("SELECT Person WHERE age > 18");
+        var node = ParseStatement("SELECT Person WHERE age > 18;");
 
         Assert.NotNull(node);
         Assert.IsType<SelectNode>(node);
@@ -433,10 +433,10 @@ public class ParserTests
         Assert.NotEmpty(selectNode.Conditions);
     }
 
-    [Fact]
+        [Fact]
     public void Parser_Select_WithOrderBy_ShouldParseCorrectly()
     {
-        var node = ParseStatement("SELECT Person ORDER BY name ASC");
+        var node = ParseStatement("SELECT Person ORDER BY name ASC;");
 
         Assert.NotNull(node);
         Assert.IsType<SelectNode>(node);
@@ -450,7 +450,7 @@ public class ParserTests
     [Fact]
     public void Parser_Select_WithLimit_ShouldParseCorrectly()
     {
-        var node = ParseStatement("SELECT Person LIMIT 10");
+        var node = ParseStatement("SELECT Person LIMIT 10;");
 
         Assert.NotNull(node);
         Assert.IsType<SelectNode>(node);
@@ -465,7 +465,7 @@ public class ParserTests
     [Fact]
     public void Parser_Insert_ShouldParseCorrectly()
     {
-        var node = ParseStatement("INSERT INTO Person VALUES (name = 'John', age = 30)");
+        var node = ParseStatement("INSERT INTO Person ATTRIBUTE (name: 'John', age: 30);");
 
         Assert.NotNull(node);
         Assert.IsType<InsertNode>(node);
@@ -483,7 +483,7 @@ public class ParserTests
     [Fact]
     public void Parser_Update_ShouldParseCorrectly()
     {
-        var node = ParseStatement("UPDATE Person SET age = 31 WHERE name = 'John'");
+        var node = ParseStatement("UPDATE Person ATTRIBUTE (SET age: 31) WHERE name = 'John';");
 
         Assert.NotNull(node);
         Assert.IsType<UpdateNode>(node);
@@ -500,7 +500,7 @@ public class ParserTests
     [Fact]
     public void Parser_Delete_ShouldParseCorrectly()
     {
-        var node = ParseStatement("DELETE FROM Person WHERE id = 1");
+        var node = ParseStatement("DELETE FROM Person WHERE id = 1;");
 
         Assert.NotNull(node);
         Assert.IsType<DeleteNode>(node);
@@ -514,7 +514,7 @@ public class ParserTests
     [Fact]
     public void Parser_Delete_WithoutWhere_ShouldParseCorrectly()
     {
-        var node = ParseStatement("DELETE FROM Person");
+        var node = ParseStatement("DELETE FROM Person;");
 
         Assert.NotNull(node);
         Assert.IsType<DeleteNode>(node);
@@ -530,7 +530,7 @@ public class ParserTests
     [Fact]
     public void Parser_Solve_ShouldParseCorrectly()
     {
-        var node = ParseStatement("SOLVE ON CONCEPT Triangle GIVEN a = 3, b = 4 FIND area SAVE");
+        var node = ParseStatement("SOLVE ON CONCEPT Triangle GIVEN a: 3, b: 4 FIND area SAVE;");
 
         Assert.NotNull(node);
         Assert.IsType<SolveNode>(node);
@@ -548,7 +548,7 @@ public class ParserTests
     [Fact]
     public void Parser_ShowKnowledgeBases_ShouldParseCorrectly()
     {
-        var node = ParseStatement("SHOW KNOWLEDGE BASES");
+        var node = ParseStatement("SHOW KNOWLEDGE BASES;");
 
         Assert.NotNull(node);
         Assert.IsType<ShowNode>(node);
@@ -560,7 +560,7 @@ public class ParserTests
     [Fact]
     public void Parser_ShowConcepts_ShouldParseCorrectly()
     {
-        var node = ParseStatement("SHOW CONCEPTS");
+        var node = ParseStatement("SHOW CONCEPTS;");
 
         Assert.NotNull(node);
         Assert.IsType<ShowNode>(node);
@@ -572,7 +572,7 @@ public class ParserTests
     [Fact]
     public void Parser_ShowRules_ShouldParseCorrectly()
     {
-        var node = ParseStatement("SHOW RULES");
+        var node = ParseStatement("SHOW RULES;");
 
         Assert.NotNull(node);
         Assert.IsType<ShowNode>(node);
@@ -584,7 +584,7 @@ public class ParserTests
     [Fact]
     public void Parser_ShowRelations_ShouldParseCorrectly()
     {
-        var node = ParseStatement("SHOW RELATIONS");
+        var node = ParseStatement("SHOW RELATIONS;");
 
         Assert.NotNull(node);
         Assert.IsType<ShowNode>(node);
@@ -596,7 +596,7 @@ public class ParserTests
     [Fact]
     public void Parser_ShowUsers_ShouldParseCorrectly()
     {
-        var node = ParseStatement("SHOW USERS");
+        var node = ParseStatement("SHOW USERS;");
 
         Assert.NotNull(node);
         Assert.IsType<ShowNode>(node);
@@ -610,7 +610,7 @@ public class ParserTests
     [Fact]
     public void Parser_InvalidSyntax_ShouldThrowException()
     {
-        Assert.Throws<ParserException>(() => ParseStatement("CREATE INVALID SYNTAX HERE"));
+        Assert.Throws<ParserException>(() => ParseStatement("CREATE INVALID SYNTAX HERE;"));
     }
 
     [Fact]
@@ -623,7 +623,7 @@ public class ParserTests
     [Fact]
     public void Parser_UnknownCommand_ShouldThrowException()
     {
-        Assert.Throws<ParserException>(() => ParseStatement("UNKNOWN_COMMAND test"));
+        Assert.Throws<ParserException>(() => ParseStatement("UNKNOWN_COMMAND test;"));
     }
 
     // ==================== Multiple Statements Tests ====================
@@ -631,7 +631,7 @@ public class ParserTests
     [Fact]
     public void Parser_MultipleStatements_ShouldParseAll()
     {
-        var parser = new KBMS.Parser.Parser("CREATE KNOWLEDGE BASE kb1; CREATE KNOWLEDGE BASE kb2");
+        var parser = new KBMS.Parser.Parser("CREATE KNOWLEDGE BASE kb1; CREATE KNOWLEDGE BASE kb2;");
         var statements = parser.ParseAll();
 
         Assert.Equal(2, statements.Count);
@@ -655,8 +655,8 @@ public class ParserTests
         e1.Parameters["p1.y"] = 9.0;
         Assert.Equal(6.0, e1.Evaluate());
         
-        // 2. See if NCalc parses dot correctly if passed as flat object without brackets
-        var e2 = new NCalc.Expression("Sqrt(p1.x * p1.y)");
+        // 2. See if NCalc parses dot correctly if passed as flat object without brackets -> IT DOES NOT
+        var e2 = new NCalc.Expression("Sqrt([p1.x] * [p1.y])");
         e2.Parameters["p1.x"] = 4.0;
         e2.Parameters["p1.y"] = 9.0;
         Assert.Equal(6.0, e2.Evaluate());

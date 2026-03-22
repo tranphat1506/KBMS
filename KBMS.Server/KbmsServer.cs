@@ -28,6 +28,8 @@ public class KbmsServer
     private readonly KnowledgeManager _knowledgeManager;
     private readonly Logger _logger;
     private bool _isRunning;
+    private TcpListener? _listener;
+    private readonly CancellationTokenSource _cts = new();
 
     private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
     {
@@ -52,29 +54,49 @@ public class KbmsServer
     public async Task StartAsync()
     {
         var ipAddress = ResolveHost(_host);
-        var listener = new TcpListener(ipAddress, _port);
-        listener.Start();
+        _listener = new TcpListener(ipAddress, _port);
+        _listener.Start();
         _isRunning = true;
 
         _logger.Info("System", $"KBMS Server started on {_host}:{_port}");
 
-        while (_isRunning)
+        try
         {
-            try
+            while (_isRunning && !_cts.Token.IsCancellationRequested)
             {
-                var client = await listener.AcceptTcpClientAsync();
-                _ = HandleClientAsync(client);
+                try
+                {
+                    // Use AcceptTcpClientAsync with cancellation where possible, 
+                    // or rely on listener.Stop() to break the block.
+                    var client = await _listener.AcceptTcpClientAsync(_cts.Token);
+                    _ = HandleClientAsync(client);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+                catch (SocketException) when (!_isRunning)
+                {
+                    break; 
+                }
+                catch (Exception ex)
+                {
+                    if (_isRunning)
+                        _logger.Error("System", $"Accept error: {ex.Message}");
+                }
             }
-            catch (Exception ex)
-            {
-                _logger.Error("System", $"Accept error: {ex.Message}");
-            }
+        }
+        finally
+        {
+            _listener.Stop();
         }
     }
 
     public void Stop()
     {
         _isRunning = false;
+        _cts.Cancel();
+        _listener?.Stop();
     }
 
     private async Task HandleClientAsync(TcpClient client)

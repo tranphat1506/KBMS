@@ -649,38 +649,141 @@ public class KnowledgeManager
     {
         try
         {
-            List<ObjectInstance> objects = new List<ObjectInstance>();
-
             var parts = node.ConceptName.Split('.');
-            var conceptName = parts[0];
+            var entityName = parts[0];
             var subTarget = parts.Length > 1 ? parts[1].ToLower() : null;
 
-            var conceptMetadata = _storage.ListConcepts(kbName).FirstOrDefault(c => c.Name.Equals(conceptName, StringComparison.OrdinalIgnoreCase));
+            // 1. Strict TargetType verification
+            bool entityExists = false;
+            var targetType = node.TargetType?.ToUpper() ?? "CONCEPT";
 
+            KBMS.Models.Concept? conceptMetadata = null;
+
+            switch (targetType)
+            {
+                case "CONCEPT":
+                    conceptMetadata = _storage.ListConcepts(kbName).FirstOrDefault(c => c.Name.Equals(entityName, StringComparison.OrdinalIgnoreCase));
+                    entityExists = conceptMetadata != null;
+                    break;
+                case "RELATION":
+                    var relationMetadata = _storage.ListRelations(kbName).FirstOrDefault(r => r.Name.Equals(entityName, StringComparison.OrdinalIgnoreCase));
+                    entityExists = relationMetadata != null;
+                    // For relations, we can extract variables as properties if needed
+                    break;
+                case "RULE":
+                    entityExists = _storage.ListRules(kbName).Any(x => x.Name.Equals(entityName, StringComparison.OrdinalIgnoreCase));
+                    break;
+                case "HIERARCHY":
+                    // Check if the concept referenced actually exists (not the hierarchy entries themselves)
+                    entityExists = _storage.ListConcepts(kbName).Any(c => c.Name.Equals(entityName, StringComparison.OrdinalIgnoreCase));
+                    break;
+                case "FUNCTION":
+                    entityExists = _storage.ListFunctions(kbName).Any(x => x.Name.Equals(entityName, StringComparison.OrdinalIgnoreCase));
+                    break;
+                case "OPERATOR":
+                    entityExists = _storage.ListOperators(kbName).Any(x => x.Symbol.Equals(entityName, StringComparison.OrdinalIgnoreCase));
+                    break;
+                default:
+                    return new { error = $"Unknown entity type '{targetType}'." };
+            }
+
+            if (!entityExists)
+            {
+                return new { error = $"{targetType} '{entityName}' not found." };
+            }
+
+            // 2. Handle HIERARCHY SELECT - returns table of hierarchy relationships
+            if (targetType == "HIERARCHY")
+            {
+                var allHierarchies = _storage.ListHierarchies(kbName);
+                
+                // entityName is optional: if provided, filter to hierarchies involving that concept
+                // If entityName is "*" or empty, return all
+                IEnumerable<Hierarchy> filtered = allHierarchies;
+                if (!string.IsNullOrEmpty(entityName) && entityName != "*")
+                {
+                    filtered = allHierarchies.Where(h =>
+                        h.ChildConcept.Equals(entityName, StringComparison.OrdinalIgnoreCase) ||
+                        h.ParentConcept.Equals(entityName, StringComparison.OrdinalIgnoreCase));
+                }
+
+                // Convert hierarchies to ObjectInstances (virtual rows)
+                var hierarchyObjects = filtered.Select(h => new ObjectInstance
+                {
+                    Id = h.Id,
+                    ConceptName = "HIERARCHY",
+                    Values = new Dictionary<string, object?>
+                    {
+                        ["child_concept"]   = h.ChildConcept,
+                        ["hierarchy_type"]  = h.HierarchyType == KBMS.Models.HierarchyType.IsA ? "ISA" : "PART_OF",
+                        ["parent_concept"]  = h.ParentConcept
+                    }
+                }).ToList();
+
+                // Apply WHERE conditions
+                if (node.Conditions.Count > 0)
+                    hierarchyObjects = EvaluateConditions(hierarchyObjects, node.Conditions, kbName);
+
+                // Apply ORDER BY
+                if (node.OrderBy.Count > 0)
+                    hierarchyObjects = ApplyOrderBy(hierarchyObjects, node.OrderBy);
+
+                // Apply LIMIT/OFFSET
+                if (node.Limit != null)
+                {
+                    var offset = node.Limit.Offset ?? 0;
+                    hierarchyObjects = hierarchyObjects.Skip(offset).Take(node.Limit.Limit).ToList();
+                }
+
+                return new QueryResultSet
+                {
+                    Success = true,
+                    ConceptName = "HIERARCHY",
+                    Columns = new List<string> { "child_concept", "hierarchy_type", "parent_concept" },
+                    Objects = hierarchyObjects,
+                    Count = hierarchyObjects.Count
+                };
+            }
+
+            // 3. Handle sub-targets for CONCEPTs
+            if (!string.IsNullOrEmpty(subTarget) && subTarget != "instances" && subTarget != "data")
+            {
+                if (targetType != "CONCEPT")
+                {
+                    return new { error = $"Sub-target '{subTarget}' is not supported on {targetType}." };
+                }
+                
+                if (conceptMetadata != null)
+                {
+                    return ExtractConceptMetadata(conceptMetadata, subTarget);
+                }
+            }
+
+            // Fetch data instances
+            List<ObjectInstance> objects = new List<ObjectInstance>();
+            
             if (string.IsNullOrEmpty(subTarget) || subTarget == "instances" || subTarget == "data")
             {
-                var qrs_data = new QueryResultSet { 
-                    ConceptName = $"{conceptName}.data",
-                    Success = true 
-                };
-                qrs_data.Objects = _storage.SelectObjects(kbName, null)
-                                  .Where(o => o.ConceptName.Equals(conceptName, StringComparison.OrdinalIgnoreCase))
-                                  .ToList();
-                qrs_data.Count = qrs_data.Objects.Count;
-                if (qrs_data.Objects.Count > 0)
-                    qrs_data.Columns = qrs_data.Objects[0].Values.Keys.ToList();
-                
-                return qrs_data;
-            }
-            else if (conceptMetadata != null)
-            {
-                return ExtractConceptMetadata(conceptMetadata, subTarget);
-            }
-            else
-            {
                 objects = _storage.SelectObjects(kbName, null)
-                                  .Where(o => o.ConceptName.Equals(node.ConceptName, StringComparison.OrdinalIgnoreCase))
+                                  .Where(o => o.ConceptName.Equals(entityName, StringComparison.OrdinalIgnoreCase))
                                   .ToList();
+                
+                // If there are no conditions/aggregates/joins (just a direct Select), return immediately to preserve standard ordering
+                if (node.Conditions.Count == 0 && node.Joins.Count == 0 && node.GroupBy.Count == 0 && node.Aggregates.Count == 0 && node.OrderBy.Count == 0 && node.Limit == null)
+                {
+                    var qrs_data = new QueryResultSet { 
+                        ConceptName = $"{entityName}.data",
+                        Success = true,
+                        Objects = objects,
+                        Count = objects.Count
+                    };
+                    if (qrs_data.Objects.Count > 0)
+                        qrs_data.Columns = qrs_data.Objects[0].Values.Keys.ToList();
+                    else if (conceptMetadata != null)
+                        qrs_data.Columns = conceptMetadata.Variables.Select(v => v.Name).ToList();
+                    
+                    return qrs_data;
+                }
             }
 
             // 2. Apply WHERE conditions
@@ -720,13 +823,24 @@ public class KnowledgeManager
                 objects = objects.Skip(offset).Take(node.Limit.Limit).ToList();
             }
 
-            return new QueryResultSet
+            var final_qrs = new QueryResultSet
             {
                 Success = true,
                 ConceptName = node.ConceptName,
                 Count = objects.Count,
                 Objects = objects
             };
+
+            if (objects.Count > 0)
+            {
+                final_qrs.Columns = objects[0].Values.Keys.ToList();
+            }
+            else if (conceptMetadata != null)
+            {
+                final_qrs.Columns = conceptMetadata.Variables.Select(v => v.Name).ToList();
+            }
+
+            return final_qrs;
         }
         catch (Exception ex)
         {

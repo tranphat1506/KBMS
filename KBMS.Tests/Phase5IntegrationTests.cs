@@ -52,7 +52,7 @@ public class Phase5IntegrationTests : IDisposable
         // DESCRIBE CONCEPT
         var res = Exec("DESCRIBE ( CONCEPT: Animal );");
         var s = Json((object)res);
-        Assert.Contains("\"success\":true", s);
+        Assert.Contains("\"Success\":true", s);
         Assert.Contains("name", s);
         Assert.Contains("legs", s);
     }
@@ -65,7 +65,7 @@ public class Phase5IntegrationTests : IDisposable
 
         var res = Exec("DESCRIBE ( KB: p5_kb );");
         var s = Json((object)res);
-        Assert.Contains("\"success\":true", s);
+        Assert.Contains("\"Success\":true", s);
         Assert.Contains("p5_kb", s);
     }
 

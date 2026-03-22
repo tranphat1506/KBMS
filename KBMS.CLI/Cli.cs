@@ -114,7 +114,9 @@ public class Cli
 
             await Protocol.SendMessageAsync(_stream, queryMessage);
             
+            bool fetchDone = false;
             Message? lastErrorResponse = null;
+            Message? lastResultResponse = null;
             while (true)
             {
                 var response = await Protocol.ReceiveMessageAsync(_stream);
@@ -123,6 +125,7 @@ public class Cli
                 if (response.Type == MessageType.FETCH_DONE)
                 {
                     ResponseParser.DisplayResult(response, command);
+                    fetchDone = true;
                     break;
                 }
                 
@@ -139,10 +142,19 @@ public class Cli
                     response.Type == MessageType.RESULT)
                 {
                     ResponseParser.DisplayResult(response, command);
+                    if (response.Type == MessageType.RESULT) lastResultResponse = response;
+                    else if (response.Type == MessageType.ROW || response.Type == MessageType.METADATA)
+                    {
+                        if (lastResultResponse == null) lastResultResponse = new Message { Type = MessageType.RESULT, Content = "" };
+                        lastResultResponse.Content += response.Content + "\n";
+                    }
                     continue;
                 }
             }
-            return lastErrorResponse;
+            if (lastErrorResponse != null) return lastErrorResponse;
+            if (lastResultResponse != null) return lastResultResponse;
+            if (fetchDone) return new Message { Type = MessageType.RESULT, Content = "Fetched" };
+            return null;
         }
         catch (IOException)
         {
