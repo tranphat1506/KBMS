@@ -234,58 +234,83 @@ public class KbmsServer
 
             if (asts.Count == 0)
             {
-                return new[] { new Message
-                {
-                    Type = MessageType.RESULT,
-                    Content = ToJson(new { message = "Empty query or comments ignored." })
-                } };
+                return new[] { 
+                    new Message
+                    {
+                        Type = MessageType.RESULT,
+                        Content = ToJson(new { message = "Empty query or comments ignored." })
+                    },
+                    new Message
+                    {
+                        Type = MessageType.FETCH_DONE,
+                        Content = ToJson(new { statementsExecuted = 0, executionTime = 0.0 })
+                    }
+                };
             }
 
-            var results = new List<object>();
+            int statementsExecuted = 0;
             foreach (var ast in asts)
             {
-                var result = _knowledgeManager.Execute(ast, user, currentKb);
-                
-                // (RC8) Streaming logic: if result is QueryResultSet, stream it!
-                if (result is QueryResultSet qrs && qrs.Success && qrs.Objects.Count > 0)
+                try
                 {
-                    // 1. Send METADATA
-                    var metadata = new { qrs.ConceptName, qrs.Count, Columns = qrs.Objects[0].Values.Keys.ToList() };
-                    await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.METADATA, Content = ToJson(metadata) });
-
-                    // 2. Send each ROW
-                    foreach (var obj in qrs.Objects)
+                    var result = _knowledgeManager.Execute(ast, user, currentKb);
+                    
+                    // (Phase 7) Tabular Unification: Stream ALL QueryResultSet results
+                    if (result is QueryResultSet qrs && qrs.Success)
                     {
-                        await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.ROW, Content = ToJson(obj.Values) });
+                        var columns = qrs.Columns.Count > 0 ? qrs.Columns : (qrs.Objects.Count > 0 ? qrs.Objects[0].Values.Keys.ToList() : new List<string>());
+                        var widths = new Dictionary<string, int>();
+                        int maxColWidthAllowed = Math.Max(15, 120 / (columns.Count > 0 ? columns.Count : 1));
+
+                        foreach (var col in columns)
+                        {
+                            int maxWidth = col.Length;
+                            foreach (var obj in qrs.Objects)
+                            {
+                                if (obj.Values.TryGetValue(col, out var val) && val != null)
+                                {
+                                    string strVal = val is System.Text.Json.JsonElement je ? je.ToString() : val.ToString() ?? "";
+                                    maxWidth = Math.Max(maxWidth, strVal.Length);
+                                }
+                            }
+                            widths[col] = Math.Min(maxWidth, maxColWidthAllowed);
+                        }
+
+                        // 1. Send METADATA (even if no rows)
+                        var metadata = new { qrs.ConceptName, qrs.Count, Columns = columns, Widths = widths };
+                        await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.METADATA, Content = ToJson(metadata) });
+
+                        // 2. Send each ROW
+                        foreach (var obj in qrs.Objects)
+                        {
+                            await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.ROW, Content = ToJson(obj.Values) });
+                        }
+                    }
+                    else if (result != null)
+                    {
+                        await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.RESULT, Content = ToJson(result) });
                     }
 
-                    // 3. Add to results as "Streaming completed"
-                    results.Add(new { success = true, streaming = true, count = qrs.Count });
+                    if (ast is UseKbNode useNode)
+                    {
+                        _connectionManager.SetSessionKb(clientId, useNode.KbName);
+                    }
+                    statementsExecuted++;
                 }
-                else if (result != null)
+                catch (Exception ex)
                 {
-                    results.Add(result);
-                }
-
-                if (ast is UseKbNode useNode)
-                {
-                    _connectionManager.SetSessionKb(clientId, useNode.KbName);
+                    await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.ERROR, Content = ToJson(ErrorResponse.RuntimeErrorResponse(ex, ast.ToString() ?? "")) });
+                    return Array.Empty<Message>(); // Stop executing further statements in this batch, and DO NOT send FETCH_DONE.
                 }
             }
 
             stopwatch.Stop();
             var elapsedSec = stopwatch.ElapsedMilliseconds / 1000.0;
 
-            if (results.Count == 0)
-            {
-                return new[] { new Message { Type = MessageType.RESULT, Content = ToJson(new { success = true, executionTime = elapsedSec }) } };
-            }
-
             // Send standard FETCH_DONE at the end of all results
-            await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.FETCH_DONE, Content = ToJson(new { executionTime = elapsedSec }) });
+            await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.FETCH_DONE, Content = ToJson(new { statementsExecuted, executionTime = elapsedSec }) });
 
-            var finalResult = results.Count == 1 ? results[0] : results;
-            return new[] { new Message { Type = MessageType.RESULT, Content = ToJson(finalResult) } };
+            return Array.Empty<Message>();
         }
         catch (ParserException ex)
         {

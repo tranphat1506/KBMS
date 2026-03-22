@@ -318,11 +318,14 @@ public class KnowledgeManager
         {
             if (knownPrimitiveTypes.Contains(v.Type))
             {
-                // Primitive type — keep as-is
+                // Normalization: Group "NUMBER" under "DECIMAL" for consistent True Typing
+                string normalizedType = v.Type.ToUpper() == "NUMBER" ? "DECIMAL" : v.Type.ToUpper();
+
+                // Primitive type — keep as-is (with normalized name)
                 expandedVariables.Add(new Variable
                 {
                     Name = v.Name,
-                    Type = v.Type,
+                    Type = normalizedType,
                     Length = v.Length,
                     Scale = v.Scale
                 });
@@ -645,14 +648,44 @@ public class KnowledgeManager
     {
         try
         {
-            // 1. Load objects by concept
-            var objects = _storage.SelectObjects(kbName, null);
-            objects = objects.Where(o => o.ConceptName == node.ConceptName).ToList();
+            List<ObjectInstance> objects = new List<ObjectInstance>();
+
+            var parts = node.ConceptName.Split('.');
+            var conceptName = parts[0];
+            var subTarget = parts.Length > 1 ? parts[1].ToLower() : null;
+
+            var conceptMetadata = _storage.ListConcepts(kbName).FirstOrDefault(c => c.Name.Equals(conceptName, StringComparison.OrdinalIgnoreCase));
+
+            if (string.IsNullOrEmpty(subTarget) || subTarget == "instances" || subTarget == "data")
+            {
+                var qrs_data = new QueryResultSet { 
+                    ConceptName = $"{conceptName}.data",
+                    Success = true 
+                };
+                qrs_data.Objects = _storage.SelectObjects(kbName, null)
+                                  .Where(o => o.ConceptName.Equals(conceptName, StringComparison.OrdinalIgnoreCase))
+                                  .ToList();
+                qrs_data.Count = qrs_data.Objects.Count;
+                if (qrs_data.Objects.Count > 0)
+                    qrs_data.Columns = qrs_data.Objects[0].Values.Keys.ToList();
+                
+                return qrs_data;
+            }
+            else if (conceptMetadata != null)
+            {
+                return ExtractConceptMetadata(conceptMetadata, subTarget);
+            }
+            else
+            {
+                objects = _storage.SelectObjects(kbName, null)
+                                  .Where(o => o.ConceptName.Equals(node.ConceptName, StringComparison.OrdinalIgnoreCase))
+                                  .ToList();
+            }
 
             // 2. Apply WHERE conditions
             if (node.Conditions.Count > 0)
             {
-                objects = EvaluateConditions(objects, node.Conditions);
+                objects = EvaluateConditions(objects, node.Conditions, kbName);
             }
 
             // 3. Apply JOINs
@@ -686,12 +719,6 @@ public class KnowledgeManager
                 objects = objects.Skip(offset).Take(node.Limit.Limit).ToList();
             }
 
-            // Return error if no results found
-            if (objects.Count == 0)
-            {
-                return new { error = $"No objects found for concept '{node.ConceptName}'" };
-            }
-
             return new QueryResultSet
             {
                 Success = true,
@@ -706,13 +733,13 @@ public class KnowledgeManager
         }
     }
 
-    private List<ObjectInstance> EvaluateConditions(List<ObjectInstance> objects, List<Condition> conditions)
+    private List<ObjectInstance> EvaluateConditions(List<ObjectInstance> objects, List<Condition> conditions, string kbName)
     {
         var result = new List<ObjectInstance>();
 
         foreach (var obj in objects)
         {
-            if (EvaluateObjectConditions(obj, conditions))
+            if (EvaluateObjectConditions(obj, conditions, kbName))
             {
                 result.Add(obj);
             }
@@ -721,16 +748,16 @@ public class KnowledgeManager
         return result;
     }
 
-    private bool EvaluateObjectConditions(ObjectInstance obj, List<Condition> conditions)
+    private bool EvaluateObjectConditions(ObjectInstance obj, List<Condition> conditions, string kbName)
     {
         if (conditions.Count == 0) return true;
 
-        var result = EvaluateCondition(obj, conditions[0]);
+        var result = EvaluateCondition(obj, conditions[0], kbName);
 
         for (int i = 1; i < conditions.Count; i++)
         {
             var cond = conditions[i];
-            var value = EvaluateCondition(obj, cond);
+            var value = EvaluateCondition(obj, cond, kbName);
 
             if (conditions[i - 1].LogicalOperator == "OR")
             {
@@ -745,12 +772,40 @@ public class KnowledgeManager
         return result;
     }
 
-    private bool EvaluateCondition(ObjectInstance obj, Condition condition)
+    private bool EvaluateCondition(ObjectInstance obj, Condition condition, string kbName)
     {
         if (!obj.Values.TryGetValue(condition.Field, out var value))
             return false;
 
         var compareValue = condition.Value;
+
+        if (condition.Operator.Equals("IN", StringComparison.OrdinalIgnoreCase))
+        {
+            if (compareValue is SelectNode subQueryNode)
+            {
+                if (HandleSelect(subQueryNode, kbName) is QueryResultSet subqResult && subqResult.Success)
+                {
+                    var validValues = new HashSet<string>();
+                    foreach (var subObj in subqResult.Objects)
+                    {
+                        if (subObj.Values.Count > 0)
+                        {
+                            var firstVal = subObj.Values.Values.First()?.ToString();
+                            if (firstVal != null) validValues.Add(firstVal);
+                        }
+                    }
+                    var strValue = value?.ToString();
+                    return strValue != null && validValues.Contains(strValue);
+                }
+                return false;
+            }
+            else if (compareValue is IEnumerable<object> list)
+            {
+                var strValue = value?.ToString();
+                return strValue != null && list.Select(x => x?.ToString()).Contains(strValue);
+            }
+            return false;
+        }
 
         return condition.Operator switch
         {
@@ -1002,15 +1057,16 @@ public class KnowledgeManager
             // Map positional values to concept variables
             for (int i = 0; i < positionalValues.Count && i < concept.Variables.Count; i++)
             {
-                var varName = concept.Variables[i].Name;
-                values[varName] = ConvertValueNodeToObject(positionalValues[i]);
+                var variable = concept.Variables[i];
+                values[variable.Name] = ConvertValueNodeToObject(positionalValues[i], variable);
             }
         }
 
         // Add named values (these override positional values if there's a conflict)
         foreach (var kv in namedValues)
         {
-            values[kv.Key] = ConvertValueNodeToObject(kv.Value);
+            var variable = concept?.Variables.FirstOrDefault(v => v.Name.Equals(kv.Key, StringComparison.OrdinalIgnoreCase));
+            values[kv.Key] = ConvertValueNodeToObject(kv.Value, variable);
         }
 
         var obj = new ObjectInstance
@@ -1027,24 +1083,58 @@ public class KnowledgeManager
             : new { error = "Failed to insert object." };
     }
 
-    private object ConvertValueNodeToObject(ValueNode valueNode)
+    private object ConvertValueNodeToObject(ValueNode valueNode, Models.Variable? targetVar = null)
     {
-        return valueNode.ValueType switch
+        var rawValue = valueNode.ValueType switch
         {
-            "number" => TryConvertToDouble(valueNode.Value, out var d) ? d : 0,
+            "number" => TryConvertToDouble(valueNode.Value, out var d) ? (object)d : 0.0,
             "string" => valueNode.Value?.ToString() ?? "",
             "boolean" => valueNode.Value is bool b ? b : valueNode.Value?.ToString()?.ToLower() == "true",
             "identifier" => valueNode.Value?.ToString() ?? "",
             _ => valueNode.Value ?? ""
         };
+
+        if (targetVar == null) return rawValue;
+
+        // Strict Type Enforcement (Phase 8)
+        var type = targetVar.Type.ToUpper();
+        try
+        {
+            if (type is "INT" or "INTEGER" or "LONG")
+            {
+                return Convert.ToInt64(rawValue);
+            }
+            if (type is "DECIMAL" or "MONEY" or "NUMBER")
+            {
+                var dec = Convert.ToDecimal(rawValue);
+                if (targetVar.Scale.HasValue)
+                {
+                    dec = Math.Round(dec, targetVar.Scale.Value);
+                }
+                return dec;
+            }
+            if (type is "FLOAT" or "DOUBLE")
+            {
+                return Convert.ToDouble(rawValue);
+            }
+        }
+        catch
+        {
+            // Fallback to raw if conversion fails
+        }
+
+        return rawValue;
     }
 
     private object HandleUpdate(UpdateNode node, string kbName)
     {
-        var conditions = ConvertConditions(node.Conditions);
-        var objects = _storage.SelectObjects(kbName, conditions.Count > 0 ? conditions : null);
+        // Get all objects for the concept first
+        var allObjects = _storage.SelectObjects(kbName, null)
+                                 .Where(o => o.ConceptName == node.ConceptName)
+                                 .ToList();
 
-        if (objects.Count == 0)
+        var matchingObjects = EvaluateConditions(allObjects, node.Conditions, kbName);
+        if (matchingObjects.Count == 0)
         {
             return new { error = "No objects found matching conditions." };
         }
@@ -1056,13 +1146,13 @@ public class KnowledgeManager
         }
 
         var success = true;
-        foreach (var obj in objects)
+        foreach (var obj in matchingObjects)
         {
             success &= _storage.UpdateObject(kbName, obj.Id, values);
         }
 
         return success
-            ? new { success = true, message = $"{objects.Count} object(s) updated successfully." }
+            ? new { success = true, message = $"{matchingObjects.Count} object(s) updated successfully." }
             : new { error = "Failed to update object(s)." };
     }
 
@@ -1186,7 +1276,6 @@ public class KnowledgeManager
 
         if (result.Success && node.SaveResults)
         {
-            // Optionally merge starting facts with derived facts and save to DB
             var combinedFacts = new Dictionary<string, object>(initialFacts);
             foreach (var kvp in result.DerivedFacts)
             {
@@ -1205,7 +1294,53 @@ public class KnowledgeManager
             result.Steps.Add($"Saved derived object instance {obj.Id} to database.");
         }
 
-        return result;
+        // UNIFIED: Convert ReasoningResult to Tabular format
+        var qrs = new QueryResultSet { 
+            ConceptName = "Solve_Steps", 
+            Success = result.Success,
+            Count = result.Steps.Count
+        };
+
+        foreach (var step in result.Steps)
+        {
+            qrs.Objects.Add(new ObjectInstance {
+                Values = new Dictionary<string, object> {
+                    { "Step", step }
+                }
+            });
+        }
+
+        // Add Derived Facts as a separate "ResultSet" within the same object if we had a multi-table protocol,
+        // but for now, we append them as final rows or just keep them in the trace.
+        if (result.DerivedFacts.Count > 0)
+        {
+            foreach (var fact in result.DerivedFacts)
+            {
+                qrs.Objects.Add(new ObjectInstance {
+                    Values = new Dictionary<string, object> {
+                        { "Step", $"[RESULT] Derived Fact: {fact.Key} = {fact.Value}" }
+                    }
+                });
+            }
+        }
+
+        if (!result.Success && !string.IsNullOrEmpty(result.ErrorMessage))
+        {
+            qrs.Objects.Add(new ObjectInstance {
+                Values = new Dictionary<string, object> {
+                    { "Step", $"[ERROR] {result.ErrorMessage}" }
+                }
+            });
+        }
+
+        return new QueryResultSet
+        {
+            Success = true,
+            ConceptName = "Solve_Steps",
+            Count = qrs.Objects.Count,
+            Objects = qrs.Objects,
+            Columns = new List<string> { "Step" }
+        };
     }
 
     // ==================== SHOW Handlers ====================
@@ -1213,21 +1348,56 @@ public class KnowledgeManager
     private object HandleShowKnowledgeBases()
     {
         var kbs = _storage.ListKbs();
-        return new { success = true, knowledgeBases = kbs };
+        return new QueryResultSet
+        {
+            Success = true,
+            ConceptName = "System.KnowledgeBases",
+            Count = kbs.Count,
+            Objects = kbs.Select(kb => new ObjectInstance
+            {
+                Values = new Dictionary<string, object>
+                {
+                    { "Name", kb.Name },
+                    { "Description", kb.Description ?? "" },
+                    { "Objects", kb.ObjectCount }
+                }
+            }).ToList(),
+            Columns = new List<string> { "Name", "Description", "Objects" }
+        };
     }
 
     private object HandleShowConcepts(ShowNode node, string kbName)
     {
         var concepts = _storage.ListConcepts(kbName);
-        return new { success = true, concepts };
+        return new QueryResultSet
+        {
+            Success = true,
+            ConceptName = "System.Concepts",
+            Count = concepts.Count,
+            Objects = concepts.Select(c => new ObjectInstance
+            {
+                Values = new Dictionary<string, object>
+                {
+                    { "Name", c.Name },
+                    { "Variables", c.Variables.Count },
+                    { "Rules", c.ConceptRules.Count },
+                    { "Constraints", c.Constraints.Count }
+                }
+            }).ToList(),
+            Columns = new List<string> { "Name", "Variables", "Rules", "Constraints" }
+        };
     }
 
     private object HandleShowConcept(ShowNode node, string kbName)
     {
         var concept = _storage.LoadConcept(kbName, node.ConceptName!);
-        return concept != null
-            ? new { success = true, concept }
-            : new { error = $"Concept '{node.ConceptName}' not found." };
+        if (concept == null) return new { error = $"Concept '{node.ConceptName}' not found." };
+        
+        // UNIFIED: Return as a Table via HandleDescribe logic
+        return HandleDescribe(new KBMS.Parser.Ast.Kql.DescribeNode { 
+            TargetType = "CONCEPT", 
+            TargetName = node.ConceptName 
+        }, kbName);
     }
 
     private object HandleShowRules(ShowNode node, string kbName)
@@ -1239,53 +1409,153 @@ public class KnowledgeManager
             rules = rules.Where(r => r.RuleType?.Equals(node.RuleType, StringComparison.OrdinalIgnoreCase) == true).ToList();
         }
 
-        return new { success = true, rules };
+        return new QueryResultSet
+        {
+            Success = true,
+            ConceptName = "System.Rules",
+            Count = rules.Count,
+            Objects = rules.Select(r => new ObjectInstance
+            {
+                Values = new Dictionary<string, object>
+                {
+                    { "Id", r.Id.ToString() },
+                    { "Name", r.Name ?? "" },
+                    { "Type", r.RuleType ?? "" },
+                    { "Scope", r.Scope ?? "" }
+                }
+            }).ToList()
+        };
     }
 
     private object HandleShowRelations(ShowNode node, string kbName)
     {
         var relations = _storage.ListRelations(kbName);
-        return new { success = true, relations };
+        return new QueryResultSet
+        {
+            Success = true,
+            ConceptName = "System.Relations",
+            Count = relations.Count,
+            Objects = relations.Select(r => new ObjectInstance
+            {
+                Values = new Dictionary<string, object>
+                {
+                    { "Name", r.Name },
+                    { "Domain", r.Domain },
+                    { "Range", r.Range }
+                }
+            }).ToList()
+        };
     }
 
     private object HandleShowOperators(ShowNode node, string kbName)
     {
         var operators = _storage.ListOperators(kbName);
-        return new { success = true, operators };
+        return new QueryResultSet
+        {
+            Success = true,
+            ConceptName = "System.Operators",
+            Count = operators.Count,
+            Objects = operators.Select(o => new ObjectInstance
+            {
+                Values = new Dictionary<string, object>
+                {
+                    { "Symbol", o.Symbol },
+                    { "ParamTypes", string.Join(", ", o.ParamTypes) },
+                    { "ReturnType", o.ReturnType }
+                }
+            }).ToList()
+        };
     }
 
     private object HandleShowFunctions(ShowNode node, string kbName)
     {
         var functions = _storage.ListFunctions(kbName);
-        return new { success = true, functions };
+        return new QueryResultSet
+        {
+            Success = true,
+            ConceptName = "System.Functions",
+            Count = functions.Count,
+            Objects = functions.Select(f => new ObjectInstance
+            {
+                Values = new Dictionary<string, object>
+                {
+                    { "Name", f.Name },
+                    { "Parameters", string.Join(", ", f.Parameters.Select(p => p.Type + " " + p.Name)) },
+                    { "ReturnType", f.ReturnType ?? "" }
+                }
+            }).ToList()
+        };
     }
 
     private object HandleShowHierarchies(ShowNode node, string kbName)
     {
         var hierarchies = _storage.ListHierarchies(kbName);
-        return new { success = true, hierarchies };
+        return new QueryResultSet
+        {
+            Success = true,
+            ConceptName = "System.Hierarchies",
+            Count = hierarchies.Count,
+            Objects = hierarchies.Select(h => new ObjectInstance
+            {
+                Values = new Dictionary<string, object>
+                {
+                    { "Parent", h.ParentConcept },
+                    { "Relation", h.HierarchyType.ToString() },
+                    { "Child", h.ChildConcept }
+                }
+            }).ToList()
+        };
     }
 
     private object HandleShowUsers()
     {
         var users = _storage.LoadUsers();
-        return new { success = true, users = users.Select(u => new { u.Id, u.Username, u.Role, u.SystemAdmin, u.CreatedAt }) };
+        return new QueryResultSet
+        {
+            Success = true,
+            ConceptName = "System.Users",
+            Count = users.Count,
+            Objects = users.Select(u => new ObjectInstance
+            {
+                Values = new Dictionary<string, object>
+                {
+                    { "Id", u.Id.ToString() },
+                    { "Username", u.Username },
+                    { "Role", u.Role.ToString() },
+                    { "Admin", u.SystemAdmin ? "Yes" : "No" }
+                }
+            }).ToList()
+        };
     }
 
     private object HandleShowPrivilegesOnKb(ShowNode node)
     {
         var users = _storage.LoadUsers();
-        var privileges = new Dictionary<string, string>();
+        var privileges = new List<ObjectInstance>();
 
         foreach (var user in users)
         {
             if (user.KbPrivileges.TryGetValue(node.KbName!, out var priv))
             {
-                privileges[user.Username] = priv.ToString();
+                privileges.Add(new ObjectInstance
+                {
+                    Values = new Dictionary<string, object>
+                    {
+                        { "Username", user.Username },
+                        { "Privilege", priv.ToString() }
+                    }
+                });
             }
         }
 
-        return new { success = true, kbName = node.KbName, privileges };
+        return new QueryResultSet
+        {
+            Success = true,
+            ConceptName = $"Privileges On {node.KbName}",
+            Count = privileges.Count,
+            Objects = privileges,
+            Columns = new List<string> { "Username", "Privilege" }
+        };
     }
 
     private object HandleShowPrivilegesOfUser(ShowNode node)
@@ -1294,11 +1564,25 @@ public class KnowledgeManager
         var user = users.FirstOrDefault(u => u.Username == node.Username);
 
         if (user == null)
-        {
             return new { error = $"User '{node.Username}' not found." };
-        }
 
-        return new { success = true, username = node.Username, privileges = user.KbPrivileges };
+        var privileges = user.KbPrivileges.Select(kvp => new ObjectInstance
+        {
+            Values = new Dictionary<string, object>
+            {
+                { "KnowledgeBase", kvp.Key },
+                { "Privilege", kvp.Value.ToString() }
+            }
+        }).ToList();
+
+        return new QueryResultSet
+        {
+            Success = true,
+            ConceptName = $"Privileges Of {node.Username}",
+            Count = privileges.Count,
+            Objects = privileges,
+            Columns = new List<string> { "KnowledgeBase", "Privilege" }
+        };
     }
 
     private object HandleAlterConcept(AlterConceptNode node, string kbName)
@@ -1428,16 +1712,43 @@ public class KnowledgeManager
 
     private object HandleExplain(ExplainNode node, string? kbName)
     {
-        // For now, just return a mock execution plan
-        return new { 
-            success = true, 
-            plan = new List<string> { 
-                "Step 1: Parse query", 
-                "Step 2: Check privileges", 
-                "Step 3: Analyze " + node.Query.Type,
-                "Step 4: Execute on KB " + (kbName ?? "none")
-            } 
-        };
+        var qrs = new QueryResultSet { ConceptName = "Explain_Plan", Success = true };
+        
+        string targetTable = "System";
+        if (node.Query is KBMS.Parser.Ast.Kql.DescribeNode descNode)
+            targetTable = descNode.TargetName ?? "Unknown";
+        else if (node.Query is KBMS.Parser.Ast.Kql.ShowNode showNode)
+            targetTable = showNode.Type ?? "System";
+
+        qrs.Objects.Add(new ObjectInstance {
+            Values = new Dictionary<string, object> {
+                { "Step", 1 },
+                { "Operation", "SYNTAX_PARSE" },
+                { "Target", "Parser_Engine" },
+                { "Detail", $"Generated AST Node Type: {node.Query?.Type}" }
+            }
+        });
+        
+        qrs.Objects.Add(new ObjectInstance {
+            Values = new Dictionary<string, object> {
+                { "Step", 2 },
+                { "Operation", "SEMANTIC_CHECK" },
+                { "Target", targetTable },
+                { "Detail", $"Verify existence and privileges in KB: {kbName ?? "default"}" }
+            }
+        });
+        
+        qrs.Objects.Add(new ObjectInstance {
+            Values = new Dictionary<string, object> {
+                { "Step", 3 },
+                { "Operation", "EXECUTION" },
+                { "Target", "Knowledge_Manager" },
+                { "Detail", $"Delegate node {node.Query?.Type} to specific handler" }
+            }
+        });
+
+        qrs.Count = qrs.Objects.Count;
+        return qrs;
     }
 
     private object HandleDescribe(KBMS.Parser.Ast.Kql.DescribeNode node, string kbName)
@@ -1449,28 +1760,46 @@ public class KnowledgeManager
                 var concepts = _storage.ListConcepts(kbName);
                 var c = concepts.FirstOrDefault(x => x.Name.Equals(node.TargetName, StringComparison.OrdinalIgnoreCase));
                 if (c == null) return new { error = $"Concept '{node.TargetName}' not found in KB '{kbName}'" };
-                return new
+                
+                var qrs = new QueryResultSet { ConceptName = "Describe_Concept", Success = true };
+                var valuesDict = new Dictionary<string, object>
                 {
-                    success = true,
-                    concept = node.TargetName,
-                    variables = c.Variables.Select(v => new { v.Name, Type = v.Type }),
-                    constraints = c.Constraints.Select(ct => ct.Expression),
-                    rules = c.ConceptRules.Select(r => r.Id)
+                    { "Concept", c.Name },
+                    { "Aliases", c.Aliases.Count > 0 ? string.Join(", ", c.Aliases) : "None" },
+                    { "BaseObjects", c.BaseObjects.Count > 0 ? string.Join(", ", c.BaseObjects) : "None" },
+                    { "Variables", c.Variables.Count > 0 ? string.Join("\n", c.Variables.Select(v => $"{v.Name} ({GetFormattedType(v)})")) : "None" },
+                    { "SameVariables", c.SameVariables.Count > 0 ? string.Join("\n", c.SameVariables.Select(sv => $"{sv.Variable1} = {sv.Variable2}")) : "None" },
+                    { "Constraints", c.Constraints.Count > 0 ? string.Join("\n", c.Constraints.Select(ct => ct.Expression)) : "None" },
+                    { "Equations", c.Equations.Count > 0 ? string.Join("\n", c.Equations.Select(eq => eq.Expression)) : "None" },
+                    { "Rules", c.ConceptRules.Count > 0 ? string.Join("\n", c.ConceptRules.Select(r => $"{(string.IsNullOrEmpty(r.Kind) ? "RULE" : r.Kind)}: {string.Join(" AND ", r.Hypothesis)} => {string.Join(", ", r.Conclusion)}")) : "None" },
+                    { "CompRels", c.CompRels.Count > 0 ? string.Join("\n", c.CompRels.Select(cr => $"[Rank {cr.Rank}] {string.Join(",", cr.InputVariables)} -> {cr.ResultVariable} (Cost:{cr.Cost}) Expr: {cr.Expression}")) : "None" },
+                    { "ConstructRelations", c.ConstructRelations.Count > 0 ? string.Join("\n", c.ConstructRelations.Select(cr => $"{cr.RelationName}({string.Join(", ", cr.Arguments)})")) : "None" },
+                    { "Properties", c.Properties.Count > 0 ? string.Join("\n", c.Properties.Select(p => $"{p.Key}: {p.Value}")) : "None" }
                 };
+
+                qrs.Objects.Add(new ObjectInstance { Values = valuesDict });
+                qrs.Count = qrs.Objects.Count;
+                return qrs;
             }
             case "KB":
             {
                 var kbs = _storage.ListKbs();
                 var kb = kbs.FirstOrDefault(x => x.Name.Equals(kbName, StringComparison.OrdinalIgnoreCase));
                 if (kb == null) return new { error = $"Knowledge base '{kbName}' not found." };
-                return new
+                
+                var qrs = new QueryResultSet { ConceptName = "Describe_KB", Success = true };
+                qrs.Objects.Add(new ObjectInstance
                 {
-                    success = true,
-                    kb = kbName,
-                    description = kb.Description,
-                    conceptCount = _storage.ListConcepts(kbName).Count,
-                    objectCount = kb.ObjectCount
-                };
+                    Values = new Dictionary<string, object>
+                    {
+                        { "Knowledge Base", kbName },
+                        { "Description", kb.Description },
+                        { "Concepts Count", _storage.ListConcepts(kbName).Count.ToString() },
+                        { "Objects Count", kb.ObjectCount.ToString() }
+                    }
+                });
+                qrs.Count = qrs.Objects.Count;
+                return qrs;
             }
             case "RULE":
             {
@@ -1478,20 +1807,42 @@ public class KnowledgeManager
                 var r = rules.FirstOrDefault(x => x.Name.Equals(node.TargetName, StringComparison.OrdinalIgnoreCase)
                                                || x.Id.ToString().Equals(node.TargetName, StringComparison.OrdinalIgnoreCase));
                 if (r == null) return new { error = $"Rule '{node.TargetName}' not found in KB '{kbName}'" };
-                return new
+                
+                var qrs = new QueryResultSet { ConceptName = "Describe_Rule", Success = true };
+                qrs.Objects.Add(new ObjectInstance
                 {
-                    success = true,
-                    ruleId = r.Id,
-                    name = r.Name,
-                    type = r.RuleType,
-                    scope = r.Scope,
-                    hypothesis = r.Hypothesis.Select(h => h.Content),
-                    conclusion = r.Conclusion.Select(c => c.Content)
-                };
+                    Values = new Dictionary<string, object>
+                    {
+                        { "Rule ID", r.Id.ToString() },
+                        { "Name", r.Name },
+                        { "Type", r.RuleType.ToString() },
+                        { "Scope", r.Scope },
+                        { "If", string.Join("\n", r.Hypothesis.Select(h => h.Content)) },
+                        { "Then", string.Join("\n", r.Conclusion.Select(c => c.Content)) }
+                    }
+                });
+                qrs.Count = qrs.Objects.Count;
+                return qrs;
             }
             default:
                 return new { error = $"Unknown DESCRIBE target type: {node.TargetType}" };
         }
+    }
+
+    private string GetFormattedType(Variable v)
+    {
+        string type = v.Type.ToUpper();
+        if (type == "DECIMAL" || type == "NUMBER" || type == "MONEY")
+        {
+            if (v.Length > 0) return $"DECIMAL({v.Length},{v.Scale})";
+            if (v.Scale > 0) return $"DECIMAL(?,{v.Scale})";
+            return "DECIMAL";
+        }
+        if (type == "VARCHAR" || type == "CHAR" || type == "STRING")
+        {
+            if (v.Length > 0) return $"{type}({v.Length})";
+        }
+        return type;
     }
 
     private object HandleExport(KBMS.Parser.Ast.Kml.ExportNode node, string kbName)
@@ -1562,5 +1913,119 @@ public class KnowledgeManager
         }
 
         return ancestors;
+    }
+
+    private QueryResultSet ExtractConceptMetadata(Models.Concept c, string? subTarget)
+    {
+        var result = new QueryResultSet { 
+            ConceptName = $"{c.Name}.{subTarget ?? "metadata"}",
+            Success = true 
+        };
+
+        if (string.IsNullOrEmpty(subTarget))
+        {
+            result.Columns = new List<string> { 
+                "Concept", "Aliases", "BaseObjects", "Variables", "SameVariables", 
+                "Constraints", "Equations", "Rules", "CompRels", "ConstructRelations", "Properties" 
+            };
+
+            result.Objects.Add(new ObjectInstance {
+                ConceptName = c.Name,
+                Values = new Dictionary<string, object> {
+                    { "Concept", c.Name },
+                    { "Aliases", c.Aliases.Count > 0 ? string.Join(", ", c.Aliases) : "None" },
+                    { "BaseObjects", c.BaseObjects.Count > 0 ? string.Join(", ", c.BaseObjects) : "None" },
+                    { "Variables", c.Variables.Count > 0 ? c.Variables.Select(v => $"{v.Name} ({v.Type})").ToList() : (object)"None" },
+                    { "SameVariables", c.SameVariables.Count > 0 ? c.SameVariables.Select(x => $"{x.Variable1} = {x.Variable2}").ToList() : (object)"None" },
+                    { "Constraints", c.Constraints.Count > 0 ? c.Constraints.Select(x => x.Expression).ToList() : (object)"None" },
+                    { "Equations", c.Equations.Count > 0 ? c.Equations.Select(x => x.Expression).ToList() : (object)"None" },
+                    { "Rules", c.ConceptRules.Count > 0 ? c.ConceptRules.Select(x => x.Kind).ToList() : (object)"None" },
+                    { "CompRels", c.CompRels.Count > 0 ? c.CompRels.Select(x => x.Expression).ToList() : (object)"None" },
+                    { "ConstructRelations", c.ConstructRelations.Count > 0 ? c.ConstructRelations.Select(x => x.RelationName).ToList() : (object)"None" },
+                    { "Properties", c.Properties.Count > 0 ? c.Properties.Select(x => $"{x.Key}: {x.Value}").ToList() : (object)"None" }
+                }
+            });
+        }
+        else if (subTarget == "rules")
+        {
+            result.Columns = new List<string> { "Id", "Kind", "Variables", "Hypothesis", "Conclusion" };
+            foreach (var r in c.ConceptRules)
+            {
+                result.Objects.Add(new ObjectInstance {
+                    ConceptName = $"{c.Name}.rules",
+                    Values = new Dictionary<string, object> {
+                        { "Id", r.Id.ToString() },
+                        { "Kind", r.Kind },
+                        { "Variables", string.Join(", ", r.Variables.Select(v => v.Name)) },
+                        { "Hypothesis", string.Join(" AND ", r.Hypothesis) },
+                        { "Conclusion", string.Join(", ", r.Conclusion) }
+                    }
+                });
+            }
+        }
+        else if (subTarget == "variables")
+        {
+            result.Columns = new List<string> { "Name", "Type", "Length", "Scale" };
+            foreach (var v in c.Variables)
+            {
+                result.Objects.Add(new ObjectInstance {
+                    ConceptName = $"{c.Name}.variables",
+                    Values = new Dictionary<string, object> {
+                        { "Name", v.Name },
+                        { "Type", v.Type },
+                        { "Length", v.Length?.ToString() ?? "NULL" },
+                        { "Scale", v.Scale?.ToString() ?? "NULL" }
+                    }
+                });
+            }
+        }
+        else if (subTarget == "constraints")
+        {
+            result.Columns = new List<string> { "Name", "Expression" };
+            foreach (var constr in c.Constraints)
+            {
+                result.Objects.Add(new ObjectInstance {
+                    ConceptName = $"{c.Name}.constraints",
+                    Values = new Dictionary<string, object> {
+                        { "Name", constr.Name },
+                        { "Expression", constr.Expression }
+                    }
+                });
+            }
+        }
+        else if (subTarget == "equations")
+        {
+            result.Columns = new List<string> { "Id", "Expression", "Variables" };
+            foreach (var eq in c.Equations)
+            {
+                result.Objects.Add(new ObjectInstance {
+                    ConceptName = $"{c.Name}.equations",
+                    Values = new Dictionary<string, object> {
+                        { "Id", eq.Id.ToString() },
+                        { "Expression", eq.Expression },
+                        { "Variables", string.Join(", ", eq.Variables) }
+                    }
+                });
+            }
+        }
+        else if (subTarget == "comprels")
+        {
+            result.Columns = new List<string> { "Id", "Result", "Expression", "Cost" };
+            foreach (var cr in c.CompRels)
+            {
+                result.Objects.Add(new ObjectInstance {
+                    ConceptName = $"{c.Name}.comprels",
+                    Values = new Dictionary<string, object> {
+                        { "Id", cr.Id.ToString() },
+                        { "Result", cr.ResultVariable ?? "N/A" },
+                        { "Expression", cr.Expression },
+                        { "Cost", cr.Cost.ToString() }
+                    }
+                });
+            }
+        }
+
+        result.Count = result.Objects.Count;
+        return result;
     }
 }

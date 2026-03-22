@@ -187,16 +187,19 @@ public class InferenceEngine
                     {
                         try
                         {
-                            var value = EvaluateFormula(rel.Expression, knownFacts);
-                            knownFacts[rel.ResultVariable] = value;
-                            result.DerivedFacts[rel.ResultVariable] = value;
-                            result.Steps.Add($"Step {stepCount++}: From Computation {{{string.Join(", ", rel.InputVariables)}}} => {rel.ResultVariable} = {value}");
+                            var res = EvaluateFormula(rel.Expression, knownFacts);
+                            var variable = effectiveConcept.Variables.FirstOrDefault(v => v.Name.Equals(rel.ResultVariable, StringComparison.OrdinalIgnoreCase));
+                            var val = CastToVariableType(res, variable);
+
+                            knownFacts[rel.ResultVariable!] = val;
+                            result.DerivedFacts[rel.ResultVariable!] = val;
+                            result.Steps.Add($"Step {stepCount++}: From Computation '{rel.Expression}' => {rel.ResultVariable} = {val}");
                             
                             // (Phase 17) Trace
                             result.Traces.Add(new DerivationTrace
                             {
-                                TargetVariable = rel.ResultVariable,
-                                Value = value,
+                                TargetVariable = rel.ResultVariable!,
+                                Value = val,
                                 Mechanism = "Computation",
                                 Source = rel.Expression,
                                 Inputs = rel.InputVariables.ToDictionary(v => v, v => knownFacts[v])
@@ -243,7 +246,10 @@ public class InferenceEngine
                             {
                                 try
                                 {
-                                    var val = EvaluateFormula(exprStr, knownFacts);
+                                    var res = EvaluateFormula(exprStr, knownFacts);
+                                    var variable = effectiveConcept.Variables.FirstOrDefault(v => v.Name.Equals(varName, StringComparison.OrdinalIgnoreCase));
+                                    var val = CastToVariableType(res, variable);
+                                    
                                     knownFacts[varName] = val;
                                     result.DerivedFacts[varName] = val;
                                     result.Steps.Add($"Step {stepCount++}: From Rule [{rule.Kind}] IF {{{string.Join(", ", rule.Hypothesis)}}} => {varName} = {val}");
@@ -576,8 +582,22 @@ public class InferenceEngine
     {
         var e1 = SplitEquation(expr1);
         var e2 = SplitEquation(expr2);
-        Func<double, double, double> f1 = (x, y) => { var p = new Dictionary<string, object>(parameters) { [var1] = x, [var2] = y }; return Convert.ToDouble(EvaluateFormula(e1.left, p)) - Convert.ToDouble(EvaluateFormula(e1.right, p)); };
-        Func<double, double, double> f2 = (x, y) => { var p = new Dictionary<string, object>(parameters) { [var1] = x, [var2] = y }; return Convert.ToDouble(EvaluateFormula(e2.left, p)) - Convert.ToDouble(EvaluateFormula(e2.right, p)); };
+        Func<double, double, double> f1 = (x, y) => { 
+            var p = new Dictionary<string, object>(parameters) { [var1] = x, [var2] = y }; 
+            var resLeft = EvaluateFormula(e1.left, p);
+            var left = resLeft != null ? Convert.ToDouble(resLeft) : 0.0;
+            var resRight = EvaluateFormula(e1.right, p);
+            var right = resRight != null ? Convert.ToDouble(resRight) : 0.0;
+            return left - right;
+        };
+        Func<double, double, double> f2 = (x, y) => { 
+            var p = new Dictionary<string, object>(parameters) { [var1] = x, [var2] = y }; 
+            var resLeft = EvaluateFormula(e2.left, p);
+            var left = resLeft != null ? Convert.ToDouble(resLeft) : 0.0;
+            var resRight = EvaluateFormula(e2.right, p);
+            var right = resRight != null ? Convert.ToDouble(resRight) : 0.0;
+            return left - right;
+        };
 
         double[] guesses = { 10.0, 1.0, 50.0, 0.1, -1.0, -10.0 }; // Added negative guesses
         foreach (var gx in guesses)
@@ -620,7 +640,14 @@ public class InferenceEngine
     private double Solve1DEquation(string expr, string target, Dictionary<string, object> parameters, Action<string>? log = null)
     {
         var s = SplitEquation(expr);
-        Func<double, double> f = (x) => { var p = new Dictionary<string, object>(parameters) { [target] = x }; return Convert.ToDouble(EvaluateFormula(s.left, p, log)) - Convert.ToDouble(EvaluateFormula(s.right, p, log)); };
+        Func<double, double> f = (x) => { 
+            var p = new Dictionary<string, object>(parameters) { [target] = x }; 
+            var res = EvaluateFormula(s.left, p, log);
+            var left = res != null ? Convert.ToDouble(res) : 0.0;
+            var resRight = EvaluateFormula(s.right, p, log);
+            var right = resRight != null ? Convert.ToDouble(resRight) : 0.0;
+            return left - right;
+        };
         
         double lower = -1000, upper = 1000; // Default search range
         
@@ -741,7 +768,36 @@ public class InferenceEngine
 
         var res = e.Evaluate();
         log?.Invoke($"(DEBUG) EvaluateFormula('{safe}') => {res} (Type: {res?.GetType().Name})");
-        return (res is int or long or double or float or decimal) ? Convert.ToDouble(res) : res;
+        return res;
+    }
+
+    private object CastToVariableType(object? val, Models.Variable? variable)
+    {
+        if (val == null || variable == null) return val ?? 0.0;
+
+        var type = variable.Type.ToUpper();
+        try
+        {
+            if (type is "INT" or "INTEGER" or "LONG")
+            {
+                return Convert.ToInt64(val);
+            }
+            if (type is "DECIMAL" or "MONEY" or "NUMBER")
+            {
+                var dec = Convert.ToDecimal(val);
+                if (variable.Scale.HasValue)
+                {
+                    dec = Math.Round(dec, variable.Scale.Value);
+                }
+                return dec;
+            }
+            if (type is "FLOAT" or "DOUBLE")
+            {
+                return Convert.ToDouble(val);
+            }
+        }
+        catch { }
+        return val;
     }
 
     private bool EvaluateConstraint(string expr, Dictionary<string, object> parameters)

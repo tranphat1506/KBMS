@@ -114,26 +114,35 @@ public class Cli
 
             await Protocol.SendMessageAsync(_stream, queryMessage);
             
-            Message? lastResponse = null;
+            Message? lastErrorResponse = null;
             while (true)
             {
                 var response = await Protocol.ReceiveMessageAsync(_stream);
                 if (response == null) break;
 
-                // If it's a streaming component, display it immediately and keep waiting
+                if (response.Type == MessageType.FETCH_DONE)
+                {
+                    ResponseParser.DisplayResult(response, command);
+                    break;
+                }
+                
+                if (response.Type == MessageType.ERROR)
+                {
+                    ResponseParser.DisplayError(response.Content, command);
+                    lastErrorResponse = response;
+                    break;
+                }
+
+                // If it's a streaming component or normal command result, display it immediately and keep waiting
                 if (response.Type == MessageType.METADATA || 
                     response.Type == MessageType.ROW || 
-                    response.Type == MessageType.FETCH_DONE)
+                    response.Type == MessageType.RESULT)
                 {
                     ResponseParser.DisplayResult(response, command);
                     continue;
                 }
-
-                // If it's a terminal message (RESULT or ERROR), return it
-                lastResponse = response;
-                break;
             }
-            return lastResponse;
+            return lastErrorResponse;
         }
         catch (IOException)
         {
@@ -262,28 +271,20 @@ public class Cli
 
             var response = await ExecuteCommandAsync(fullCommand);
 
-            if (response?.Type == MessageType.RESULT)
+            // Update CLI prompt if there was a USE command setup (we safely use Regex since the server accepted the command)
+            if (response == null || response.Type != MessageType.ERROR)
             {
-                // Handle USE command
-                if (fullCommand.StartsWith("USE", StringComparison.OrdinalIgnoreCase))
+                var allMatches = System.Text.RegularExpressions.Regex.Matches(fullCommand, @"(?i)\bUSE\s+([a-zA-Z0-9_]+)\b");
+                if (allMatches.Count > 0)
                 {
-                    var parts = fullCommand.Split(new[] { ' ', ';' }, StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length > 1)
-                    {
-                        currentKb = parts[1];
-                        Console.WriteLine($"Using knowledge base: {currentKb}");
-                    }
-                }
-                else
-                {
-                    ResponseParser.DisplayResult(response, fullCommand);
+                    currentKb = allMatches[allMatches.Count - 1].Groups[1].Value;
+                    Console.WriteLine($"Using knowledge base: {currentKb} (Prompt Updated)");
                 }
             }
-            else if (response?.Type == MessageType.ERROR)
-            {
-                ResponseParser.DisplayError(response.Content, fullCommand);
 
-                // If connection lost due to error, try auto-reconnect
+            // If there's an error response indicating disconnect, auto-reconnect
+            if (response?.Type == MessageType.ERROR)
+            {
                 if (response.Content.Contains("disconnected", StringComparison.OrdinalIgnoreCase) ||
                     response.Content.Contains("Connection", StringComparison.OrdinalIgnoreCase))
                 {

@@ -14,6 +14,7 @@ public static class ResponseParser
     private static List<string>? _streamingColumns;
     private static Dictionary<string, int>? _streamingWidths;
     private static int _streamingCount;
+    private static string? _streamingMode;
     /// <summary>
     /// Display a result message with plain text table formatting (MySQL-like)
     /// </summary>
@@ -80,16 +81,28 @@ public static class ResponseParser
             _streamingColumns = root.GetProperty("Columns").EnumerateArray().Select(e => e.GetString() ?? "").ToList();
             _streamingWidths = new Dictionary<string, int>();
             _streamingCount = 0;
+            _streamingMode = root.TryGetProperty("ConceptName", out var cn) ? cn.GetString() : null;
+
+            bool hasWidths = root.TryGetProperty("Widths", out var widthsProp);
 
             foreach (var col in _streamingColumns)
             {
-                _streamingWidths[col] = Math.Max(col.Length, 15); // Default width 15
+                if (hasWidths && widthsProp.TryGetProperty(col, out var wProp) && wProp.ValueKind == JsonValueKind.Number)
+                {
+                    _streamingWidths[col] = Math.Max(col.Length, wProp.GetInt32());
+                }
+                else
+                {
+                    _streamingWidths[col] = Math.Max(col.Length, 15); // Default width 15
+                }
             }
 
-            // Print header
-            var headerParts = _streamingColumns.Select(c => Pad(c, _streamingWidths[c]));
-            Console.WriteLine("\n| " + string.Join(" | ", headerParts) + " |");
-            Console.WriteLine("|" + string.Join("+", _streamingColumns.Select(c => new string('-', _streamingWidths[c] + 2))) + "|");
+            if (!IsVerticalMode(_streamingMode))
+            {
+                var headerParts = _streamingColumns.Select(c => Pad(c, _streamingWidths[c]));
+                Console.WriteLine("\n| " + string.Join(" | ", headerParts) + " |");
+                Console.WriteLine("|" + string.Join("+", _streamingColumns.Select(c => new string('-', _streamingWidths[c] + 2))) + "|");
+            }
         }
         catch { Console.WriteLine("Error parsing metadata"); }
     }
@@ -104,14 +117,43 @@ public static class ResponseParser
             var values = doc.RootElement;
             _streamingCount++;
 
-            var rowParts = _streamingColumns.Select(c =>
+            if (IsVerticalMode(_streamingMode))
             {
-                if (values.TryGetProperty(c, out var val))
-                    return Pad(GetDisplayString(val), _streamingWidths[c]);
-                return Pad("NULL", _streamingWidths[c]);
-            });
+                Console.WriteLine($"*************************** {_streamingCount}. row ***************************");
+                int maxColLen = _streamingColumns.Max(c => c.Length) + 1;
+                var padSpaces = new string(' ', maxColLen + 1);
+                foreach (var col in _streamingColumns)
+                {
+                    var valStr = values.TryGetProperty(col, out var val) ? GetDisplayString(val) : "NULL";
+                    valStr = valStr.Replace("\n", "\n" + padSpaces);
+                    Console.WriteLine($"{PadLeft(col + ":", maxColLen)} {valStr}");
+                }
+                return;
+            }
 
-            Console.WriteLine("| " + string.Join(" | ", rowParts) + " |");
+            // Normal table mode with multi-line cell support
+            var colLines = _streamingColumns.Select(c => 
+            {
+                string valStr = values.TryGetProperty(c, out var val) ? GetDisplayString(val) : "NULL";
+                return valStr.Split(new[] { '\r', '\n' }, StringSplitOptions.None);
+            }).ToList();
+
+            int maxLines = colLines.Count > 0 ? colLines.Max(lines => lines.Length) : 0;
+            if (maxLines == 0) maxLines = 1;
+
+            for (int i = 0; i < maxLines; i++)
+            {
+                var rowParts = new List<string>();
+                for (int j = 0; j < _streamingColumns.Count; j++)
+                {
+                    string cellLine = i < colLines[j].Length ? colLines[j][i] : "";
+                    rowParts.Add(Pad(cellLine, _streamingWidths[_streamingColumns[j]]));
+                }
+                Console.WriteLine("| " + string.Join(" | ", rowParts) + " |");
+            }
+            
+            // Draw a bottom border for each row so multi-line rows are clearly separated
+            Console.WriteLine("|" + string.Join("+", _streamingColumns.Select(c => new string('-', _streamingWidths[c] + 2))) + "|");
         }
         catch { /* Skip malformed rows */ }
     }
@@ -128,9 +170,18 @@ public static class ResponseParser
             // Reset for next possible stream
             _streamingColumns = null;
             _streamingWidths = null;
+            _streamingMode = null;
         }
         catch { }
     }
+
+    private static bool IsVerticalMode(string? mode)
+    {
+        if (string.IsNullOrEmpty(mode)) return false;
+        return mode.StartsWith("Describe_", StringComparison.OrdinalIgnoreCase) || 
+               mode.StartsWith("Explain_", StringComparison.OrdinalIgnoreCase);
+    }
+
 
     /// <summary>
     /// Display JSON data as MySQL-like table
@@ -955,28 +1006,37 @@ public static class ResponseParser
             case JsonValueKind.Null: return "NULL";
             case JsonValueKind.String: return element.GetString() ?? "";
             case JsonValueKind.Number:
-                if (element.TryGetDouble(out double val))
-                {
-                    // If the value is extremely close to an integer, round it
-                    if (Math.Abs(val - Math.Round(val)) < 1e-10)
-                        return Math.Round(val).ToString();
-                    
-                    // Otherwise format with a reasonable number of digits
-                    return val.ToString("G10");
-                }
                 return element.GetRawText();
             case JsonValueKind.True: return "true";
             case JsonValueKind.False: return "false";
-            case JsonValueKind.Array: return $"[{element.GetArrayLength()} items]";
-            case JsonValueKind.Object: return "{...}";
+            case JsonValueKind.Array: 
+                var items = element.EnumerateArray().Select(e => GetDisplayString(e)).ToList();
+                if (items.Count == 0) return "[]";
+                return string.Join("\n", items.Select(x => $"- {x}"));
+            case JsonValueKind.Object: 
+                var props = element.EnumerateObject().Select(p => $"{p.Name}: {GetDisplayString(p.Value)}").ToList();
+                if (props.Count == 0) return "{}";
+                return "{ " + string.Join(", ", props) + " }";
             default: return element.ToString();
         }
     }
 
     private static string Pad(string str, int width, char padChar = ' ')
     {
-        if (str.Length >= width) return str;
+        if (str == null) return new string(padChar, width);
+        if (str.Length > width) 
+        {
+            if (width > 3) return str.Substring(0, width - 3) + "...";
+            return str.Substring(0, width);
+        }
         return str + new string(padChar, width - str.Length);
+    }
+    
+    private static string PadLeft(string str, int width, char padChar = ' ')
+    {
+        if (str == null) return new string(padChar, width);
+        if (str.Length >= width) return str;
+        return new string(padChar, width - str.Length) + str;
     }
     private static void DisplaySolveResult(JsonElement root, string executionTime)
     {

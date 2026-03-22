@@ -1651,6 +1651,13 @@ public class Parser
             Consume(TokenType.FROM);
             var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected concept name");
             node.ConceptName = conceptToken.Lexeme;
+
+            if (Check(TokenType.DOT))
+            {
+                Consume(TokenType.DOT);
+                var subTargetToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected sub-target after dot");
+                node.ConceptName += "." + subTargetToken.Lexeme;
+            }
         }
 
         // Parse optional AS alias
@@ -2013,7 +2020,22 @@ public class Parser
         // Determine show type
         if (Peek()?.Type == TokenType.KNOWLEDGE)
         {
-            Consume(TokenType.BASE);
+            Consume(TokenType.KNOWLEDGE);
+            
+            // Handle both BASE (keyword) and BASES (identifier)
+            if (Peek()?.Type == TokenType.BASE) 
+            {
+                Consume(TokenType.BASE);
+            }
+            else if (Peek()?.Type == TokenType.IDENTIFIER && Peek()?.Lexeme.ToUpper() == "BASES")
+            {
+                Consume(TokenType.IDENTIFIER);
+            }
+            else 
+            {
+                throw new ParserException("Expected BASE or BASES after KNOWLEDGE", Peek()?.Line ?? 0, Peek()?.Column ?? 0);
+            }
+
             node.ShowType = ShowType.KnowledgeBases;
             node.Type = "SHOW_KNOWLEDGE_BASES";
         }
@@ -2360,13 +2382,42 @@ public class Parser
             if (IsComparisonOperator(opToken.Type))
             {
                 Advance();
-                var right = ParseExpression();
-                object? value = right switch
+                object? value = null;
+
+                if (opToken.Type == TokenType.IN)
                 {
-                    LiteralNode lit => lit.Value,
-                    VariableNode v => v.Name,
-                    _ => right.ToString()
-                };
+                    Consume(TokenType.LPAREN);
+                    if (Check(TokenType.SELECT))
+                    {
+                        var subQuery = ParseSelect();
+                        value = subQuery;
+                    }
+                    else
+                    {
+                        var list = new List<object>();
+                        while (!Check(TokenType.RPAREN) && !IsAtEnd())
+                        {
+                            var expr = ParseExpression();
+                            if (expr is LiteralNode lit) list.Add(lit.Value);
+                            else if (expr is VariableNode vNode) list.Add(vNode.Name);
+                            else list.Add(expr.ToString()!);
+                            
+                            if (Check(TokenType.COMMA)) Advance();
+                        }
+                        value = list;
+                    }
+                    Consume(TokenType.RPAREN);
+                }
+                else
+                {
+                    var right = ParseExpression();
+                    value = right switch
+                    {
+                        LiteralNode lit => lit.Value,
+                        VariableNode v => v.Name,
+                        _ => right.ToString()
+                    };
+                }
 
                 return new Condition
                 {
@@ -2789,7 +2840,8 @@ public class Parser
                type == TokenType.GREATER ||
                type == TokenType.LESS ||
                type == TokenType.GREATER_EQUAL ||
-               type == TokenType.LESS_EQUAL;
+               type == TokenType.LESS_EQUAL ||
+               type == TokenType.IN;
     }
 
     private static bool IsOperatorToken(TokenType type)
