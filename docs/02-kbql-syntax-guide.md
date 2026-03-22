@@ -1,122 +1,112 @@
-# Hướng Dẫn Cú Pháp KBQL Chi Tiết (v1.0)
+# Hướng Dẫn Cú Pháp KBQL Chi Tiết (v1.1)
 
-KBQL (Knowledge Base Query Language) là ngôn ngữ cốt lõi của KBMS, được thiết kế để xử lý tri thức dựa trên mô hình COKB. KBQL v1.0 bao gồm 6 phân nhánh ngôn ngữ chuyên biệt.
+KBQL (Knowledge Base Query Language) là ngôn ngữ cốt lõi của KBMS, hỗ trợ mô hình tri thức thực thể và tính toán (COKB). Phiên bản v1.1 bổ sung hệ thống kiểu dữ liệu chuẩn (True Typing), truy vấn siêu dữ liệu (Metadata) và hỗ trợ truy vấn con (Subquery).
 
 ## 1. KDL (Knowledge Definition Language) - Định nghĩa Tri thức
-Dùng để thiết kế cấu trúc (Schema) của cơ sở tri thức.
 
-### 1.1. Tạo CSDL Tri thức (CREATE KNOWLEDGE BASE)
-```sql
-CREATE KNOWLEDGE BASE MyProject DESCRIPTION "Dự án quản lý hình học";
-USE MyProject;
-```
+### 1.1. Định nghĩa Khái niệm (CREATE CONCEPT)
+Hỗ trợ các hệ thống kiểu dữ liệu chuẩn xác cao:
+- **INT**: Số nguyên (long).
+- **DECIMAL(L, S)**: Số thực cố định (Độ dài L, chữ số thập phân S), dùng cho tài chính.
+- **DOUBLE**: Số thực dấu phẩy động.
+- **STRING**: Chuỗi văn bản.
 
-### 1.2. Định nghĩa Khái niệm (CREATE CONCEPT)
-Hỗ trợ các ràng buộc toán học (Constraints) và biến (Variables).
 ```sql
-CREATE CONCEPT <Rectangle> (
-    VARIABLES ( width: double, height: double, area: double ),
-    CONSTRAINTS ( area = width * height )
+CREATE CONCEPT <Product> (
+    VARIABLES ( 
+        id: INT, 
+        price: DECIMAL(10, 2), 
+        tax_rate: DOUBLE, 
+        name: STRING 
+    ),
+    CONSTRAINTS ( total_price = price * (1 + tax_rate) )
 );
 ```
 
-### 1.3. Cập nhật Khái niệm (ALTER CONCEPT) - Cú pháp Block-Centric
+### 1.2. Cập nhật Khái niệm (ALTER CONCEPT)
 ```sql
--- Thêm biến và ràng buộc
-ALTER CONCEPT <Rectangle> ( 
-    ADD ( VARIABLE ( color: string ), CONSTRAINT ( pos_w: width > 0 ) ) 
-);
--- Đổi tên biến
-ALTER CONCEPT <Rectangle> ( RENAME ( VARIABLE width TO w ) );
--- Xóa biến
-ALTER CONCEPT <Rectangle> ( DROP ( VARIABLE color ) );
+ALTER CONCEPT <Product> ( ADD ( VARIABLE ( category: STRING ) ) );
 ```
 
 ---
 
 ## 2. KML (Knowledge Manipulation Language) - Thao tác Dữ liệu
-Quản lý các đối tượng cụ thể (Instances) trong CSDL.
 
 ### 2.1. Thêm Đối tượng (INSERT)
+Sử dụng từ khóa `ATTRIBUTE` để gán giá trị cho các biến của Concept.
 ```sql
-INSERT INTO <Rectangle> ATTRIBUTE ( width: 10.5, height: 20.0 );
+-- Gán theo tên (Named Syntax)
+INSERT INTO <Product> ATTRIBUTE ( id: 1, price: 19.99, tax_rate: 0.08, name: 'Sơn Trà' );
+
+-- Gán theo vị trí (Positional - dựa vào thứ tự khai báo)
+INSERT INTO <Product> ATTRIBUTE ( 2, 50.00, 0.1, 'Bánh Mì' );
 ```
 
 ### 2.2. Xuất/Nhập Dữ liệu (IMPORT/EXPORT)
-Hỗ trợ định dạng JSON để trao đổi dữ liệu với hệ thống khác.
 ```sql
-EXPORT ( CONCEPT: <Rectangle>, FORMAT: JSON, FILE: "rect_backup.json" );
-IMPORT ( FILE: "rect_data.json", INTO: <Rectangle> );
+EXPORT ( CONCEPT: <Product>, FORMAT: JSON, FILE: "data.json" );
+IMPORT ( FILE: "data.json", INTO: <Product> );
 ```
 
 ---
 
 ## 3. KQL (Knowledge Query Language) - Truy vấn & Suy luận
-Đây là phần mạnh mẽ nhất của KBMS, cho phép giải toán và tìm kiếm thông minh.
 
 ### 3.1. Truy vấn Dữ liệu (SELECT)
+Hỗ trợ các phép toán, hàm tập hợp (`COUNT`, `SUM`, `AVG`) và bộ lọc `WHERE`.
+
 ```sql
-SELECT * FROM <Rectangle> WHERE width > 10 AND height < 50;
-SELECT COUNT(*) FROM <Rectangle> AS TotalRect;
+SELECT * FROM <Product> WHERE price > 10;
+SELECT name, price FROM <Product> ORDER BY price DESC;
 ```
 
-### 3.2. Giải toán Tự động (SOLVE)
-Giải các biến chưa biết dựa trên ràng buộc và tri thức đã nạp.
+### 3.2. Truy vấn Siêu dữ liệu (Metadata Queries)
+Bạn có thể truy vấn trực tiếp cấu trúc của tri thức thông qua bảng ảo `system` hoặc cú pháp chấm `.`.
+
 ```sql
-SOLVE ON CONCEPT <Rectangle> GIVEN width: 5, height: 10 FIND area SAVE;
+-- Liệt kê tất cả các Concept
+SELECT * FROM system.concepts;
+
+-- Truy vấn các biến của một Concept cụ thể
+SELECT * FROM Person.variables;
+
+-- Truy vấn các ràng buộc của một Concept cụ thể
+SELECT * FROM Person.constraints;
 ```
 
-### 3.3. Kiểm tra Metadata (DESCRIBE)
-Xem cấu trúc của một Concept hoặc CSDL.
+### 3.3. Truy vấn con (Subquery)
+Hỗ trợ lồng các câu lệnh `SELECT` bên trong `WHERE` sử dụng toán tử `IN` hoặc `=`.
+
 ```sql
-DESCRIBE CONCEPT <Rectangle>;
-DESCRIBE KNOWLEDGE BASE MyProject;
+SELECT * FROM <Product> 
+WHERE id IN (
+    SELECT productId FROM Orders WHERE status = 'PAID'
+);
 ```
 
-> [!NOTE]
-> **Tính năng Subquery**: Hiện tại KBMS 1.0 chưa hỗ trợ truy vấn con trực tiếp (ví dụ: `WHERE id IN (SELECT...)`). Tính năng này dự kiến sẽ có trong bản cập nhật 2.0.
+### 3.4. Giải toán Tự động (SOLVE)
+Sử dụng công cụ suy diễn để tìm giá trị các biến chưa biết.
+```sql
+SOLVE ON CONCEPT <Product> GIVEN id: 1, price: 100 FIND total_price;
+```
 
 ---
 
-## 4. TCL (Transaction Control Language) - Điều khiển Giao dịch
-Đảm bảo tính toàn vẹn dữ liệu (ACID) trên RAM Buffer Pool.
+## 4. Giao thức Truyền tin & Giao dịch
+KBMS hỗ trợ thực thi nhiều câu lệnh cùng lúc (Multi-statement) ngăn cách bởi dấu `;`.
+
+```sql
+CREATE CONCEPT T1 (VARIABLES(x:INT)); 
+INSERT INTO T1 ATTRIBUTE (x:10); 
+SELECT * FROM T1;
+```
+
+Hỗ trợ giao dịch ACID:
 ```sql
 BEGIN TRANSACTION;
-INSERT INTO <Rectangle> ATTRIBUTE ( width: 2, height: 3 );
--- Nếu xảy ra lỗi:
-ROLLBACK;
--- Nếu thành công:
-COMMIT;
+INSERT INTO <Product> ATTRIBUTE (id: 5);
+COMMIT; -- Hoặc ROLLBACK;
 ```
 
 ---
-
-## 5. KCL (Knowledge Control Language) - Kiểm soát Truy cập
-Phân quyền và bảo mật cho người dùng.
-```sql
-CREATE USER gemini PASSWORD 'secure123' ROLE ADMIN;
-GRANT PRIVILEGE ADMIN ON MyProject TO gemini;
-```
-
----
-
-## 6. KHL (Knowledge Help & Maintenance) - Bảo trì & Trợ giúp
-Tối ưu hóa hệ thống và gỡ lỗi.
-
-### 6.1. Tối ưu hóa (MAINTENANCE)
-```sql
-MAINTENANCE ( VACUUM, REINDEX (*) );
-```
-
-### 6.2. Phân tích Truy vấn (EXPLAIN)
-```sql
-EXPLAIN ( SELECT * FROM <Rectangle> WHERE width > 10 );
-```
-
-### 6.3. Tạo Chỉ mục (CREATE INDEX)
-```sql
-CREATE INDEX ON <Rectangle> ( width );
-```
-
----
-*Lưu ý: Luôn kết thúc câu lệnh bằng dấu chấm phẩy (;) khi sử dụng Command Line.*
+*Lưu ý: Luôn sử dụng dấu chấm phẩy (;) để kết thúc mỗi câu lệnh trong môi trường CLI.*

@@ -1,83 +1,110 @@
-# Hướng Dẫn Cài Đặt & 05 Kịch Bản Sử Dụng Thực Tế
+# Cài đặt & Hướng dẫn Sử dụng KBMS v1.1
 
-Tài liệu này hướng dẫn bạn cách triển khai hệ thống KBMS và cung cấp các ví dụ thực tế để khai thác tối đa sức mạnh của tri thức tính toán (COKB).
+Tài liệu này hướng dẫn cách triển khai hệ thống KBMS và các kịch bản sử dụng thực tế cho phiên bản 1.1.
 
-## 1. Hướng Dẫn Cài Đặt (Installation)
+## 1. Yêu cầu Hệ thống
+- **Hệ điều hành**: Windows, Linux, hoặc macOS.
+- **Môi trường**: .NET 8.0 SDK trở lên.
+- **Công cụ**: Terminal (PowerShell, Bash, hoặc CMD).
 
-### 1.1. Yêu cầu Hệ thống
-- **Môi trường**: .NET 8.0 SDK (Windows, macOS, Linux).
-- **RAM**: Tối thiểu 512MB (Khuyên dùng 1GB để tối ưu Buffer Pool).
+## 2. Các bước Cài đặt
 
-### 1.2. Các bước triển khai
-1.  **Khởi động Server**:
-    Mở Terminal 1, di chuyển đến thư mục `KBMS.Server` và chạy lệnh:
-    ```bash
-    dotnet run
-    ```
-    Server sẽ lắng nghe tại cổng `34000`.
+### Bước 1: Clone mã nguồn
+```bash
+git clone https://github.com/tranphat1506/KBMS.git
+cd KBMS
+```
 
-2.  **Khởi động Client**:
-    Mở Terminal 2, di chuyển đến thư mục `KBMS.CLI` và chạy lệnh:
-    ```bash
-    dotnet run
-    ```
-    Kết nối thành công khi bạn thấy dấu nhắc `kbms>`.
+### Bước 2: Build toàn bộ Solution
+```bash
+dotnet build
+```
+
+### Bước 3: Khởi chạy Server
+Server sẽ lắng nghe tại cổng `3307`.
+```bash
+cd KBMS.Server
+dotnet run
+```
+
+### Bước 4: Khởi chạy CLI Client
+```bash
+cd ../KBMS.CLI
+dotnet run
+```
 
 ---
 
-## 2. 05 Kịch Bản Sử Dụng Thực Tế (Usage Scenarios)
+## 3. Các kịch bản sử dụng thực tế trong v1.1
 
-### Kịch bản 1: Quản lý Hình học & Giải toán Tự động
-Định nghĩa một khái niệm hình học và yêu cầu hệ thống tự giải các biến còn thiếu.
+### Kịch bản 1: Quản lý Sản phẩm với Độ chính xác cao (True Typing)
+KBMS v1.1 hỗ trợ kiểu `DECIMAL` giúp tính toán thuế và giá trị đơn hàng một cách tuyệt đối chính xác.
+
 ```sql
--- Tạo KB và Concept với ràng buộc
-CREATE KNOWLEDGE BASE Geometry;
-USE Geometry;
-CREATE CONCEPT Triangle (
-    VARIABLES ( a: double, b: double, c: double, s: double ),
-    CONSTRAINTS ( s = (a + b + c) / 2 )
+-- 1. Tạo Database
+CREATE KNOWLEDGE BASE Store;
+USE Store;
+
+-- 2. Tạo Concept với kiểu DECIMAL
+CREATE CONCEPT Laptop (
+    VARIABLES ( 
+        id: INT, 
+        base_price: DECIMAL(10, 2), 
+        tax_rate: DOUBLE, 
+        total: DECIMAL(10, 2) 
+    ),
+    CONSTRAINTS ( total = base_price * (1 + tax_rate) )
 );
--- Giải toán (Inference)
-SOLVE ON CONCEPT Triangle GIVEN a: 3, b: 4, c: 5 FIND s SAVE;
+
+-- 3. Thêm dữ liệu (Hệ thống tự làm tròn 19.995 -> 20.00 cho DECIMAL(x,2))
+INSERT INTO Laptop ATTRIBUTE (id: 1, base_price: 19.995, tax_rate: 0.1);
+
+-- 4. Truy vấn và xem kết quả bảng
+SELECT * FROM Laptop;
 ```
 
-### Kịch bản 2: Hệ thống Phản ứng Dữ liệu (Triggers)
-Tự động thông báo hoặc ghi log khi có thay đổi dữ liệu quan trọng.
+### Kịch bản 2: Truy vấn Siêu dữ liệu qua Bảng ảo (Metadata)
+Bạn có thể dùng `SELECT` để xem toàn bộ cấu trúc của Database mà không cần các lệnh `DESCRIBE` riêng lẻ.
+
 ```sql
-CREATE TRIGGER NotifyOnNewRect 
-ON INSERT OF Rectangle 
-DO ( SHOW CONCEPTS ); -- Ví dụ hành động tự động
+-- Liệt kê các Concept đang có
+SELECT Name, Description FROM system.concepts;
+
+-- Xem chi tiết các biến của một Concept
+SELECT * FROM Laptop.variables;
 ```
 
-### Kịch bản 3: Quản lý Giao dịch An toàn (ACID)
-Đảm bảo chuỗi hành động được thực hiện hoàn toàn hoặc không thực hiện gì nếu lỗi.
+### Kịch bản 3: Thực thi Chuỗi lệnh (Multi-statement)
+Bạn có thể dán một đoạn code dài vào CLI để thực thi cùng lúc.
+
 ```sql
-BEGIN TRANSACTION;
-INSERT INTO Rectangle ATTRIBUTE ( width: 10, height: 20 );
-UPDATE Rectangle SET width: 15 WHERE height: 20;
-COMMIT; -- Chốt dữ liệu xuống đĩa cứng (.kdf)
+CREATE CONCEPT T1 (v:INT); INSERT INTO T1 ATTRIBUTE (v:1); SELECT * FROM T1;
 ```
 
-### Kịch bản 4: Tối ưu hóa Truy vấn Lớn (Indexing)
-Tăng tốc tìm kiếm khi CSDL có hàng nghìn đối tượng.
+### Kịch bản 4: Phân quyền & Bảo mật (TCL/KCL)
 ```sql
-CREATE INDEX ON Rectangle ( width );
-EXPLAIN ( SELECT * FROM Rectangle WHERE width > 50 );
+CREATE USER manager PASSWORD 'mypass123' ROLE USER;
+GRANT PRIVILEGE READ ON Store TO manager;
 ```
 
-### Kịch bản 5: Quản trị & Bảo trì Hệ thống (Maintenance)
-Dọn dẹp log và kiểm tra tính nhất quán của tri thức.
+### Kịch bản 5: Phân tích & Suy luận (SOLVE & EXPLAIN)
+Khi gặp một bài toán hình học phức tạp, sử dụng `SOLVE` để tìm lời giải và `EXPLAIN` để xem các bước suy luận.
+
 ```sql
-MAINTENANCE ( VACUUM, CHECK ( CONSISTENCY: * ) );
+-- Ví dụ Hình chữ nhật
+CREATE CONCEPT Rect ( VARIABLES(w:DOUBLE, h:DOUBLE, a:DOUBLE), CONSTRAINTS(a=w*h) );
+INSERT INTO Rect ATTRIBUTE (w:5, h:10);
+
+-- Giải tìm diện tích
+SOLVE ON CONCEPT Rect FIND a;
+
+-- Giải thích cách Server thực thi truy vấn
+EXPLAIN ( SELECT * FROM Rect WHERE w > 2 );
 ```
 
 ---
 
-## 3. Câu Hỏi Thường Gặp (FAQ)
-
-- **Làm sao để thoát?**: Sử dụng lệnh `EXIT;`.
-- **Dữ liệu được lưu ở đâu?**: Trong thư mục `Data/` dưới dạng các file `.kmf`, `.kdf`, `.klf`, `.kif`.
-- **Hỗ trợ Subquery không?**: Hiện tại v1.0 chưa hỗ trợ, chúng tôi đang phát triển cho v2.0.
-
----
-*© 2026 KBMS Team. Chúc bạn có trải nghiệm tuyệt vời với KBMS!*
+## 4. Các lỗi thường gặp (Troubleshooting)
+1. **Lỗi kết nối**: Đảm bảo Port `3307` không bị tường lửa chặn hoặc đang bị Process khác sử dụng.
+2. **Quên dấu `;`**: CLI của v1.1 yêu cầu chặt chẽ dấu chấm phẩy ở cuối mỗi câu lệnh (hoặc chuỗi lệnh).
+3. **Sai kiểu dữ liệu**: Nếu bạn chèn một chuỗi (String) vào cột `INT`, hệ thống sẽ trả về lỗi `Invalid cast`.

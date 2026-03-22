@@ -1,6 +1,6 @@
 # Chi Tiết Lõi Lưu Trữ (Storage Engine Internals)
 
-KBMS 1.0 sử dụng một bộ máy lưu trữ (Storage Engine) hiệu năng cao, được thiết kế đặc biệt để xử lý các đối tượng tri thức phức tạp với tính toàn vẹn dữ liệu tuyệt đối.
+KBMS v1.1 sử dụng một bộ máy lưu trữ (Storage Engine) hiệu năng cao, được thiết kế đặc biệt để xử lý các đối tượng tri thức phức tạp với tính toàn vẹn dữ liệu tuyệt đối và hỗ trợ **True Typing**.
 
 ## 1. Cơ Chế Buffer Pool (Bộ Đệm RAM)
 KBMS không đọc trực tiếp file từ đĩa cho mỗi truy vấn. Thay vào đó, nó sử dụng **Buffer Pool** để quản lý dữ liệu trên RAM.
@@ -16,14 +16,19 @@ KBMS không đọc trực tiếp file từ đĩa cho mỗi truy vấn. Thay vào
 - **Checkpoint**: Sau một khoảng thời gian nhất định, log sẽ được "dọn dẹp" (VACUUM) và dữ liệu được đồng bộ cứng xuống file `.kdf`.
 - **Phục hồi sau sự cố**: Nếu Server bị ngắt đột ngột, khi khởi động lại, `WalManager` sẽ quét file `.klf` để tái tạo lại trạng thái dữ liệu mới nhất trên RAM.
 
-## 3. Shadow Paging - Giao Dịch ACID
+## 3. Quản lý Kiểu dữ liệu (True Typing Support)
+Lọc lưu trữ của v1.1 đã được nâng cấp để nhận diện và bảo toàn kiểu dữ liệu gốc:
+- **Nguyên tử hóa**: Dữ liệu không còn bị ép về `double`. `INT` được lưu dưới dạng `long`, `DECIMAL` được lưu dưới dạng `decimal` chính xác cao.
+- **Metadata-Aware**: Mỗi đối tượng khi lưu xuống đĩa hoặc nạp lên RAM đều được đối chiếu với định nghĩa Concept để đảm bảo không bị sai lệch kiểu (Type Mismatch).
+
+## 4. Shadow Paging - Giao Dịch ACID
 Khi bạn sử dụng `BEGIN TRANSACTION`, KBMS thực hiện:
 1.  **Sao chép bóng (Shadow Copy)**: Tạo một bản sao của Buffer Pool hiện tại.
 2.  **Thao tác tạm thời**: Mọi thay đổi chỉ tác động lên bản sao này.
 3.  **Commit**: Nếu bạn gọi `COMMIT`, bản sao bóng sẽ được đẩy thành bản chính và ghi vào WAL.
 4.  **Rollback**: Nếu bạn gọi `ROLLBACK`, bản sao bóng bị hủy, dữ liệu gốc vẫn giữ nguyên.
 
-## 4. Định Dạng File Hệ Thống (File Formats)
+## 5. Định Dạng File Hệ Thống (File Formats)
 
 | Đuôi File | Tên Đầy Đủ | Nội Dung Chính |
 | :--- | :--- | :--- |

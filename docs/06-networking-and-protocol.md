@@ -1,95 +1,39 @@
-# Chi Tiết Giao Thức Mạng KBMS (KBP - KBMS Binary Protocol)
+# Giao thức Mạng & Truyền tin Dòng (Streaming)
 
-KBMS sử dụng một giao thức truyền tin nhị phân tùy chỉnh (KBP) chạy trên nền TCP/IP (mặc định cổng 3307). Giao thức này được thiết kế dựa trên các nguyên lý của MySQL X Protocol và gRPC để đảm bảo tính hiệu quả, hỗ trợ truyền tin dòng (streaming) và khả năng mở rộng.
+KBMS sử dụng một giao thức truyền tin tùy chỉnh dựa trên TCP, được tối ưu hóa cho việc truyền tải tri thức và dữ liệu lớn thông qua cơ chế **Row-based Streaming**.
 
-## 1. Cấu trúc Gói tin (Packet Structure)
+## 1. Cấu trúc Gói tin (Message Frame)
+Mỗi gói tin gửi đi từ Server hoặc Client đều có cấu trúc Fixed-header 5-byte:
 
-Mỗi thông điệp được gửi qua mạng có cấu trúc header cố định để giúp Client/Server định giới hạn (delimitation) dữ liệu một cách chính xác.
+- **Type (1 byte)**: Xác định loại message (LOGIN, QUERY, METADATA, ROW, RESULT, ERROR, FETCH_DONE).
+- **Length (4 bytes)**: Độ dài của phần nội dung (Payload) theo sau, kiểu Big-endian.
 
-| Thành phần | Kích thước | Mô tả |
-| :--- | :--- | :--- |
-| **Total Length** | 4 Bytes | Độ dài toàn bộ gói tin (Little Endian). |
-| **Message Type** | 1 Byte | Loại thông điệp (LOGIN, QUERY, ROW, v.v.). |
-| **Payload** | N Bytes | Dữ liệu thực tế (thường là chuỗi JSON mã hóa UTF-8). |
+## 2. Các loại Message chính
+- `0x01 LOGIN`: Xác thực người dùng.
+- `0x02 QUERY`: Gửi câu lệnh KBQL từ Client.
+- `0x03 RESULT`: Trả về kết quả JSON cho các lệnh không stream (như INSERT thành công).
+- `0x04 METADATA`: Gửi thông tin cấu trúc bảng (Cột, Kiểu dữ liệu) trước khi stream dữ liệu.
+- `0x05 ROW`: Gửi dữ liệu của duy nhất MỘT dòng (dưới dạng JSON).
+- `0x06 FETCH_DONE`: Báo hiệu đã kết thúc việc stream cho một câu lệnh.
+- `0x07 ERROR`: Thông báo lỗi thực thi.
 
-> [!NOTE]
-> Header 5-byte này giúp tránh hiện tượng "dính gói" (TCP stream fragmentation), cho phép bên nhận đọc chính xác số byte cần thiết trước khi xử lý logic.
+## 3. Cơ chế Streaming (Dòng dữ liệu)
+Thay vì trả về toàn bộ kết quả trong một mảng JSON khổng lồ (gây tốn RAM), KBMS v1.1 sử dụng luồng streaming:
 
----
+1. **Client** gửi `QUERY`.
+2. **Server** phân tích và bắt đầu thực thi.
+3. Nếu lệnh trả về danh sách (SELECT, SHOW, DESCRIBE...):
+   - Server gửi `METADATA` chứa danh sách cột.
+   - Server lặp qua từng bản ghi và gửi từng `ROW` riêng biệt.
+   - Server gửi `FETCH_DONE` khi hết dữ liệu.
+4. **Client** nhận `METADATA` để dựng khung bảng, sau đó render từng `ROW` ngay khi nó vừa cập bến.
 
-## 2. Các Loại Thông điệp (Message Types)
+## 4. Thực thi Đa lệnh (Multi-statement Support)
+Server hỗ trợ nhận chuỗi lệnh cách nhau bởi dấu `;`. Quy trình xử lý:
+- Server tách chuỗi thành các câu lệnh đơn lẻ.
+- Thực thi tuần tự từng lệnh.
+- Với mỗi lệnh, thực hiện quy trình Streaming hoặc Result như trên.
+- Nếu một lệnh gặp lỗi (ERROR), Server sẽ **ngừng ngay lập tức** và không thực thi các lệnh phía sau (Stop on Error).
 
-Dựa trên `MessageType.cs`, KBMS định nghĩa các mã loại sau:
-
-| Enum Name | Value (HEX) | Chi tiết |
-| :--- | :--- | :--- |
-| **LOGIN** | `0x01` | Client gửi thông tin đăng nhập (`username password`). |
-| **QUERY** | `0x02` | Client gửi câu lệnh KBQL (VD: `SELECT`, `INSERT`). |
-| **RESULT** | `0x03` | Server trả về kết quả cuối cùng hoặc phản hồi thành công. |
-| **ERROR** | `0x04` | Server thông báo lỗi (Parser, Runtime, hoặc Auth). |
-| **LOGOUT** | `0x05` | Client yêu cầu ngắt kết nối an toàn. |
-| **METADATA** | `0x06` | (Streaming) Chứa thông tin cột, schema của kết quả. |
-| **ROW** | `0x07` | (Streaming) Chứa dữ liệu của một bản ghi (Object). |
-| **FETCH_DONE**| `0x08` | (Streaming) Đánh dấu kết thúc dòng dữ liệu. |
-
----
-
-## 3. Quy trình Truyền tin Dòng (Row-based Streaming)
-
-Đây là cải tiến quan trọng trong phiên bản Level 2, cho phép Client hiển thị dữ liệu ngay lập tức mà không cần đợi Server xử lý xong toàn bộ hàng triệu bản ghi.
-
-### Sơ đồ Sequence:
-
-```mermaid
-sequenceDiagram
-    participant Client
-    participant Server
-    
-    Client->>Server: QUERY "SELECT * FROM Person;"
-    Note over Server: Thực thi truy vấn...
-    Server->>Client: METADATA { "Columns": ["name", "age"] }
-    Server->>Client: ROW { "name": "An", "age": 20 }
-    Server->>Client: ROW { "name": "Binh", "age": 22 }
-    Note over Server: ... n rows ...
-    Server->>Client: FETCH_DONE { "executionTime": 0.05 }
-    Server->>Client: RESULT { "success": true, "count": 2 }
-```
-
-1.  **Giai đoạn Khởi tạo**: Server nhận lệnh `SELECT`.
-2.  **Giai đoạn Metadata**: Server gửi Header của bảng để Client chuẩn bị giao diện (tạo cột).
-3.  **Giai đoạn Streaming**: Từng bản ghi được đóng gói vào Message `ROW` và đẩy xuống Host.
-4.  **Giai đoạn Kết thúc**: Server gửi `FETCH_DONE` để Client biết đã nhận đủ, sau đó gửi `RESULT` để đồng bộ trạng thái cuối cùng.
-
----
-
-## 4. Đặc tả Payload (Payload Specification)
-
-Hiện tại, Payload mặc định sử dụng định dạng **JSON** để tối ưu hóa sự linh hoạt trong quá trình phát triển (v1.x). 
-
-### Ví dụ Payload ROW:
-```json
-{
-  "name": "Gemini",
-  "role": "Assistant",
-  "score": 9.5
-}
-```
-
-### Hướng phát triển (Roadmap):
-Trong tương lai, trường `Payload Type` có thể được thêm vào Header để hỗ trợ **Google Protocol Buffers (Protobuf)**, giúp giảm 60-80% dung lượng băng thông so với JSON.
-
----
-
-## 5. Xử lý Lỗi (Error Handling)
-
-Khi có lỗi xảy ra, Server sẽ gửi thông điệp loại `ERROR` với Payload có cấu trúc:
-
-```json
-{
-  "error": "Mô tả chi tiết lỗi",
-  "code": "PARSER_ERROR | RUNTIME_ERROR | AUTH_ERROR",
-  "query": "Nội dung câu lệnh gây lỗi (nếu có)"
-}
-```
-
-Client khi nhận được `ERROR` sẽ dừng việc streaming và hiển thị thông báo đỏ trên CLI/UI.
+## 5. Unified Tabular Response
+Toàn bộ các lệnh mang tính chất liệt kê hoặc mô tả (SHOW, DESCRIBE, EXPLAIN) đều được quy chuẩn về định dạng bảng (`QueryResultSet`) để tận dụng tối đa luồng Streaming và giúp Client hiển thị dữ liệu một cách đồng nhất.
