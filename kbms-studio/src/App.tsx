@@ -1,0 +1,56 @@
+import Layout from './components/Layout';
+import ConnectModal from './components/ConnectModal';
+import { useKbmsStore } from './store/kbmsStore';
+
+import { useEffect } from 'react';
+import { ErrorBoundary } from './components/ErrorBoundary';
+
+function App() {
+  const isConnectModalOpen = useKbmsStore(state => state.isConnectModalOpen);
+  const setStatus = useKbmsStore(state => state.setStatus);
+
+  useEffect(() => {
+    // @ts-ignore
+    window.kbmsApi.onStatusChange((status: any) => {
+      console.log("(App) Connection status changed:", status);
+      setStatus(status);
+    });
+
+    // Recover status on startup
+    // @ts-ignore
+    window.kbmsApi.getStatus().then((res: any) => {
+      if (res && res.status === 'connected') {
+        console.log("(App) Recovered active connection from backend");
+        setStatus('connected');
+        useKbmsStore.getState().fetchMetadata();
+      }
+    });
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMac = navigator.userAgent.indexOf('Mac') > -1;
+      const isCmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
+      if (isCmdOrCtrl && e.key.toLowerCase() === 'r') {
+        e.preventDefault();
+        console.log("(App) Intercepted Reload shortcut. Fetching metadata...");
+        useKbmsStore.getState().fetchMetadata();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [setStatus]);
+
+  return (
+    <ErrorBoundary>
+      <div className="h-screen w-screen overflow-hidden bg-slate-50 font-sans text-slate-800 flex flex-col antialiased relative">
+        <Layout />
+        {isConnectModalOpen && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/20 backdrop-blur-[2px] animate-in fade-in duration-200">
+            <ConnectModal />
+          </div>
+        )}
+      </div>
+    </ErrorBoundary>
+  );
+}
+
+export default App;

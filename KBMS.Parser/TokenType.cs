@@ -39,6 +39,7 @@ public enum TokenType
     OPERATORS,      // OPERATORS
     FUNCTIONS,      // FUNCTIONS
     USERS,          // USERS
+    HIERARCHIES,    // HIERARCHIES
 
     // Keywords - DML/KML
     SELECT,         // SELECT

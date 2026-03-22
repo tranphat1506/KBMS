@@ -10,7 +10,12 @@ namespace KBMS.Parser.Ast.Kql;
 public class SelectNode : KmlNode
 {
     /// <summary>
-    /// Concept name to select from
+    /// Type of entity to select from (CONCEPT, RELATION, RULE, etc.)
+    /// </summary>
+    public string TargetType { get; set; } = "CONCEPT";
+
+    /// <summary>
+    /// Concept name to select from (stores entity name or system.table)
     /// </summary>
     public string ConceptName { get; set; } = string.Empty;
 

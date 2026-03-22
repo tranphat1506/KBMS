@@ -139,8 +139,15 @@ public class Parser
             TokenType.USER => ParseCreateUser(),
             TokenType.INDEX => ParseCreateIndex(),
             TokenType.TRIGGER => ParseCreateTrigger(),
+            TokenType.HIERARCHY => ParseCreateHierarchy(),
             _ => throw new ParserException($"Unexpected token after CREATE: {token.Lexeme}", token.Line, token.Column)
         };
+    }
+
+    // CREATE HIERARCHY is an alias for ADD HIERARCHY
+    private AddHierarchyNode ParseCreateHierarchy()
+    {
+        return ParseAddHierarchy();
     }
 
     private AstNode ParseAlter()
@@ -1060,7 +1067,8 @@ public class Parser
         else if (typeStr == "KB") {
             // Valid
         }
-        else if (typeStr == "CONCEPT" || typeStr == "RULE") {
+        else if (typeStr == "CONCEPT" || typeStr == "RULE" || typeStr == "HIERARCHY" || 
+                 typeStr == "RELATION" || typeStr == "FUNCTION" || typeStr == "OPERATOR") {
             // Valid
         }
         else {
@@ -1649,9 +1657,27 @@ public class Parser
         if (Check(TokenType.FROM))
         {
             Consume(TokenType.FROM);
-            var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected concept name");
-            node.ConceptName = conceptToken.Lexeme;
 
+            // Handle SELECT * FROM <ENTITY> <NAME>
+            if (Check(TokenType.CONCEPT) || Check(TokenType.RELATION) || Check(TokenType.RULE) || 
+                Check(TokenType.HIERARCHY) || Check(TokenType.OPERATOR) || Check(TokenType.FUNCTION))
+            {
+                var entityTypeToken = Advance()!;
+                node.TargetType = entityTypeToken.Type.ToString();
+                
+                // For HIERARCHY, the name might be an identifier or a string, 
+                // but let's assume IDENTIFIER for consistency with other entities.
+                var nameToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException($"Expected {node.TargetType} name");
+                node.ConceptName = nameToken.Lexeme;
+            }
+            else
+            {
+                var nameToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected concept name or entity type after FROM");
+                node.ConceptName = nameToken.Lexeme;
+                node.TargetType = "CONCEPT"; // Default if not specified
+            }
+
+            // Handle dots (e.g., system.concepts or Concept.variables)
             if (Check(TokenType.DOT))
             {
                 Consume(TokenType.DOT);
@@ -2084,6 +2110,18 @@ public class Parser
             {
                 var ruleTypeToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected rule type");
                 node.RuleType = ruleTypeToken.Lexeme.ToLower();
+            }
+        }
+        else if (Peek()?.Type == TokenType.HIERARCHIES)
+        {
+            Consume(TokenType.HIERARCHIES);
+            node.ShowType = ShowType.Hierarchies;
+            node.Type = "SHOW_HIERARCHIES";
+
+            if (Check(TokenType.IN))
+            {
+                var kbToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected knowledge base name");
+                node.KbName = kbToken.Lexeme;
             }
         }
         else if (Peek()?.Type == TokenType.RELATIONS)

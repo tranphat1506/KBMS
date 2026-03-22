@@ -1,75 +1,73 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using KBMS.Models;
 using KBMS.Network;
 using KBMS.Parser;
 using KBMS.Parser.Ast;
 using KBMS.Parser.Ast.Kdl;
-using KBMS.Parser.Ast.Kml;
+using KBMS.Parser.Ast.Kql;
 using KBMS.Storage;
-using KBMS.Models;
 using KBMS.Knowledge;
 
 namespace KBMS.Server;
 
 public class KbmsServer
 {
-    private readonly string _host;
     private readonly int _port;
-    private readonly AuthenticationManager _authManager;
+    private readonly string _host;
     private readonly ConnectionManager _connectionManager;
+    private readonly AuthenticationManager _authManager;
     private readonly KnowledgeManager _knowledgeManager;
-    private readonly StorageEngine _storage;
     private readonly Logger _logger;
-    private TcpListener? _listener;
     private bool _isRunning;
-    
+
     private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
     {
         Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
     };
 
-    private static string ToJson(object obj)
+    public KbmsServer() : this("127.0.0.1", 3307, new StorageEngine("data", "kbms_encryption_key"))
     {
-        return JsonSerializer.Serialize(obj, _jsonOptions);
     }
 
-    public KbmsServer(
-        string host = "0.0.0.0",
-        int port = 3307,
-        StorageEngine? storage = null)
+    public KbmsServer(string host, int port, StorageEngine storage)
     {
         _host = host;
         _port = port;
-        _storage = storage ?? new StorageEngine("data", "kbms_encryption_key");
-        _logger = new Logger(LogLevel.Info);
-        _authManager = new AuthenticationManager(_storage);
+        _logger = new Logger();
         _connectionManager = new ConnectionManager();
-        _knowledgeManager = new KnowledgeManager(_storage);
+        _authManager = new AuthenticationManager(storage);
+        _knowledgeManager = new KnowledgeManager(storage);
+        _isRunning = false;
     }
 
     public async Task StartAsync()
     {
         var ipAddress = ResolveHost(_host);
-        _listener = new TcpListener(ipAddress, _port);
-        _listener.Start();
+        var listener = new TcpListener(ipAddress, _port);
+        listener.Start();
         _isRunning = true;
 
-        _logger.Info("SERVER", $"KBMS Server started on {_host}:{_port}");
+        _logger.Info("System", $"KBMS Server started on {_host}:{_port}");
 
         while (_isRunning)
         {
             try
             {
-                var client = await _listener.AcceptTcpClientAsync();
+                var client = await listener.AcceptTcpClientAsync();
                 _ = HandleClientAsync(client);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error accepting connection: {ex.Message}");
+                _logger.Error("System", $"Accept error: {ex.Message}");
             }
         }
     }
@@ -77,185 +75,135 @@ public class KbmsServer
     public void Stop()
     {
         _isRunning = false;
-        _listener?.Stop();
     }
-
-    public bool IsRunning => _isRunning && _listener != null;
 
     private async Task HandleClientAsync(TcpClient client)
     {
         var clientId = GenerateClientId();
+        _connectionManager.CreateSession(clientId);
+        _logger.Info(clientId, "New connection established");
 
+        using var stream = client.GetStream();
         try
         {
-            var session = _connectionManager.CreateSession(clientId);
-            _logger.Info(session.SessionId, $"Client connected from {client.Client?.RemoteEndPoint}");
-
-            using var stream = client.GetStream();
-
             while (client.Connected)
             {
                 var message = await Protocol.ReceiveMessageAsync(stream);
-                if (message == null)
-                {
-                    _logger.Info(clientId, "Client disconnected gracefully");
-                    break;
-                }
+                if (message == null) break;
 
-                _connectionManager.UpdateActivity(clientId);
-
-                var responses = await ProcessMessageAsync(message, clientId, stream);
-                foreach (var response in responses)
-                {
-                    await Protocol.SendMessageAsync(stream, response);
-                }
+                await ProcessMessageAsync(message, clientId, stream);
             }
-        }
-        catch (IOException)
-        {
-            _logger.Info(clientId, "Client disconnected: Connection lost");
         }
         catch (Exception ex)
         {
-            _logger.Error(clientId, $"Client error: {ex.Message}", ex);
+            _logger.Error(clientId, $"Client error: {ex.Message}");
         }
         finally
         {
             _connectionManager.RemoveSession(clientId);
-            client.Close();
-            _logger.Info(clientId, "Client disconnected");
+            _logger.Info(clientId, "Connection closed");
         }
     }
 
-    private async Task<IEnumerable<Message>> ProcessMessageAsync(Message message, string clientId, Stream stream)
+    private async Task ProcessMessageAsync(Message message, string clientId, Stream stream)
     {
-        try
+        switch (message.Type)
         {
-            var user = _connectionManager.GetCurrentUser(clientId);
-            var username = user?.Username;
-
-            switch (message.Type)
-            {
-                case MessageType.LOGIN:
-                    return new[] { HandleLogin(message, clientId) };
-
-                case MessageType.QUERY:
-                    return await HandleQueryAsync(message, clientId, stream);
-
-                case MessageType.LOGOUT:
-                    return new[] { HandleLogout(message, clientId) };
-
-                default:
-                    return new[] { new Message
-                    {
-                        Type = MessageType.ERROR,
-                        Content = ToJson(ErrorResponse.RuntimeErrorResponse(new Exception($"Unknown message type: {message.Type}"), ""))
-                    } };
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(clientId, $"ProcessMessage error: {ex.Message}", ex);
-            return new[] { new Message
-            {
-                Type = MessageType.ERROR,
-                Content = ToJson(ErrorResponse.RuntimeErrorResponse(ex, ""))
-            } };
+            case MessageType.LOGIN:
+                _logger.Info(clientId, "REQUEST: LOGIN");
+                var loginResponse = HandleLogin(message, clientId);
+                await Protocol.SendMessageAsync(stream, loginResponse);
+                _logger.Info(clientId, $"RESPONSE: {loginResponse.Type} (Content: {loginResponse.Content})");
+                break;
+            case MessageType.QUERY:
+                _logger.LogRequest(clientId, message.Content, _connectionManager.GetCurrentUser(clientId)?.Username);
+                await HandleQueryAsync(message, clientId, stream);
+                break;
+            case MessageType.LOGOUT:
+                _logger.Info(clientId, "REQUEST: LOGOUT");
+                var logoutResponse = HandleLogout(message, clientId);
+                await Protocol.SendMessageAsync(stream, logoutResponse);
+                break;
+            default:
+                await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.ERROR, Content = "Unknown message type" });
+                break;
         }
     }
 
     private Message HandleLogin(Message message, string clientId)
     {
-        var content = message.Content.Trim();
-
-        // Remove "LOGIN" prefix if present
-        if (content.StartsWith("LOGIN ", StringComparison.OrdinalIgnoreCase))
-        {
-            content = content.Substring(6).Trim();
-        }
-
-        _logger.LogRequest(clientId, message.Type.ToString());
-
-        var parts = content.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length < 2)
-        {
-            return new Message
-            {
-                Type = MessageType.ERROR,
-                Content = ToJson(ErrorResponse.AuthenticationErrorResponse("Invalid login format. Usage: LOGIN <username> <password>"))
-            };
-        }
-
-        var username = parts[0];
-        var password = parts[1];
-
-        var user = _authManager.Login(username, password);
-
-        if (user == null)
-        {
-            return new Message
-            {
-                Type = MessageType.ERROR,
-                Content = ToJson(ErrorResponse.AuthenticationErrorResponse("Invalid credentials"))
-            };
-        }
-
-        _connectionManager.SetSessionUser(clientId, user);
-
-        var session = _connectionManager.GetSession(clientId);
-        return new Message
-        {
-            Type = MessageType.RESULT,
-            Content = $"LOGIN_SUCCESS:{user.Username}:{user.Role}:{session?.SessionId}"
-        };
-    }
-
-    private async Task<IEnumerable<Message>> HandleQueryAsync(Message message, string clientId, Stream stream)
-    {
-        var user = _connectionManager.GetCurrentUser(clientId);
-        if (user == null)
-        {
-            return new[] { new Message
-            {
-                Type = MessageType.ERROR,
-                Content = ToJson(ErrorResponse.AuthenticationErrorResponse("Not authenticated. Please login first."))
-            } };
-        }
-
-        _logger.LogRequest(clientId, message.Content, user?.Username);
-
-        var currentKb = _connectionManager.GetCurrentKb(clientId);
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-
         try
         {
+            var content = message.Content;
+            if (string.IsNullOrEmpty(content) || !content.StartsWith("LOGIN "))
+            {
+                return new Message { Type = MessageType.ERROR, Content = "Invalid login format. Use: LOGIN user password" };
+            }
+
+            var parts = content.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 3)
+            {
+                return new Message { Type = MessageType.ERROR, Content = "Missing username or password" };
+            }
+
+            var username = parts[1];
+            var password = parts[2];
+
+            var user = _authManager.Login(username, password);
+            if (user == null)
+            {
+                return new Message { Type = MessageType.ERROR, Content = "Invalid credentials" };
+            }
+
+            _connectionManager.SetSessionUser(clientId, user);
+            var session = _connectionManager.GetSession(clientId);
+            
+            return new Message
+            {
+                Type = MessageType.RESULT,
+                Content = $"LOGIN_SUCCESS:{user.Username}:{user.Role}:{session?.SessionId}"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new Message { Type = MessageType.ERROR, Content = $"Login error: {ex.Message}" };
+        }
+    }
+
+    private async Task HandleQueryAsync(Message message, string clientId, Stream stream)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        int statementsExecuted = 0;
+        
+        try
+        {
+            var user = _connectionManager.GetCurrentUser(clientId);
+            if (user == null)
+            {
+                await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.ERROR, Content = ToJson(new { error = "Not logged in" }) });
+                return; 
+            }
+
+            var currentKb = _connectionManager.GetCurrentKb(clientId);
             var parser = new KBMS.Parser.Parser(message.Content);
             var asts = parser.ParseAll();
 
-            if (asts.Count == 0)
+            if (!asts.Any())
             {
-                return new[] { 
-                    new Message
-                    {
-                        Type = MessageType.RESULT,
-                        Content = ToJson(new { message = "Empty query or comments ignored." })
-                    },
-                    new Message
-                    {
-                        Type = MessageType.FETCH_DONE,
-                        Content = ToJson(new { statementsExecuted = 0, executionTime = 0.0 })
-                    }
-                };
+                await Protocol.SendMessageAsync(stream, new Message 
+                { 
+                    Type = MessageType.RESULT, 
+                    Content = ToJson(new { message = "Empty query or comments ignored." }) 
+                });
+                return;
             }
 
-            int statementsExecuted = 0;
             foreach (var ast in asts)
             {
                 try
                 {
                     var result = _knowledgeManager.Execute(ast, user, currentKb);
                     
-                    // (Phase 7) Tabular Unification: Stream ALL QueryResultSet results
                     if (result is QueryResultSet qrs && qrs.Success)
                     {
                         var columns = qrs.Columns.Count > 0 ? qrs.Columns : (qrs.Objects.Count > 0 ? qrs.Objects[0].Values.Keys.ToList() : new List<string>());
@@ -276,11 +224,9 @@ public class KbmsServer
                             widths[col] = Math.Min(maxWidth, maxColWidthAllowed);
                         }
 
-                        // 1. Send METADATA (even if no rows)
                         var metadata = new { qrs.ConceptName, qrs.Count, Columns = columns, Widths = widths };
                         await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.METADATA, Content = ToJson(metadata) });
 
-                        // 2. Send each ROW
                         foreach (var obj in qrs.Objects)
                         {
                             await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.ROW, Content = ToJson(obj.Values) });
@@ -300,60 +246,47 @@ public class KbmsServer
                 catch (Exception ex)
                 {
                     await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.ERROR, Content = ToJson(ErrorResponse.RuntimeErrorResponse(ex, ast.ToString() ?? "")) });
-                    return Array.Empty<Message>(); // Stop executing further statements in this batch, and DO NOT send FETCH_DONE.
+                    break; 
                 }
             }
-
-            stopwatch.Stop();
-            var elapsedSec = stopwatch.ElapsedMilliseconds / 1000.0;
-
-            // Send standard FETCH_DONE at the end of all results
-            await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.FETCH_DONE, Content = ToJson(new { statementsExecuted, executionTime = elapsedSec }) });
-
-            return Array.Empty<Message>();
         }
         catch (ParserException ex)
         {
-            return new[] { new Message { Type = MessageType.ERROR, Content = ToJson(ErrorResponse.ParserErrorResponse(ex, message.Content)) } };
+            await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.ERROR, Content = ToJson(ErrorResponse.ParserErrorResponse(ex, message.Content)) });
         }
         catch (Exception ex)
         {
             _logger.Error(clientId, $"HandleQuery error: {ex.Message}", ex);
-            return new[] { new Message { Type = MessageType.ERROR, Content = ToJson(ErrorResponse.RuntimeErrorResponse(ex, message.Content)) } };
+            await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.ERROR, Content = ToJson(ErrorResponse.RuntimeErrorResponse(ex, message.Content)) });
+        }
+        finally
+        {
+            stopwatch.Stop();
+            var elapsedSec = stopwatch.ElapsedMilliseconds / 1000.0;
+            var fetchDoneJson = ToJson(new { statementsExecuted, executionTime = elapsedSec });
+            await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.FETCH_DONE, Content = fetchDoneJson });
+            _logger.Info(clientId, $"RESPONSE: FETCH_DONE ({fetchDoneJson})");
         }
     }
+
     private Message HandleLogout(Message message, string clientId)
     {
         _connectionManager.SetSessionUser(clientId, null);
         return new Message { Type = MessageType.RESULT, Content = "LOGOUT_SUCCESS" };
     }
 
+    private string ToJson(object obj) => JsonSerializer.Serialize(obj, _jsonOptions);
+
     private string GenerateClientId()
     {
-        var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        var random = Guid.NewGuid().ToString("N")[..8];
-        return $"conn_{timestamp}_{random}";
+        return $"conn_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}_{Guid.NewGuid().ToString("N")[..8]}";
     }
 
     private IPAddress ResolveHost(string host)
     {
-        // Handle special cases
-        if (host == "localhost" || host == "127.0.0.1")
-        {
-            return IPAddress.Loopback;
-        }
-        if (host == "0.0.0.0")
-        {
-            return IPAddress.Any;
-        }
-
-        // Try to parse as IP address first
-        if (IPAddress.TryParse(host, out var ipAddress))
-        {
-            return ipAddress;
-        }
-
-        // Resolve hostname via DNS
+        if (host == "localhost" || host == "127.0.0.1") return IPAddress.Loopback;
+        if (host == "0.0.0.0") return IPAddress.Any;
+        if (IPAddress.TryParse(host, out var ip)) return ip;
         var addresses = System.Net.Dns.GetHostAddresses(host);
         return addresses.FirstOrDefault() ?? IPAddress.Any;
     }

@@ -169,6 +169,7 @@ public class KnowledgeManager
 
             // DDL - Hierarchy
             "ADD_HIERARCHY" => HandleAddHierarchy((AddHierarchyNode)ast, kbName!),
+            "CREATE_HIERARCHY" => HandleAddHierarchy((AddHierarchyNode)ast, kbName!),
             "REMOVE_HIERARCHY" => HandleRemoveHierarchy((RemoveHierarchyNode)ast, kbName!),
 
             // DDL - Relation
@@ -1822,6 +1823,83 @@ public class KnowledgeManager
                     }
                 });
                 qrs.Count = qrs.Objects.Count;
+                return qrs;
+            }
+            case "HIERARCHY":
+            {
+                var hiers = _storage.ListHierarchies(kbName);
+                // TargetName format "Parent:Child"
+                var parts = node.TargetName.Split(':');
+                var h = parts.Length == 2 
+                    ? hiers.FirstOrDefault(x => x.ParentConcept.Equals(parts[0], StringComparison.OrdinalIgnoreCase) && x.ChildConcept.Equals(parts[1], StringComparison.OrdinalIgnoreCase))
+                    : hiers.FirstOrDefault(x => (x.ParentConcept + " → " + x.ChildConcept).Equals(node.TargetName, StringComparison.OrdinalIgnoreCase));
+
+                if (h == null) return new { error = $"Hierarchy '{node.TargetName}' not found." };
+
+                var qrs = new QueryResultSet { ConceptName = "Describe_Hierarchy", Success = true };
+                qrs.Objects.Add(new ObjectInstance {
+                    Values = new Dictionary<string, object> {
+                        { "Parent", h.ParentConcept },
+                        { "Child", h.ChildConcept },
+                        { "Relationship", h.HierarchyType.ToString() }
+                    }
+                });
+                qrs.Count = 1;
+                return qrs;
+            }
+            case "RELATION":
+            {
+                var rels = _storage.ListRelations(kbName);
+                var r = rels.FirstOrDefault(x => x.Name.Equals(node.TargetName, StringComparison.OrdinalIgnoreCase));
+                if (r == null) return new { error = $"Relation '{node.TargetName}' not found." };
+
+                var qrs = new QueryResultSet { ConceptName = "Describe_Relation", Success = true };
+                qrs.Objects.Add(new ObjectInstance {
+                    Values = new Dictionary<string, object> {
+                        { "Relation Name", r.Name },
+                        { "Domain", r.Domain },
+                        { "Range", r.Range },
+                        { "Params", string.Join(", ", r.ParamNames) },
+                        { "Properties", string.Join(", ", r.Properties) }
+                    }
+                });
+                qrs.Count = 1;
+                return qrs;
+            }
+            case "FUNCTION":
+            {
+                var funcs = _storage.ListFunctions(kbName);
+                var f = funcs.FirstOrDefault(x => x.Name.Equals(node.TargetName, StringComparison.OrdinalIgnoreCase));
+                if (f == null) return new { error = $"Function '{node.TargetName}' not found." };
+
+                var qrs = new QueryResultSet { ConceptName = "Describe_Function", Success = true };
+                qrs.Objects.Add(new ObjectInstance {
+                    Values = new Dictionary<string, object> {
+                        { "Function Name", f.Name },
+                        { "Parameters", string.Join(", ", f.Parameters.Select(p => $"{p.Name}: {p.Type}")) },
+                        { "Return Type", f.ReturnType },
+                        { "Properties", string.Join(", ", f.Properties) }
+                    }
+                });
+                qrs.Count = 1;
+                return qrs;
+            }
+            case "OPERATOR":
+            {
+                var ops = _storage.ListOperators(kbName);
+                var o = ops.FirstOrDefault(x => x.Symbol.Equals(node.TargetName, StringComparison.OrdinalIgnoreCase));
+                if (o == null) return new { error = $"Operator '{node.TargetName}' not found." };
+
+                var qrs = new QueryResultSet { ConceptName = "Describe_Operator", Success = true };
+                qrs.Objects.Add(new ObjectInstance {
+                    Values = new Dictionary<string, object> {
+                        { "Operator Symbol", o.Symbol },
+                        { "Param Types", string.Join(", ", o.ParamTypes) },
+                        { "Return Type", o.ReturnType },
+                        { "Properties", string.Join(", ", o.Properties) }
+                    }
+                });
+                qrs.Count = 1;
                 return qrs;
             }
             default:

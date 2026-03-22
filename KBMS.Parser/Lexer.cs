@@ -101,6 +101,7 @@ public class Lexer
 
         // Hierarchy Keywords
         { "HIERARCHY", TokenType.HIERARCHY },
+        { "HIERARCHIES", TokenType.HIERARCHIES },
         { "IS_A", TokenType.IS_A },
         { "PART_OF", TokenType.PART_OF },
 
