@@ -27,10 +27,10 @@ function createWindow() {
   // Call API Backend Setup
   kbmsClient.setWindow(win);
 
-  ipcMain.handle('kbms:execute', async (_, query) => {
+  ipcMain.handle('kbms:execute', async (_, query, isBackground: boolean = false, requestId?: string) => {
      try {
-       console.log('Execute called from UI:', query);
-       const result = await kbmsClient.execute(query);
+       console.log('Execute called from UI:', query, isBackground ? '(Background)' : '', requestId ? `[Req: ${requestId}]` : '');
+       const result = await kbmsClient.execute(query, isBackground, requestId);
        console.log('[DEBUG] Execute result returned to UI:', JSON.stringify(result, null, 2));
        return result;
      } catch (err: any) {

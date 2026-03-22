@@ -70,7 +70,7 @@ namespace KBMS.Tests
             
             try 
             {
-                var error = new KBMS.Network.ErrorResponse
+                var error = new KBMS.Models.ErrorResponse
                 {
                     Type = "ParserError",
                     Message = "Unexpected token",

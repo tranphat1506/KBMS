@@ -41,7 +41,14 @@ export default function EditorPane() {
       // Execute: Alt + Enter
       if (e.altKey && e.key === 'Enter') {
         e.preventDefault();
-        execute();
+        let textToExecute = '';
+        if (editorInstance) {
+          const selection = editorInstance.getSelection();
+          if (selection && !selection.isEmpty()) {
+            textToExecute = editorInstance.getModel()?.getValueInRange(selection) || '';
+          }
+        }
+        execute(textToExecute || undefined);
       }
       // Stop: Alt + Space
       if (e.altKey && e.key === ' ') {
@@ -67,7 +74,7 @@ export default function EditorPane() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [execute, stopExecution, saveTab, openTab, addTab, isMac]);
+  }, [execute, stopExecution, saveTab, openTab, addTab, isMac, editorInstance]);
 
   // Apply server error markers (red squiggles) to the Monaco editor
   useEffect(() => {
@@ -228,7 +235,16 @@ export default function EditorPane() {
       {/* Inline Editor Toolbar */}
       <div className="h-8 bg-white border-b border-slate-100 flex items-center px-3 justify-between space-x-3 text-[11px] text-slate-500 font-normal select-none shadow-[0_1px_2px_rgba(0,0,0,0.01)] z-10">
          <div className="flex items-center space-x-3">
-           <button title={`Execute (${alt} + Enter)`} onClick={() => execute()} className="flex items-center hover:text-emerald-700 hover:bg-emerald-50 px-1.5 py-1 rounded space-x-1 cursor-pointer transition-colors group">
+           <button title={`Execute (${alt} + Enter)`} onClick={() => {
+              let textToExecute = '';
+              if (editorInstance) {
+                const selection = editorInstance.getSelection();
+                if (selection && !selection.isEmpty()) {
+                  textToExecute = editorInstance.getModel()?.getValueInRange(selection) || '';
+                }
+              }
+              execute(textToExecute || undefined);
+           }} className="flex items-center hover:text-emerald-700 hover:bg-emerald-50 px-1.5 py-1 rounded space-x-1 cursor-pointer transition-colors group">
               <PlayCircle className="w-3.5 h-3.5 text-emerald-500 group-hover:text-emerald-600" />
               <span className="font-medium text-emerald-700">Execute Session</span>
            </button>

@@ -1,0 +1,9 @@
+
+> kbms-studio@0.0.0 build
+> tsc -b && vite build
+
+src/App.tsx(36,14): error TS2339: Property 'kbmsApi' does not exist on type 'Window & typeof globalThis'.
+src/components/StatusBar.tsx(30,43): error TS2339: Property 'messages' does not exist on type 'any[]'.
+src/components/StatusBar.tsx(32,22): error TS2339: Property 'messages' does not exist on type 'any[]'.
+src/components/StatusBar.tsx(43,26): error TS2339: Property 'executionTimeMs' does not exist on type 'any[]'.
+src/components/StatusBar.tsx(43,75): error TS2339: Property 'executionTimeMs' does not exist on type 'any[]'.

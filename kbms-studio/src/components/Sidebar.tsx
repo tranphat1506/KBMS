@@ -218,7 +218,7 @@ export default function Sidebar() {
                                   <div
                                     onClick={() => {
                                       toggle(`concept-${i}`);
-                                      execute(`DESCRIBE (CONCEPT : ${concept.Name});`, true, concept.Name);
+                                      execute(`DESCRIBE (CONCEPT : ${concept.Name});`, { isDescribe: true, targetName: concept.Name, isBackground: true });
                                     }}
                                     onContextMenu={(e) => handleContextMenu(e, concept)}
                                     className="flex items-center space-x-1.5 p-1 pl-2.5 hover:bg-emerald-50 rounded cursor-pointer group relative transition-colors"
@@ -257,7 +257,7 @@ export default function Sidebar() {
 
                                             return (
                                               <li key={hi} className="flex flex-col space-y-0.5 py-0.5">
-                                                <span className="font-bold text-[9px] text-slate-400 uppercase tracking-tighter">{h}</span>
+                                                <span className="font-bold text-[9px] text-slate-400 tracking-tighter">{h}</span>
                                                 <span className="pl-1 text-slate-600 break-words">{String(val)}</span>
                                               </li>
                                             );
@@ -290,19 +290,19 @@ export default function Sidebar() {
                         <div className="overflow-hidden">
                           <ul className="pl-4 mt-0.5 space-y-0.5 border-l border-slate-200/80 ml-[6px] pb-1">
                             {metadata.hierarchies.length === 0 ? <li className="pl-3 py-1 text-slate-400 text-[11px] italic">Empty</li> :
-                              metadata.hierarchies.map((h, i) => {
-                                const key = `${h.Parent}:${h.Child}`;
-                                return (
-                                  <li key={i}>
-                                    <div
-                                      onClick={() => {
-                                        toggle(`hierarchy-${i}`);
-                                        if (h?.Parent && h?.Child) execute(`DESCRIBE (HIERARCHY : ${key});`, true, key);
-                                      }}
-                                      className="flex items-center space-x-2 p-1 pl-2.5 hover:bg-emerald-50 rounded text-slate-600 transition-colors cursor-pointer"
-                                    >
-                                      <span className="truncate text-[11px]">{h?.Parent || '?'} → {h?.Child || '?'}</span>
-                                    </div>
+                                metadata.hierarchies.map((h, i) => {
+                                  const key = `${h.ParentConcept || '?'}:${h.ChildConcept || '?'}`;
+                                  return (
+                                    <li key={i}>
+                                      <div
+                                        onClick={() => {
+                                          toggle(`hierarchy-${i}`);
+                                          if (h?.ParentConcept && h?.ChildConcept) execute(`DESCRIBE (HIERARCHY : ${key});`, { isDescribe: true, targetName: key, isBackground: true });
+                                        }}
+                                        className="flex items-center space-x-2 p-1 pl-2.5 hover:bg-emerald-50 rounded text-slate-600 transition-colors cursor-pointer"
+                                      >
+                                        <span className="truncate text-[11px]">{h?.ParentConcept || '?'} → {h?.ChildConcept || '?'}</span>
+                                      </div>
                                     <div className={`grid transition-all duration-200 ease-in-out ${expanded[`hierarchy-${i}`] ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                                       <div className="overflow-hidden">
                                         {metadataDetails[key.toLowerCase()] ? (
@@ -350,7 +350,7 @@ export default function Sidebar() {
                                   <div
                                     onClick={() => {
                                       toggle(`relation-${i}`);
-                                      execute(`DESCRIBE (RELATION : ${r.Name});`, true, r.Name);
+                                      execute(`DESCRIBE (RELATION : ${r.Name});`, { isDescribe: true, targetName: r.Name, isBackground: true });
                                     }}
                                     className="flex items-center space-x-2 p-1 pl-2.5 hover:bg-emerald-50 rounded text-slate-600 transition-colors cursor-pointer"
                                   >
@@ -405,7 +405,7 @@ export default function Sidebar() {
                                     <div
                                       onClick={() => {
                                         toggle(`rule-${i}`);
-                                        execute(`DESCRIBE (RULE : ${name});`, true, name);
+                                        execute(`DESCRIBE (RULE : ${name});`, { isDescribe: true, targetName: name, isBackground: true });
                                       }}
                                       className="flex items-center space-x-2 p-1 pl-2.5 hover:bg-emerald-50 rounded text-slate-600 transition-colors cursor-pointer"
                                     >
@@ -458,7 +458,7 @@ export default function Sidebar() {
                                   <div
                                     onClick={() => {
                                       toggle(`function-${i}`);
-                                      execute(`DESCRIBE (FUNCTION : ${f.Name});`, true, f.Name);
+                                      execute(`DESCRIBE (FUNCTION : ${f.Name});`, { isDescribe: true, targetName: f.Name, isBackground: true });
                                     }}
                                     className="flex items-center space-x-2 p-1 pl-2.5 hover:bg-emerald-50 rounded text-slate-600 transition-colors cursor-pointer"
                                   >
@@ -511,7 +511,7 @@ export default function Sidebar() {
                                   <div
                                     onClick={() => {
                                       toggle(`operator-${i}`);
-                                      execute(`DESCRIBE (OPERATOR : ${op.Symbol});`, true, op.Symbol);
+                                      execute(`DESCRIBE (OPERATOR : ${op.Symbol});`, { isDescribe: true, targetName: op.Symbol, isBackground: true });
                                     }}
                                     className="flex items-center space-x-2 p-1 pl-2.5 hover:bg-emerald-50 rounded text-slate-600 transition-colors cursor-pointer"
                                   >

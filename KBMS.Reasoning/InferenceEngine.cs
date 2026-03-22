@@ -690,7 +690,7 @@ public class InferenceEngine
         return MathNet.Numerics.SpecialFunctions.Factorial((int)n);
     }
 
-    private object EvaluateFormula(string formula, Dictionary<string, object> parameters, Action<string>? log = null)
+    public object EvaluateFormula(string formula, Dictionary<string, object> parameters, Action<string>? log = null)
     {
         if (string.IsNullOrWhiteSpace(formula)) 
         {
@@ -771,7 +771,7 @@ public class InferenceEngine
         return res;
     }
 
-    private object CastToVariableType(object? val, Models.Variable? variable)
+    public object CastToVariableType(object? val, Models.Variable? variable)
     {
         if (val == null || variable == null) return val ?? 0.0;
 

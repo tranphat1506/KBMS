@@ -197,12 +197,22 @@ public class KbmsServer
         var stopwatch = Stopwatch.StartNew();
         int statementsExecuted = 0;
         
+        // Use incoming RequestId if present, otherwise generate one
+        var requestId = string.IsNullOrEmpty(message.RequestId) 
+            ? $"req_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}_{Guid.NewGuid().ToString("N")[..6]}"
+            : message.RequestId;
+
         try
         {
             var user = _connectionManager.GetCurrentUser(clientId);
             if (user == null)
             {
-                await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.ERROR, Content = ToJson(new { error = "Not logged in" }) });
+                await Protocol.SendMessageAsync(stream, new Message 
+                { 
+                    Type = MessageType.ERROR, 
+                    RequestId = requestId,
+                    Content = ToJson(new { error = "Not logged in" }) 
+                });
                 return; 
             }
 
@@ -215,6 +225,7 @@ public class KbmsServer
                 await Protocol.SendMessageAsync(stream, new Message 
                 { 
                     Type = MessageType.RESULT, 
+                    RequestId = requestId,
                     Content = ToJson(new { message = "Empty query or comments ignored." }) 
                 });
                 return;
@@ -249,16 +260,56 @@ public class KbmsServer
                         }
 
                         var metadata = new { qrs.ConceptName, qrs.Count, Columns = columns, Widths = widths };
-                        await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.METADATA, Content = ToJson(metadata) });
+                        await Protocol.SendMessageAsync(stream, new Message 
+                        { 
+                            Type = MessageType.METADATA, 
+                            RequestId = requestId,
+                            Content = ToJson(metadata) 
+                        });
 
+                        var batch = new List<Dictionary<string, object?>>();
                         foreach (var obj in qrs.Objects)
                         {
-                            await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.ROW, Content = ToJson(obj.Values) });
+                            batch.Add(obj.Values);
+                            if (batch.Count >= 100)
+                            {
+                                await Protocol.SendMessageAsync(stream, new Message 
+                                { 
+                                    Type = MessageType.ROW, 
+                                    RequestId = requestId,
+                                    Content = ToJson(batch) 
+                                });
+                                batch.Clear();
+                            }
                         }
+                        
+                        if (batch.Count > 0)
+                        {
+                            await Protocol.SendMessageAsync(stream, new Message 
+                            { 
+                                Type = MessageType.ROW, 
+                                RequestId = requestId,
+                                Content = ToJson(batch) 
+                            });
+                        }
+                    }
+                    else if (result is ErrorResponse err)
+                    {
+                        await Protocol.SendMessageAsync(stream, new Message 
+                        { 
+                            Type = MessageType.ERROR, 
+                            RequestId = requestId,
+                            Content = ToJson(err) 
+                        });
                     }
                     else if (result != null)
                     {
-                        await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.RESULT, Content = ToJson(result) });
+                        await Protocol.SendMessageAsync(stream, new Message 
+                        { 
+                            Type = MessageType.RESULT, 
+                            RequestId = requestId,
+                            Content = ToJson(result) 
+                        });
                     }
 
                     if (ast is UseKbNode useNode)
@@ -269,27 +320,47 @@ public class KbmsServer
                 }
                 catch (Exception ex)
                 {
-                    await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.ERROR, Content = ToJson(ErrorResponse.RuntimeErrorResponse(ex, ast.ToString() ?? "")) });
+                    await Protocol.SendMessageAsync(stream, new Message 
+                    { 
+                        Type = MessageType.ERROR, 
+                        RequestId = requestId,
+                        Content = ToJson(ErrorResponse.RuntimeErrorResponse(ex, ast.ToString() ?? "")) 
+                    });
                     break; 
                 }
             }
         }
         catch (ParserException ex)
         {
-            await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.ERROR, Content = ToJson(ErrorResponse.ParserErrorResponse(ex, message.Content)) });
+            await Protocol.SendMessageAsync(stream, new Message 
+            { 
+                Type = MessageType.ERROR, 
+                RequestId = requestId,
+                Content = ToJson(ErrorResponse.ParserErrorResponse(ex.Message, message.Content, ex.Line, ex.Column)) 
+            });
         }
         catch (Exception ex)
         {
             _logger.Error(clientId, $"HandleQuery error: {ex.Message}", ex);
-            await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.ERROR, Content = ToJson(ErrorResponse.RuntimeErrorResponse(ex, message.Content)) });
+            await Protocol.SendMessageAsync(stream, new Message 
+            { 
+                Type = MessageType.ERROR, 
+                RequestId = requestId,
+                Content = ToJson(ErrorResponse.RuntimeErrorResponse(ex, message.Content)) 
+            });
         }
         finally
         {
             stopwatch.Stop();
             var elapsedSec = stopwatch.ElapsedMilliseconds / 1000.0;
             var fetchDoneJson = ToJson(new { statementsExecuted, executionTime = elapsedSec });
-            await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.FETCH_DONE, Content = fetchDoneJson });
-            _logger.Info(clientId, $"RESPONSE: FETCH_DONE ({fetchDoneJson})");
+            await Protocol.SendMessageAsync(stream, new Message 
+            { 
+                Type = MessageType.FETCH_DONE, 
+                RequestId = requestId,
+                Content = fetchDoneJson 
+            });
+            _logger.Info(clientId, $"RESPONSE: FETCH_DONE ({fetchDoneJson}) [Req: {requestId}]");
         }
     }
 

@@ -24,7 +24,7 @@ export interface KbmsState {
   tabs: QueryTab[];
   activeTabId: string;
   isExecuting: boolean;
-  result: any | null;
+  result: any[] | null;
   activeTab: 'results' | 'messages';
   metadata: {
     concepts: any[];
@@ -43,6 +43,7 @@ export interface KbmsState {
   lastDescribeResult: any | null;
   metadataDetails: Record<string, any>;
   editorMarkers: any[];
+  currentRequestId: string | null;
   setSelectedKb: (kb: string) => void;
   setConnectModalOpen: (v: boolean) => void;
   setQuery: (query: string) => void;
@@ -52,12 +53,13 @@ export interface KbmsState {
   setActiveTabId: (id: string) => void;
   saveTab: (id: string) => Promise<void>;
   openTab: () => Promise<void>;
-  execute: (query?: string, isDescribe?: boolean, targetName?: string) => Promise<void>;
+  execute: (query?: string, options?: { isDescribe?: boolean, targetName?: string, isBackground?: boolean }) => Promise<any>;
   stopExecution: () => void;
   fetchMetadata: () => Promise<void>;
   changeKnowledgeBase: (kb: string) => Promise<void>;
   connect: (host: string, port: number, user: string, pass: string, name?: string) => Promise<{ success: boolean, error?: string }>;
   disconnect: () => Promise<void>;
+  handleResultFragment: (fragment: any) => void;
   saveProfile: (p: ServerProfile) => void;
   deleteProfile: (id: string) => void;
   setStatus: (status: 'disconnected' | 'connecting' | 'connected' | 'error') => void;
@@ -134,6 +136,7 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
   lastError: null,
   lastDescribeResult: null,
   editorMarkers: [],
+  currentRequestId: null,
   metadataDetails: {},
   confirmDialog: {
     isOpen: false,
@@ -251,16 +254,15 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
       const res = await state.connect(state.lastCredentials.host, state.lastCredentials.port, state.lastCredentials.user, state.lastCredentials.pass);
       if (!res.success) {
         set({
-          result: { messages: [{ type: 'error', text: `Connection lost. Auto-reconnect failed: ${res.error}` }] },
+          result: [{ messages: [{ type: 'error', text: `Connection lost. Auto-reconnect failed: ${res.error}` }] }],
           activeTab: 'messages'
         });
         return;
       }
     }
 
-    set({ isExecuting: true, selectedKb: '' }); // Reset selection during change
-    // @ts-ignore
-    const res = await window.kbmsApi.execute(`USE ${kb};`);
+    // Use store execute for background USE query
+    const res = await get().execute(`USE ${kb};`, { isBackground: true });
     set({ isExecuting: false });
     const hasError = res && (res.error || (res.messages && res.messages.some((m: any) => 
         typeof m === 'string' ? m.toLowerCase().includes('error') : (m.type === 'error' || m.type === 'Error')
@@ -276,7 +278,7 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
       // Show error in results/messages pane
       set({
         selectedKb: '', // Revert to empty selection on error
-        result: res || { messages: [{ type: 'error', text: `Failed to use Knowledge Base: ${kb}` }] },
+        result: Array.isArray(res) ? res : [res || { messages: [{ type: 'error', text: `Failed to use Knowledge Base: ${kb}` }] }],
         activeTab: 'messages'
       });
     }
@@ -289,7 +291,7 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
     // Fetch Knowledge Bases (Always available)
     try {
       // @ts-ignore
-      const resKBs = await window.kbmsApi.execute("SHOW KNOWLEDGE BASES;");
+      const resKBs = await get().execute("SHOW KNOWLEDGE BASES;", { isBackground: true });
       if (resKBs && resKBs.rows) {
         const dbs = resKBs.rows.map((r: any) => r.Name || r.KnowledgeBase || r.Database).filter(Boolean);
         set((state) => ({ metadata: { ...state.metadata, databases: dbs } }));
@@ -312,7 +314,7 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
 
         for (const item of queries) {
           // @ts-ignore
-          const res = await window.kbmsApi.execute(item.q);
+          const res = await get().execute(item.q, { isBackground: true });
           if (res && res.rows) {
             set((state) => ({
               metadata: { ...state.metadata, [item.key]: res.rows }
@@ -395,17 +397,18 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
     });
   },
 
-  execute: async (query, isDescribe = false, targetName) => {
+  execute: async (query, options: { isDescribe?: boolean, targetName?: string, isBackground?: boolean } = {}) => {
     const { status } = get();
+    const { isDescribe = false, targetName, isBackground = false } = options;
 
     if (status !== 'connected') {
       set({
         isExecuting: false,
-        result: {
+        result: [{
           headers: ["Connection Required"],
           rows: [],
           messages: [{ type: 'error', text: "Not Connected: Please connect to a KBMS server before executing queries." }]
-        },
+        }],
         activeTab: 'messages',
         isConnectModalOpen: true
       });
@@ -416,14 +419,24 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
     const finalQuery = query || tab?.query || '';
     if (!finalQuery.trim()) return;
 
-    set({ isExecuting: true, activeTab: 'results' });
+    const requestId = isBackground ? null : `req_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+    if (!isBackground) {
+      set({ isExecuting: true, activeTab: 'results', result: [], currentRequestId: requestId }); 
+    } else {
+      // Do not set isExecuting for background queries to keep UI clean
+    }
 
     try {
       // @ts-ignore
-      const resData = await window.kbmsApi.execute(finalQuery);
+      const resData = await window.kbmsApi.execute(finalQuery, isBackground, requestId);
 
       const res = resData || { headers: [], rows: [], messages: [{ type: 'info', text: 'No response from server' }] };
 
+      // Update current query ID if it was returned or generated? 
+      // Actually, the electron client generates it and we'll get it via fragments.
+      // We can just keep it null here, or set it if resData has it.
+      
       const newState: Partial<KbmsState> = {
         isExecuting: false,
         lastError: null
@@ -440,7 +453,12 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
           console.warn(`[Store] Could not determine key for DESCRIBE result`, res);
         }
       } else {
-        newState.result = res;
+        // Find existing result for this batch and update it? 
+        // No, execute returns one final cumulative result, but we prefer the streaming ones.
+        // For compatibility, we'll store the final one as the last item or similar.
+        // But better is to just mark execution as finished.
+        // We rely on streaming (handleResultFragment) to populate get().result.
+        // We do not append resData here to avoid duplicates.
         newState.editorMarkers = res?.editorMarkers || [];
         const hasError = res && res.messages && res.messages.some((m: any) => 
             typeof m === 'string' ? m.toLowerCase().includes('error') : (m.type === 'error' || m.type === 'Error')
@@ -450,7 +468,7 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
       }
 
       set(newState);
-
+ 
       // Auto-intercept USE <KnowledgeBase>
       const useMatch = finalQuery.match(/USE\s+([a-zA-Z0-9_]+)\s*;/i);
       if (useMatch && (!res || !res.error || res.success)) {
@@ -461,11 +479,85 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
         });
         get().fetchMetadata();
       }
+      
+      return resData; // Return the data for callers like fetchMetadata
     } catch (e: any) {
+      const errRes = { messages: [{ type: 'error', text: e.message || 'Error occurred' }], rows: [], headers: [] };
       set({
         isExecuting: false,
-        result: { messages: [{ type: 'error', text: e.message || 'Error occurred' }], rows: [], headers: [] }
+        result: [errRes]
       });
+      return errRes;
     }
+  },
+
+  handleResultFragment: (f: any) => {
+    // Strictly hide ALL background queries from the result/message UI
+    if (f.isBackground) return; 
+    
+    const state = get();
+    
+    // Strictly filter by currentRequestId and skip background messages in ResultsPane
+    if (f.isBackground) {
+      console.log(`[Store] Skipping background fragment: ${f.type}`);
+      return;
+    }
+
+    if (state.currentRequestId && f.requestId !== state.currentRequestId) {
+      console.log(`[Store] Ignoring fragment for stale/different RequestId. Current: ${state.currentRequestId}, Fragment: ${f.requestId}`);
+      return;
+    }
+
+    let resultSets = [...(state.result || [])];
+
+    if (f.type === 'metadata') {
+      resultSets.push({
+        requestId: f.requestId,
+        ConceptName: f.metadata.ConceptName || f.metadata.conceptName || '',
+        headers: f.metadata.Columns || [],
+        rows: [],
+        messages: []
+      });
+    } else {
+      if (resultSets.length === 0) {
+        resultSets.push({ requestId: f.requestId, headers: [], rows: [], messages: [] });
+      }
+      
+      // Find the MOST RECENT result set with this requestId, because batch queries 
+      // can generate multiple result sets for the same requestId!
+      let current;
+      for (let i = resultSets.length - 1; i >= 0; i--) {
+        if (resultSets[i].requestId === f.requestId) {
+           current = resultSets[i];
+           break;
+        }
+      }
+      
+      if (!current) {
+         current = resultSets[resultSets.length - 1];
+      }
+
+      if (f.type === 'row') {
+        const rowData = f.row;
+        if (Array.isArray(rowData)) {
+           current.rows = [...(current.rows || []), ...rowData];
+        } else {
+           current.rows = [...(current.rows || []), rowData];
+        }
+      } else if (f.type === 'result' || f.type === 'error') {
+        current.messages = [...(current.messages || []), { type: f.type === 'error' ? 'error' : 'info', text: f.text || f.message || (f.type === 'error' ? 'Unknown error' : '') }];
+        if (f.markers) {
+          set({ editorMarkers: [...state.editorMarkers, ...f.markers] });
+        }
+      }
+    }
+
+    const hasTabularData = resultSets.some(r => r.headers?.length > 0);
+    const shouldSwitchToMessages = f.type === 'error' || resultSets.some(r => r.messages?.some((m: any) => m.type === 'error'));
+    
+    set({ 
+      result: resultSets, 
+      activeTab: (shouldSwitchToMessages) ? 'messages' : (hasTabularData ? 'results' : 'messages') 
+    });
   },
 }));

@@ -26,7 +26,7 @@ public class Protocol
         await stream.ReadAsync(typeByte, 0, 1);
         var type = (MessageType)typeByte[0];
 
-        // Read session ID length (2 bytes) - optional
+        // Read session ID length (2 bytes)
         var sessionIdLengthBytes = new byte[2];
         await stream.ReadAsync(sessionIdLengthBytes, 0, 2);
         var sessionIdLength = BitConverter.ToUInt16(sessionIdLengthBytes.Reverse().ToArray(), 0);
@@ -39,8 +39,21 @@ public class Protocol
             sessionId = Encoding.UTF8.GetString(sessionIdBytes);
         }
 
+        // Read request ID length (2 bytes) - NEW
+        var requestIdLengthBytes = new byte[2];
+        await stream.ReadAsync(requestIdLengthBytes, 0, 2);
+        var requestIdLength = BitConverter.ToUInt16(requestIdLengthBytes.Reverse().ToArray(), 0);
+
+        string? requestId = null;
+        if (requestIdLength > 0)
+        {
+            var requestIdBytes = new byte[requestIdLength];
+            await stream.ReadAsync(requestIdBytes, 0, requestIdLength);
+            requestId = Encoding.UTF8.GetString(requestIdBytes);
+        }
+
         // Read payload
-        var payloadLength = length - 2 - sessionIdLength;  // Subtract sessionIdLength field and sessionId bytes
+        var payloadLength = length - 2 - sessionIdLength - 2 - requestIdLength;
         var payloadBytes = new byte[payloadLength];
         var totalRead = 0;
         while (totalRead < payloadLength)
@@ -56,19 +69,26 @@ public class Protocol
         {
             Type = type,
             Content = content,
-            SessionId = sessionId
+            SessionId = sessionId,
+            RequestId = requestId
         };
     }
 
     public static async Task SendMessageAsync(Stream stream, Message message)
     {
         var contentBytes = Encoding.UTF8.GetBytes(message.Content);
+        
         var sessionIdBytes = string.IsNullOrEmpty(message.SessionId)
             ? Array.Empty<byte>()
             : Encoding.UTF8.GetBytes(message.SessionId);
-
         var sessionIdLength = (ushort)sessionIdBytes.Length;
-        var totalLength = contentBytes.Length + 2 + sessionIdBytes.Length;  // +2 for sessionIdLength field
+
+        var requestIdBytes = string.IsNullOrEmpty(message.RequestId)
+            ? Array.Empty<byte>()
+            : Encoding.UTF8.GetBytes(message.RequestId);
+        var requestIdLength = (ushort)requestIdBytes.Length;
+
+        var totalLength = contentBytes.Length + 2 + sessionIdBytes.Length + 2 + requestIdBytes.Length;
 
         // Length (4 bytes, big-endian)
         var lengthBytes = BitConverter.GetBytes(totalLength).Reverse().ToArray();
@@ -79,13 +99,23 @@ public class Protocol
         await stream.WriteAsync(typeBytes, 0, 1);
 
         // Session ID length (2 bytes)
-        var sessionIdLengthBytes = BitConverter.GetBytes(sessionIdLength).Reverse().ToArray();
-        await stream.WriteAsync(sessionIdLengthBytes, 0, 2);
+        var sessionIdLenBytes = BitConverter.GetBytes(sessionIdLength).Reverse().ToArray();
+        await stream.WriteAsync(sessionIdLenBytes, 0, 2);
 
         // Session ID (if present)
         if (sessionIdLength > 0)
         {
             await stream.WriteAsync(sessionIdBytes, 0, sessionIdLength);
+        }
+
+        // Request ID length (2 bytes) - NEW
+        var requestIdLenBytes = BitConverter.GetBytes(requestIdLength).Reverse().ToArray();
+        await stream.WriteAsync(requestIdLenBytes, 0, 2);
+
+        // Request ID (if present)
+        if (requestIdLength > 0)
+        {
+            await stream.WriteAsync(requestIdBytes, 0, requestIdLength);
         }
 
         // Payload

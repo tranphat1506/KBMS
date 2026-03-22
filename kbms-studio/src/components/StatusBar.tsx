@@ -27,9 +27,9 @@ export default function StatusBar() {
              <span>Running Query...</span>
            </div>
         )}
-        {!isExecuting && result && result.messages && (
+        {!isExecuting && result && result.length > 0 && result[result.length - 1].messages && (
            <div className="flex items-center space-x-1.5 px-2 py-0.5">
-             {result.messages.some((m: any) => typeof m === 'string' ? m.includes('Error') : (m?.type === 'error' || m?.type === 'Error')) ? (
+             {(result[result.length - 1].messages as any[]).some((m: any) => typeof m === 'string' ? m.includes('Error') : (m?.type === 'error' || m?.type === 'Error')) ? (
                  <XCircle className="w-3.5 h-3.5 text-red-300" />
              ) : (
                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
@@ -40,7 +40,7 @@ export default function StatusBar() {
         
         <div className="flex items-center space-x-1.5 px-2 hover:bg-emerald-600/50 cursor-default rounded transition-colors py-0.5">
           <Clock className="w-3 h-3" />
-          <span>{result?.executionTimeMs !== undefined ? `${Number(result.executionTimeMs).toFixed(1)} ms` : '0.0 ms'}</span>
+          <span>{result && result.length > 0 && (result[result.length - 1] as any).executionTimeMs !== undefined ? `${Number((result[result.length - 1] as any).executionTimeMs).toFixed(1)} ms` : '0.0 ms'}</span>
         </div>
         
         <div className="pl-3 border-l border-emerald-600/60 font-semibold text-emerald-200">

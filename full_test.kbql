@@ -1,0 +1,137 @@
+-- ============================================================
+-- KBMS COMPLETE TEST SUITE (KBQL v1.1)
+-- Phản ánh chính xác cú pháp từ Parser và docs/02
+-- ============================================================
+
+-- 1. QUẢN LÝ KNOWLEDGE BASE (KDL)
+CREATE KNOWLEDGE BASE FullTestKB DESCRIPTION 'Comprehensive test of all KBQL features';
+USE FullTestKB;
+
+-- 2. ĐỊNH NGHĨA KHÁI NIỆM (CONCEPT)
+-- Concept cơ bản
+CREATE CONCEPT Category (VARIABLES(id: INT, name: STRING));
+
+-- Concept nâng cao với tất cả các khối (VARIABLES, ALIASES, CONSTRAINTS, RULES, PROPERTIES)
+CREATE CONCEPT Product (
+    VARIABLES ( 
+        id: INT, 
+        price: DECIMAL, 
+        tax: DOUBLE, 
+        stock: INT,
+        is_active: BOOLEAN,
+        name: STRING
+    ),
+    ALIASES ( Item, Good ),
+    CONSTRAINTS ( total_price = price * (1 + tax) ),
+    RULES ( 
+        IF price > 1000 THEN luxury = true,
+        IF stock < 10 THEN reorder = true
+    ),
+    PROPERTIES ( schema: 'inventory', version: '1.0' )
+);
+
+-- Concepts cho kế thừa và quan hệ
+CREATE CONCEPT Human (VARIABLES(id: INT, name: STRING, age: INT));
+CREATE CONCEPT Staff (VARIABLES(id: INT, salary: DOUBLE, grade: STRING));
+
+-- 3. PHÂN CẤP (HIERARCHY)
+-- Kế thừa: Staff là một Human (Child IS_A Parent)
+CREATE HIERARCHY Staff IS_A Human;
+
+-- Thành phần: Product thuộc Category (Child PART_OF Parent)
+CREATE HIERARCHY Product PART_OF Category;
+
+-- 4. QUAN HỆ & LUẬT (RELATION & RULE)
+-- Quan hệ giữa Human và Category
+CREATE RELATION WorksIn (Human, Category);
+
+-- Luật suy diễn cấp thấp
+CREATE RULE JuniorGrade IF Staff(salary <= 3000) THEN Staff(grade = 'JUNIOR');
+CREATE RULE SeniorGrade IF Staff(salary > 3000) THEN Staff(grade = 'SENIOR');
+
+-- 5. TOÁN TỬ & HÀM (OPERATOR & FUNCTION)
+CREATE OPERATOR + PARAMS (INT, INT) RETURNS INT BODY "return a + b;";
+CREATE FUNCTION CalcDiscount PARAMS (DECIMAL, DOUBLE) RETURNS DECIMAL BODY "return p * (1 - d);";
+
+-- 6. CHỈ MỤC & TRIGGER (INDEX & TRIGGER)
+CREATE INDEX Idx_ProductOnName ON Product (name);
+CREATE TRIGGER LogNewProduct ( ON ( INSERT OF Product ), DO ( SELECT * FROM Product ) );
+
+-- 7. THAO TÁC DỮ LIỆU (DML)
+-- INSERT: Named syntax
+INSERT INTO Category ATTRIBUTE (id: 1, name: 'Electronics');
+INSERT INTO Category ATTRIBUTE (id: 2, name: 'Groceries');
+
+-- INSERT: Positional syntax (id, price, tax, stock, is_active, name)
+INSERT INTO Product ATTRIBUTE (101, 1200.0, 0.1, 50, true, 'Laptop Pro');
+INSERT INTO Product ATTRIBUTE (102, 10.0, 0.05, 1000, true, 'USB Cable');
+
+-- INSERT: Relation data
+INSERT INTO Human ATTRIBUTE (1, 'Alice', 30);
+INSERT INTO Staff ATTRIBUTE (1, 4500.0, 'NEW');
+INSERT INTO WorksIn ATTRIBUTE (1, 1);
+
+-- UPDATE & DELETE
+UPDATE Product ATTRIBUTE ( SET stock: stock - 1 ) WHERE id = 101;
+DELETE FROM Product WHERE name = 'USB Cable';
+
+-- 8. TRUY VẤN & SUY LUẬN (DQL)
+-- SELECT cơ bản
+SELECT * FROM Category;
+
+-- SELECT với FILTER, JOIN, ORDER
+SELECT * 
+FROM Product 
+JOIN Category ON Product.id > 100 
+WHERE Product.price > 500 
+ORDER BY Product.price DESC 
+LIMIT 10;
+
+-- SELECT Aggregates
+SELECT COUNT(*) FROM Product WHERE stock > 0;
+
+-- Metadata Queries (system tables)
+SELECT * FROM system.concepts;
+SELECT * FROM Product.variables;
+
+-- Selection on virtual tables
+SELECT * FROM HIERARCHY Human;
+SELECT * FROM RELATION WorksIn;
+
+-- SOLVE (Inference)
+SOLVE ON CONCEPT Staff GIVEN id: 1, salary: 4500 FIND grade;
+
+-- 9. GIAO DỊCH (TCL)
+BEGIN TRANSACTION;
+INSERT INTO Category ATTRIBUTE (3, 'Testing Transaction');
+SELECT * FROM Category WHERE id = 3;
+COMMIT;
+
+-- Scenario Rollback
+BEGIN TRANSACTION;
+INSERT INTO Category ATTRIBUTE (4, 'Hidden Item');
+ROLLBACK;
+SELECT * FROM Category WHERE id = 4;
+
+-- 10. PHÂN TÍCH & QUẢN TRỊ (KML)
+DESCRIBE (CONCEPT: Product);
+DESCRIBE (HIERARCHY: 'Human:Staff'); -- Parent:Child order
+EXPLAIN (SELECT * FROM Product WHERE price > 100);
+
+-- Maintenance
+MAINTENANCE ( VACUUM, REINDEX(Product) );
+
+-- Show
+SHOW KNOWLEDGE BASES;
+SHOW CONCEPTS;
+SHOW HIERARCHIES;
+SHOW RULES;
+
+-- 11. DỌN DẸP (CLEANUP)
+-- REMOVE HIERARCHY Human IS_A Staff; -- Parent IS_A Child in Remove? (Check doc notes)
+-- DROP CONCEPT Staff;
+-- DROP KNOWLEDGE BASE FullTestKB;
+
+-- ============================================================
+-- KẾT THÚC TEST SUITE
+-- ============================================================

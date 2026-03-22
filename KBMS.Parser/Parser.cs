@@ -45,7 +45,7 @@ public class Parser
         if (!Check(TokenType.SEMICOLON))
         {
             var next = Peek();
-            throw new ParserException("Semicolon ';' expected at end of statement", next?.Line ?? 0, next?.Column ?? 0);
+            throw Error("Semicolon ';' expected at end of statement", next);
         }
         Consume(TokenType.SEMICOLON);
 
@@ -76,7 +76,7 @@ public class Parser
             else
             {
                 var next = Peek();
-                throw new ParserException("Semicolon ';' expected", next?.Line ?? 0, next?.Column ?? 0);
+                throw Error("Semicolon ';' expected", next);
             }
         }
 
@@ -114,7 +114,7 @@ public class Parser
             TokenType.BEGIN => ParseBeginTransaction(),
             TokenType.COMMIT => ParseCommit(),
             TokenType.ROLLBACK => ParseRollback(),
-            _ => throw new ParserException($"Unexpected token: {token.Lexeme}", token.Line, token.Column)
+            _ => throw Error("Unexpected token: {token.Lexeme}", token)
         };
     }
 
@@ -126,7 +126,7 @@ public class Parser
         var token = Peek();
 
         if (token == null)
-            throw new ParserException("Expected token after CREATE");
+            throw Error("Expected token after CREATE");
 
         return token.Type switch
         {
@@ -140,7 +140,7 @@ public class Parser
             TokenType.INDEX => ParseCreateIndex(),
             TokenType.TRIGGER => ParseCreateTrigger(),
             TokenType.HIERARCHY => ParseCreateHierarchy(),
-            _ => throw new ParserException($"Unexpected token after CREATE: {token.Lexeme}", token.Line, token.Column)
+            _ => throw Error("Unexpected token after CREATE: {token.Lexeme}", token)
         };
     }
 
@@ -153,24 +153,24 @@ public class Parser
     private AstNode ParseAlter()
     {
         Consume(TokenType.ALTER);
-        var token = Peek() ?? throw new ParserException("Expected token after ALTER");
+        var token = Peek() ?? throw Error("Expected token after ALTER");
 
         return token.Type switch
         {
             TokenType.CONCEPT => ParseAlterConcept(),
             TokenType.KNOWLEDGE => ParseAlterKnowledgeBase(),
             TokenType.USER => ParseAlterUser(),
-            _ => throw new ParserException($"Unexpected token after ALTER: {token.Lexeme}", token.Line, token.Column)
+            _ => throw Error("Unexpected token after ALTER: {token.Lexeme}", token)
         };
     }
 
     private CreateKbNode ParseCreateKnowledgeBase()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.KNOWLEDGE);
         Consume(TokenType.BASE);
 
-        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected knowledge base name");
+        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected knowledge base name");
         var node = new CreateKbNode
         {
             Type = "CREATE_KNOWLEDGE_BASE",
@@ -183,7 +183,7 @@ public class Parser
         if (Check(TokenType.DESCRIPTION))
         {
             Consume(TokenType.DESCRIPTION);
-            var descToken = Consume(TokenType.STRING) ?? throw new ParserException("Expected description string");
+            var descToken = Consume(TokenType.STRING) ?? throw Error("Expected description string");
             node.Description = descToken.Literal?.ToString();
         }
 
@@ -192,10 +192,10 @@ public class Parser
 
     private CreateConceptNode ParseCreateConcept()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.CONCEPT);
 
-        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected concept name");
+        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected concept name");
         var node = new CreateConceptNode
         {
             Type = "CREATE_CONCEPT",
@@ -205,7 +205,7 @@ public class Parser
         };
 
         if (!Check(TokenType.LPAREN))
-            throw new ParserException("Expected '(' after concept name");
+            throw Error("Expected '(' after concept name");
         Consume(TokenType.LPAREN);
 
         bool hasVariables = false;
@@ -217,7 +217,7 @@ public class Parser
             {
                 Consume(TokenType.VARIABLES);
                 if (!Check(TokenType.LPAREN))
-                    throw new ParserException("Expected '(' after VARIABLES", Peek()?.Line ?? 0, Peek()?.Column ?? 0);
+                    throw Error("Expected '(' after VARIABLES");
                 Consume(TokenType.LPAREN);
                 while (!IsAtEnd() && !Check(TokenType.RPAREN))
                 {
@@ -283,7 +283,7 @@ public class Parser
         }
 
         if (!hasVariables)
-            throw new ParserException("Concept must have a VARIABLES block");
+            throw Error("Concept must have a VARIABLES block");
 
         Consume(TokenType.RPAREN);
 
@@ -295,10 +295,10 @@ public class Parser
         // Accept any token as variable name (including keywords)
         var token = Peek();
         if (token == null || token.Type == TokenType.COLON || token.Type == TokenType.COMMA || token.Type == TokenType.RPAREN)
-            throw new ParserException("Expected variable name");
+            throw Error("Expected variable name");
         var nameToken = Advance();
         Consume(TokenType.COLON);
-        var typeToken = Peek() ?? throw new ParserException("Expected variable type");
+        var typeToken = Peek() ?? throw Error("Expected variable type");
 
         var varDef = new VariableDefinition
         {
@@ -334,21 +334,21 @@ public class Parser
                 Advance();
                 break;
             default:
-                throw new ParserException($"Expected type, got {typeToken.Lexeme}", typeToken.Line, typeToken.Column);
+                throw Error("Expected type, got {typeToken.Lexeme}", typeToken);
         }
 
         // Parse length for VARCHAR, CHAR, DECIMAL
         if (Check(TokenType.LPAREN))
         {
             Consume(TokenType.LPAREN);
-            var lengthToken = Consume(TokenType.NUMBER) ?? throw new ParserException("Expected length");
+            var lengthToken = Consume(TokenType.NUMBER) ?? throw Error("Expected length");
             varDef.Length = (int?)ConvertToDouble(lengthToken.Literal);
 
             // Parse scale for DECIMAL
             if (Check(TokenType.COMMA))
             {
                 Consume(TokenType.COMMA);
-                var scaleToken = Consume(TokenType.NUMBER) ?? throw new ParserException("Expected scale");
+                var scaleToken = Consume(TokenType.NUMBER) ?? throw Error("Expected scale");
                 varDef.Scale = (int?)ConvertToDouble(scaleToken.Literal);
             }
             Consume(TokenType.RPAREN);
@@ -359,10 +359,10 @@ public class Parser
 
     private CreateRelationNode ParseCreateRelation()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.RELATION);
 
-        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected relation name");
+        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected relation name");
         var node = new CreateRelationNode
         {
             Type = "CREATE_RELATION",
@@ -378,13 +378,13 @@ public class Parser
             if (nextType == TokenType.FROM)
             {
                 Consume(TokenType.FROM);
-                var domainToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected domain concept");
+                var domainToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected domain concept");
                 node.DomainConcept = domainToken.Lexeme;
             }
             else if (nextType == TokenType.TO)
             {
                 Consume(TokenType.TO);
-                var rangeToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected range concept");
+                var rangeToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected range concept");
                 node.RangeConcept = rangeToken.Lexeme;
             }
             else if (nextType == TokenType.PARAMS)
@@ -395,7 +395,7 @@ public class Parser
                     Consume(TokenType.LPAREN);
                     while (!Check(TokenType.RPAREN) && !IsAtEnd())
                     {
-                        var paramToken = ConsumeIdentifier() ?? throw new ParserException("Expected param name");
+                        var paramToken = ConsumeIdentifier() ?? throw Error("Expected param name");
                         node.ParamNames.Add(paramToken.Lexeme);
                         if (Check(TokenType.COMMA)) Consume(TokenType.COMMA);
                     }
@@ -421,6 +421,12 @@ public class Parser
                 Consume(TokenType.RULES);
                 node.ConceptRules = ParseConceptRuleList();
             }
+            else if (nextType == TokenType.LPAREN)
+            {
+                var concepts = ParseIdentifierList();
+                if (concepts.Count >= 1) node.DomainConcept = concepts[0];
+                if (concepts.Count >= 2) node.RangeConcept = concepts[1];
+            }
             else
             {
                 break;
@@ -432,11 +438,11 @@ public class Parser
 
     private CreateOperatorNode ParseCreateOperator()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.OPERATOR);
 
         // Operator symbol can be identifier, operator token, or any keyword
-        var symbolToken = Peek() ?? throw new ParserException("Expected operator symbol");
+        var symbolToken = Peek() ?? throw Error("Expected operator symbol");
         string symbol;
 
         if (symbolToken.Type == TokenType.IDENTIFIER)
@@ -457,7 +463,7 @@ public class Parser
         }
         else
         {
-            throw new ParserException($"Expected operator symbol, got {symbolToken.Lexeme}", symbolToken.Line, symbolToken.Column);
+            throw Error("Expected operator symbol, got {symbolToken.Lexeme}", symbolToken);
         }
 
         var node = new CreateOperatorNode
@@ -475,7 +481,7 @@ public class Parser
             Consume(TokenType.LPAREN);
             while (!Check(TokenType.RPAREN))
             {
-                var typeToken = Peek() ?? throw new ParserException("Expected parameter type");
+                var typeToken = Peek() ?? throw Error("Expected parameter type");
                 node.ParamTypes.Add(typeToken.Lexeme.ToUpper());
                 Advance();
 
@@ -489,7 +495,7 @@ public class Parser
         if (Check(TokenType.RETURNS))
         {
             Consume(TokenType.RETURNS);
-            var returnToken = Peek() ?? throw new ParserException("Expected return type");
+            var returnToken = Peek() ?? throw Error("Expected return type");
             node.ReturnType = returnToken.Lexeme.ToUpper();
             Advance();
         }
@@ -498,7 +504,7 @@ public class Parser
         if (Check(TokenType.BODY))
         {
             Consume(TokenType.BODY);
-            var bodyToken = Consume(TokenType.STRING) ?? throw new ParserException("Expected operator body string");
+            var bodyToken = Consume(TokenType.STRING) ?? throw Error("Expected operator body string");
             node.Body = bodyToken.Literal?.ToString() ?? "";
         }
 
@@ -513,10 +519,10 @@ public class Parser
 
     private CreateFunctionNode ParseCreateFunction()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.FUNCTION);
 
-        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected function name");
+        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected function name");
         var node = new CreateFunctionNode
         {
             Type = "CREATE_FUNCTION",
@@ -544,7 +550,7 @@ public class Parser
         if (Check(TokenType.RETURNS))
         {
             Consume(TokenType.RETURNS);
-            var returnToken = Peek() ?? throw new ParserException("Expected return type");
+            var returnToken = Peek() ?? throw Error("Expected return type");
             node.ReturnType = returnToken.Lexeme.ToUpper();
             Advance();
         }
@@ -553,7 +559,7 @@ public class Parser
         if (Check(TokenType.BODY))
         {
             Consume(TokenType.BODY);
-            var bodyToken = Consume(TokenType.STRING) ?? throw new ParserException("Expected body string");
+            var bodyToken = Consume(TokenType.STRING) ?? throw Error("Expected body string");
             node.Body = bodyToken.Literal?.ToString() ?? "";
         }
 
@@ -568,7 +574,7 @@ public class Parser
 
     private ParamDefinition ParseParamDefinition()
     {
-        var firstToken = Peek() ?? throw new ParserException("Expected parameter name or type");
+        var firstToken = Peek() ?? throw Error("Expected parameter name or type");
         Advance();
 
         // Check if next is a token that indicates end of this parameter (closing paren or comma)
@@ -581,7 +587,7 @@ public class Parser
         // If next is an identifier, then first was the type and second is the name
         if (Check(TokenType.IDENTIFIER))
         {
-            var nameToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected parameter name");
+            var nameToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected parameter name");
             var paramDef = new ParamDefinition
             {
                 Type = firstToken.Lexeme.ToUpper(),
@@ -592,12 +598,12 @@ public class Parser
             if (Check(TokenType.LPAREN))
             {
                 Consume(TokenType.LPAREN);
-                var lengthToken = Consume(TokenType.NUMBER) ?? throw new ParserException("Expected length");
+                var lengthToken = Consume(TokenType.NUMBER) ?? throw Error("Expected length");
                 paramDef.Length = (int?)ConvertToDouble(lengthToken.Literal);
                 if (Check(TokenType.COMMA))
                 {
                     Consume(TokenType.COMMA);
-                    var scaleToken = Consume(TokenType.NUMBER) ?? throw new ParserException("Expected scale");
+                    var scaleToken = Consume(TokenType.NUMBER) ?? throw Error("Expected scale");
                     paramDef.Scale = (int?)ConvertToDouble(scaleToken.Literal);
                 }
                 Consume(TokenType.RPAREN);
@@ -611,10 +617,10 @@ public class Parser
 
     private CreateRuleNode ParseCreateRule()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.RULE);
 
-        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected rule name");
+        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected rule name");
         var node = new CreateRuleNode
         {
             Type = "CREATE_RULE",
@@ -627,7 +633,7 @@ public class Parser
         if (Check(TokenType.TYPE))
         {
             Consume(TokenType.TYPE);
-            var typeToken = ConsumeIdentifier() ?? throw new ParserException("Expected rule type");
+            var typeToken = ConsumeIdentifier() ?? throw Error("Expected rule type");
             node.RuleType = Enum.Parse<RuleType>(typeToken.Lexeme, true);
         }
 
@@ -635,7 +641,7 @@ public class Parser
         if (Check(TokenType.SCOPE))
         {
             Consume(TokenType.SCOPE);
-            var scopeToken = ConsumeIdentifier() ?? throw new ParserException("Expected scope concept");
+            var scopeToken = ConsumeIdentifier() ?? throw Error("Expected scope concept");
             node.ConceptName = scopeToken.Lexeme;
         }
 
@@ -656,7 +662,7 @@ public class Parser
         // Parse COST clause
         if (Check(TokenType.COST))
         {
-            var costToken = Consume(TokenType.NUMBER) ?? throw new ParserException("Expected cost number");
+            var costToken = Consume(TokenType.NUMBER) ?? throw Error("Expected cost number");
             node.Cost = (int?)ConvertToDouble(costToken.Literal);
         }
 
@@ -665,10 +671,10 @@ public class Parser
 
     private CreateUserNode ParseCreateUser()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.USER);
 
-        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected username");
+        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected username");
         var node = new CreateUserNode
         {
             Type = "CREATE_USER",
@@ -683,7 +689,7 @@ public class Parser
             Consume(TokenType.PASSWORD);
             var passToken = Peek();
             if (passToken == null)
-                throw new ParserException("Expected password");
+                throw Error("Expected password");
 
             // Accept both STRING (quoted) and IDENTIFIER (unquoted) for password
             if (passToken.Type == TokenType.STRING)
@@ -698,7 +704,7 @@ public class Parser
             }
             else
             {
-                throw new ParserException("Expected password string or identifier");
+                throw Error("Expected password string or identifier");
             }
         }
 
@@ -707,7 +713,7 @@ public class Parser
         {
             Consume(TokenType.ROLE);
             // Accept any identifier or keyword as role name
-            var roleToken = Peek() ?? throw new ParserException("Expected role");
+            var roleToken = Peek() ?? throw Error("Expected role");
             Advance();
             node.Role = roleToken.Lexeme.ToUpper();
         }
@@ -715,7 +721,7 @@ public class Parser
         // Parse SYSTEM_ADMIN clause
         if (Check(TokenType.SYSTEM_ADMIN))
         {
-            var adminToken = Peek() ?? throw new ParserException("Expected boolean");
+            var adminToken = Peek() ?? throw Error("Expected boolean");
             node.SystemAdmin = adminToken.Type == TokenType.BOOLEAN && (bool)(adminToken.Literal ?? false);
             Advance();
         }
@@ -725,7 +731,7 @@ public class Parser
 
     private AlterConceptNode ParseAlterConcept()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.CONCEPT);
 
         string conceptName;
@@ -735,7 +741,7 @@ public class Parser
         }
         else
         {
-            var idToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected concept name or '*' after ALTER CONCEPT");
+            var idToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected concept name or '*' after ALTER CONCEPT");
             conceptName = idToken.Lexeme;
         }
 
@@ -750,7 +756,7 @@ public class Parser
 
         while (!Check(TokenType.RPAREN) && !IsAtEnd())
         {
-            var actionTypeToken = Peek() ?? throw new ParserException("Expected ALTER action (ADD, DROP, RENAME)");
+            var actionTypeToken = Peek() ?? throw Error("Expected ALTER action (ADD, DROP, RENAME)");
             switch (actionTypeToken.Type)
             {
                 case TokenType.ADD:
@@ -758,7 +764,7 @@ public class Parser
                     Consume(TokenType.LPAREN);
                     while (!Check(TokenType.RPAREN) && !IsAtEnd())
                     {
-                        var target = Peek() ?? throw new ParserException("Expected ADD target (VARIABLE, CONSTRAINT, RULE)");
+                        var target = Peek() ?? throw Error("Expected ADD target (VARIABLE, CONSTRAINT, RULE)");
                         if (target.Type == TokenType.VARIABLE || target.Type == TokenType.VARIABLES)
                         {
                             Consume(target.Type);
@@ -817,9 +823,9 @@ public class Parser
                     Consume(TokenType.LPAREN);
                     while (!Check(TokenType.RPAREN) && !IsAtEnd())
                     {
-                        var dropTarget = Peek() ?? throw new ParserException("Expected drop target (VARIABLE, etc.)");
+                        var dropTarget = Peek() ?? throw Error("Expected drop target (VARIABLE, etc.)");
                         Consume(dropTarget.Type);
-                        var name = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected name to drop");
+                        var name = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected name to drop");
                         
                         KBMS.Models.AlterActionType type = dropTarget.Type switch {
                             TokenType.VARIABLE => KBMS.Models.AlterActionType.DropVariable,
@@ -827,7 +833,7 @@ public class Parser
                             TokenType.CONSTRAINTS => KBMS.Models.AlterActionType.DropConstraint,
                             TokenType.RULE => KBMS.Models.AlterActionType.DropRule,
                             TokenType.RULES => KBMS.Models.AlterActionType.DropRule,
-                            _ => throw new ParserException("Invalid drop target")
+                            _ => throw Error("Invalid drop target")
                         };
 
                         node.Actions.Add(new KBMS.Models.AlterAction { ActionType = type, TargetName = name.Lexeme });
@@ -840,9 +846,9 @@ public class Parser
                     Consume(TokenType.RENAME);
                     Consume(TokenType.LPAREN);
                     Consume(TokenType.VARIABLE);
-                    var oldVar = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected old variable name");
+                    var oldVar = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected old variable name");
                     Consume(TokenType.TO);
-                    var newVar = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected new variable name");
+                    var newVar = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected new variable name");
                     node.Actions.Add(new KBMS.Models.AlterAction { 
                         ActionType = KBMS.Models.AlterActionType.RenameVariable, 
                         OldName = oldVar.Lexeme, 
@@ -852,7 +858,7 @@ public class Parser
                     break;
 
                 default:
-                    throw new ParserException($"Unexpected ALTER action: {actionTypeToken.Lexeme}");
+                    throw Error("Unexpected ALTER action: {actionTypeToken.Lexeme}");
             }
 
             if (Check(TokenType.COMMA)) Consume(TokenType.COMMA);
@@ -864,13 +870,13 @@ public class Parser
 
     private AstNode ParseAlterKnowledgeBase()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.KNOWLEDGE);
         Consume(TokenType.BASE);
 
         var node = new AlterKbNode
         {
-            KbName = (Check(TokenType.STAR) ? Advance().Lexeme : (Consume(TokenType.IDENTIFIER)?.Lexeme ?? throw new ParserException("Expected KB name or '*'"))),
+            KbName = (Check(TokenType.STAR) ? Advance().Lexeme : (Consume(TokenType.IDENTIFIER)?.Lexeme ?? throw Error("Expected KB name or '*'"))),
             Line = token.Line,
             Column = token.Column
         };
@@ -880,7 +886,7 @@ public class Parser
         Consume(TokenType.LPAREN);
         Consume(TokenType.DESCRIPTION);
         Consume(TokenType.COLON);
-        node.NewDescription = Consume(TokenType.STRING)?.Literal?.ToString() ?? throw new ParserException("Expected description string");
+        node.NewDescription = Consume(TokenType.STRING)?.Literal?.ToString() ?? throw Error("Expected description string");
         Consume(TokenType.RPAREN);
         Consume(TokenType.RPAREN);
 
@@ -889,9 +895,9 @@ public class Parser
 
     private AstNode ParseAlterUser()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.USER);
-        var uname = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected username");
+        var uname = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected username");
 
         var node = new AlterUserNode
         {
@@ -908,7 +914,7 @@ public class Parser
         {
             var fieldToken = Advance();
             if (fieldToken.Type != TokenType.IDENTIFIER && fieldToken.Type != TokenType.PASSWORD)
-                throw new ParserException("Expected SET field (PASSWORD or ADMIN)");
+                throw Error("Expected SET field (PASSWORD or ADMIN)");
 
             Consume(TokenType.COLON);
             if (fieldToken.Lexeme.Equals("PASSWORD", StringComparison.OrdinalIgnoreCase))
@@ -930,11 +936,11 @@ public class Parser
 
     private CreateIndexNode ParseCreateIndex()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.INDEX);
-        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected index name");
+        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected index name");
         Consume(TokenType.ON);
-        var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected concept name");
+        var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected concept name");
         Consume(TokenType.LPAREN);
         var vs = ParseIdentifierList();
         Consume(TokenType.RPAREN);
@@ -949,45 +955,45 @@ public class Parser
     
     private KBMS.Parser.Ast.Kdl.CreateTriggerNode ParseCreateTrigger()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.TRIGGER);
 
-        var nameToken = Advance() ?? throw new ParserException("Expected trigger name");
+        var nameToken = Advance() ?? throw Error("Expected trigger name");
 
-        if (Consume(TokenType.LPAREN) == null) throw new ParserException("Expected '(' after TRIGGER name");
+        if (Consume(TokenType.LPAREN) == null) throw Error("Expected '(' after TRIGGER name");
 
         // ON block: ON ( INSERT|UPDATE|DELETE OF ConceptName )
-        if (Consume(TokenType.ON) == null) throw new ParserException("Expected 'ON' in TRIGGER definition");
-        if (Consume(TokenType.LPAREN) == null) throw new ParserException("Expected '(' before TRIGGER dynamic event");
-        var eventToken = Advance() ?? throw new ParserException("Expected event type (INSERT, UPDATE, DELETE)");
-        var triggerEvent = eventToken.Lexeme.ToUpper() switch
+        if (Consume(TokenType.ON) == null) throw Error("Expected 'ON' in TRIGGER definition");
+        if (Consume(TokenType.LPAREN) == null) throw Error("Expected '(' before TRIGGER dynamic event");
+        var eventToken = Advance() ?? throw Error("Expected event type (INSERT, UPDATE, DELETE)");
+        var triggerEvent = eventToken.Type switch
         {
-            "INSERT" => KBMS.Parser.Ast.Kdl.TriggerEvent.Insert,
-            "UPDATE" => KBMS.Parser.Ast.Kdl.TriggerEvent.Update,
-            "DELETE" => KBMS.Parser.Ast.Kdl.TriggerEvent.Delete,
-            _ => throw new ParserException($"Unknown trigger event: {eventToken.Lexeme}", eventToken.Line, eventToken.Column)
+            TokenType.INSERT => KBMS.Parser.Ast.Kdl.TriggerEvent.Insert,
+            TokenType.UPDATE => KBMS.Parser.Ast.Kdl.TriggerEvent.Update,
+            TokenType.DELETE => KBMS.Parser.Ast.Kdl.TriggerEvent.Delete,
+            _ => throw Error("Unknown trigger event: {eventToken.Lexeme}", eventToken)
         };
-        if (Consume(TokenType.OF) == null) throw new ParserException("Expected 'OF' after trigger event");
+        if (Consume(TokenType.OF) == null) throw Error("Expected 'OF' after trigger event");
         // Concept name might be an identifier; use Advance() so keywords like a concept named after a keyword aren't rejected
         string conceptName = Check(TokenType.STAR) 
             ? Advance().Lexeme 
-            : (Advance()?.Lexeme ?? throw new ParserException("Expected concept name or '*'"));
-        if (Consume(TokenType.RPAREN) == null) throw new ParserException("Expected ')' after trigger event concept");
+            : (Advance()?.Lexeme ?? throw Error("Expected concept name or '*'"));
+        if (Consume(TokenType.RPAREN) == null) throw Error("Expected ')' after trigger event concept");
 
-        if (Consume(TokenType.COMMA) == null) throw new ParserException("Expected ',' between ON and DO blocks");
+        if (Consume(TokenType.COMMA) == null) throw Error("Expected ',' between ON and DO blocks");
 
         // DO block: DO ( <statement> )
         // We parse the action as a statement; the statement parser will stop before the closing ')'
-        if (Consume(TokenType.DO) == null) throw new ParserException("Expected 'DO' in TRIGGER definition");
-        if (Consume(TokenType.LPAREN) == null) throw new ParserException("Expected '(' before TRIGGER action");
+        if (Consume(TokenType.DO) == null) throw Error("Expected 'DO' in TRIGGER definition");
+        if (Consume(TokenType.LPAREN) == null) throw Error("Expected '(' before TRIGGER action");
         
-        var action = ParseStatement() ?? throw new ParserException("Expected action statement in TRIGGER DO block");
+        var action = ParseStatement() ?? throw Error("Expected action statement in TRIGGER DO block");
         
         // Consume trailing semicolon from inner statement if present
         if (Check(TokenType.SEMICOLON)) Consume(TokenType.SEMICOLON);
         
-        if (Consume(TokenType.RPAREN) == null) throw new ParserException("Expected ')' after TRIGGER action");
-        if (Consume(TokenType.RPAREN) == null) throw new ParserException("Expected ')' at end of TRIGGER definition");
+        if (Consume(TokenType.RPAREN) == null) throw Error("Expected ')' after TRIGGER action");
+        if (Consume(TokenType.RPAREN) == null) throw Error("Expected ')' at end of TRIGGER definition");
 
         return new KBMS.Parser.Ast.Kdl.CreateTriggerNode 
         { 
@@ -1004,14 +1010,14 @@ public class Parser
     {
         Consume(TokenType.EXPLAIN);
         Consume(TokenType.LPAREN);
-        var inner = ParseStatement() ?? throw new ParserException("Expected statement to explain");
+        var inner = ParseStatement() ?? throw Error("Expected statement to explain");
         Consume(TokenType.RPAREN);
         return new ExplainNode { Query = inner };
     }
     
     private MaintenanceNode ParseMaintenance() 
     { 
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.MAINTENANCE); 
         
         var node = new MaintenanceNode() { Line = token.Line, Column = token.Column };
@@ -1019,7 +1025,7 @@ public class Parser
 
         while (!Check(TokenType.RPAREN) && !IsAtEnd())
         {
-            var actionToken = Advance() ?? throw new ParserException("Expected maintenance action (VACUUM, REINDEX, CHECK)");
+            var actionToken = Advance() ?? throw Error("Expected maintenance action (VACUUM, REINDEX, CHECK)");
             
             if (actionToken.Type == TokenType.VACUUM)
             {
@@ -1028,7 +1034,7 @@ public class Parser
             else if (actionToken.Type == TokenType.REINDEX)
             {
                 Consume(TokenType.LPAREN);
-                string target = Check(TokenType.STAR) ? Advance().Lexeme : (Consume(TokenType.IDENTIFIER)?.Lexeme ?? throw new ParserException("Expected concept name or '*'"));
+                string target = Check(TokenType.STAR) ? Advance().Lexeme : (Consume(TokenType.IDENTIFIER)?.Lexeme ?? throw Error("Expected concept name or '*'"));
                 Consume(TokenType.RPAREN);
                 node.Actions.Add(new MaintenanceAction { ActionType = MaintenanceActionType.Reindex, TargetName = target });
             }
@@ -1037,13 +1043,13 @@ public class Parser
                 Consume(TokenType.LPAREN);
                 Consume(TokenType.CONSISTENCY);
                 Consume(TokenType.COLON);
-                string target = Check(TokenType.STAR) ? Advance().Lexeme : (Consume(TokenType.IDENTIFIER)?.Lexeme ?? throw new ParserException("Expected concept name or '*'"));
+                string target = Check(TokenType.STAR) ? Advance().Lexeme : (Consume(TokenType.IDENTIFIER)?.Lexeme ?? throw Error("Expected concept name or '*'"));
                 Consume(TokenType.RPAREN);
                 node.Actions.Add(new MaintenanceAction { ActionType = MaintenanceActionType.CheckConsistency, TargetName = target });
             }
             else
             {
-                throw new ParserException($"Unexpected maintenance action: {actionToken.Lexeme}");
+                throw Error("Unexpected maintenance action: {actionToken.Lexeme}");
             }
 
             if (Check(TokenType.COMMA)) Consume(TokenType.COMMA);
@@ -1054,14 +1060,14 @@ public class Parser
     }
     private KBMS.Parser.Ast.Kql.DescribeNode ParseDescribe()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.DESCRIBE);
-        if (Consume(TokenType.LPAREN) == null) throw new ParserException("Expected '(' after DESCRIBE");
+        if (Consume(TokenType.LPAREN) == null) throw Error("Expected '(' after DESCRIBE");
 
-        var typeToken = Advance() ?? throw new ParserException("Expected target type (CONCEPT, KB, RULE)");
+        var typeToken = Advance() ?? throw Error("Expected target type (CONCEPT, KB, RULE)");
         string typeStr = typeToken.Lexeme.ToUpper();
         if (typeStr == "KNOWLEDGE") {
-            if (Consume(TokenType.BASE) == null) throw new ParserException("Expected 'BASE' after 'KNOWLEDGE'");
+            if (Consume(TokenType.BASE) == null) throw Error("Expected 'BASE' after 'KNOWLEDGE'");
             typeStr = "KB";
         }
         else if (typeStr == "KB") {
@@ -1072,13 +1078,13 @@ public class Parser
             // Valid
         }
         else {
-            throw new ParserException($"Unexpected target type: {typeStr}", typeToken.Line, typeToken.Column);
+            throw Error("Unexpected target type: {typeStr}", typeToken);
         }
 
-        if (Consume(TokenType.COLON) == null) throw new ParserException("Expected ':' after target type");
-        var nameToken = Advance() ?? throw new ParserException("Expected target name or id");
+        if (Consume(TokenType.COLON) == null) throw Error("Expected ':' after target type");
+        var nameToken = Advance() ?? throw Error("Expected target name or id");
 
-        if (Consume(TokenType.RPAREN) == null) throw new ParserException("Expected ')' at end of DESCRIBE");
+        if (Consume(TokenType.RPAREN) == null) throw Error("Expected ')' at end of DESCRIBE");
 
         return new KBMS.Parser.Ast.Kql.DescribeNode 
         { 
@@ -1091,32 +1097,32 @@ public class Parser
 
     private KBMS.Parser.Ast.Kml.ExportNode ParseExport() 
     { 
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.EXPORT);
-        if (Consume(TokenType.LPAREN) == null) throw new ParserException("Expected '(' after EXPORT");
+        if (Consume(TokenType.LPAREN) == null) throw Error("Expected '(' after EXPORT");
         
-        if (Consume(TokenType.CONCEPT) == null) throw new ParserException("Expected 'CONCEPT' in EXPORT parameters");
-        if (Consume(TokenType.COLON) == null) throw new ParserException("Expected ':' after 'CONCEPT'");
-        string name = Check(TokenType.STAR) ? Advance().Lexeme : (ConsumeIdentifier()?.Lexeme ?? throw new ParserException("Expected concept name or '*'"));
+        if (Consume(TokenType.CONCEPT) == null) throw Error("Expected 'CONCEPT' in EXPORT parameters");
+        if (Consume(TokenType.COLON) == null) throw Error("Expected ':' after 'CONCEPT'");
+        string name = Check(TokenType.STAR) ? Advance().Lexeme : (ConsumeIdentifier()?.Lexeme ?? throw Error("Expected concept name or '*'"));
         
-        if (Consume(TokenType.COMMA) == null) throw new ParserException("Expected ',' after concept parameter");
-        if (Consume(TokenType.FORMAT) == null) throw new ParserException("Expected 'FORMAT' in EXPORT parameters");
-        if (Consume(TokenType.COLON) == null) throw new ParserException("Expected ':' after 'FORMAT'");
-        var formatToken = Advance() ?? throw new ParserException("Expected format (JSON)");
+        if (Consume(TokenType.COMMA) == null) throw Error("Expected ',' after concept parameter");
+        if (Consume(TokenType.FORMAT) == null) throw Error("Expected 'FORMAT' in EXPORT parameters");
+        if (Consume(TokenType.COLON) == null) throw Error("Expected ':' after 'FORMAT'");
+        var formatToken = Advance() ?? throw Error("Expected format (JSON)");
 
-        if (Consume(TokenType.COMMA) == null) throw new ParserException("Expected ',' after format parameter");
-        if (Consume(TokenType.FILE) == null) throw new ParserException("Expected 'FILE' in EXPORT parameters");
-        if (Consume(TokenType.COLON) == null) throw new ParserException("Expected ':' after 'FILE'");
-        var fileToken = Consume(TokenType.STRING) ?? throw new ParserException("Expected file path string");
+        if (Consume(TokenType.COMMA) == null) throw Error("Expected ',' after format parameter");
+        if (Consume(TokenType.FILE) == null) throw Error("Expected 'FILE' in EXPORT parameters");
+        if (Consume(TokenType.COLON) == null) throw Error("Expected ':' after 'FILE'");
+        var fileToken = Consume(TokenType.STRING) ?? throw Error("Expected file path string");
 
-        if (Consume(TokenType.RPAREN) == null) throw new ParserException("Expected ')' at end of EXPORT");
+        if (Consume(TokenType.RPAREN) == null) throw Error("Expected ')' at end of EXPORT");
         
         return new KBMS.Parser.Ast.Kml.ExportNode 
         { 
             TargetType = "CONCEPT",
             TargetName = name,
             Format = formatToken.Lexeme,
-            FilePath = fileToken.Literal?.ToString() ?? fileToken.Lexeme.Trim('\'', '"'),
+            FilePath = fileToken.Literal?.ToString() ?? fileToken.Lexeme.Trim('\\', '$', '"'),
             Line = token.Line,
             Column = token.Column
         }; 
@@ -1124,32 +1130,32 @@ public class Parser
     
     private KBMS.Parser.Ast.Kml.ImportNode ParseImport() 
     { 
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.IMPORT);
-        if (Consume(TokenType.LPAREN) == null) throw new ParserException("Expected '(' after IMPORT");
+        if (Consume(TokenType.LPAREN) == null) throw Error("Expected '(' after IMPORT");
         
-        if (Consume(TokenType.CONCEPT) == null) throw new ParserException("Expected 'CONCEPT' in IMPORT parameters");
-        if (Consume(TokenType.COLON) == null) throw new ParserException("Expected ':' after 'CONCEPT'");
-        string name = Check(TokenType.STAR) ? Advance().Lexeme : (ConsumeIdentifier()?.Lexeme ?? throw new ParserException("Expected concept name or '*'"));
+        if (Consume(TokenType.CONCEPT) == null) throw Error("Expected 'CONCEPT' in IMPORT parameters");
+        if (Consume(TokenType.COLON) == null) throw Error("Expected ':' after 'CONCEPT'");
+        string name = Check(TokenType.STAR) ? Advance().Lexeme : (ConsumeIdentifier()?.Lexeme ?? throw Error("Expected concept name or '*'"));
         
-        if (Consume(TokenType.COMMA) == null) throw new ParserException("Expected ',' after concept parameter");
-        if (Consume(TokenType.FORMAT) == null) throw new ParserException("Expected 'FORMAT' in IMPORT parameters");
-        if (Consume(TokenType.COLON) == null) throw new ParserException("Expected ':' after 'FORMAT'");
-        var formatToken = Advance() ?? throw new ParserException("Expected format (CSV|JSON)");
+        if (Consume(TokenType.COMMA) == null) throw Error("Expected ',' after concept parameter");
+        if (Consume(TokenType.FORMAT) == null) throw Error("Expected 'FORMAT' in IMPORT parameters");
+        if (Consume(TokenType.COLON) == null) throw Error("Expected ':' after 'FORMAT'");
+        var formatToken = Advance() ?? throw Error("Expected format (CSV|JSON)");
 
-        if (Consume(TokenType.COMMA) == null) throw new ParserException("Expected ',' after format parameter");
-        if (Consume(TokenType.FILE) == null) throw new ParserException("Expected 'FILE' in IMPORT parameters");
-        if (Consume(TokenType.COLON) == null) throw new ParserException("Expected ':' after 'FILE'");
-        var fileToken = Consume(TokenType.STRING) ?? throw new ParserException("Expected file path string");
+        if (Consume(TokenType.COMMA) == null) throw Error("Expected ',' after format parameter");
+        if (Consume(TokenType.FILE) == null) throw Error("Expected 'FILE' in IMPORT parameters");
+        if (Consume(TokenType.COLON) == null) throw Error("Expected ':' after 'FILE'");
+        var fileToken = Consume(TokenType.STRING) ?? throw Error("Expected file path string");
 
-        if (Consume(TokenType.RPAREN) == null) throw new ParserException("Expected ')' at end of IMPORT");
+        if (Consume(TokenType.RPAREN) == null) throw Error("Expected ')' at end of IMPORT");
         
         return new KBMS.Parser.Ast.Kml.ImportNode 
         { 
             TargetType = "CONCEPT",
             TargetName = name,
             Format = formatToken.Lexeme,
-            FilePath = fileToken.Literal?.ToString() ?? fileToken.Lexeme.Trim('\'', '"'),
+            FilePath = fileToken.Literal?.ToString() ?? fileToken.Lexeme.Trim('\\', '$', '"'),
             Line = token.Line,
             Column = token.Column
         };
@@ -1161,7 +1167,7 @@ public class Parser
         var token = Peek();
 
         if (token == null)
-            throw new ParserException("Expected token after DROP");
+            throw Error("Expected token after DROP");
 
         return token.Type switch
         {
@@ -1172,17 +1178,17 @@ public class Parser
             TokenType.FUNCTION => ParseDropFunction(),
             TokenType.RULE => ParseDropRule(),
             TokenType.USER => ParseDropUser(),
-            _ => throw new ParserException($"Unexpected token after DROP: {token.Lexeme}", token.Line, token.Column)
+            _ => throw Error("Unexpected token after DROP: {token.Lexeme}", token)
         };
     }
 
     private DropKbNode ParseDropKnowledgeBase()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.KNOWLEDGE);
         Consume(TokenType.BASE);
 
-        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected knowledge base name");
+        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected knowledge base name");
         return new DropKbNode
         {
             Type = "DROP_KNOWLEDGE_BASE",
@@ -1194,10 +1200,10 @@ public class Parser
 
     private DropConceptNode ParseDropConcept()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.CONCEPT);
 
-        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected concept name");
+        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected concept name");
         return new DropConceptNode
         {
             Type = "DROP_CONCEPT",
@@ -1209,10 +1215,10 @@ public class Parser
 
     private DropRelationNode ParseDropRelation()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.RELATION);
 
-        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected relation name");
+        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected relation name");
         return new DropRelationNode
         {
             Type = "DROP_RELATION",
@@ -1224,10 +1230,10 @@ public class Parser
 
     private DropOperatorNode ParseDropOperator()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.OPERATOR);
 
-        var symbolToken = Peek() ?? throw new ParserException("Expected operator symbol");
+        var symbolToken = Peek() ?? throw Error("Expected operator symbol");
         string symbol;
 
         if (symbolToken.Type == TokenType.IDENTIFIER)
@@ -1248,7 +1254,7 @@ public class Parser
         }
         else
         {
-            throw new ParserException($"Expected operator symbol, got {symbolToken.Lexeme}", symbolToken.Line, symbolToken.Column);
+            throw Error("Expected operator symbol, got {symbolToken.Lexeme}", symbolToken);
         }
 
         return new DropOperatorNode
@@ -1262,10 +1268,10 @@ public class Parser
 
     private DropFunctionNode ParseDropFunction()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.FUNCTION);
 
-        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected function name");
+        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected function name");
         return new DropFunctionNode
         {
             Type = "DROP_FUNCTION",
@@ -1277,10 +1283,10 @@ public class Parser
 
     private DropRuleNode ParseDropRule()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.RULE);
 
-        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected rule name");
+        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected rule name");
         return new DropRuleNode
         {
             Type = "DROP_RULE",
@@ -1292,10 +1298,10 @@ public class Parser
 
     private DropUserNode ParseDropUser()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.USER);
 
-        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected username");
+        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected username");
         return new DropUserNode
         {
             Type = "DROP_USER",
@@ -1307,10 +1313,10 @@ public class Parser
 
     private UseKbNode ParseUse()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.USE);
 
-        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected knowledge base name");
+        var nameToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected knowledge base name");
         return new UseKbNode
         {
             Type = "USE",
@@ -1326,29 +1332,29 @@ public class Parser
         var token = Peek();
 
         if (token == null)
-            throw new ParserException("Expected token after ADD");
+            throw Error("Expected token after ADD");
 
         return token.Type switch
         {
             TokenType.VARIABLE => ParseAddVariable(),
             TokenType.HIERARCHY => ParseAddHierarchy(),
             TokenType.COMPUTATION => ParseAddComputation(),
-            _ => throw new ParserException($"Unexpected token after ADD: {token.Lexeme}", token.Line, token.Column)
+            _ => throw Error("Unexpected token after ADD: {token.Lexeme}", token)
         };
     }
 
     private AddVariableNode ParseAddVariable()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.VARIABLE);
 
         // Accept any token as variable name (including keywords)
         var nameToken = Peek();
         if (nameToken == null || nameToken.Type == TokenType.COLON)
-            throw new ParserException("Expected variable name");
+            throw Error("Expected variable name");
         Advance();
         Consume(TokenType.COLON);
-        var typeToken = Peek() ?? throw new ParserException("Expected variable type");
+        var typeToken = Peek() ?? throw Error("Expected variable type");
 
         var node = new AddVariableNode
         {
@@ -1363,12 +1369,12 @@ public class Parser
         // Parse length for VARCHAR, CHAR, DECIMAL
         if (Check(TokenType.LPAREN))
         {
-            var lengthToken = Consume(TokenType.NUMBER) ?? throw new ParserException("Expected length");
+            var lengthToken = Consume(TokenType.NUMBER) ?? throw Error("Expected length");
             node.Length = (int?)ConvertToDouble(lengthToken.Literal);
 
             if (Check(TokenType.COMMA))
             {
-                var scaleToken = Consume(TokenType.NUMBER) ?? throw new ParserException("Expected scale");
+                var scaleToken = Consume(TokenType.NUMBER) ?? throw Error("Expected scale");
                 node.Scale = (int?)ConvertToDouble(scaleToken.Literal);
             }
             Consume(TokenType.RPAREN);
@@ -1376,7 +1382,7 @@ public class Parser
 
         Consume(TokenType.TO);
         Consume(TokenType.CONCEPT);
-        var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected concept name");
+        var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected concept name");
         node.ConceptName = conceptToken.Lexeme;
 
         return node;
@@ -1384,12 +1390,12 @@ public class Parser
 
     private AddHierarchyNode ParseAddHierarchy()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.HIERARCHY);
 
-        var firstConceptToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected concept name");
+        var firstConceptToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected concept name");
 
-        var typeToken = Peek() ?? throw new ParserException("Expected hierarchy type");
+        var typeToken = Peek() ?? throw Error("Expected hierarchy type");
         HierarchyType hierarchyType;
 
         if (typeToken.Type == TokenType.IS_A)
@@ -1402,11 +1408,11 @@ public class Parser
         }
         else
         {
-            throw new ParserException($"Expected IS_A or PART_OF, got {typeToken.Lexeme}", typeToken.Line, typeToken.Column);
+            throw Error("Expected IS_A or PART_OF, got {typeToken.Lexeme}", typeToken);
         }
         Advance();
 
-        var secondConceptToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected concept name");
+        var secondConceptToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected concept name");
 
         // In both IS_A and PART_OF:
         // "A IS_A B" or "A PART_OF B" means A is the child, B is the parent
@@ -1423,11 +1429,11 @@ public class Parser
 
     private AddComputationNode ParseAddComputation()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.COMPUTATION);
         Consume(TokenType.TO);
 
-        var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected concept name");
+        var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected concept name");
         var node = new AddComputationNode
         {
             Type = "ADD_COMPUTATION",
@@ -1440,7 +1446,7 @@ public class Parser
         Consume(TokenType.VARIABLES);
         while (!Check(TokenType.FORMULA))
         {
-            var varToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected variable name");
+            var varToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected variable name");
             node.InputVariables.Add(varToken.Lexeme);
             if (Check(TokenType.COMMA))
             {
@@ -1448,7 +1454,7 @@ public class Parser
             }
             else if (!Check(TokenType.FORMULA))
             {
-                throw new ParserException("Expected comma or FORMULA", Peek()!.Line, Peek()!.Column);
+                throw Error("Expected comma or FORMULA", Peek()!);
             }
         }
         // Last variable is the result variable
@@ -1460,14 +1466,14 @@ public class Parser
 
         // Parse FORMULA clause
         Consume(TokenType.FORMULA);
-        var formulaToken = Consume(TokenType.STRING) ?? throw new ParserException("Expected formula string");
+        var formulaToken = Consume(TokenType.STRING) ?? throw Error("Expected formula string");
         node.Formula = formulaToken.Literal?.ToString() ?? "";
 
         // Parse COST clause
         if (Check(TokenType.COST))
         {
             Consume(TokenType.COST);
-            var costToken = Consume(TokenType.NUMBER) ?? throw new ParserException("Expected cost number");
+            var costToken = Consume(TokenType.NUMBER) ?? throw Error("Expected cost number");
             node.Cost = (int?)ConvertToDouble(costToken.Literal);
         }
 
@@ -1480,24 +1486,24 @@ public class Parser
         var token = Peek();
 
         if (token == null)
-            throw new ParserException("Expected token after REMOVE");
+            throw Error("Expected token after REMOVE");
 
         return token.Type switch
         {
             TokenType.HIERARCHY => ParseRemoveHierarchy(),
             TokenType.COMPUTATION => ParseRemoveComputation(),
-            _ => throw new ParserException($"Unexpected token after REMOVE: {token.Lexeme}", token.Line, token.Column)
+            _ => throw Error("Unexpected token after REMOVE: {token.Lexeme}", token)
         };
     }
 
     private RemoveHierarchyNode ParseRemoveHierarchy()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.HIERARCHY);
 
-        var parentToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected parent concept");
+        var parentToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected parent concept");
 
-        var typeToken = Peek() ?? throw new ParserException("Expected hierarchy type");
+        var typeToken = Peek() ?? throw Error("Expected hierarchy type");
         KBMS.Parser.Ast.Kdl.HierarchyType hierarchyType;
 
         if (typeToken.Type == TokenType.IS_A)
@@ -1510,11 +1516,11 @@ public class Parser
         }
         else
         {
-            throw new ParserException($"Expected IS_A or PART_OF, got {typeToken.Lexeme}", typeToken.Line, typeToken.Column);
+            throw Error("Expected IS_A or PART_OF, got {typeToken.Lexeme}", typeToken);
         }
         Advance();
 
-        var childToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected child concept");
+        var childToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected child concept");
 
         return new RemoveHierarchyNode
         {
@@ -1529,13 +1535,13 @@ public class Parser
 
     private RemoveComputationNode ParseRemoveComputation()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.COMPUTATION);
 
-        var varToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected variable name");
+        var varToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected variable name");
         Consume(TokenType.FROM);
         Consume(TokenType.CONCEPT);
-        var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected concept name");
+        var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected concept name");
 
         return new RemoveComputationNode
         {
@@ -1549,16 +1555,16 @@ public class Parser
 
     private GrantNode ParseGrant()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.GRANT);
 
         // Accept any identifier or keyword as privilege name
-        var privToken = Peek() ?? throw new ParserException("Expected privilege");
+        var privToken = Peek() ?? throw Error("Expected privilege");
         Advance();
         Consume(TokenType.ON);
-        var kbToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected knowledge base name");
+        var kbToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected knowledge base name");
         Consume(TokenType.TO);
-        var userToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected username");
+        var userToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected username");
 
         return new GrantNode
         {
@@ -1573,16 +1579,16 @@ public class Parser
 
     private RevokeNode ParseRevoke()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.REVOKE);
 
         // Accept any identifier or keyword as privilege name
-        var privToken = Peek() ?? throw new ParserException("Expected privilege");
+        var privToken = Peek() ?? throw Error("Expected privilege");
         Advance();
         Consume(TokenType.ON);
-        var kbToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected knowledge base name");
+        var kbToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected knowledge base name");
         Consume(TokenType.FROM);
-        var userToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected username");
+        var userToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected username");
 
         return new RevokeNode
         {
@@ -1599,7 +1605,7 @@ public class Parser
 
     private SelectNode ParseSelect()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.SELECT);
 
         var node = new SelectNode
@@ -1649,7 +1655,7 @@ public class Parser
         else
         {
             // SELECT concept (shorthand for SELECT * FROM concept)
-            var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected concept name");
+            var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected concept name");
             node.ConceptName = conceptToken.Lexeme;
         }
 
@@ -1667,12 +1673,12 @@ public class Parser
                 
                 // For HIERARCHY, the name might be an identifier or a string, 
                 // but let's assume IDENTIFIER for consistency with other entities.
-                var nameToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException($"Expected {node.TargetType} name");
+                var nameToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected {node.TargetType} name");
                 node.ConceptName = nameToken.Lexeme;
             }
             else
             {
-                var nameToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected concept name or entity type after FROM");
+                var nameToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected concept name or entity type after FROM");
                 node.ConceptName = nameToken.Lexeme;
                 node.TargetType = "CONCEPT"; // Default if not specified
             }
@@ -1681,7 +1687,7 @@ public class Parser
             if (Check(TokenType.DOT))
             {
                 Consume(TokenType.DOT);
-                var subTargetToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected sub-target after dot");
+                var subTargetToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected sub-target after dot");
                 node.ConceptName += "." + subTargetToken.Lexeme;
             }
         }
@@ -1689,7 +1695,7 @@ public class Parser
         // Parse optional AS alias
         if (Check(TokenType.AS))
         {
-            var aliasToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected alias");
+            var aliasToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected alias");
             node.Alias = aliasToken.Lexeme;
         }
 
@@ -1733,14 +1739,14 @@ public class Parser
         if (Check(TokenType.LIMIT))
         {
             Consume(TokenType.LIMIT);
-            var limitToken = Consume(TokenType.NUMBER) ?? throw new ParserException("Expected limit number");
+            var limitToken = Consume(TokenType.NUMBER) ?? throw Error("Expected limit number");
             node.Limit = new LimitClause { Limit = (int)ConvertToDouble(limitToken.Literal)! };
 
             // Parse OFFSET clause
             if (Check(TokenType.OFFSET))
             {
                 Consume(TokenType.OFFSET);
-                var offsetToken = Consume(TokenType.NUMBER) ?? throw new ParserException("Expected offset number");
+                var offsetToken = Consume(TokenType.NUMBER) ?? throw Error("Expected offset number");
                 node.Limit.Offset = (int)ConvertToDouble(offsetToken.Literal)!;
             }
         }
@@ -1752,13 +1758,13 @@ public class Parser
     {
         var join = new JoinClause();
 
-        var targetToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected concept or relation name");
+        var targetToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected concept or relation name");
         join.Target = targetToken.Lexeme;
 
         // Parse optional AS alias
         if (Check(TokenType.AS))
         {
-            var aliasToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected alias");
+            var aliasToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected alias");
             join.Alias = aliasToken.Lexeme;
         }
 
@@ -1774,11 +1780,11 @@ public class Parser
 
     private InsertNode ParseInsert()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.INSERT);
         Consume(TokenType.INTO);
 
-        var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected concept name");
+        var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected concept name");
         var node = new InsertNode
         {
             Type = "INSERT",
@@ -1798,7 +1804,7 @@ public class Parser
         {
             var firstToken = Peek();
             if (firstToken == null)
-                throw new ParserException("Expected value");
+                throw Error("Expected value");
 
             // Check if this is named syntax: IDENTIFIER : value
             if (firstToken.Type == TokenType.IDENTIFIER)
@@ -1807,7 +1813,7 @@ public class Parser
                 if (nextToken?.Type == TokenType.COLON)
                 {
                     // Named syntax
-                    var fieldToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected field name");
+                    var fieldToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected field name");
                     Consume(TokenType.COLON);
                     var valueNode = ParseValueNode();
                     node.Values[fieldToken.Lexeme] = valueNode;
@@ -1838,7 +1844,7 @@ public class Parser
 
     private ValueNode ParseValueNode()
     {
-        var token = Peek() ?? throw new ParserException("Expected value");
+        var token = Peek() ?? throw Error("Expected value");
 
         var valueNode = new ValueNode();
 
@@ -1874,7 +1880,7 @@ public class Parser
                 Advance();
                 break;
             default:
-                throw new ParserException($"Unexpected value type: {token.Lexeme}", token.Line, token.Column);
+                throw Error("Unexpected value type: {token.Lexeme}", token);
         }
 
         return valueNode;
@@ -1882,10 +1888,10 @@ public class Parser
 
     private UpdateNode ParseUpdate()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.UPDATE);
 
-        var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected concept name");
+        var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected concept name");
         var node = new UpdateNode
         {
             Type = "UPDATE",
@@ -1901,7 +1907,7 @@ public class Parser
         // Parse SET values
         while (!Check(TokenType.RPAREN) && !IsAtEnd())
         {
-            var fieldToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected field name");
+            var fieldToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected field name");
             Consume(TokenType.COLON);
             var expr = ParseExpression();
             node.SetValues[fieldToken.Lexeme] = expr;
@@ -1911,7 +1917,7 @@ public class Parser
             else if (Check(TokenType.RPAREN))
                 break;
             else
-                throw new ParserException("Expected ',' or ')' in ATTRIBUTE block");
+                throw Error("Expected ',' or ')' in ATTRIBUTE block");
         }
         Consume(TokenType.RPAREN);
 
@@ -1927,13 +1933,13 @@ public class Parser
 
     private DeleteNode ParseDelete()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.DELETE);
         
         if (Check(TokenType.FROM))
             Consume(TokenType.FROM);
 
-        var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected concept name");
+        var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected concept name");
         var node = new DeleteNode
         {
             Type = "DELETE",
@@ -1954,14 +1960,14 @@ public class Parser
 
     private SolveNode ParseSolve()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.SOLVE);
 
         // Syntax: SOLVE ON CONCEPT <ConceptName>
         Consume(TokenType.ON);
         Consume(TokenType.CONCEPT);
 
-        var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected concept name");
+        var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected concept name");
         var node = new SolveNode(token)
         {
             Type = "SOLVE",
@@ -1976,9 +1982,9 @@ public class Parser
             Consume(TokenType.GIVEN);
             while (!Check(TokenType.FIND) && !Check(TokenType.SEMICOLON) && !IsAtEnd())
             {
-                var keyToken = ConsumeIdentifier() ?? throw new ParserException("Expected variable name");
+                var keyToken = ConsumeIdentifier() ?? throw Error("Expected variable name");
                 Consume(TokenType.COLON);
-                var valueToken = Peek() ?? throw new ParserException("Expected value");
+                var valueToken = Peek() ?? throw Error("Expected value");
                 string value;
 
                 switch (valueToken.Type)
@@ -1997,7 +2003,7 @@ public class Parser
                         value = valueToken.Lexeme;
                         break;
                     default:
-                        throw new ParserException($"Unexpected value type: {valueToken.Lexeme}", valueToken.Line, valueToken.Column);
+                        throw Error("Unexpected value type: {valueToken.Lexeme}", valueToken);
                 }
                 Advance();
                 node.GivenFacts[keyToken.Lexeme] = value;
@@ -2013,7 +2019,7 @@ public class Parser
         Consume(TokenType.FIND);
         while (!Check(TokenType.SAVE) && !Check(TokenType.SEMICOLON) && !IsAtEnd())
         {
-            var findToken = ConsumeIdentifier() ?? throw new ParserException("Expected variable to find");
+            var findToken = ConsumeIdentifier() ?? throw Error("Expected variable to find");
             node.FindVariables.Add(findToken.Lexeme);
 
             if (Check(TokenType.COMMA))
@@ -2034,7 +2040,7 @@ public class Parser
 
     private ShowNode ParseShow()
     {
-        var token = Peek() ?? throw new ParserException("Unexpected end of input");
+        var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.SHOW);
 
         var node = new ShowNode
@@ -2059,7 +2065,7 @@ public class Parser
             }
             else 
             {
-                throw new ParserException("Expected BASE or BASES after KNOWLEDGE", Peek()?.Line ?? 0, Peek()?.Column ?? 0);
+                throw Error("Expected BASE or BASES after KNOWLEDGE");
             }
 
             node.ShowType = ShowType.KnowledgeBases;
@@ -2069,14 +2075,14 @@ public class Parser
         {
             // SHOW CONCEPT <name> - show concept detail
             Consume(TokenType.CONCEPT);
-            var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected concept name");
+            var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected concept name");
             node.ShowType = ShowType.ConceptDetail;
             node.Type = "SHOW_CONCEPT";
             node.ConceptName = conceptToken.Lexeme;
 
             if (Check(TokenType.IN))
             {
-                var kbToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected knowledge base name");
+                var kbToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected knowledge base name");
                 node.KbName = kbToken.Lexeme;
             }
         }
@@ -2089,7 +2095,7 @@ public class Parser
 
             if (Check(TokenType.IN))
             {
-                var kbToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected knowledge base name");
+                var kbToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected knowledge base name");
                 node.KbName = kbToken.Lexeme;
             }
         }
@@ -2102,13 +2108,13 @@ public class Parser
 
             if (Check(TokenType.IN))
             {
-                var kbToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected knowledge base name");
+                var kbToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected knowledge base name");
                 node.KbName = kbToken.Lexeme;
             }
 
             if (Check(TokenType.TYPE))
             {
-                var ruleTypeToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected rule type");
+                var ruleTypeToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected rule type");
                 node.RuleType = ruleTypeToken.Lexeme.ToLower();
             }
         }
@@ -2120,7 +2126,7 @@ public class Parser
 
             if (Check(TokenType.IN))
             {
-                var kbToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected knowledge base name");
+                var kbToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected knowledge base name");
                 node.KbName = kbToken.Lexeme;
             }
         }
@@ -2132,7 +2138,7 @@ public class Parser
 
             if (Check(TokenType.IN))
             {
-                var kbToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected knowledge base name");
+                var kbToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected knowledge base name");
                 node.KbName = kbToken.Lexeme;
             }
         }
@@ -2144,7 +2150,7 @@ public class Parser
 
             if (Check(TokenType.IN))
             {
-                var kbToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected knowledge base name");
+                var kbToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected knowledge base name");
                 node.KbName = kbToken.Lexeme;
             }
         }
@@ -2156,7 +2162,7 @@ public class Parser
 
             if (Check(TokenType.IN))
             {
-                var kbToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected knowledge base name");
+                var kbToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected knowledge base name");
                 node.KbName = kbToken.Lexeme;
             }
         }
@@ -2173,25 +2179,25 @@ public class Parser
             {
                 node.ShowType = ShowType.PrivilegesOnKb;
                 node.Type = "SHOW_PRIVILEGES_ON";
-                var kbToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected knowledge base name");
+                var kbToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected knowledge base name");
                 node.KbName = kbToken.Lexeme;
             }
             else if (Check(TokenType.OF))
             {
                 node.ShowType = ShowType.PrivilegesOfUser;
                 node.Type = "SHOW_PRIVILEGES_OF";
-                var userToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected username");
+                var userToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected username");
                 node.Username = userToken.Lexeme;
             }
             else
             {
-                throw new ParserException("Expected ON or OF after PRIVILEGES");
+                throw Error("Expected ON or OF after PRIVILEGES");
             }
         }
         else
         {
             var errorToken = Peek();
-            throw new ParserException($"Unexpected show type: {errorToken?.Lexeme}", errorToken?.Line ?? 0, errorToken?.Column ?? 0);
+            throw Error("Unexpected show type: {errorToken?.Lexeme}", errorToken);
         }
 
         return node;
@@ -2332,7 +2338,7 @@ public class Parser
         var token = Peek();
 
         if (token == null)
-            throw new ParserException("Unexpected end of expression");
+            throw Error("Unexpected end of expression");
 
         switch (token.Type)
         {
@@ -2405,7 +2411,7 @@ public class Parser
                 return expr;
 
             default:
-                throw new ParserException($"Unexpected token in expression: {token.Lexeme}", token.Line, token.Column);
+                throw Error("Unexpected token in expression: {token.Lexeme}", token);
         }
     }
 
@@ -2415,7 +2421,7 @@ public class Parser
 
         if (left is VariableNode varNode)
         {
-            var opToken = Peek() ?? throw new ParserException("Expected operator");
+            var opToken = Peek() ?? throw Error("Expected operator");
 
             if (IsComparisonOperator(opToken.Type))
             {
@@ -2476,7 +2482,7 @@ public class Parser
             };
         }
 
-        throw new ParserException("Invalid condition", Peek()?.Line ?? 0, Peek()?.Column ?? 0);
+        throw Error("Invalid condition");
     }
 
     private List<Condition> ParseConditionList()
@@ -2501,15 +2507,32 @@ public class Parser
     {
         var list = new List<string>();
 
-        while (!IsAtEnd() && !IsClauseKeyword(Peek()?.Type))
+        bool hasParens = false;
+        if (Check(TokenType.LPAREN))
         {
-            var token = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected identifier");
+            Consume(TokenType.LPAREN);
+            hasParens = true;
+        }
+
+        while (!IsAtEnd())
+        {
+            if (hasParens && Check(TokenType.RPAREN))
+                break;
+            if (!hasParens && IsClauseKeyword(Peek()?.Type))
+                break;
+
+            var token = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected identifier");
             list.Add(token.Lexeme);
 
             if (Check(TokenType.COMMA))
                 Consume(TokenType.COMMA);
             else
                 break;
+        }
+
+        if (hasParens)
+        {
+            Consume(TokenType.RPAREN);
         }
 
         return list;
@@ -2519,9 +2542,21 @@ public class Parser
     {
         var list = new List<ConstructRelationDef>();
 
-        while (!IsAtEnd() && !IsClauseKeyword(Peek()?.Type))
+        bool hasParens = false;
+        if (Check(TokenType.LPAREN))
         {
-            var relToken = ConsumeIdentifier() ?? throw new ParserException("Expected relation name");
+            Consume(TokenType.LPAREN);
+            hasParens = true;
+        }
+
+        while (!IsAtEnd())
+        {
+            if (hasParens && Check(TokenType.RPAREN))
+                break;
+            if (!hasParens && IsClauseKeyword(Peek()?.Type))
+                break;
+
+            var relToken = ConsumeIdentifier() ?? throw Error("Expected relation name");
             var def = new ConstructRelationDef { RelationName = relToken.Lexeme };
 
             // Parse function-style arguments: RelName(arg1, arg2, ...)
@@ -2530,7 +2565,7 @@ public class Parser
                 Consume(TokenType.LPAREN);
                 while (!Check(TokenType.RPAREN) && !IsAtEnd())
                 {
-                    var argToken = ConsumeIdentifier() ?? throw new ParserException("Expected argument name");
+                    var argToken = ConsumeIdentifier() ?? throw Error("Expected argument name");
                     def.Arguments.Add(argToken.Lexeme);
                     if (Check(TokenType.COMMA)) Consume(TokenType.COMMA);
                 }
@@ -2553,6 +2588,11 @@ public class Parser
                 break;
         }
 
+        if (hasParens)
+        {
+            Consume(TokenType.RPAREN);
+        }
+
         return list;
     }
 
@@ -2560,11 +2600,23 @@ public class Parser
     {
         var list = new List<PropertyDef>();
 
-        while (!IsAtEnd() && !IsClauseKeyword(Peek()?.Type))
+        bool hasParens = false;
+        if (Check(TokenType.LPAREN))
         {
-            var keyToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected property key");
-            Consume(TokenType.EQUALS);
-            var valToken = Advance() ?? throw new ParserException("Expected property value");
+            Consume(TokenType.LPAREN);
+            hasParens = true;
+        }
+
+        while (!IsAtEnd())
+        {
+            if (hasParens && Check(TokenType.RPAREN))
+                break;
+            if (!hasParens && IsClauseKeyword(Peek()?.Type))
+                break;
+
+            var keyToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected property key");
+            if (Check(TokenType.COLON)) Consume(TokenType.COLON); else if (Check(TokenType.EQUALS)) Consume(TokenType.EQUALS); else throw Error("Expected ':' or '=' after property key, but found " + (Peek()?.Type.ToString() ?? "null") + " ('" + (Peek()?.Lexeme ?? "") + "')");
+            var valToken = Advance() ?? throw Error("Expected property value");
             
             list.Add(new PropertyDef {
                 Key = keyToken.Lexeme,
@@ -2577,6 +2629,11 @@ public class Parser
                 break;
         }
 
+        if (hasParens)
+        {
+            Consume(TokenType.RPAREN);
+        }
+
         return list;
     }
 
@@ -2584,17 +2641,37 @@ public class Parser
     {
         var list = new List<ConceptRuleDef>();
 
-        // Rules start with TYPE or IF — we must NOT use IsClauseKeyword as boundary
-        // since TYPE, IF, THEN are both clause keywords and rule-internal tokens
-        while (!IsAtEnd() && (Check(TokenType.TYPE) || Check(TokenType.IF)))
+        bool hasParens = false;
+        if (Check(TokenType.LPAREN))
         {
+            Consume(TokenType.LPAREN);
+            hasParens = true;
+        }
+
+        while (!IsAtEnd())
+        {
+            if (hasParens && Check(TokenType.RPAREN))
+                break;
+            if (!hasParens && IsClauseKeyword(Peek()?.Type))
+                break;
+            if (!Check(TokenType.TYPE) && !Check(TokenType.IF) && !Check(TokenType.RULE) && !Check(TokenType.VARIABLES))
+                break;
+
             var rule = new ConceptRuleDef();
             
-            if (Check(TokenType.TYPE))
+            if (Check(TokenType.RULE) || Check(TokenType.TYPE))
             {
-                Consume(TokenType.TYPE);
-                var typeToken = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected rule type");
-                rule.Kind = typeToken.Lexeme;
+                Advance(); // Consume RULE or TYPE
+                // Optional colon after RULE/TYPE
+                if (Check(TokenType.COLON)) Consume(TokenType.COLON);
+                
+                // Optional name/kind
+                if (Check(TokenType.IDENTIFIER))
+                {
+                    var typeToken = Consume(TokenType.IDENTIFIER);
+                    rule.Kind = typeToken?.Lexeme;
+                    if (Check(TokenType.COLON)) Consume(TokenType.COLON);
+                }
             }
 
             if (Check(TokenType.VARIABLES))
@@ -2612,13 +2689,13 @@ public class Parser
             if (Check(TokenType.IF))
             {
                 Consume(TokenType.IF);
-                rule.Hypothesis = ParseExpressionList();
+                rule.Hypothesis = new List<string> { ParseExpressionString() };
             }
 
             if (Check(TokenType.THEN))
             {
                 Consume(TokenType.THEN);
-                rule.Conclusion = ParseExpressionList();
+                rule.Conclusion = new List<string> { ParseExpressionString() };
             }
 
             list.Add(rule);
@@ -2629,15 +2706,30 @@ public class Parser
                 break;
         }
 
+        if (hasParens) { Consume(TokenType.RPAREN); }
+
         return list;
     }
 
     private List<EquationDef> ParseEquationList()
     {
         var list = new List<EquationDef>();
-        while (!IsAtEnd() && !IsClauseKeyword(Peek()?.Type))
+
+        bool hasParens = false;
+        if (Check(TokenType.LPAREN))
         {
-            var startToken = Peek() ?? throw new ParserException("Expected equation");
+            Consume(TokenType.LPAREN);
+            hasParens = true;
+        }
+
+        while (!IsAtEnd())
+        {
+            if (hasParens && Check(TokenType.RPAREN))
+                break;
+            if (!hasParens && IsClauseKeyword(Peek()?.Type))
+                break;
+
+            var startToken = Peek() ?? throw Error("Expected equation");
             list.Add(new EquationDef 
             { 
                 Expression = ParseExpressionString(),
@@ -2648,6 +2740,12 @@ public class Parser
             if (Check(TokenType.COMMA)) Consume(TokenType.COMMA);
             else break;
         }
+
+        if (hasParens)
+        {
+            Consume(TokenType.RPAREN);
+        }
+
         return list;
     }
 
@@ -2673,7 +2771,7 @@ public class Parser
                 break;
 
             string name = string.Empty;
-            var startToken = Peek() ?? throw new ParserException("Expected constraint");
+            var startToken = Peek() ?? throw Error("Expected constraint");
 
             // Lookahead for named constraint: name: expression
             if (Peek()?.Type == TokenType.IDENTIFIER && PeekNext()?.Type == TokenType.COLON)
@@ -2681,7 +2779,7 @@ public class Parser
                 name = Advance().Lexeme;
                 Consume(TokenType.COLON);
                 // The actual expression starts after the colon
-                startToken = Peek() ?? throw new ParserException("Expected constraint expression after ':'");
+                startToken = Peek() ?? throw Error("Expected constraint expression after ':'");
             }
 
             var expression = ParseExpressionString();
@@ -2733,11 +2831,23 @@ public class Parser
     {
         var list = new List<SameVariableGroup>();
 
-        while (!IsAtEnd() && !IsClauseKeyword(Peek()?.Type))
+        bool hasParens = false;
+        if (Check(TokenType.LPAREN))
         {
-            var var1Token = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected variable name");
+            Consume(TokenType.LPAREN);
+            hasParens = true;
+        }
+
+        while (!IsAtEnd())
+        {
+            if (hasParens && Check(TokenType.RPAREN))
+                break;
+            if (!hasParens && IsClauseKeyword(Peek()?.Type))
+                break;
+
+            var var1Token = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected variable name");
             Consume(TokenType.EQUALS);
-            var var2Token = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected variable name");
+            var var2Token = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected variable name");
 
             list.Add(new SameVariableGroup
             {
@@ -2749,6 +2859,11 @@ public class Parser
                 Consume(TokenType.COMMA);
             else
                 break;
+        }
+
+        if (hasParens)
+        {
+            Consume(TokenType.RPAREN);
         }
 
         return list;
@@ -2778,7 +2893,7 @@ public class Parser
 
         while (!IsAtEnd() && !IsClauseKeyword(Peek()?.Type))
         {
-            var token = Consume(TokenType.IDENTIFIER) ?? throw new ParserException("Expected variable name");
+            var token = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected variable name");
             list.Add(token.Lexeme);
 
             if (Check(TokenType.COMMA))
@@ -2803,7 +2918,7 @@ public class Parser
             // Accept any token as variable name (including keywords like DESC)
             var token = Peek();
             if (token == null || token.Type == TokenType.COMMA)
-                throw new ParserException("Expected variable name");
+                throw Error("Expected variable name");
             var varToken = Advance();
             var item = new OrderByItem { Variable = varToken.Lexeme };
 
@@ -3004,5 +3119,11 @@ public class Parser
     {
         Consume(TokenType.ROLLBACK);
         return new Ast.Tcl.RollbackNode();
+    }
+
+    private ParserException Error(string message, Token? token = null)
+    {
+        var t = token ?? Peek() ?? (_tokens.Count > 0 ? _tokens[^1] : null);
+        return new ParserException(message, t?.Line ?? 0, t?.Column ?? 0);
     }
 }

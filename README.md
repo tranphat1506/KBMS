@@ -40,7 +40,8 @@ dotnet run
 -- Tạo khái niệm với kiểu dữ liệu chính xác
 CREATE CONCEPT Product (
     VARIABLES ( id: INT, price: DECIMAL(10,2), tax: DOUBLE ),
-    CONSTRAINTS ( total = price * (1 + tax) )
+    CONSTRAINTS ( total = price * (1 + tax) ),
+    RULES ( IF price > 1000 THEN luxury = true )
 );
 
 -- Thêm đối tượng

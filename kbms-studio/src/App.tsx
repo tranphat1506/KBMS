@@ -33,15 +33,22 @@ function App() {
     const hasUnsaved = tabs.some(t => !t.isSaved);
     // @ts-ignore
     if (window.kbmsApi?.setUnsavedStatus) {
+      // @ts-ignore
       window.kbmsApi.setUnsavedStatus(hasUnsaved);
     }
   }, [tabs]);
 
   useEffect(() => {
     // @ts-ignore
-    window.kbmsApi.onStatusChange((status: any) => {
+    const unsubscribeStatus = window.kbmsApi.onStatusChange((status: any) => {
       console.log("(App) Connection status changed:", status);
       setStatus(status);
+    });
+
+    // @ts-ignore
+    const unsubscribeStream = window.kbmsApi.onDataStream((data: any) => {
+      console.log("(App) Incoming data stream fragment:", data);
+      useKbmsStore.getState().handleResultFragment(data);
     });
 
     // Recover status on startup
@@ -54,6 +61,14 @@ function App() {
       }
     });
 
+    // Return a cleanup function to prevent memory leaks and duplicate execution in React Strict Mode
+    return () => {
+      if (unsubscribeStatus) unsubscribeStatus();
+      if (unsubscribeStream) unsubscribeStream();
+    };
+  }, [setStatus]);
+
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isMac = navigator.userAgent.indexOf('Mac') > -1;
       const isCmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;

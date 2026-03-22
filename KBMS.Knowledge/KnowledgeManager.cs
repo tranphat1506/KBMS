@@ -32,7 +32,7 @@ public class KnowledgeManager
     {
         if (ast == null)
         {
-            return new { error = "Query is empty, a comment, or could not be parsed." };
+            return ErrorResponse.ExecutionErrorResponse("Query is empty, a comment, or could not be parsed.");
         }
 
         // Determine KB name
@@ -41,14 +41,14 @@ public class KnowledgeManager
         // Check if KB is required
         if (RequiresKb(ast) && kbName == null)
         {
-            return new { error = "No knowledge base selected. Use 'USE <kbname>' first." };
+            return ErrorResponse.ExecutionErrorResponse("No knowledge base selected. Use 'USE <kbname>' first.");
         }
 
         // Check privileges
         var action = DetermineAction(ast);
         if (!CheckPrivilege(user, action, kbName))
         {
-            return new { error = $"Permission denied: {action} on {kbName ?? "system"}" };
+            return ErrorResponse.PermissionErrorResponse(action, kbName ?? "system");
         }
 
         // Execute the command
@@ -221,7 +221,7 @@ public class KnowledgeManager
             "COMMIT" => HandleCommit(kbName),
             "ROLLBACK" => HandleRollback(),
 
-            _ => new { error = $"Unknown command type: {ast.Type}" }
+            _ => ErrorResponse.ExecutionErrorResponse($"Unknown command type: {ast.Type}")
         };
     }
 
@@ -230,7 +230,7 @@ public class KnowledgeManager
     private object HandleBeginTransaction()
     {
         if (_storage.IsTransactionActive())
-            return new { error = "A transaction is already active. COMMIT or ROLLBACK first." };
+            return ErrorResponse.ExecutionErrorResponse("A transaction is already active. COMMIT or ROLLBACK first.");
 
         _storage.BeginTransaction();
         return new { success = true, message = "Transaction started. Changes are buffered in RAM until COMMIT." };
@@ -239,7 +239,7 @@ public class KnowledgeManager
     private object HandleCommit(string? kbName)
     {
         if (!_storage.IsTransactionActive())
-            return new { error = "No active transaction. Use BEGIN TRANSACTION first." };
+            return ErrorResponse.ExecutionErrorResponse("No active transaction. Use BEGIN TRANSACTION first.");
 
         _storage.CommitTransaction(kbName ?? string.Empty);
         return new { success = true, message = "Transaction committed. All changes flushed to disk." };
@@ -248,7 +248,7 @@ public class KnowledgeManager
     private object HandleRollback()
     {
         if (!_storage.IsTransactionActive())
-            return new { error = "No active transaction. Use BEGIN TRANSACTION first." };
+            return ErrorResponse.ExecutionErrorResponse("No active transaction. Use BEGIN TRANSACTION first.");
 
         _storage.RollbackTransaction();
         return new { success = true, message = "Transaction rolled back. All uncommitted changes discarded." };
@@ -293,7 +293,7 @@ public class KnowledgeManager
         var success = _storage.DropKb(node.KbName);
         return success
             ? new { success = true, message = $"Knowledge base '{node.KbName}' dropped successfully." }
-            : new { error = $"Knowledge base '{node.KbName}' not found." };
+            : ErrorResponse.ExecutionErrorResponse($"Knowledge base '{node.KbName}' not found.");
     }
 
     private object HandleUse(UseKbNode node)
@@ -301,7 +301,7 @@ public class KnowledgeManager
         var kb = _storage.LoadKb(node.KbName);
         return kb != null
             ? new { success = true, message = $"Now using knowledge base '{node.KbName}'.", currentKb = node.KbName }
-            : new { error = $"Knowledge base '{node.KbName}' not found." };
+            : ErrorResponse.ExecutionErrorResponse($"Knowledge base '{node.KbName}' not found.");
     }
 
     private object HandleCreateConcept(CreateConceptNode node, string kbName)
@@ -422,7 +422,7 @@ public class KnowledgeManager
         var created = _storage.CreateConcept(kbName, concept);
         return created != null
             ? new { success = true, message = $"Concept '{node.ConceptName}' created successfully." }
-            : new { error = $"Concept '{node.ConceptName}' already exists." };
+            : ErrorResponse.ExecutionErrorResponse($"Concept '{node.ConceptName}' already exists.");
     }
 
     private List<string> ExtractVariablesFromExpression(string expression)
@@ -449,7 +449,7 @@ public class KnowledgeManager
         var success = _storage.DropConcept(kbName, node.ConceptName);
         return success
             ? new { success = true, message = $"Concept '{node.ConceptName}' dropped successfully." }
-            : new { error = $"Concept '{node.ConceptName}' not found or is in use." };
+            : ErrorResponse.ExecutionErrorResponse($"Concept '{node.ConceptName}' not found or is in use.");
     }
 
     private object HandleAddVariable(AddVariableNode node, string kbName)
@@ -457,7 +457,7 @@ public class KnowledgeManager
         var success = _storage.AddVariableToConcept(kbName, node.ConceptName, node.VariableName, node.VariableType, node.Length, node.Scale);
         return success
             ? new { success = true, message = $"Variable '{node.VariableName}' added to concept '{node.ConceptName}'." }
-            : new { error = "Failed to add variable." };
+            : ErrorResponse.ExecutionErrorResponse("Failed to add variable.");
     }
 
     private object HandleAddHierarchy(AddHierarchyNode node, string kbName)
@@ -465,7 +465,7 @@ public class KnowledgeManager
         var hierarchy = _storage.AddHierarchy(kbName, node.ParentConcept, node.ChildConcept, (Models.HierarchyType)node.HierarchyType);
         return hierarchy != null
             ? new { success = true, message = "Hierarchy added successfully." }
-            : new { error = "Hierarchy already exists or failed to add." };
+            : ErrorResponse.ExecutionErrorResponse("Hierarchy already exists or failed to add.");
     }
 
     private object HandleRemoveHierarchy(RemoveHierarchyNode node, string kbName)
@@ -473,7 +473,7 @@ public class KnowledgeManager
         var success = _storage.RemoveHierarchy(kbName, node.ParentConcept, node.ChildConcept, (Models.HierarchyType)node.HierarchyType);
         return success
             ? new { success = true, message = "Hierarchy removed successfully." }
-            : new { error = "Hierarchy not found." };
+            : ErrorResponse.ExecutionErrorResponse("Hierarchy not found.");
     }
 
     private object HandleCreateRelation(CreateRelationNode node, string kbName)
@@ -504,7 +504,7 @@ public class KnowledgeManager
         var created = _storage.CreateRelation(kbName, relation);
         return created != null
             ? new { success = true, message = $"Relation '{node.RelationName}' created successfully." }
-            : new { error = $"Relation '{node.RelationName}' already exists." };
+            : ErrorResponse.ExecutionErrorResponse($"Relation '{node.RelationName}' already exists.");
     }
 
     private object HandleDropRelation(DropRelationNode node, string kbName)
@@ -512,7 +512,7 @@ public class KnowledgeManager
         var success = _storage.DropRelation(kbName, node.RelationName);
         return success
             ? new { success = true, message = $"Relation '{node.RelationName}' dropped successfully." }
-            : new { error = $"Relation '{node.RelationName}' not found." };
+            : ErrorResponse.ExecutionErrorResponse($"Relation '{node.RelationName}' not found.");
     }
 
     private object HandleCreateOperator(CreateOperatorNode node, string kbName)
@@ -531,7 +531,7 @@ public class KnowledgeManager
 
         return created != null
             ? new { success = true, message = $"Operator '{node.Symbol}' created successfully." }
-            : new { error = $"Operator '{node.Symbol}' already exists." };
+            : ErrorResponse.ExecutionErrorResponse($"Operator '{node.Symbol}' already exists.");
     }
 
     private object HandleDropOperator(DropOperatorNode node, string kbName)
@@ -539,7 +539,7 @@ public class KnowledgeManager
         var success = _storage.DropOperator(kbName, node.Symbol);
         return success
             ? new { success = true, message = $"Operator '{node.Symbol}' dropped successfully." }
-            : new { error = $"Operator '{node.Symbol}' not found." };
+            : ErrorResponse.ExecutionErrorResponse($"Operator '{node.Symbol}' not found.");
     }
 
     private object HandleCreateFunction(CreateFunctionNode node, string kbName)
@@ -557,7 +557,7 @@ public class KnowledgeManager
 
         return created != null
             ? new { success = true, message = $"Function '{node.FunctionName}' created successfully." }
-            : new { error = $"Function '{node.FunctionName}' already exists." };
+            : ErrorResponse.ExecutionErrorResponse($"Function '{node.FunctionName}' already exists.");
     }
 
     private object HandleDropFunction(DropFunctionNode node, string kbName)
@@ -565,7 +565,7 @@ public class KnowledgeManager
         var success = _storage.DropFunction(kbName, node.FunctionName);
         return success
             ? new { success = true, message = $"Function '{node.FunctionName}' dropped successfully." }
-            : new { error = $"Function '{node.FunctionName}' not found." };
+            : ErrorResponse.ExecutionErrorResponse($"Function '{node.FunctionName}' not found.");
     }
 
     private object HandleAddComputation(AddComputationNode node, string kbName)
@@ -573,7 +573,7 @@ public class KnowledgeManager
         var success = _storage.AddComputation(kbName, node.ConceptName, node.InputVariables, node.ResultVariable, node.Formula, node.Cost ?? 1);
         return success
             ? new { success = true, message = "Computation added successfully." }
-            : new { error = "Computation already exists or failed to add." };
+            : ErrorResponse.ExecutionErrorResponse("Computation already exists or failed to add.");
     }
 
     private object HandleRemoveComputation(RemoveComputationNode node, string kbName)
@@ -581,7 +581,7 @@ public class KnowledgeManager
         var success = _storage.RemoveComputation(kbName, node.ConceptName, node.VariableName);
         return success
             ? new { success = true, message = "Computation removed successfully." }
-            : new { error = "Computation not found." };
+            : ErrorResponse.ExecutionErrorResponse("Computation not found.");
     }
 
     private object HandleCreateRule(CreateRuleNode node, string kbName)
@@ -599,7 +599,7 @@ public class KnowledgeManager
         var created = _storage.CreateRule(kbName, rule);
         return created != null
             ? new { success = true, message = $"Rule '{node.RuleName}' created successfully." }
-            : new { error = $"Rule '{node.RuleName}' already exists." };
+            : ErrorResponse.ExecutionErrorResponse($"Rule '{node.RuleName}' already exists.");
     }
 
     private object HandleDropRule(DropRuleNode node, string kbName)
@@ -607,7 +607,7 @@ public class KnowledgeManager
         var success = _storage.DropRule(kbName, node.RuleName);
         return success
             ? new { success = true, message = $"Rule '{node.RuleName}' dropped successfully." }
-            : new { error = $"Rule '{node.RuleName}' not found." };
+            : ErrorResponse.ExecutionErrorResponse($"Rule '{node.RuleName}' not found.");
     }
 
     private object HandleCreateUser(CreateUserNode node)
@@ -616,7 +616,7 @@ public class KnowledgeManager
         var user = _storage.CreateUser(node.Username, node.Password, role, node.SystemAdmin);
         return user != null
             ? new { success = true, message = $"User '{node.Username}' created successfully." }
-            : new { error = $"User '{node.Username}' already exists." };
+            : ErrorResponse.ExecutionErrorResponse($"User '{node.Username}' already exists.");
     }
 
     private object HandleDropUser(DropUserNode node)
@@ -624,7 +624,7 @@ public class KnowledgeManager
         var success = _storage.DropUser(node.Username);
         return success
             ? new { success = true, message = $"User '{node.Username}' dropped successfully." }
-            : new { error = $"User '{node.Username}' not found." };
+            : ErrorResponse.ExecutionErrorResponse($"User '{node.Username}' not found.");
     }
 
     private object HandleGrant(GrantNode node)
@@ -632,7 +632,7 @@ public class KnowledgeManager
         var success = _storage.GrantPrivilege(node.KbName, node.Username, node.Privilege);
         return success
             ? new { success = true, message = $"Privilege {node.Privilege} on {node.KbName} granted to {node.Username}." }
-            : new { error = "Failed to grant privilege." };
+            : ErrorResponse.ExecutionErrorResponse("Failed to grant privilege.");
     }
 
     private object HandleRevoke(RevokeNode node)
@@ -640,7 +640,7 @@ public class KnowledgeManager
         var success = _storage.RevokePrivilege(node.KbName, node.Username);
         return success
             ? new { success = true, message = $"Privilege on {node.KbName} revoked from {node.Username}." }
-            : new { error = "Failed to revoke privilege." };
+            : ErrorResponse.ExecutionErrorResponse("Failed to revoke privilege.");
     }
 
     // ==================== DML Handlers ====================
@@ -684,12 +684,12 @@ public class KnowledgeManager
                     entityExists = _storage.ListOperators(kbName).Any(x => x.Symbol.Equals(entityName, StringComparison.OrdinalIgnoreCase));
                     break;
                 default:
-                    return new { error = $"Unknown entity type '{targetType}'." };
+                    return ErrorResponse.ExecutionErrorResponse($"Unknown entity type '{targetType}'.");
             }
 
             if (!entityExists)
             {
-                return new { error = $"{targetType} '{entityName}' not found." };
+                return ErrorResponse.ExecutionErrorResponse($"{targetType} '{entityName}' not found.");
             }
 
             // 2. Handle HIERARCHY SELECT - returns table of hierarchy relationships
@@ -750,7 +750,7 @@ public class KnowledgeManager
             {
                 if (targetType != "CONCEPT")
                 {
-                    return new { error = $"Sub-target '{subTarget}' is not supported on {targetType}." };
+                    return ErrorResponse.ExecutionErrorResponse($"Sub-target '{subTarget}' is not supported on {targetType}.");
                 }
                 
                 if (conceptMetadata != null)
@@ -1263,21 +1263,48 @@ public class KnowledgeManager
             return new { error = "No objects found matching conditions." };
         }
 
-        var values = new Dictionary<string, object>();
-        foreach (var kv in node.SetValues)
-        {
-            values[kv.Key] = ConvertExpressionToValue(kv.Value);
-        }
-
+        var concept = _storage.LoadConcept(kbName, node.ConceptName);
+        var engine = GetConfiguredEngine(kbName);
         var success = true;
+        int updatedCount = 0;
+
         foreach (var obj in matchingObjects)
         {
-            success &= _storage.UpdateObject(kbName, obj.Id, values);
+            var parameters = new Dictionary<string, object>(obj.Values);
+            var updatedValues = new Dictionary<string, object>();
+
+            foreach (var kv in node.SetValues)
+            {
+                try
+                {
+                    var formula = kv.Value.ToString();
+                    var res = engine.EvaluateFormula(formula, parameters);
+                    
+                    var variable = concept?.Variables.FirstOrDefault(v => v.Name.Equals(kv.Key, StringComparison.OrdinalIgnoreCase));
+                    var castedRes = engine.CastToVariableType(res, variable);
+                    
+                    updatedValues[kv.Key] = castedRes;
+                    parameters[kv.Key] = castedRes; // Allow subsequent SET clauses to use updated value
+                }
+                catch (Exception ex)
+                {
+                    return new { error = $"Failed to evaluate expression for '{kv.Key}': {ex.Message}" };
+                }
+            }
+
+            if (_storage.UpdateObject(kbName, obj.Id, updatedValues))
+            {
+                updatedCount++;
+            }
+            else
+            {
+                success = false;
+            }
         }
 
         return success
-            ? new { success = true, message = $"{matchingObjects.Count} object(s) updated successfully." }
-            : new { error = "Failed to update object(s)." };
+            ? new { success = true, message = $"{updatedCount} object(s) updated successfully." }
+            : new { error = "Failed to update some object(s)." };
     }
 
     private object HandleDelete(DeleteNode node, string kbName)
@@ -1347,55 +1374,7 @@ public class KnowledgeManager
         }
 
         // Initialize engine and solve
-        var engine = new KBMS.Reasoning.InferenceEngine();
-        
-        // (RC8) Pre-load rules to attach to concepts during resolution
-        var allRules = _storage.ListRules(kbName);
-
-        engine.ConceptResolver = (name) => {
-            var c = _storage.LoadConcept(kbName, name);
-            if (c != null) {
-                // (RC8) Logic: Rules scoped to this concept OR any parent concept (Inference)
-                var hierarchy = _storage.ListHierarchies(kbName);
-                var ancestors = GetAncestors(name, hierarchy);
-                ancestors.Add(name);
-
-                c.ConceptRules = allRules
-                    .Where(r => r != null && ancestors.Any(a => a.Equals(r.Scope, StringComparison.OrdinalIgnoreCase)))
-                    .Select(r => new Models.ConceptRule { 
-                        Id = r.Id, 
-                        Kind = r.RuleType ?? "deduction", 
-                        Hypothesis = r.Hypothesis?.Select(h => h.Content).Where(content => content != null).ToList() ?? new(), 
-                        Conclusion = r.Conclusion?.Select(conc => conc.Content).Where(content => content != null).ToList() ?? new()
-                    }).ToList();
-            }
-            return c;
-        };
-        
-        // (RC7) Provide Function and Operator resolvers
-        var functions = _storage.ListFunctions(kbName);
-        engine.FunctionResolver = (name) => functions.FirstOrDefault(f => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-        
-        var operators = _storage.ListOperators(kbName);
-        engine.OperatorResolver = (symbol) => operators.FirstOrDefault(o => o.Symbol.Equals(symbol));
-
-        // (RC8) Provide Hierarchy resolver
-        var hierarchies = _storage.ListHierarchies(kbName);
-        engine.HierarchyResolver = (childName) => hierarchies
-            .Where(h => h.ChildConcept.Equals(childName, StringComparison.OrdinalIgnoreCase) && h.HierarchyType == Models.HierarchyType.IsA)
-            .Select(h => h.ParentConcept)
-            .ToList();
-
-        // (Phase 15) Provide PART_OF resolver — find child concepts that are PART_OF parentName
-        engine.PartOfResolver = (parentName) => hierarchies
-            .Where(h => h.ParentConcept.Equals(parentName, StringComparison.OrdinalIgnoreCase) && h.HierarchyType == Models.HierarchyType.PartOf)
-            .Select(h => h.ChildConcept)
-            .ToList();
-
-        // (Phase 16) Provide Relation resolver
-        var relations = _storage.ListRelations(kbName);
-        engine.RelationResolver = (name) => relations.FirstOrDefault(r => r.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-
+        var engine = GetConfiguredEngine(kbName);
         var result = engine.FindClosure(concept, initialFacts, node.FindVariables);
 
         if (result.Success && node.SaveResults)
@@ -2230,5 +2209,52 @@ public class KnowledgeManager
 
         result.Count = result.Objects.Count;
         return result;
+    }
+
+    private KBMS.Reasoning.InferenceEngine GetConfiguredEngine(string kbName)
+    {
+        var engine = new KBMS.Reasoning.InferenceEngine();
+        var allRules = _storage.ListRules(kbName);
+
+        engine.ConceptResolver = (name) => {
+            var c = _storage.LoadConcept(kbName, name);
+            if (c != null) {
+                var hierarchy = _storage.ListHierarchies(kbName);
+                var ancestors = GetAncestors(name, hierarchy);
+                ancestors.Add(name);
+
+                c.ConceptRules = allRules
+                    .Where(r => r != null && ancestors.Any(a => a.Equals(r.Scope, StringComparison.OrdinalIgnoreCase)))
+                    .Select(r => new Models.ConceptRule { 
+                        Id = r.Id, 
+                        Kind = r.RuleType ?? "deduction", 
+                        Hypothesis = r.Hypothesis?.Select(h => h.Content).Where(content => content != null).ToList() ?? new(), 
+                        Conclusion = r.Conclusion?.Select(conc => conc.Content).Where(content => content != null).ToList() ?? new()
+                    }).ToList();
+            }
+            return c;
+        };
+
+        var functions = _storage.ListFunctions(kbName);
+        engine.FunctionResolver = (name) => functions.FirstOrDefault(f => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+        var operators = _storage.ListOperators(kbName);
+        engine.OperatorResolver = (symbol) => operators.FirstOrDefault(o => o.Symbol.Equals(symbol));
+
+        var hierarchies = _storage.ListHierarchies(kbName);
+        engine.HierarchyResolver = (childName) => hierarchies
+            .Where(h => h.ChildConcept.Equals(childName, StringComparison.OrdinalIgnoreCase) && h.HierarchyType == Models.HierarchyType.IsA)
+            .Select(h => h.ParentConcept)
+            .ToList();
+
+        engine.PartOfResolver = (parentName) => hierarchies
+            .Where(h => h.ParentConcept.Equals(parentName, StringComparison.OrdinalIgnoreCase) && h.HierarchyType == Models.HierarchyType.PartOf)
+            .Select(h => h.ChildConcept)
+            .ToList();
+
+        var relations = _storage.ListRelations(kbName);
+        engine.RelationResolver = (name) => relations.FirstOrDefault(r => r.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+        return engine;
     }
 }

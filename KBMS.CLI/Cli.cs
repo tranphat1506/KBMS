@@ -106,10 +106,12 @@ public class Cli
             }
 
             // Other commands are QUERY
+            var requestId = $"cli_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}_{Guid.NewGuid().ToString("N")[..4]}";
             var queryMessage = new Message
             {
                 Type = MessageType.QUERY,
-                Content = command
+                Content = command,
+                RequestId = requestId
             };
 
             await Protocol.SendMessageAsync(_stream, queryMessage);
@@ -256,6 +258,11 @@ public class Cli
                     if (loggedInUser != null) currentUser = loggedInUser;
                     continue;
                 }
+                if (upperLine.StartsWith("SOURCE "))
+                {
+                    await HandleSourceCommand(trimmedLine);
+                    continue;
+                }
             }
 
             // Accumulate command
@@ -334,6 +341,7 @@ public class Cli
 
         Console.WriteLine("\n[ System Commands ]");
         Console.WriteLine("  LOGIN <u|p>     - Login to the server (Privacy Protected)");
+        Console.WriteLine("  SOURCE <file>   - Execute commands from a file");
         Console.WriteLine("  CONNECT         - Reconnect if connection is lost");
         Console.WriteLine("  CLEAR           - Clear terminal screen");
         Console.WriteLine("  HELP            - Show this guide");
@@ -401,5 +409,58 @@ public class Cli
             ResponseParser.DisplayError(msg.Content, input);
         }
         return null;
+    }
+
+    private async Task HandleSourceCommand(string input)
+    {
+        var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: SOURCE <filename>");
+            return;
+        }
+
+        var filename = parts[1].TrimEnd(';');
+        if (!File.Exists(filename))
+        {
+            Console.WriteLine($"Error: File not found: {filename}");
+            return;
+        }
+
+        Console.WriteLine($"Executing script: {filename}");
+        try
+        {
+            var content = File.ReadAllText(filename);
+            var parser = new KBMS.Parser.Parser(content);
+            var asts = parser.ParseAll();
+
+            int count = 0;
+            foreach (var ast in asts)
+            {
+                var stmt = ast.ToString()?.Trim();
+                if (string.IsNullOrEmpty(stmt)) continue;
+
+                if (!stmt.EndsWith(";")) stmt += ";";
+                
+                Console.ForegroundColor = ConsoleColor.DarkGray;
+                Console.WriteLine($"\n[ {++count} ] Executing: {stmt}");
+                Console.ResetColor();
+
+                var response = await ExecuteCommandAsync(stmt);
+                
+                if (response?.Type == MessageType.ERROR)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("\n[ STOPPED ] Script execution halted due to error.");
+                    Console.ResetColor();
+                    break;
+                }
+            }
+            Console.WriteLine($"\nScript finished: {count} statements processed.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error reading or parsing script: {ex.Message}");
+        }
     }
 }

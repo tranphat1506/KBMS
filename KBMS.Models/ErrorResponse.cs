@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
-using KBMS.Parser;
 
-namespace KBMS.Network;
+namespace KBMS.Models;
 
 /// <summary>
 /// Structured error response from KBMS Server
@@ -19,15 +18,15 @@ public class ErrorResponse
     /// <summary>
     /// Create error response for parser exceptions (includes line/column information)
     /// </summary>
-    public static ErrorResponse ParserErrorResponse(ParserException ex, string query)
+    public static ErrorResponse ParserErrorResponse(string message, string query, int? line = null, int? column = null)
     {
         return new ErrorResponse
         {
             Type = "ParserError",
-            Message = ex.Message,
+            Message = message,
             Query = query,
-            Line = ex.Line > 0 ? ex.Line : null,
-            Column = ex.Column > 0 ? ex.Column : null
+            Line = line > 0 ? line : null,
+            Column = column > 0 ? column : null
         };
     }
 
