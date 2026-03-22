@@ -224,6 +224,8 @@ public class KbmsServer
             {
                 try
                 {
+                    // Refresh currentKb from session in case it was updated by a previous statement (e.g., USE)
+                    currentKb = _connectionManager.GetCurrentKb(clientId);
                     var result = _knowledgeManager.Execute(ast, user, currentKb);
                     
                     if (result is QueryResultSet qrs && qrs.Success)

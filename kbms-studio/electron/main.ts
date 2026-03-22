@@ -107,6 +107,25 @@ function createWindow() {
   } else {
     win.loadFile(path.join((process.env.DIST as string), 'index.html'));
   }
+
+  // --- Unsaved Changes Protection ---
+  let hasUnsavedChanges = false;
+  ipcMain.on('kbms:set-unsaved-status', (_, status: boolean) => {
+    hasUnsavedChanges = status;
+  });
+
+  ipcMain.on('kbms:force-quit', () => {
+    hasUnsavedChanges = false; // Bypass the check
+    if (win) win.close();
+  });
+
+  win.on('close', (e) => {
+    if (hasUnsavedChanges && win) {
+      e.preventDefault();
+      // Notify renderer to show custom confirmation dialog
+      win.webContents.send('kbms:app-close-request');
+    }
+  });
 }
 
 app.on('window-all-closed', () => {

@@ -62,6 +62,15 @@ export interface KbmsState {
   deleteProfile: (id: string) => void;
   setStatus: (status: 'disconnected' | 'connecting' | 'connected' | 'error') => void;
   clearEditorMarkers: () => void;
+  confirmDialog: {
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm?: () => void;
+    onCancel?: () => void;
+  };
+  showConfirm: (title: string, message: string, onConfirm: () => void, onCancel?: () => void) => void;
+  closeConfirm: () => void;
 }
 
 const loadProfiles = (): ServerProfile[] => {
@@ -126,11 +135,22 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
   lastDescribeResult: null,
   editorMarkers: [],
   metadataDetails: {},
+  confirmDialog: {
+    isOpen: false,
+    title: '',
+    message: ''
+  },
 
   setSelectedKb: (kb) => set({ selectedKb: kb }),
   setConnectModalOpen: (v: boolean) => set({ isConnectModalOpen: v }),
   stopExecution: () => set({ isExecuting: false }),
   clearEditorMarkers: () => set({ editorMarkers: [] }),
+  showConfirm: (title, message, onConfirm, onCancel) => set({ 
+    confirmDialog: { isOpen: true, title, message, onConfirm, onCancel } 
+  }),
+  closeConfirm: () => set((state) => ({ 
+    confirmDialog: { ...state.confirmDialog, isOpen: false } 
+  })),
 
   saveProfile: (p) => set((state) => {
     const exists = state.profiles.some(x => x.id === p.id);
@@ -376,23 +396,20 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
   },
 
   execute: async (query, isDescribe = false, targetName) => {
-    const { status, connect, lastCredentials } = get();
+    const { status } = get();
 
-    if (status !== 'connected' && lastCredentials) {
-      console.log("(Store) Attempting auto-reconnect before execute...");
-      const res = await connect(lastCredentials.host, lastCredentials.port, lastCredentials.user, lastCredentials.pass);
-      if (!res.success) {
-        set({
-          isExecuting: false, // Added this line
-          result: {
-            headers: ["Error"], // Added this line
-            rows: [], // Added this line
-            messages: [{ type: 'error', text: `Connection lost. Auto-reconnect failed: ${res.error || "Please check server status."}` }]
-          },
-          activeTab: 'messages'
-        });
-        return;
-      }
+    if (status !== 'connected') {
+      set({
+        isExecuting: false,
+        result: {
+          headers: ["Connection Required"],
+          rows: [],
+          messages: [{ type: 'error', text: "Not Connected: Please connect to a KBMS server before executing queries." }]
+        },
+        activeTab: 'messages',
+        isConnectModalOpen: true
+      });
+      return;
     }
 
     const tab = get().tabs.find(t => t.id === get().activeTabId);
@@ -428,7 +445,8 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
         const hasError = res && res.messages && res.messages.some((m: any) => 
             typeof m === 'string' ? m.toLowerCase().includes('error') : (m.type === 'error' || m.type === 'Error')
         );
-        newState.activeTab = (res && res.rows && res.rows.length > 0 && !hasError) ? 'results' : 'messages';
+        const hasResultTable = res && (res.ConceptName || (res.rows && res.rows.length > 0) || (res.headers && res.headers.length > 0 && res.headers[0] !== 'Result'));
+        newState.activeTab = (hasResultTable && !hasError) ? 'results' : 'messages';
       }
 
       set(newState);

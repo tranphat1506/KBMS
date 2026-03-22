@@ -196,7 +196,18 @@ export default function EditorPane() {
               </div>
               <button 
                 title="Close Tab"
-                onClick={(e) => { e.stopPropagation(); removeTab(tab.id); }}
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  if (!tab.isSaved) {
+                    useKbmsStore.getState().showConfirm(
+                      'Unsaved Changes',
+                      `Tab "${tab.name}" has unsaved changes. Are you sure you want to close it?`,
+                      () => removeTab(tab.id)
+                    );
+                  } else {
+                    removeTab(tab.id); 
+                  }
+                }}
                 className={`p-0.5 ml-2 rounded transition-all shrink-0 hover:text-red-500 cursor-pointer ${activeTabId === tab.id ? 'opacity-100 hover:bg-slate-100' : 'opacity-0 group-hover:opacity-100 hover:bg-slate-300/50'}`}
               >
                  <X className="w-3.5 h-3.5" />

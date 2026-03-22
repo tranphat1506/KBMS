@@ -4,10 +4,38 @@ import { useKbmsStore } from './store/kbmsStore';
 
 import { useEffect } from 'react';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import ConfirmDialog from './components/ConfirmDialog';
 
 function App() {
   const isConnectModalOpen = useKbmsStore(state => state.isConnectModalOpen);
   const setStatus = useKbmsStore(state => state.setStatus);
+  const tabs = useKbmsStore(state => state.tabs);
+  const showConfirm = useKbmsStore(state => state.showConfirm);
+
+  useEffect(() => {
+    // @ts-ignore
+    if (window.kbmsApi?.onAppCloseRequested) {
+      // @ts-ignore
+      window.kbmsApi.onAppCloseRequested(() => {
+        showConfirm(
+          'Confirm Exit',
+          'You have unsaved changes. Are you sure you want to quit? Any unsaved work will be lost.',
+          () => {
+            // @ts-ignore
+            window.kbmsApi.forceQuit();
+          }
+        );
+      });
+    }
+  }, [showConfirm]);
+
+  useEffect(() => {
+    const hasUnsaved = tabs.some(t => !t.isSaved);
+    // @ts-ignore
+    if (window.kbmsApi?.setUnsavedStatus) {
+      window.kbmsApi.setUnsavedStatus(hasUnsaved);
+    }
+  }, [tabs]);
 
   useEffect(() => {
     // @ts-ignore
@@ -43,6 +71,7 @@ function App() {
     <ErrorBoundary>
       <div className="h-screen w-screen overflow-hidden bg-slate-50 font-sans text-slate-800 flex flex-col antialiased relative">
         <Layout />
+        <ConfirmDialog />
         {isConnectModalOpen && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/20 backdrop-blur-[2px] animate-in fade-in duration-200">
             <ConnectModal />

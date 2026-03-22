@@ -712,10 +712,10 @@ public class KnowledgeManager
                 {
                     Id = h.Id,
                     ConceptName = "HIERARCHY",
-                    Values = new Dictionary<string, object?>
+                    Values = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
                     {
                         ["child_concept"]   = h.ChildConcept,
-                        ["hierarchy_type"]  = h.HierarchyType == KBMS.Models.HierarchyType.IsA ? "ISA" : "PART_OF",
+                        ["hierarchy_type"]  = h.HierarchyType == KBMS.Models.HierarchyType.IsA ? "IS_A" : "PART_OF",
                         ["parent_concept"]  = h.ParentConcept
                     }
                 }).ToList();
@@ -889,8 +889,17 @@ public class KnowledgeManager
 
     private bool EvaluateCondition(ObjectInstance obj, Condition condition, string kbName)
     {
-        if (!obj.Values.TryGetValue(condition.Field, out var value))
+        // Try to get a case-insensitive match for the field
+        object? value = null;
+        var fieldKey = obj.Values.Keys.FirstOrDefault(k => k.Equals(condition.Field, StringComparison.OrdinalIgnoreCase));
+        if (fieldKey != null)
+        {
+            value = obj.Values[fieldKey];
+        }
+        else
+        {
             return false;
+        }
 
         var compareValue = condition.Value;
 
@@ -1463,44 +1472,40 @@ public class KnowledgeManager
     private object HandleShowKnowledgeBases()
     {
         var kbs = _storage.ListKbs();
+        var dbs = kbs.Select(kb => kb.Name).ToList(); // Assuming ListKbs returns KbMetadata objects
         return new QueryResultSet
         {
             Success = true,
             ConceptName = "System.KnowledgeBases",
-            Count = kbs.Count,
-            Objects = kbs.Select(kb => new ObjectInstance
+            Count = dbs.Count,
+            Columns = new List<string> { "Name" },
+            Objects = dbs.Select(name => new ObjectInstance
             {
-                Values = new Dictionary<string, object>
-                {
-                    { "Name", kb.Name },
-                    { "Description", kb.Description ?? "" },
-                    { "Objects", kb.ObjectCount }
-                }
-            }).ToList(),
-            Columns = new List<string> { "Name", "Description", "Objects" }
+                Values = new Dictionary<string, object> { { "Name", name } }
+            }).ToList()
         };
     }
 
     private object HandleShowConcepts(ShowNode node, string kbName)
     {
         var concepts = _storage.ListConcepts(kbName);
-        return new QueryResultSet
-        {
-            Success = true,
+        var qrs = new QueryResultSet { 
+            Success = true, 
             ConceptName = "System.Concepts",
             Count = concepts.Count,
+            Columns = new List<string> { "Name", "Variables", "Constraints", "Rules" },
             Objects = concepts.Select(c => new ObjectInstance
             {
                 Values = new Dictionary<string, object>
                 {
                     { "Name", c.Name },
                     { "Variables", c.Variables.Count },
-                    { "Rules", c.ConceptRules.Count },
-                    { "Constraints", c.Constraints.Count }
+                    { "Constraints", c.Constraints.Count },
+                    { "Rules", c.ConceptRules.Count }
                 }
-            }).ToList(),
-            Columns = new List<string> { "Name", "Variables", "Rules", "Constraints" }
+            }).ToList()
         };
+        return qrs;
     }
 
     private object HandleShowConcept(ShowNode node, string kbName)
@@ -1523,21 +1528,15 @@ public class KnowledgeManager
         {
             rules = rules.Where(r => r.RuleType?.Equals(node.RuleType, StringComparison.OrdinalIgnoreCase) == true).ToList();
         }
-
         return new QueryResultSet
         {
             Success = true,
             ConceptName = "System.Rules",
             Count = rules.Count,
+            Columns = new List<string> { "Name" },
             Objects = rules.Select(r => new ObjectInstance
             {
-                Values = new Dictionary<string, object>
-                {
-                    { "Id", r.Id.ToString() },
-                    { "Name", r.Name ?? "" },
-                    { "Type", r.RuleType ?? "" },
-                    { "Scope", r.Scope ?? "" }
-                }
+                Values = new Dictionary<string, object> { { "Name", r.Name } }
             }).ToList()
         };
     }
@@ -1550,6 +1549,7 @@ public class KnowledgeManager
             Success = true,
             ConceptName = "System.Relations",
             Count = relations.Count,
+            Columns = new List<string> { "Name", "Domain", "Range" },
             Objects = relations.Select(r => new ObjectInstance
             {
                 Values = new Dictionary<string, object>
@@ -1570,6 +1570,7 @@ public class KnowledgeManager
             Success = true,
             ConceptName = "System.Operators",
             Count = operators.Count,
+            Columns = new List<string> { "Symbol", "ParamTypes", "ReturnType" },
             Objects = operators.Select(o => new ObjectInstance
             {
                 Values = new Dictionary<string, object>
@@ -1590,13 +1591,14 @@ public class KnowledgeManager
             Success = true,
             ConceptName = "System.Functions",
             Count = functions.Count,
+            Columns = new List<string> { "Name", "Parameters", "ReturnType" },
             Objects = functions.Select(f => new ObjectInstance
             {
                 Values = new Dictionary<string, object>
                 {
                     { "Name", f.Name },
-                    { "Parameters", string.Join(", ", f.Parameters.Select(p => p.Type + " " + p.Name)) },
-                    { "ReturnType", f.ReturnType ?? "" }
+                    { "Parameters", string.Join(", ", f.Parameters.Select(p => p.Name + ": " + p.Type)) },
+                    { "ReturnType", f.ReturnType }
                 }
             }).ToList()
         };
@@ -1610,13 +1612,14 @@ public class KnowledgeManager
             Success = true,
             ConceptName = "System.Hierarchies",
             Count = hierarchies.Count,
+            Columns = new List<string> { "ParentConcept", "ChildConcept", "HierarchyType" },
             Objects = hierarchies.Select(h => new ObjectInstance
             {
                 Values = new Dictionary<string, object>
                 {
-                    { "Parent", h.ParentConcept },
-                    { "Relation", h.HierarchyType.ToString() },
-                    { "Child", h.ChildConcept }
+                    { "ParentConcept", h.ParentConcept },
+                    { "ChildConcept", h.ChildConcept },
+                    { "HierarchyType", h.HierarchyType.ToString() }
                 }
             }).ToList()
         };
@@ -1630,14 +1633,14 @@ public class KnowledgeManager
             Success = true,
             ConceptName = "System.Users",
             Count = users.Count,
+            Columns = new List<string> { "Username", "Role", "IsSystemAdmin" },
             Objects = users.Select(u => new ObjectInstance
             {
                 Values = new Dictionary<string, object>
                 {
-                    { "Id", u.Id.ToString() },
                     { "Username", u.Username },
                     { "Role", u.Role.ToString() },
-                    { "Admin", u.SystemAdmin ? "Yes" : "No" }
+                    { "IsSystemAdmin", u.SystemAdmin }
                 }
             }).ToList()
         };
@@ -1894,6 +1897,8 @@ public class KnowledgeManager
 
                 qrs.Objects.Add(new ObjectInstance { Values = valuesDict });
                 qrs.Count = qrs.Objects.Count;
+                if (qrs.Objects.Count > 0)
+                    qrs.Columns = qrs.Objects[0].Values.Keys.ToList();
                 return qrs;
             }
             case "KB":
@@ -1914,6 +1919,7 @@ public class KnowledgeManager
                     }
                 });
                 qrs.Count = qrs.Objects.Count;
+                if (qrs.Objects.Count > 0) qrs.Columns = qrs.Objects[0].Values.Keys.ToList();
                 return qrs;
             }
             case "RULE":
@@ -1937,6 +1943,7 @@ public class KnowledgeManager
                     }
                 });
                 qrs.Count = qrs.Objects.Count;
+                if (qrs.Objects.Count > 0) qrs.Columns = qrs.Objects[0].Values.Keys.ToList();
                 return qrs;
             }
             case "HIERARCHY":
@@ -1959,6 +1966,7 @@ public class KnowledgeManager
                     }
                 });
                 qrs.Count = 1;
+                if (qrs.Objects.Count > 0) qrs.Columns = qrs.Objects[0].Values.Keys.ToList();
                 return qrs;
             }
             case "RELATION":
@@ -1978,6 +1986,7 @@ public class KnowledgeManager
                     }
                 });
                 qrs.Count = 1;
+                if (qrs.Objects.Count > 0) qrs.Columns = qrs.Objects[0].Values.Keys.ToList();
                 return qrs;
             }
             case "FUNCTION":
@@ -1996,6 +2005,7 @@ public class KnowledgeManager
                     }
                 });
                 qrs.Count = 1;
+                if (qrs.Objects.Count > 0) qrs.Columns = qrs.Objects[0].Values.Keys.ToList();
                 return qrs;
             }
             case "OPERATOR":
@@ -2014,6 +2024,7 @@ public class KnowledgeManager
                     }
                 });
                 qrs.Count = 1;
+                if (qrs.Objects.Count > 0) qrs.Columns = qrs.Objects[0].Values.Keys.ToList();
                 return qrs;
             }
             default:

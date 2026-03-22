@@ -12,6 +12,11 @@ electron.contextBridge.exposeInMainWorld("kbmsApi", {
 	},
 	onDataStream: (callback) => {
 		electron.ipcRenderer.on("kbms-stream", (_event, data) => callback(data));
-	}
+	},
+	setUnsavedStatus: (status) => electron.ipcRenderer.send("kbms:set-unsaved-status", status),
+	onAppCloseRequested: (callback) => {
+		electron.ipcRenderer.on("kbms:app-close-request", () => callback());
+	},
+	forceQuit: () => electron.ipcRenderer.send("kbms:force-quit")
 });
 //#endregion

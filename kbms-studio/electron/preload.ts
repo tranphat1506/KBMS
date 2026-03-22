@@ -12,5 +12,10 @@ contextBridge.exposeInMainWorld('kbmsApi', {
   },
   onDataStream: (callback: (data: any) => void) => {
     ipcRenderer.on('kbms-stream', (_event, data) => callback(data));
-  }
+  },
+  setUnsavedStatus: (status: boolean) => ipcRenderer.send('kbms:set-unsaved-status', status),
+  onAppCloseRequested: (callback: () => void) => {
+    ipcRenderer.on('kbms:app-close-request', () => callback());
+  },
+  forceQuit: () => ipcRenderer.send('kbms:force-quit')
 });

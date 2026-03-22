@@ -482,6 +482,20 @@ function createWindow() {
 	});
 	if (process.env.VITE_DEV_SERVER_URL) win.loadURL(process.env.VITE_DEV_SERVER_URL);
 	else win.loadFile(path.join(process.env.DIST, "index.html"));
+	let hasUnsavedChanges = false;
+	ipcMain.on("kbms:set-unsaved-status", (_, status) => {
+		hasUnsavedChanges = status;
+	});
+	ipcMain.on("kbms:force-quit", () => {
+		hasUnsavedChanges = false;
+		if (win) win.close();
+	});
+	win.on("close", (e) => {
+		if (hasUnsavedChanges && win) {
+			e.preventDefault();
+			win.webContents.send("kbms:app-close-request");
+		}
+	});
 }
 app.on("window-all-closed", () => {
 	if (process.platform !== "darwin") app.quit();
