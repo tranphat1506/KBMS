@@ -13,10 +13,24 @@ export class KbmsTCPClient {
    private currentQueryRejecter: ((err: any) => void) | null = null;
    private queryResultData: any = null;
 
-   private requestQueue: Array<{ query: string; isBackground?: boolean; requestId?: string; resolve: (res: any) => void; reject: (err: any) => void }> = [];
+   private requestQueue: Array<{ 
+      type: MessageType; 
+      query: string; 
+      isBackground?: boolean; 
+      requestId?: string; 
+      resolve: (res: any) => void; 
+      reject: (err: any) => void; 
+   }> = [];
    private isProcessingQueue = false;
    private isReconnecting = false;
-   private activeRequest: { query: string; isBackground?: boolean; requestId?: string; resolve: (res: any) => void; reject: (err: any) => void } | null = null;
+   private activeRequest: { 
+      type: MessageType; 
+      query: string; 
+      isBackground?: boolean; 
+      requestId?: string; 
+      resolve: (res: any) => void; 
+      reject: (err: any) => void; 
+   } | null = null;
    private pendingRequestsMetadata = new Map<string, { isBackground: boolean }>();
    private heartbeatTimer: NodeJS.Timeout | null = null;
 
@@ -131,7 +145,7 @@ export class KbmsTCPClient {
    private startHeartbeat() {
       this.stopHeartbeat();
       this.heartbeatTimer = setInterval(() => {
-          if (this.socket && !this.socket.destroyed && this.sessionId) {
+         if (this.socket && !this.socket.destroyed && this.sessionId) {
             const requestId = 'hb_' + Date.now();
             console.log("(KBMS Client) Sending Heartbeat...");
             this.pendingRequestsMetadata.set(requestId, { isBackground: true });
@@ -141,7 +155,7 @@ export class KbmsTCPClient {
                requestId: requestId,
                sessionId: this.sessionId
             }));
-          }
+         }
       }, 45000); // 45 seconds
    }
 
@@ -152,15 +166,63 @@ export class KbmsTCPClient {
       }
    }
 
-   execute(query: string, isBackground: boolean = false, requestId?: string): Promise<any> {
+   execute(query: string, isBackground: boolean = false, requestId?: string, isManagement: boolean = false): Promise<any> {
       return new Promise((resolve, reject) => {
          if (!requestId) {
-            requestId = `web_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+            requestId = `${isManagement ? 'mgmt' : 'web'}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
          }
          this.pendingRequestsMetadata.set(requestId, { isBackground });
-         this.requestQueue.push({ query, isBackground, requestId, resolve, reject });
+         this.requestQueue.push({ 
+            type: isManagement ? MessageType.MANAGEMENT_CMD : MessageType.QUERY,
+            query, 
+            isBackground, 
+            requestId, 
+            resolve, 
+            reject 
+         });
          this.processQueue();
       });
+   }
+
+   getStats(requestId?: string): Promise<any> {
+      return new Promise((resolve, reject) => {
+         if (!requestId) requestId = 'stats_' + Date.now();
+         this.pendingRequestsMetadata.set(requestId, { isBackground: true });
+         this.requestQueue.push({ 
+            type: MessageType.STATS,
+            query: '', 
+            isBackground: true, 
+            requestId, 
+            resolve, 
+            reject 
+         });
+         this.processQueue();
+      });
+   }
+
+   getSessions(requestId?: string): Promise<any> {
+      return new Promise((resolve, reject) => {
+         if (!requestId) requestId = 'sessions_' + Date.now();
+         this.pendingRequestsMetadata.set(requestId, { isBackground: true });
+         this.requestQueue.push({ 
+            type: MessageType.SESSIONS,
+            query: '', 
+            isBackground: true, 
+            requestId, 
+            resolve, 
+            reject 
+         });
+         this.processQueue();
+      });
+   }
+
+   subscribeLogs() {
+      if (!this.socket || this.socket.destroyed) return;
+      this.socket.write(Protocol.pack({
+         type: MessageType.LOGS_STREAM,
+         content: '',
+         sessionId: this.sessionId
+      }));
    }
 
    private async processQueue() {
@@ -180,12 +242,10 @@ export class KbmsTCPClient {
 
       this.currentQueryResolver = this.activeRequest.resolve;
       this.currentQueryRejecter = this.activeRequest.reject;
-      // this.currentQueryIsBackground = !!this.activeRequest.isBackground; // No longer needed, use pendingRequestsMetadata
-      // this.currentRequestId = this.activeRequest.requestId; // No longer needed, use activeRequest.requestId
       this.queryResultData = null;
 
       const payload = Protocol.pack({
-         type: MessageType.QUERY,
+         type: this.activeRequest.type,
          content: this.activeRequest.query,
          sessionId: this.sessionId,
          requestId: this.activeRequest.requestId
@@ -276,7 +336,7 @@ export class KbmsTCPClient {
          if (!this.queryResultData) {
             this.queryResultData = { headers: ["Result"], rows: [], messages: [] };
          }
-         
+
          const { text, markers, isError } = this.extractErrorInfo(msg.content);
          if (markers.length > 0) {
             if (!this.queryResultData.editorMarkers) this.queryResultData.editorMarkers = [];
@@ -284,6 +344,14 @@ export class KbmsTCPClient {
          }
          this.queryResultData.messages.push({ type: isError ? 'error' : 'info', text: text });
          this.sendToUI('kbms-stream', { type: 'result', text, markers, isBackground, requestId: msg.requestId });
+      }
+      else if (msg.type === MessageType.LOGS_STREAM) {
+         try {
+            const logData = JSON.parse(msg.content);
+            this.sendToUI('kbms-stream', { type: 'log-signal', data: logData });
+         } catch (e) {
+            console.error("(KBMS Client) Failed to parse log signal", e);
+         }
       }
       else if (msg.type === MessageType.FETCH_DONE) {
          try {
@@ -295,7 +363,7 @@ export class KbmsTCPClient {
                text: text
             });
             this.sendToUI('kbms-stream', { type: 'result', text, isBackground, requestId: msg.requestId });
-          } catch { }
+         } catch { }
 
          const resolver = this.currentQueryResolver;
          const result = this.queryResultData;
@@ -356,7 +424,7 @@ export class KbmsTCPClient {
          this.socket.destroy();
          this.socket = null;
          this.sessionId = '';
-         this.win?.webContents.send('kbms-status', 'disconnected');
+         this.sendToUI('kbms-status', 'disconnected');
       }
    }
 }

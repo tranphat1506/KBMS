@@ -9,5 +9,9 @@ public enum MessageType : byte
     LOGOUT = 5,
     METADATA = 6,
     ROW = 7,
-    FETCH_DONE = 8
+    FETCH_DONE = 8,
+    STATS = 10,
+    LOGS_STREAM = 11,
+    SESSIONS = 12,
+    MANAGEMENT_CMD = 13
 }

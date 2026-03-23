@@ -11,32 +11,83 @@ process.env.DIST = path.join(__dirname, '../dist');
 process.env.VITE_PUBLIC = app.isPackaged ? process.env.DIST : path.join(process.env.DIST, '../public');
 
 let win: BrowserWindow | null;
+let splash: BrowserWindow | null;
+
+app.name = 'KBMS Studio';
+
+// Ensure the app name is correct in development (macOS)
+if (process.platform === 'darwin') {
+  app.setName('KBMS Studio');
+}
+
+function createSplashScreen() {
+  splash = new BrowserWindow({
+    width: 500,
+    height: 400,
+    transparent: true,
+    frame: false,
+    alwaysOnTop: true,
+    center: true,
+    resizable: false,
+    show: false,
+    backgroundColor: '#ffffff',
+    icon: path.join(process.env.VITE_PUBLIC!, 'icon.png'),
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true
+    }
+  });
+
+  splash.loadFile(path.join(process.env.VITE_PUBLIC!, 'splash.html'));
+  splash.once('ready-to-show', () => {
+    splash?.show();
+  });
+  splash.on('closed', () => (splash = null));
+}
 
 function createWindow() {
   win = new BrowserWindow({
-    icon: path.join((process.env.VITE_PUBLIC as string), 'electron-vite.svg'),
+    width: 1280,
+    height: 800,
+    show: false, // Don't show immediately
+    titleBarStyle: 'hiddenInset',
+    backgroundColor: '#ffffff',
+    title: 'KBMS Studio',
+    icon: path.join(process.env.VITE_PUBLIC!, 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'), // vite-plugin-electron builds mjs
     },
-    width: 1280,
-    height: 800,
-    titleBarStyle: 'hiddenInset',
-    backgroundColor: '#ffffff'
+  });
+
+  // Transit from splash to main
+  win.once('ready-to-show', () => {
+    if (splash) {
+      setTimeout(() => {
+        splash?.close();
+        win?.show();
+        win?.focus();
+      }, 500); // Small buffer for React to mount
+    } else {
+      win?.show();
+    }
   });
 
   // Call API Backend Setup
   kbmsClient.setWindow(win);
 
-  ipcMain.handle('kbms:execute', async (_, query, isBackground: boolean = false, requestId?: string) => {
-     try {
-       console.log('Execute called from UI:', query, isBackground ? '(Background)' : '', requestId ? `[Req: ${requestId}]` : '');
-       const result = await kbmsClient.execute(query, isBackground, requestId);
-       console.log('[DEBUG] Execute result returned to UI:', JSON.stringify(result, null, 2));
-       return result;
-     } catch (err: any) {
-       return { success: false, messages: [err.message], rows: [], headers: [] };
-     }
-  });
+  ipcMain.handle('kbms:execute', async (_, query, options: any = {}) => {
+      try {
+        const isBackground = !!options.isBackground;
+        const requestId = options.requestId;
+        const isManagement = !!options.isManagement;
+
+        console.log('Execute called from UI:', query, isBackground ? '(Background)' : '', requestId ? `[Req: ${requestId}]` : '', isManagement ? '(Management)' : '');
+        const result = await kbmsClient.execute(query, isBackground, requestId, isManagement);
+        return result;
+      } catch (err: any) {
+        return { success: false, messages: [err.message], rows: [], headers: [] };
+      }
+   });
 
   ipcMain.handle('kbms:connect', async (_, host, port, user, pass) => {
      try {
@@ -54,6 +105,18 @@ function createWindow() {
   ipcMain.handle('kbms:disconnect', async () => {
      kbmsClient.disconnect();
      return { success: true };
+  });
+  
+  ipcMain.handle('kbms:get-stats', async (_, requestId?: string) => {
+     return kbmsClient.getStats(requestId);
+  });
+
+  ipcMain.handle('kbms:get-sessions', async (_, requestId?: string) => {
+     return kbmsClient.getSessions(requestId);
+  });
+
+  ipcMain.on('kbms:subscribe-logs', () => {
+     kbmsClient.subscribeLogs();
   });
 
   ipcMain.handle('kbms:save-file', async (_e, content: string, currentPath?: string, isNewFile: boolean = false) => {
@@ -134,4 +197,15 @@ app.on('window-all-closed', () => {
   }
 });
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  // Set Dock icon for macOS in dev
+  if (process.platform === 'darwin' && process.env.VITE_PUBLIC && app.dock) {
+     const iconPath = path.join(process.env.VITE_PUBLIC, 'icon.png');
+     if (fs.existsSync(iconPath)) {
+        app.dock.setIcon(iconPath);
+     }
+  }
+  
+  createSplashScreen();
+  createWindow();
+});

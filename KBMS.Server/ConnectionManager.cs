@@ -1,4 +1,5 @@
 using System;
+using System.Net.Sockets;
 using System.Collections.Concurrent;
 using KBMS.Models;
 
@@ -14,13 +15,15 @@ public class ConnectionManager
         _sessions = new ConcurrentDictionary<string, Session>();
     }
 
-    public Session CreateSession(string clientId)
+    public Session CreateSession(string clientId, TcpClient client, string ipAddress)
     {
         var sessionId = GenerateSessionId();
         var session = new Session
         {
             SessionId = sessionId,
             ClientId = clientId,
+            Client = client,
+            IpAddress = ipAddress,
             User = null,
             CurrentKb = null,
             ConnectedAt = DateTime.UtcNow,
@@ -74,7 +77,21 @@ public class ConnectionManager
 
     public void RemoveSession(string clientId)
     {
-        _sessions.TryRemove(clientId, out _);
+        if (_sessions.TryRemove(clientId, out var session))
+        {
+            try { session.Client?.Close(); } catch { }
+        }
+    }
+
+    public bool KillSession(string sessionId)
+    {
+        var session = GetSessionBySessionId(sessionId);
+        if (session != null)
+        {
+            RemoveSession(session.ClientId);
+            return true;
+        }
+        return false;
     }
 
     public bool IsAuthenticated(string clientId)
@@ -111,6 +128,19 @@ public class ConnectionManager
             _sessions.TryRemove(key, out _);
         }
     }
+
+    public void CloseAll()
+    {
+        foreach (var session in _sessions.Values)
+        {
+            try { session.Client?.Close(); } catch { }
+        }
+        _sessions.Clear();
+    }
+
+    public int GetActiveSessionsCount() => _sessions.Count;
+
+    public IEnumerable<Session> GetActiveSessions() => _sessions.Values;
 
     private string GenerateSessionId()
     {

@@ -14,6 +14,10 @@ var MessageType = /* @__PURE__ */ function(MessageType) {
 	MessageType[MessageType["METADATA"] = 6] = "METADATA";
 	MessageType[MessageType["ROW"] = 7] = "ROW";
 	MessageType[MessageType["FETCH_DONE"] = 8] = "FETCH_DONE";
+	MessageType[MessageType["STATS"] = 10] = "STATS";
+	MessageType[MessageType["LOGS_STREAM"] = 11] = "LOGS_STREAM";
+	MessageType[MessageType["SESSIONS"] = 12] = "SESSIONS";
+	MessageType[MessageType["MANAGEMENT_CMD"] = 13] = "MANAGEMENT_CMD";
 	return MessageType;
 }({});
 var Protocol = class {
@@ -199,11 +203,12 @@ var KbmsTCPClient = class {
 			this.heartbeatTimer = null;
 		}
 	}
-	execute(query, isBackground = false, requestId) {
+	execute(query, isBackground = false, requestId, isManagement = false) {
 		return new Promise((resolve, reject) => {
-			if (!requestId) requestId = `web_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+			if (!requestId) requestId = `${isManagement ? "mgmt" : "web"}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 			this.pendingRequestsMetadata.set(requestId, { isBackground });
 			this.requestQueue.push({
+				type: isManagement ? MessageType.MANAGEMENT_CMD : MessageType.QUERY,
 				query,
 				isBackground,
 				requestId,
@@ -212,6 +217,44 @@ var KbmsTCPClient = class {
 			});
 			this.processQueue();
 		});
+	}
+	getStats(requestId) {
+		return new Promise((resolve, reject) => {
+			if (!requestId) requestId = "stats_" + Date.now();
+			this.pendingRequestsMetadata.set(requestId, { isBackground: true });
+			this.requestQueue.push({
+				type: MessageType.STATS,
+				query: "",
+				isBackground: true,
+				requestId,
+				resolve,
+				reject
+			});
+			this.processQueue();
+		});
+	}
+	getSessions(requestId) {
+		return new Promise((resolve, reject) => {
+			if (!requestId) requestId = "sessions_" + Date.now();
+			this.pendingRequestsMetadata.set(requestId, { isBackground: true });
+			this.requestQueue.push({
+				type: MessageType.SESSIONS,
+				query: "",
+				isBackground: true,
+				requestId,
+				resolve,
+				reject
+			});
+			this.processQueue();
+		});
+	}
+	subscribeLogs() {
+		if (!this.socket || this.socket.destroyed) return;
+		this.socket.write(Protocol.pack({
+			type: MessageType.LOGS_STREAM,
+			content: "",
+			sessionId: this.sessionId
+		}));
 	}
 	async processQueue() {
 		if (this.isProcessingQueue || this.requestQueue.length === 0) return;
@@ -229,7 +272,7 @@ var KbmsTCPClient = class {
 		this.currentQueryRejecter = this.activeRequest.reject;
 		this.queryResultData = null;
 		const payload = Protocol.pack({
-			type: MessageType.QUERY,
+			type: this.activeRequest.type,
 			content: this.activeRequest.query,
 			sessionId: this.sessionId,
 			requestId: this.activeRequest.requestId
@@ -354,7 +397,16 @@ var KbmsTCPClient = class {
 				isBackground,
 				requestId: msg.requestId
 			});
-		} else if (msg.type === MessageType.FETCH_DONE) {
+		} else if (msg.type === MessageType.LOGS_STREAM) try {
+			const logData = JSON.parse(msg.content);
+			this.sendToUI("kbms-stream", {
+				type: "log-signal",
+				data: logData
+			});
+		} catch (e) {
+			console.error("(KBMS Client) Failed to parse log signal", e);
+		}
+		else if (msg.type === MessageType.FETCH_DONE) {
 			try {
 				const summary = JSON.parse(msg.content);
 				if (!this.queryResultData) this.queryResultData = {
@@ -424,7 +476,7 @@ var KbmsTCPClient = class {
 			this.socket.destroy();
 			this.socket = null;
 			this.sessionId = "";
-			this.win?.webContents.send("kbms-status", "disconnected");
+			this.sendToUI("kbms-status", "disconnected");
 		}
 	}
 };
@@ -435,22 +487,59 @@ var __dirname = path.dirname(fileURLToPath(import.meta.url));
 process.env.DIST = path.join(__dirname, "../dist");
 process.env.VITE_PUBLIC = app.isPackaged ? process.env.DIST : path.join(process.env.DIST, "../public");
 var win;
+var splash;
+app.name = "KBMS Studio";
+if (process.platform === "darwin") app.setName("KBMS Studio");
+function createSplashScreen() {
+	splash = new BrowserWindow({
+		width: 500,
+		height: 400,
+		transparent: true,
+		frame: false,
+		alwaysOnTop: true,
+		center: true,
+		resizable: false,
+		show: false,
+		backgroundColor: "#ffffff",
+		icon: path.join(process.env.VITE_PUBLIC, "icon.png"),
+		webPreferences: {
+			nodeIntegration: false,
+			contextIsolation: true
+		}
+	});
+	splash.loadFile(path.join(process.env.VITE_PUBLIC, "splash.html"));
+	splash.once("ready-to-show", () => {
+		splash?.show();
+	});
+	splash.on("closed", () => splash = null);
+}
 function createWindow() {
 	win = new BrowserWindow({
-		icon: path.join(process.env.VITE_PUBLIC, "electron-vite.svg"),
-		webPreferences: { preload: path.join(__dirname, "preload.mjs") },
 		width: 1280,
 		height: 800,
+		show: false,
 		titleBarStyle: "hiddenInset",
-		backgroundColor: "#ffffff"
+		backgroundColor: "#ffffff",
+		title: "KBMS Studio",
+		icon: path.join(process.env.VITE_PUBLIC, "icon.png"),
+		webPreferences: { preload: path.join(__dirname, "preload.mjs") }
+	});
+	win.once("ready-to-show", () => {
+		if (splash) setTimeout(() => {
+			splash?.close();
+			win?.show();
+			win?.focus();
+		}, 500);
+		else win?.show();
 	});
 	kbmsClient.setWindow(win);
-	ipcMain.handle("kbms:execute", async (_, query, isBackground = false, requestId) => {
+	ipcMain.handle("kbms:execute", async (_, query, options = {}) => {
 		try {
-			console.log("Execute called from UI:", query, isBackground ? "(Background)" : "", requestId ? `[Req: ${requestId}]` : "");
-			const result = await kbmsClient.execute(query, isBackground, requestId);
-			console.log("[DEBUG] Execute result returned to UI:", JSON.stringify(result, null, 2));
-			return result;
+			const isBackground = !!options.isBackground;
+			const requestId = options.requestId;
+			const isManagement = !!options.isManagement;
+			console.log("Execute called from UI:", query, isBackground ? "(Background)" : "", requestId ? `[Req: ${requestId}]` : "", isManagement ? "(Management)" : "");
+			return await kbmsClient.execute(query, isBackground, requestId, isManagement);
 		} catch (err) {
 			return {
 				success: false,
@@ -476,6 +565,15 @@ function createWindow() {
 	ipcMain.handle("kbms:disconnect", async () => {
 		kbmsClient.disconnect();
 		return { success: true };
+	});
+	ipcMain.handle("kbms:get-stats", async (_, requestId) => {
+		return kbmsClient.getStats(requestId);
+	});
+	ipcMain.handle("kbms:get-sessions", async (_, requestId) => {
+		return kbmsClient.getSessions(requestId);
+	});
+	ipcMain.on("kbms:subscribe-logs", () => {
+		kbmsClient.subscribeLogs();
 	});
 	ipcMain.handle("kbms:save-file", async (_e, content, currentPath, isNewFile = false) => {
 		if (!win) return { success: false };
@@ -569,5 +667,12 @@ function createWindow() {
 app.on("window-all-closed", () => {
 	if (process.platform !== "darwin") app.quit();
 });
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+	if (process.platform === "darwin" && process.env.VITE_PUBLIC && app.dock) {
+		const iconPath = path.join(process.env.VITE_PUBLIC, "icon.png");
+		if (fs.existsSync(iconPath)) app.dock.setIcon(iconPath);
+	}
+	createSplashScreen();
+	createWindow();
+});
 //#endregion

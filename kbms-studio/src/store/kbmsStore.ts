@@ -41,6 +41,8 @@ export interface KbmsState {
   activeSidebarView: 'explorer' | 'system';
   systemLogs: any[];
   auditLogs: any[];
+  systemStats: any | null;
+  systemSessions: any[];
   selectedKb: string;
   lastError: string | null;
   lastDescribeResult: any | null;
@@ -51,6 +53,10 @@ export interface KbmsState {
   setActiveSidebarView: (v: 'explorer' | 'system') => void;
   fetchSystemLogs: () => Promise<void>;
   fetchAuditLogs: () => Promise<void>;
+  refreshStats: () => Promise<void>;
+  refreshSessions: () => Promise<void>;
+  killSession: (sessionId: string) => Promise<void>;
+  subscribeLogs: () => void;
   setConnectModalOpen: (v: boolean) => void;
   setQuery: (query: string) => void;
   setActiveTab: (t: 'results' | 'messages') => void;
@@ -140,6 +146,8 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
   activeSidebarView: 'explorer',
   systemLogs: [],
   auditLogs: [],
+  systemStats: null,
+  systemSessions: [],
   isConnectModalOpen: false,
   selectedKb: '',
   lastError: null,
@@ -199,6 +207,63 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
     } catch (err) {
       console.error("Failed to fetch audit logs:", err);
     }
+  },
+
+  refreshStats: async () => {
+    if (get().status !== 'connected') return;
+    try {
+      // @ts-ignore
+      const stats = await window.kbmsApi.getStats();
+      if (stats && stats.messages) {
+          // If stats came back as a RESULT message in the queue
+          const msg = stats.messages.find((m: any) => m.type === 'info');
+          if (msg) {
+              try { set({ systemStats: JSON.parse(msg.text) }); } catch { }
+          }
+      } else if (stats) {
+          set({ systemStats: stats });
+      }
+    } catch (err) {
+      console.error("Failed to refresh stats:", err);
+    }
+  },
+
+  refreshSessions: async () => {
+    if (get().status !== 'connected') return;
+    try {
+      // @ts-ignore
+      const res = await window.kbmsApi.getSessions();
+      if (res && res.messages) {
+          const msg = res.messages.find((m: any) => m.type === 'info');
+          if (msg) {
+              try { set({ systemSessions: JSON.parse(msg.text) }); } catch { }
+          }
+      } else if (Array.isArray(res)) {
+          set({ systemSessions: res });
+      }
+    } catch (err) {
+      console.error("Failed to refresh sessions:", err);
+    }
+  },
+
+  killSession: async (sessionId: string) => {
+    try {
+      // @ts-ignore
+      const res = await window.kbmsApi.execute(`KILL_SESSION ${sessionId}`, { isBackground: true, isManagement: true });
+      if (res && res.success) {
+        set(state => ({
+          systemSessions: state.systemSessions.filter(s => s.SessionId !== sessionId)
+        }));
+      }
+    } catch (e) {
+      console.error("(Store) Failed to kill session:", e);
+    }
+  },
+
+  subscribeLogs: () => {
+    if (get().status !== 'connected') return;
+    // @ts-ignore
+    window.kbmsApi.subscribeLogs();
   },
 
   saveProfile: (p) => set((state) => {
@@ -475,7 +540,7 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
 
     try {
       // @ts-ignore
-      const resData = await window.kbmsApi.execute(finalQuery, isBackground, requestId);
+      const resData = await window.kbmsApi.execute(finalQuery, { isBackground, requestId });
 
       const res = resData || { headers: [], rows: [], messages: [{ type: 'info', text: 'No response from server' }] };
 
@@ -488,29 +553,24 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
         lastError: null
       };
 
+      // Cache metadata details even for background queries (used by Sidebar)
       if (isDescribe) {
         newState.lastDescribeResult = res;
-        // Cache in metadataDetails using lowercase key to avoid case issues
         const targetKey = (targetName || res.ConceptName?.replace('Describe_', ''))?.toLowerCase();
         if (targetKey) {
-          console.log(`[Store] Caching metadata for key: ${targetKey}`, res);
           newState.metadataDetails = { ...get().metadataDetails, [targetKey]: res };
-        } else {
-          console.warn(`[Store] Could not determine key for DESCRIBE result`, res);
         }
-      } else {
-        // Find existing result for this batch and update it? 
-        // No, execute returns one final cumulative result, but we prefer the streaming ones.
-        // For compatibility, we'll store the final one as the last item or similar.
-        // But better is to just mark execution as finished.
-        // We rely on streaming (handleResultFragment) to populate get().result.
-        // We do not append resData here to avoid duplicates.
-        newState.editorMarkers = res?.editorMarkers || [];
-        const hasError = res && res.messages && res.messages.some((m: any) => 
-            typeof m === 'string' ? m.toLowerCase().includes('error') : (m.type === 'error' || m.type === 'Error')
-        );
-        const hasResultTable = res && (res.ConceptName || (res.rows && res.rows.length > 0) || (res.headers && res.headers.length > 0 && res.headers[0] !== 'Result'));
-        newState.activeTab = (hasResultTable && !hasError) ? 'results' : 'messages';
+      }
+
+      if (!isBackground) {
+        if (!isDescribe) {
+          newState.editorMarkers = res?.editorMarkers || [];
+          const hasError = res && res.messages && res.messages.some((m: any) => 
+              typeof m === 'string' ? m.toLowerCase().includes('error') : (m.type === 'error' || m.type === 'Error')
+          );
+          const hasResultTable = res && (res.ConceptName || (res.rows && res.rows.length > 0) || (res.headers && res.headers.length > 0 && res.headers[0] !== 'Result'));
+          newState.activeTab = (hasResultTable && !hasError) ? 'results' : 'messages';
+        }
       }
 
       set(newState);
@@ -528,29 +588,36 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
       
       return resData; // Return the data for callers like fetchMetadata
     } catch (e: any) {
-      const errRes = { messages: [{ type: 'error', text: e.message || 'Error occurred' }], rows: [], headers: [] };
-      set({
-        isExecuting: false,
-        result: [errRes]
-      });
-      return errRes;
+      console.error(`(Store) Execution error [Background: ${isBackground}]:`, e);
+      if (!isBackground) {
+        const errRes = { messages: [{ type: 'error', text: e.message || 'Error occurred' }], rows: [], headers: [] };
+        set({
+          isExecuting: false,
+          result: [errRes],
+          activeTab: 'messages'
+        });
+      } else {
+        set({ isExecuting: false });
+      }
+      return { success: false, error: e.message };
     }
   },
 
   handleResultFragment: (f: any) => {
-    // Strictly hide ALL background queries from the result/message UI
-    if (f.isBackground) return; 
-    
-    const state = get();
-    
-    // Strictly filter by currentRequestId and skip background messages in ResultsPane
-    if (f.isBackground) {
-      console.log(`[Store] Skipping background fragment: ${f.type}`);
-      return;
+    if (f.type === 'log-signal') {
+      const log = f.data;
+      if (log.type === 'SYSTEM') {
+        set({ systemLogs: [log.data, ...get().systemLogs].slice(0, 100) });
+      } else if (log.type === 'AUDIT') {
+        set({ auditLogs: [log.data, ...get().auditLogs].slice(0, 100) });
+      }
+      return; 
     }
 
+    if (f.isBackground) return; 
+
+    const state = get();
     if (state.currentRequestId && f.requestId !== state.currentRequestId) {
-      console.log(`[Store] Ignoring fragment for stale/different RequestId. Current: ${state.currentRequestId}, Fragment: ${f.requestId}`);
       return;
     }
 
@@ -569,8 +636,6 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
         resultSets.push({ requestId: f.requestId, headers: [], rows: [], messages: [] });
       }
       
-      // Find the MOST RECENT result set with this requestId, because batch queries 
-      // can generate multiple result sets for the same requestId!
       let current;
       for (let i = resultSets.length - 1; i >= 0; i--) {
         if (resultSets[i].requestId === f.requestId) {

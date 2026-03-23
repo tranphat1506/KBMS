@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
+using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using KBMS.Models;
 using KBMS.Network;
@@ -32,9 +33,9 @@ public class KbmsServer
     private readonly KBMS.Storage.V3.ConceptCatalog _conceptCatalog;
     private readonly KBMS.Storage.V3.UserCatalog _userCatalog;
     private readonly KBMS.Storage.V3.WalManagerV3 _wal;
-    private readonly Logger _logger;
     private readonly KBMS.Server.V3.SystemKbBootstrapper _bootstrapper;
     private readonly KBMS.Server.V3.SystemLogger _sysLogger;
+    private readonly KBMS.Server.V3.ManagementManager _managementManager;
     private bool _isRunning;
     private TcpListener? _listener;
     private readonly CancellationTokenSource _cts = new();
@@ -56,7 +57,6 @@ public class KbmsServer
     {
         _host = host;
         _port = port;
-        _logger = new Logger();
         _connectionManager = new ConnectionManager();
         
         // V3 Infrastructure Setup
@@ -80,8 +80,8 @@ public class KbmsServer
         _bootstrapper = new KBMS.Server.V3.SystemKbBootstrapper(_kbCatalog, _conceptCatalog, v3Router);
         _bootstrapper.Bootstrap();
 
-        // Wire main logger to persistent V3 logger
-        _logger.SetSystemLogger(_sysLogger);
+
+        _managementManager = new KBMS.Server.V3.ManagementManager(_connectionManager, _sysLogger);
         
         _isRunning = false;
 
@@ -99,7 +99,7 @@ public class KbmsServer
         _listener.Start();
         _isRunning = true;
 
-        _logger.Info("System", $"KBMS Server started on {_host}:{_port}");
+        _sysLogger.Info("System", $"KBMS Server started on {_host}:{_port}");
 
         try
         {
@@ -123,7 +123,7 @@ public class KbmsServer
                 catch (Exception ex)
                 {
                     if (_isRunning)
-                        _logger.Error("System", $"Accept error: {ex.Message}");
+                        _sysLogger.Error("System", $"Accept error: {ex.Message}");
                 }
             }
         }
@@ -138,13 +138,16 @@ public class KbmsServer
         _isRunning = false;
         _cts.Cancel();
         _listener?.Stop();
+        _connectionManager.CloseAll();
     }
 
     private async Task HandleClientAsync(TcpClient client)
     {
         var clientId = GenerateClientId();
-        _connectionManager.CreateSession(clientId);
-        _logger.Info(clientId, "New connection established");
+        var ip = client.Client.RemoteEndPoint?.ToString() ?? "unknown";
+        var session = _connectionManager.CreateSession(clientId, client, ip);
+        
+        _sysLogger.Info(clientId, "New connection established");
 
         using var stream = client.GetStream();
         try
@@ -159,12 +162,12 @@ public class KbmsServer
         }
         catch (Exception ex)
         {
-            _logger.Error(clientId, $"Client error: {ex.Message}");
+            _sysLogger.Error(clientId, $"Client error: {ex.Message}");
         }
         finally
         {
             _connectionManager.RemoveSession(clientId);
-            _logger.Info(clientId, "Connection closed");
+            _sysLogger.Info(clientId, "Connection closed");
         }
     }
 
@@ -173,22 +176,34 @@ public class KbmsServer
         switch (message.Type)
         {
             case MessageType.LOGIN:
-                _logger.Info(clientId, "REQUEST: LOGIN");
+                _sysLogger.Info(clientId, "REQUEST: LOGIN");
                 var loginResponse = HandleLogin(message, clientId);
-                await Protocol.SendMessageAsync(stream, loginResponse);
-                _logger.Info(clientId, $"RESPONSE: {loginResponse.Type} (Content: {loginResponse.Content})");
+                await SendProtocolMessageAsync(clientId, stream, loginResponse);
+                _sysLogger.LogResponse(clientId, loginResponse.Type.ToString(), loginResponse.Content);
                 break;
             case MessageType.QUERY:
-                _logger.LogRequest(clientId, message.Content, _connectionManager.GetCurrentUser(clientId)?.Username);
+                _sysLogger.LogRequest(clientId, message.Content, _connectionManager.GetCurrentUser(clientId)?.Username);
                 await HandleQueryAsync(message, clientId, stream);
                 break;
             case MessageType.LOGOUT:
-                _logger.Info(clientId, "REQUEST: LOGOUT");
+                _sysLogger.Info(clientId, "REQUEST: LOGOUT");
                 var logoutResponse = HandleLogout(message, clientId);
-                await Protocol.SendMessageAsync(stream, logoutResponse);
+                await SendProtocolMessageAsync(clientId, stream, logoutResponse);
+                break;
+            case MessageType.STATS:
+                await HandleManagementRequestAsync(message, clientId, stream, () => _managementManager.GetSystemStats());
+                break;
+            case MessageType.SESSIONS:
+                await HandleManagementRequestAsync(message, clientId, stream, () => _managementManager.ListSessions());
+                break;
+            case MessageType.LOGS_STREAM:
+                HandleLogsStream(clientId, stream);
+                break;
+            case MessageType.MANAGEMENT_CMD:
+                await HandleManagementCommandAsync(message, clientId, stream);
                 break;
             default:
-                await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.ERROR, Content = "Unknown message type" });
+                await SendProtocolMessageAsync(clientId, stream, new Message { Type = MessageType.ERROR, Content = "Unknown message type" });
                 break;
         }
     }
@@ -250,7 +265,7 @@ public class KbmsServer
             var user = _connectionManager.GetCurrentUser(clientId);
             if (user == null)
             {
-                await Protocol.SendMessageAsync(stream, new Message 
+                await SendProtocolMessageAsync(clientId, stream, new Message 
                 { 
                     Type = MessageType.ERROR, 
                     RequestId = requestId,
@@ -265,7 +280,7 @@ public class KbmsServer
 
             if (!asts.Any())
             {
-                await Protocol.SendMessageAsync(stream, new Message 
+                await SendProtocolMessageAsync(clientId, stream, new Message 
                 { 
                     Type = MessageType.ERROR, 
                     RequestId = requestId,
@@ -305,7 +320,7 @@ public class KbmsServer
                         }
 
                         var metadata = new { qrs.ConceptName, qrs.Count, Columns = columns, Widths = widths };
-                        await Protocol.SendMessageAsync(stream, new Message 
+                        await SendProtocolMessageAsync(clientId, stream, new Message 
                         { 
                             Type = MessageType.METADATA, 
                             RequestId = requestId,
@@ -318,7 +333,7 @@ public class KbmsServer
                             batch.Add(obj.Values);
                             if (batch.Count >= 100)
                             {
-                                await Protocol.SendMessageAsync(stream, new Message 
+                                await SendProtocolMessageAsync(clientId, stream, new Message 
                                 { 
                                     Type = MessageType.ROW, 
                                     RequestId = requestId,
@@ -330,7 +345,7 @@ public class KbmsServer
                         
                         if (batch.Count > 0)
                         {
-                            await Protocol.SendMessageAsync(stream, new Message 
+                            await SendProtocolMessageAsync(clientId, stream, new Message 
                             { 
                                 Type = MessageType.ROW, 
                                 RequestId = requestId,
@@ -340,7 +355,7 @@ public class KbmsServer
                     }
                     else if (result is ErrorResponse err)
                     {
-                        await Protocol.SendMessageAsync(stream, new Message 
+                        await SendProtocolMessageAsync(clientId, stream, new Message 
                         { 
                             Type = MessageType.ERROR, 
                             RequestId = requestId,
@@ -349,7 +364,7 @@ public class KbmsServer
                     }
                     else if (result != null)
                     {
-                        await Protocol.SendMessageAsync(stream, new Message 
+                        await SendProtocolMessageAsync(clientId, stream, new Message 
                         { 
                             Type = MessageType.RESULT, 
                             RequestId = requestId,
@@ -365,7 +380,7 @@ public class KbmsServer
                 }
                 catch (Exception ex)
                 {
-                    await Protocol.SendMessageAsync(stream, new Message 
+                    await SendProtocolMessageAsync(clientId, stream, new Message 
                     { 
                         Type = MessageType.ERROR, 
                         RequestId = requestId,
@@ -377,7 +392,7 @@ public class KbmsServer
         }
         catch (ParserException ex)
         {
-            await Protocol.SendMessageAsync(stream, new Message 
+            await SendProtocolMessageAsync(clientId, stream, new Message 
             { 
                 Type = MessageType.ERROR, 
                 RequestId = requestId,
@@ -386,8 +401,8 @@ public class KbmsServer
         }
         catch (Exception ex)
         {
-            _logger.Error(clientId, $"HandleQuery error: {ex.Message}", ex);
-            await Protocol.SendMessageAsync(stream, new Message 
+            _sysLogger.Error(clientId, $"HandleQuery error: {ex.Message}");
+            await SendProtocolMessageAsync(clientId, stream, new Message 
             { 
                 Type = MessageType.ERROR, 
                 RequestId = requestId,
@@ -399,13 +414,13 @@ public class KbmsServer
             stopwatch.Stop();
             var elapsedSec = stopwatch.ElapsedMilliseconds / 1000.0;
             var fetchDoneJson = ToJson(new { statementsExecuted, executionTime = elapsedSec });
-            await Protocol.SendMessageAsync(stream, new Message 
+            await SendProtocolMessageAsync(clientId, stream, new Message 
             { 
                 Type = MessageType.FETCH_DONE, 
                 RequestId = requestId,
                 Content = fetchDoneJson 
             });
-            _logger.Info(clientId, $"RESPONSE: FETCH_DONE ({fetchDoneJson}) [Req: {requestId}]");
+            _sysLogger.Info(clientId, $"RESPONSE: FETCH_DONE ({fetchDoneJson}) [Req: {requestId}]");
         }
     }
 
@@ -413,6 +428,109 @@ public class KbmsServer
     {
         _connectionManager.SetSessionUser(clientId, null);
         return new Message { Type = MessageType.RESULT, Content = "LOGOUT_SUCCESS" };
+    }
+
+    private async Task HandleManagementRequestAsync(Message message, string clientId, Stream stream, Func<object> action)
+    {
+        var user = _connectionManager.GetCurrentUser(clientId);
+        if (user == null || user.Role != UserRole.ROOT)
+        {
+            await SendProtocolMessageAsync(clientId, stream, new Message { Type = MessageType.ERROR, Content = "Unauthorized: Root access required" });
+            return;
+        }
+
+        try
+        {
+            var result = action();
+            await SendProtocolMessageAsync(clientId, stream, new Message
+            {
+                Type = MessageType.RESULT,
+                RequestId = message.RequestId,
+                Content = ToJson(result)
+            });
+
+            // Send FETCH_DONE to signal completion of the management request
+            await SendProtocolMessageAsync(clientId, stream, new Message
+            {
+                Type = MessageType.FETCH_DONE,
+                RequestId = message.RequestId,
+                Content = "{}"
+            });
+        }
+        catch (Exception ex)
+        {
+            await SendProtocolMessageAsync(clientId, stream, new Message { Type = MessageType.ERROR, Content = ex.Message });
+        }
+    }
+
+    private void HandleLogsStream(string clientId, Stream stream)
+    {
+        var user = _connectionManager.GetCurrentUser(clientId);
+        if (user == null || user.Role != UserRole.ROOT)
+        {
+            // We can't easily send an error message and keep the stream open if the protocol doesn't support it well,
+            // but for now let's just ignore or send a one-time error.
+            return;
+        }
+
+        _managementManager.SubscribeToLogs(clientId, stream);
+        _sysLogger.Info(clientId, "Subscribed to real-time logs");
+    }
+
+    private async Task HandleManagementCommandAsync(Message message, string clientId, Stream stream)
+    {
+        var user = _connectionManager.GetCurrentUser(clientId);
+        if (user == null || user.Role != UserRole.ROOT)
+        {
+            await SendProtocolMessageAsync(clientId, stream, new Message { Type = MessageType.ERROR, Content = "Unauthorized: Root access required" });
+            return;
+        }
+
+        try
+        {
+            var content = message.Content;
+            if (content.StartsWith("KILL_SESSION "))
+            {
+                var sessionId = content.Substring("KILL_SESSION ".Length).Trim();
+                if (_connectionManager.KillSession(sessionId))
+                {
+                    await SendProtocolMessageAsync(clientId, stream, new Message { Type = MessageType.RESULT, RequestId = message.RequestId, Content = ToJson(new { success = true, message = $"Session {sessionId} terminated" }) });
+                }
+                else
+                {
+                    await SendProtocolMessageAsync(clientId, stream, new Message { Type = MessageType.ERROR, RequestId = message.RequestId, Content = "Session not found" });
+                }
+            }
+            else
+            {
+                await SendProtocolMessageAsync(clientId, stream, new Message { Type = MessageType.ERROR, Content = "Unknown management command" });
+            }
+        }
+        catch (Exception ex)
+        {
+            await SendProtocolMessageAsync(clientId, stream, new Message { Type = MessageType.ERROR, Content = ex.Message });
+        }
+    }
+
+    private async Task SendProtocolMessageAsync(string clientId, Stream stream, Message message)
+    {
+        var session = _connectionManager.GetSession(clientId);
+        if (session != null)
+        {
+            await session.MessageLock.WaitAsync();
+            try
+            {
+                await Protocol.SendMessageAsync(stream, message);
+            }
+            finally
+            {
+                session.MessageLock.Release();
+            }
+        }
+        else
+        {
+            await Protocol.SendMessageAsync(stream, message);
+        }
     }
 
     private string ToJson(object obj) => JsonSerializer.Serialize(obj, _jsonOptions);

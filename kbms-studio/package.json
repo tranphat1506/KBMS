@@ -1,5 +1,7 @@
 {
   "name": "kbms-studio",
+  "displayName": "KBMS Studio",
+  "productName": "KBMS Studio",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -36,5 +38,22 @@
     "vite-plugin-electron": "^0.29.1",
     "vite-plugin-electron-renderer": "^0.14.6"
   },
-  "main": "dist-electron/main.js"
+  "main": "dist-electron/main.js",
+  "build": {
+    "appId": "com.kbms.studio",
+    "productName": "KBMS Studio",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist",
+      "dist-electron"
+    ],
+    "mac": {
+      "icon": "public/icon.png"
+    },
+    "win": {
+      "icon": "public/icon.png"
+    }
+  }
 }
