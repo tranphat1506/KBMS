@@ -98,6 +98,7 @@ public enum TokenType
 
     // Keywords - Hierarchy
     IS_A,           // IS_A
+    ISA,            // ISA
     PART_OF,        // PART_OF
     HIERARCHY,      // HIERARCHY
 
@@ -136,6 +137,8 @@ public enum TokenType
     USING,          // USING
     FIND,           // FIND
     SAVE,           // SAVE
+    DOMAIN,         // DOMAIN
+    RANGE,          // RANGE
 
     // Keywords - Aggregation
     COUNT,          // COUNT

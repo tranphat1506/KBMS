@@ -103,6 +103,7 @@ public class Lexer
         { "HIERARCHY", TokenType.HIERARCHY },
         { "HIERARCHIES", TokenType.HIERARCHIES },
         { "IS_A", TokenType.IS_A },
+        { "ISA", TokenType.ISA },
         { "PART_OF", TokenType.PART_OF },
 
         // Relation/Function/Operator Keywords
@@ -140,6 +141,8 @@ public class Lexer
         { "USING", TokenType.USING },
         { "FIND", TokenType.FIND },
         { "SAVE", TokenType.SAVE },
+        { "DOMAIN", TokenType.DOMAIN },
+        { "RANGE", TokenType.RANGE },
 
         // Aggregation Keywords
         { "COUNT", TokenType.COUNT },

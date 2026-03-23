@@ -41,13 +41,16 @@ public class Parser
 
         var stmt = ParseStatement();
 
-        // Enforce semicolon for single Parse() call as well
-        if (!Check(TokenType.SEMICOLON))
+        // Enforce semicolon for single Parse() call as well, but allow EOF
+        if (Check(TokenType.SEMICOLON))
+        {
+            Consume(TokenType.SEMICOLON);
+        }
+        else if (!IsAtEnd())
         {
             var next = Peek();
             throw Error("Semicolon ';' expected at end of statement", next);
         }
-        Consume(TokenType.SEMICOLON);
 
         return stmt;
     }
@@ -68,12 +71,12 @@ public class Parser
                 statements.Add(stmt);
             }
 
-            // Enforce semicolon after each statement
+            // Enforce semicolon after each statement, but allow EOF for the last one
             if (Check(TokenType.SEMICOLON))
             {
                 Advance();
             }
-            else
+            else if (!IsAtEnd())
             {
                 var next = Peek();
                 throw Error("Semicolon ';' expected", next);
@@ -99,7 +102,7 @@ public class Parser
             TokenType.GRANT => ParseGrant(),
             TokenType.REVOKE => ParseRevoke(),
             TokenType.SELECT => ParseSelect(),
-            TokenType.INSERT => ParseInsert(),
+            TokenType.INSERT => ParseInsertOrBulk(),
             TokenType.UPDATE => ParseUpdate(),
             TokenType.DELETE => ParseDelete(),
             TokenType.SOLVE => ParseSolve(),
@@ -271,6 +274,17 @@ public class Parser
             }
             else
             {
+                // Fallback for positional variables (e.g. CREATE CONCEPT Student(name STRING, ...))
+                var currentToken = Peek();
+                if (currentToken != null && currentToken.Type == TokenType.IDENTIFIER)
+                {
+                    var varNode = ParseVariableDefinition();
+                    node.Variables.Add(varNode);
+                    hasVariables = true;
+                    if (Check(TokenType.COMMA)) Consume(TokenType.COMMA);
+                    continue;
+                }
+
                 // Consume comma or other noise between blocks
                 if (Check(TokenType.COMMA))
                     Consume(TokenType.COMMA);
@@ -282,8 +296,12 @@ public class Parser
             if (Check(TokenType.COMMA)) Consume(TokenType.COMMA);
         }
 
-        if (!hasVariables)
-            throw Error("Concept must have a VARIABLES block");
+        bool hasAnyBlock = hasVariables || node.Constraints.Count > 0 || node.ConceptRules.Count > 0 
+            || node.Equations.Count > 0 || node.Aliases.Count > 0 || node.BaseObjects.Count > 0 
+            || node.Properties.Count > 0 || node.ConstructRelations.Count > 0 || node.SameVariables.Count > 0;
+
+        if (!hasAnyBlock)
+            throw Error("Concept must have at least one block (VARIABLES, CONSTRAINTS, RULES, etc.)");
 
         Consume(TokenType.RPAREN);
 
@@ -375,15 +393,15 @@ public class Parser
         while (!IsAtEnd())
         {
             var nextType = Peek()?.Type;
-            if (nextType == TokenType.FROM)
+            if (nextType == TokenType.FROM || nextType == TokenType.DOMAIN)
             {
-                Consume(TokenType.FROM);
+                Consume(nextType!.Value);
                 var domainToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected domain concept");
                 node.DomainConcept = domainToken.Lexeme;
             }
-            else if (nextType == TokenType.TO)
+            else if (nextType == TokenType.TO || nextType == TokenType.RANGE)
             {
-                Consume(TokenType.TO);
+                Consume(nextType!.Value);
                 var rangeToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected range concept");
                 node.RangeConcept = rangeToken.Lexeme;
             }
@@ -649,14 +667,14 @@ public class Parser
         if (Check(TokenType.IF))
         {
             Consume(TokenType.IF);
-            node.Hypothesis = ParseExpressionList();
+            node.Hypothesis = ParseExpressionASTList();
         }
 
         // Parse THEN clause (conclusions)
         if (Check(TokenType.THEN))
         {
             Consume(TokenType.THEN);
-            node.Conclusions = ParseExpressionList();
+            node.Conclusions = ParseExpressionASTList();
         }
 
         // Parse COST clause
@@ -810,6 +828,54 @@ public class Parser
                                 });
                             Consume(TokenType.RPAREN);
                         }
+                        else if (target.Type == TokenType.EQUATION || target.Type == TokenType.EQUATIONS)
+                        {
+                            Consume(target.Type);
+                            // Accept string or identifier expression
+                            var exprToken = Advance() ?? throw Error("Expected equation expression");
+                            var exprStr = exprToken.Type == TokenType.STRING
+                                ? exprToken.Literal?.ToString() ?? exprToken.Lexeme
+                                : exprToken.Lexeme;
+                            node.Actions.Add(new KBMS.Models.AlterAction {
+                                ActionType = KBMS.Models.AlterActionType.AddEquation,
+                                Equation = new KBMS.Models.Equation { Id = Guid.NewGuid(), Expression = exprStr }
+                            });
+                        }
+                        else if (target.Type == TokenType.PROPERTIES)
+                        {
+                            Consume(target.Type);
+                            var keyToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected property key");
+                            Consume(TokenType.COLON);
+                            var valToken = Advance() ?? throw Error("Expected property value");
+                            var val = valToken.Type == TokenType.STRING
+                                ? valToken.Literal?.ToString() ?? valToken.Lexeme
+                                : valToken.Lexeme;
+                            node.Actions.Add(new KBMS.Models.AlterAction {
+                                ActionType = KBMS.Models.AlterActionType.AddProperty,
+                                Property = new KBMS.Models.Property { Key = keyToken.Lexeme, Value = val }
+                            });
+                        }
+                        else if (target.Type == TokenType.CONSTRUCT_RELATIONS)
+                        {
+                            Consume(target.Type);
+                            var relNameToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected relation name");
+                            var args = new List<string>();
+                            if (Check(TokenType.LPAREN))
+                            {
+                                Consume(TokenType.LPAREN);
+                                while (!Check(TokenType.RPAREN) && !IsAtEnd())
+                                {
+                                    var arg = Advance()!;
+                                    args.Add(arg.Lexeme);
+                                    if (Check(TokenType.COMMA)) Consume(TokenType.COMMA);
+                                }
+                                Consume(TokenType.RPAREN);
+                            }
+                            node.Actions.Add(new KBMS.Models.AlterAction {
+                                ActionType = KBMS.Models.AlterActionType.AddConstructRelation,
+                                ConstructRelation = new KBMS.Models.ConstructRelation { RelationName = relNameToken.Lexeme, Arguments = args }
+                            });
+                        }
                         
                         if (Check(TokenType.COMMA)) Consume(TokenType.COMMA);
                         else break;
@@ -833,6 +899,10 @@ public class Parser
                             TokenType.CONSTRAINTS => KBMS.Models.AlterActionType.DropConstraint,
                             TokenType.RULE => KBMS.Models.AlterActionType.DropRule,
                             TokenType.RULES => KBMS.Models.AlterActionType.DropRule,
+                            TokenType.EQUATION => KBMS.Models.AlterActionType.DropEquation,
+                            TokenType.EQUATIONS => KBMS.Models.AlterActionType.DropEquation,
+                            TokenType.PROPERTIES => KBMS.Models.AlterActionType.DropProperty,
+                            TokenType.CONSTRUCT_RELATIONS => KBMS.Models.AlterActionType.DropConstructRelation,
                             _ => throw Error("Invalid drop target")
                         };
 
@@ -1062,36 +1132,61 @@ public class Parser
     {
         var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.DESCRIBE);
-        if (Consume(TokenType.LPAREN) == null) throw Error("Expected '(' after DESCRIBE");
 
-        var typeToken = Advance() ?? throw Error("Expected target type (CONCEPT, KB, RULE)");
+        bool hasParen = Check(TokenType.LPAREN);
+        if (hasParen) Consume(TokenType.LPAREN);
+
+        var typeToken = Advance() ?? throw Error("Expected target type (CONCEPT, KB, RULE, HIERARCHY)");
         string typeStr = typeToken.Lexeme.ToUpper();
         if (typeStr == "KNOWLEDGE") {
             if (Consume(TokenType.BASE) == null) throw Error("Expected 'BASE' after 'KNOWLEDGE'");
             typeStr = "KB";
         }
-        else if (typeStr == "KB") {
-            // Valid
-        }
-        else if (typeStr == "CONCEPT" || typeStr == "RULE" || typeStr == "HIERARCHY" || 
+        else if (typeStr == "KB" || typeStr == "CONCEPT" || typeStr == "RULE" || typeStr == "HIERARCHY" ||
                  typeStr == "RELATION" || typeStr == "FUNCTION" || typeStr == "OPERATOR") {
             // Valid
         }
         else {
-            throw Error("Unexpected target type: {typeStr}", typeToken);
+            throw Error($"Unexpected target type: {typeStr}", typeToken);
         }
 
-        if (Consume(TokenType.COLON) == null) throw Error("Expected ':' after target type");
-        var nameToken = Advance() ?? throw Error("Expected target name or id");
+        if (Check(TokenType.COLON)) Consume(TokenType.COLON);
 
-        if (Consume(TokenType.RPAREN) == null) throw Error("Expected ')' at end of DESCRIBE");
+        string targetName = "";
 
-        return new KBMS.Parser.Ast.Kql.DescribeNode 
-        { 
-            TargetType = typeStr, 
-            TargetName = nameToken.Lexeme, 
-            Line = token.Line, 
-            Column = token.Column 
+        if (typeStr == "HIERARCHY") {
+            if (Check(TokenType.STRING)) {
+                targetName = Advance()!.Literal!.ToString()!;
+            } else {
+                var childToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected child concept name");
+                if (Check(TokenType.COLON)) {
+                    Consume(TokenType.COLON);
+                    var parentToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected parent concept name after ':'");
+                    targetName = $"{childToken.Lexeme}:{parentToken.Lexeme}";
+                } else if (Check(TokenType.IS_A) || Check(TokenType.PART_OF)) {
+                    var relToken = Advance()!;
+                    var parentToken = Consume(TokenType.IDENTIFIER) ?? throw Error($"Expected parent concept name after {relToken.Lexeme}");
+                    targetName = $"{childToken.Lexeme}:{parentToken.Lexeme}";
+                } else {
+                    throw Error("Expected ':' or IS_A/PART_OF in hierarchy description");
+                }
+            }
+        } else {
+            var nameToken = Advance() ?? throw Error("Expected target name or id");
+            targetName = nameToken.Lexeme;
+            if (nameToken.Type == TokenType.STRING && nameToken.Literal != null) {
+                targetName = nameToken.Literal.ToString()!;
+            }
+        }
+
+        if (hasParen && Consume(TokenType.RPAREN) == null) throw Error("Expected ')' at end of DESCRIBE");
+
+        return new KBMS.Parser.Ast.Kql.DescribeNode
+        {
+            TargetType = typeStr,
+            TargetName = targetName,
+            Line = token.Line,
+            Column = token.Column
         };
     }
 
@@ -1398,7 +1493,7 @@ public class Parser
         var typeToken = Peek() ?? throw Error("Expected hierarchy type");
         HierarchyType hierarchyType;
 
-        if (typeToken.Type == TokenType.IS_A)
+        if (typeToken.Type == TokenType.IS_A || typeToken.Type == TokenType.ISA)
         {
             hierarchyType = HierarchyType.IS_A;
         }
@@ -1408,7 +1503,7 @@ public class Parser
         }
         else
         {
-            throw Error("Expected IS_A or PART_OF, got {typeToken.Lexeme}", typeToken);
+            throw Error("Expected IS_A, ISA, or PART_OF, got {typeToken.Lexeme}", typeToken);
         }
         Advance();
 
@@ -1506,7 +1601,7 @@ public class Parser
         var typeToken = Peek() ?? throw Error("Expected hierarchy type");
         KBMS.Parser.Ast.Kdl.HierarchyType hierarchyType;
 
-        if (typeToken.Type == TokenType.IS_A)
+        if (typeToken.Type == TokenType.IS_A || typeToken.Type == TokenType.ISA)
         {
             hierarchyType = HierarchyType.IS_A;
         }
@@ -1516,7 +1611,7 @@ public class Parser
         }
         else
         {
-            throw Error("Expected IS_A or PART_OF, got {typeToken.Lexeme}", typeToken);
+            throw Error("Expected IS_A, ISA, or PART_OF, got {typeToken.Lexeme}", typeToken);
         }
         Advance();
 
@@ -1615,11 +1710,11 @@ public class Parser
             Column = token.Column
         };
 
-        // Check for * (select all) or aggregate functions
+        // Parse SELECT columns: *, aggregates, or named column list with optional AS aliases
         if (Check(TokenType.STAR))
         {
             Consume(TokenType.STAR);
-            // SELECT * FROM concept
+            // SELECT * - SelectColumns remains empty => means all columns
         }
         else if (Check(TokenType.COUNT) || Check(TokenType.SUM) || Check(TokenType.AVG) || Check(TokenType.MIN) || Check(TokenType.MAX))
         {
@@ -1652,11 +1747,39 @@ public class Parser
 
             node.Aggregates.Add(agg);
         }
-        else
+        else if (Check(TokenType.IDENTIFIER))
         {
-            // SELECT concept (shorthand for SELECT * FROM concept)
-            var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected concept name");
-            node.ConceptName = conceptToken.Lexeme;
+            // Heuristic to distinguish SELECT <ColumnList> FROM ... vs SELECT <ShorthandConceptName> [WHERE...]
+            // It's a column list if followed by DOT, AS, COMMA, or FROM.
+            var next = PeekNext();
+            bool isColumnList = next != null && (
+                next.Type == TokenType.DOT || 
+                next.Type == TokenType.AS || 
+                next.Type == TokenType.COMMA || 
+                next.Type == TokenType.FROM
+            );
+
+            if (isColumnList)
+            {
+                // Parse column list
+                node.SelectColumns.Add(ParseSelectColumn());
+                while (Check(TokenType.COMMA))
+                {
+                    Consume(TokenType.COMMA);
+                    if (Check(TokenType.STAR))
+                    {
+                        Consume(TokenType.STAR);
+                        node.SelectColumns.Clear();
+                        break;
+                    }
+                    node.SelectColumns.Add(ParseSelectColumn());
+                }
+            }
+            else
+            {
+                // Shorthand ConceptName (e.g. SELECT Person WHERE...)
+                node.ConceptName = Consume(TokenType.IDENTIFIER)!.Lexeme;
+            }
         }
 
         // FROM clause (for SELECT * FROM concept or SELECT COUNT(*) FROM concept)
@@ -1673,7 +1796,7 @@ public class Parser
                 
                 // For HIERARCHY, the name might be an identifier or a string, 
                 // but let's assume IDENTIFIER for consistency with other entities.
-                var nameToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected {node.TargetType} name");
+                var nameToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected " + node.TargetType + " name");
                 node.ConceptName = nameToken.Lexeme;
             }
             else
@@ -1692,11 +1815,19 @@ public class Parser
             }
         }
 
-        // Parse optional AS alias
+        // Parse optional AS alias or shorthand alias
         if (Check(TokenType.AS))
         {
+            Consume(TokenType.AS);
             var aliasToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected alias");
             node.Alias = aliasToken.Lexeme;
+        }
+        else if (Check(TokenType.IDENTIFIER) && 
+                 Peek()?.Type != TokenType.JOIN && Peek()?.Type != TokenType.WHERE && 
+                 Peek()?.Type != TokenType.GROUP && Peek()?.Type != TokenType.ORDER && 
+                 Peek()?.Type != TokenType.LIMIT && Peek()?.Type != TokenType.SEMICOLON)
+        {
+            node.Alias = Consume(TokenType.IDENTIFIER)!.Lexeme;
         }
 
         // Parse JOIN clauses
@@ -1724,6 +1855,7 @@ public class Parser
         // Parse HAVING clause
         if (Check(TokenType.HAVING))
         {
+            Consume(TokenType.HAVING);
             node.Having = ParseCondition();
         }
 
@@ -1739,19 +1871,59 @@ public class Parser
         if (Check(TokenType.LIMIT))
         {
             Consume(TokenType.LIMIT);
-            var limitToken = Consume(TokenType.NUMBER) ?? throw Error("Expected limit number");
-            node.Limit = new LimitClause { Limit = (int)ConvertToDouble(limitToken.Literal)! };
-
-            // Parse OFFSET clause
+            var limitToken = Consume(TokenType.NUMBER) ?? throw Error("Expected limit value");
+            var limit = int.Parse(limitToken.Lexeme);
+            int? offset = null;
             if (Check(TokenType.OFFSET))
             {
                 Consume(TokenType.OFFSET);
-                var offsetToken = Consume(TokenType.NUMBER) ?? throw Error("Expected offset number");
-                node.Limit.Offset = (int)ConvertToDouble(offsetToken.Literal)!;
+                var offsetToken = Consume(TokenType.NUMBER) ?? throw Error("Expected offset value");
+                offset = int.Parse(offsetToken.Lexeme);
             }
+            node.Limit = new LimitClause { Limit = limit, Offset = offset };
         }
 
         return node;
+    }
+
+    private SelectColumn ParseSelectColumn()
+    {
+        var col = new SelectColumn();
+        
+        // Accumulate name/expression tokens until AS, COMMA, or FROM
+        var nameBuilder = new StringBuilder();
+        while (Peek() != null && !Check(TokenType.AS) && !Check(TokenType.COMMA) && !Check(TokenType.FROM) && !Check(TokenType.SEMICOLON))
+        {
+            var t = Peek()!;
+            if (nameBuilder.Length > 0 && t.Type != TokenType.DOT && nameBuilder[nameBuilder.Length - 1] != '.') 
+                nameBuilder.Append(" ");
+            nameBuilder.Append(Advance()!.Lexeme);
+        }
+        
+        var rawName = nameBuilder.ToString().Trim();
+        col.Name = rawName;
+
+        // Try to extract TablePrefix for simple p.name patterns
+        var dotIndex = rawName.IndexOf('.');
+        if (dotIndex > 0 && dotIndex < rawName.Length - 1)
+        {
+            var possiblePrefix = rawName.Substring(0, dotIndex);
+            var possibleName = rawName.Substring(dotIndex + 1);
+            
+            // Check if it's a simple identifier.identifier
+            if (!possiblePrefix.Contains(" ") && !possibleName.Contains(" ") && !possibleName.Contains("*"))
+            {
+                col.TablePrefix = possiblePrefix;
+                col.Name = possibleName;
+            }
+        }
+
+        if (Check(TokenType.AS))
+        {
+            Consume(TokenType.AS);
+            col.Alias = (Consume(TokenType.IDENTIFIER) ?? throw Error("Expected alias name")).Lexeme;
+        }
+        return col;
     }
 
     private JoinClause ParseJoinClause()
@@ -1776,6 +1948,136 @@ public class Parser
         }
 
         return join;
+    }
+
+    private AstNode ParseInsertOrBulk()
+    {
+        var token = Peek() ?? throw Error("Unexpected end of input");
+        Consume(TokenType.INSERT);
+
+        // Check for BULK keyword
+        if (Check(TokenType.IDENTIFIER) && Peek()?.Lexeme?.Equals("BULK", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            Advance(); // consume BULK
+            return ParseInsertBulkBody(token);
+        }
+
+        // Standard single-row INSERT
+        Consume(TokenType.INTO);
+        var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected concept name");
+        var node = new InsertNode
+        {
+            Type = "INSERT",
+            ConceptName = conceptToken.Lexeme,
+            Line = token.Line,
+            Column = token.Column
+        };
+
+        Consume(TokenType.ATTRIBUTE);
+        Consume(TokenType.LPAREN);
+
+        int positionIndex = 0;
+        while (!Check(TokenType.RPAREN))
+        {
+            var firstToken = Peek();
+            if (firstToken == null)
+                throw Error("Expected value");
+
+            if (firstToken.Type == TokenType.IDENTIFIER)
+            {
+                var nextToken = PeekNext();
+                if (nextToken?.Type == TokenType.COLON)
+                {
+                    var fieldToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected field name");
+                    Consume(TokenType.COLON);
+                    var valueNode = ParseValueNode();
+                    node.Values[fieldToken.Lexeme] = valueNode;
+                }
+                else
+                {
+                    var valueNode = ParseValueNode();
+                    node.Values[$"_{positionIndex}"] = valueNode;
+                    positionIndex++;
+                }
+            }
+            else
+            {
+                var valueNode = ParseValueNode();
+                node.Values[$"_{positionIndex}"] = valueNode;
+                positionIndex++;
+            }
+
+            if (!Check(TokenType.RPAREN))
+                Consume(TokenType.COMMA);
+        }
+        Consume(TokenType.RPAREN);
+        return node;
+    }
+
+    private InsertBulkNode ParseInsertBulkBody(Token startToken)
+    {
+        var bulkNode = new InsertBulkNode
+        {
+            Line = startToken.Line,
+            Column = startToken.Column
+        };
+
+        Consume(TokenType.INTO);
+        var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected concept name");
+        bulkNode.ConceptName = conceptToken.Lexeme;
+
+        // Consume ATTRIBUTES or ATTRIBUTE
+        if (!Check(TokenType.ATTRIBUTE))
+            throw Error("Expected ATTRIBUTES after concept name");
+        Consume(TokenType.ATTRIBUTE);
+
+        // Parse one or more row groups: (...), (...), ...
+        do
+        {
+            if (Check(TokenType.COMMA)) Consume(TokenType.COMMA);
+            Consume(TokenType.LPAREN);
+
+            var row = new Dictionary<string, ValueNode>();
+            int positionIndex = 0;
+
+            while (!Check(TokenType.RPAREN))
+            {
+                var firstToken = Peek();
+                if (firstToken == null) throw Error("Expected value");
+
+                if (firstToken.Type == TokenType.IDENTIFIER)
+                {
+                    var nextToken = PeekNext();
+                    if (nextToken?.Type == TokenType.COLON)
+                    {
+                        var fieldToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected field name");
+                        Consume(TokenType.COLON);
+                        var valueNode = ParseValueNode();
+                        row[fieldToken.Lexeme] = valueNode;
+                    }
+                    else
+                    {
+                        var valueNode = ParseValueNode();
+                        row[$"_{positionIndex}"] = valueNode;
+                        positionIndex++;
+                    }
+                }
+                else
+                {
+                    var valueNode = ParseValueNode();
+                    row[$"_{positionIndex}"] = valueNode;
+                    positionIndex++;
+                }
+
+                if (!Check(TokenType.RPAREN))
+                    Consume(TokenType.COMMA);
+            }
+            Consume(TokenType.RPAREN);
+            bulkNode.Rows.Add(row);
+
+        } while (Check(TokenType.COMMA));
+
+        return bulkNode;
     }
 
     private InsertNode ParseInsert()
@@ -2411,7 +2713,7 @@ public class Parser
                 return expr;
 
             default:
-                throw Error("Unexpected token in expression: {token.Lexeme}", token);
+                throw Error($"Unexpected token in expression: {token.Lexeme}", token);
         }
     }
 
@@ -2473,12 +2775,18 @@ public class Parser
         }
         else if (left is BinaryExpressionNode binary)
         {
-            // Handle expression-based conditions
+            object? value = binary.Right switch
+            {
+                LiteralNode lit => lit.Value,
+                VariableNode v => v.Name,
+                _ => binary.Right?.ToString()
+            };
+
             return new Condition
             {
                 Field = binary.Left?.ToString() ?? "",
                 Operator = binary.Operator,
-                Value = binary.Right?.ToString()
+                Value = value
             };
         }
 
@@ -2864,6 +3172,28 @@ public class Parser
         if (hasParens)
         {
             Consume(TokenType.RPAREN);
+        }
+
+        return list;
+    }
+
+    private List<ExpressionNode> ParseExpressionASTList()
+    {
+        var list = new List<ExpressionNode>();
+
+        while (!IsAtEnd() && !IsClauseKeyword(Peek()?.Type))
+        {
+            // (RC4) Allow optional SET keyword before each expression (common in rule conclusions)
+            if (Check(TokenType.SET))
+                Consume(TokenType.SET);
+
+            var expr = ParseExpression();
+            list.Add(expr);
+
+            if (Check(TokenType.COMMA))
+                Consume(TokenType.COMMA);
+            else
+                break;
         }
 
         return list;

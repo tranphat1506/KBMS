@@ -19,6 +19,8 @@ public class LiteralNode : ExpressionNode
 
     public override string ToString()
     {
+        if (ValueType == "string" && Value != null)
+            return $"'{Value}'";
         return Value?.ToString() ?? "null";
     }
 }

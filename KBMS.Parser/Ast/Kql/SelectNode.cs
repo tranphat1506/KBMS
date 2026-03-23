@@ -25,6 +25,11 @@ public class SelectNode : KmlNode
     public string? Alias { get; set; }
 
     /// <summary>
+    /// Explicitly selected columns (empty = SELECT *, otherwise specific columns/aliases)
+    /// </summary>
+    public List<SelectColumn> SelectColumns { get; set; } = new();
+
+    /// <summary>
     /// Optional WHERE conditions
     /// </summary>
     public List<Condition> Conditions { get; set; } = new();

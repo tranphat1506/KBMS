@@ -228,7 +228,11 @@ public class InferenceEngine
                         var met = EvaluateConstraint(hyp, knownFacts);
                         if (!met) { allHypothesisMet = false; break; }
                     }
-                    catch { allHypothesisMet = false; break; } // If variables are missing, hypothesis not met
+                    catch (Exception ex)
+                    {
+                        allHypothesisMet = false; 
+                        break; 
+                    }
                 }
 
                 if (allHypothesisMet && rule.Hypothesis.Count > 0)
@@ -236,11 +240,18 @@ public class InferenceEngine
                     appliedRuleIds.Add(rule.Id);
                     foreach (var conclusion in rule.Conclusion)
                     {
-                        var eqIdx = conclusion.IndexOf('=');
-                        if (eqIdx > 0 && conclusion[eqIdx - 1] != '!' && conclusion[eqIdx - 1] != '<' && conclusion[eqIdx - 1] != '>')
+                        var trimmedConclusion = conclusion.Trim();
+                        // Strip outer parentheses if present (from AST ToString)
+                        while (trimmedConclusion.StartsWith("(") && trimmedConclusion.EndsWith(")"))
                         {
-                            var varName = conclusion.Substring(0, eqIdx).Trim();
-                            var exprStr = conclusion.Substring(eqIdx + 1).Trim();
+                            trimmedConclusion = trimmedConclusion.Substring(1, trimmedConclusion.Length - 2).Trim();
+                        }
+
+                        var eqIdx = trimmedConclusion.IndexOf('=');
+                        if (eqIdx > 0 && trimmedConclusion[eqIdx - 1] != '!' && trimmedConclusion[eqIdx - 1] != '<' && trimmedConclusion[eqIdx - 1] != '>')
+                        {
+                            var varName = trimmedConclusion.Substring(0, eqIdx).Trim();
+                            var exprStr = trimmedConclusion.Substring(eqIdx + 1).Trim();
 
                             if (!knownFacts.ContainsKey(varName))
                             {
@@ -279,9 +290,9 @@ public class InferenceEngine
                             var flagName = conclusion.Trim();
                             if (!knownFacts.ContainsKey(flagName))
                             {
-                                knownFacts[flagName] = 1.0; // Represent boolean true as 1.0
-                                result.DerivedFacts[flagName] = 1.0;
-                                result.Steps.Add($"Step {stepCount++}: From Rule [{rule.Kind}] IF {{{string.Join(", ", rule.Hypothesis)}}} => {flagName} = 1");
+                                knownFacts[flagName] = true; 
+                                result.DerivedFacts[flagName] = true;
+                                result.Steps.Add($"Step {stepCount++}: From Rule [{rule.Kind}] IF {{{string.Join(", ", rule.Hypothesis)}}} => {flagName} = true");
                                 
                                 // (Phase 17) Trace
                                 var hypothesisVars = rule.Hypothesis.SelectMany(h => ExtractVariablesFromExpression(h)).Distinct();
@@ -319,7 +330,7 @@ public class InferenceEngine
                         {
                             knownFacts[targetVar] = root;
                             result.DerivedFacts[targetVar] = root;
-                            result.Steps.Add($"Step {stepCount++}: From Constraint '{constraint.Expression}' solved for {targetVar} => {root:F4}");
+                            result.Steps.Add($"Step {stepCount++}: From Constraint '{constraint.Expression}' solved for {targetVar} => {root.ToString("F4", System.Globalization.CultureInfo.InvariantCulture)}");
                             
                             result.Traces.Add(new DerivationTrace
                             {
@@ -356,7 +367,7 @@ public class InferenceEngine
                         {
                             knownFacts[targetVar] = root;
                             result.DerivedFacts[targetVar] = root;
-                            result.Steps.Add($"Step {stepCount++}: From Equation '{eq.Expression}' solved for {targetVar} => {root:F4}");
+                            result.Steps.Add($"Step {stepCount++}: From Equation '{eq.Expression}' solved for {targetVar} => {root.ToString("F4", System.Globalization.CultureInfo.InvariantCulture)}");
                             
                             // (Phase 17) Trace
                             result.Traces.Add(new DerivationTrace
@@ -415,7 +426,7 @@ public class InferenceEngine
             }
 
             // Early exit if all targets KL met
-            if (targetVariables.All(v => knownFacts.ContainsKey(v)))
+            if (targetVariables.Any() && targetVariables.All(v => knownFacts.ContainsKey(v)))
             {
                 result.Success = true;
                 result.Steps.Add("=> Stopping condition met: All target variables KL are found in GT.");
@@ -794,6 +805,16 @@ public class InferenceEngine
             if (type is "FLOAT" or "DOUBLE")
             {
                 return Convert.ToDouble(val);
+            }
+            if (type is "BOOL" or "BOOLEAN")
+            {
+                if (val is bool b) return b;
+                if (val is string s) return bool.TryParse(s, out var bres) ? bres : s.Equals("1") || s.Equals("true", StringComparison.OrdinalIgnoreCase);
+                return Convert.ToDouble(val) != 0;
+            }
+            if (type is "STRING" or "VARCHAR" or "TEXT")
+            {
+                return val?.ToString() ?? "";
             }
         }
         catch { }

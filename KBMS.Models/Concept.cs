@@ -87,9 +87,15 @@ public enum AlterActionType
     AddVariable,
     AddConstraint,
     AddRule,
+    AddEquation,
+    AddProperty,
+    AddConstructRelation,
     DropVariable,
     DropConstraint,
     DropRule,
+    DropEquation,
+    DropProperty,
+    DropConstructRelation,
     RenameVariable
 }
 
@@ -99,7 +105,10 @@ public class AlterAction
     public Variable? Variable { get; set; }
     public Constraint? Constraint { get; set; }
     public ConceptRule? Rule { get; set; }
-    public string? TargetName { get; set; } // For Drop
+    public Equation? Equation { get; set; }
+    public Property? Property { get; set; }
+    public ConstructRelation? ConstructRelation { get; set; }
+    public string? TargetName { get; set; } // For Drop / Property key
     public string? OldName { get; set; }    // For Rename
     public string? NewName { get; set; }    // For Rename
 }

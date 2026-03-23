@@ -41,12 +41,12 @@ public class CreateRuleNode : KdlNode
     /// <summary>
     /// List of condition expressions (IF part)
     /// </summary>
-    public List<string> Hypothesis { get; set; } = new();
+    public List<ExpressionNode> Hypothesis { get; set; } = new();
 
     /// <summary>
     /// List of conclusion expressions (THEN part)
     /// </summary>
-    public List<string> Conclusions { get; set; } = new();
+    public List<ExpressionNode> Conclusions { get; set; } = new();
 
     /// <summary>
     /// Variables used in rule (with types)

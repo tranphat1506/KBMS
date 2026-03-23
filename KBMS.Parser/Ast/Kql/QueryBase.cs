@@ -30,6 +30,33 @@ public class Condition
 }
 
 /// <summary>
+/// A single column item in a SELECT statement, with optional alias.
+/// </summary>
+public class SelectColumn
+{
+    /// <summary>
+    /// Raw expression: could be "id", "c.name", "*", "COUNT(*)", etc.
+    /// If TablePrefix is non-null, it represents the alias/table prefix (e.g., "c" in "c.name").
+    /// </summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Table/alias prefix (e.g., "c" in "c.name"). Null if no prefix.
+    /// </summary>
+    public string? TablePrefix { get; set; }
+
+    /// <summary>
+    /// Column alias defined via AS (e.g., "FullName" in "name AS FullName").
+    /// </summary>
+    public string? Alias { get; set; }
+
+    /// <summary>
+    /// True if this column is SELECT *
+    /// </summary>
+    public bool IsStar => Name == "*";
+}
+
+/// <summary>
 /// JOIN clause
 /// </summary>
 public class JoinClause

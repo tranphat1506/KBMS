@@ -224,7 +224,7 @@ public class KbmsServer
             {
                 await Protocol.SendMessageAsync(stream, new Message 
                 { 
-                    Type = MessageType.RESULT, 
+                    Type = MessageType.ERROR, 
                     RequestId = requestId,
                     Content = ToJson(new { message = "Empty query or comments ignored." }) 
                 });
