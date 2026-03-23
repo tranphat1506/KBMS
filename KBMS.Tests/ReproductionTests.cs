@@ -29,8 +29,7 @@ public class ReproductionTests : IAsyncLifetime
     public async Task InitializeAsync()
     {
         if (Directory.Exists(_testDataDir)) Directory.Delete(_testDataDir, true);
-        var storage = new Storage.StorageEngine(_testDataDir, "repro_test_key");
-        _server = new Server.KbmsServer("localhost", _testPort, storage);
+        _server = new Server.KbmsServer("localhost", _testPort, _testDataDir);
         _ = _server.StartAsync();
 
         for (int i = 0; i < 20; i++)

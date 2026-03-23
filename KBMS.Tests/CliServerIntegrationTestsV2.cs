@@ -45,7 +45,7 @@ public class CliServerIntegrationTestsV2 : IAsyncLifetime
 
         // Start test server
         var storage = new StorageEngine(_testDataDir, "test_v2_key");
-        _server = new KbmsServer(TestHost, _testPort, storage);
+        _server = new KbmsServer(TestHost, _testPort, _testDataDir);
         _ = _server.StartAsync();
 
         // Wait for server

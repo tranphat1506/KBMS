@@ -6,31 +6,16 @@ namespace KBMS.Server;
 
 public class AuthenticationManager
 {
-    private readonly StorageEngine _storage;
+    private readonly KBMS.Storage.V3.UserCatalog _userCatalog;
 
-    public AuthenticationManager(StorageEngine storage)
+    public AuthenticationManager(KBMS.Storage.V3.UserCatalog userCatalog)
     {
-        _storage = storage;
+        _userCatalog = userCatalog;
     }
 
     public User? Login(string username, string password)
     {
-        var users = _storage.LoadUsers();
-        var user = users.FirstOrDefault(u => u.Username == username);
-
-        if (user == null)
-        {
-            return null;
-        }
-
-        var verified = _storage.VerifyPassword(password, user.PasswordHash);
-
-        if (!verified)
-        {
-            return null;
-        }
-
-        return user;
+        return _userCatalog.AuthenticateUser(username, password);
     }
 
     public bool CheckPrivilege(User user, string action, string? kbName = null)
@@ -82,20 +67,16 @@ public class AuthenticationManager
 
     public User? CreateUser(string username, string password, UserRole role, bool systemAdmin = false)
     {
-        return _storage.CreateUser(username, password, role, systemAdmin);
+        return _userCatalog.CreateUser(username, password, role);
     }
 
     public bool GrantPrivilege(string username, string kbName, Privilege privilege)
     {
-        var users = _storage.LoadUsers();
-        var user = users.FirstOrDefault(u => u.Username == username);
+        return _userCatalog.GrantPrivilege(username, kbName, privilege);
+    }
 
-        if (user == null || user.Role == UserRole.ROOT)
-            return false;
-
-        user.KbPrivileges[kbName] = privilege;
-        _storage.SaveUsers(users);
-
-        return true;
+    public bool RevokePrivilege(string username, string kbName)
+    {
+        return _userCatalog.RevokePrivilege(username, kbName);
     }
 }

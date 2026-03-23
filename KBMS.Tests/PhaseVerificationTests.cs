@@ -44,8 +44,7 @@ public class PhaseVerificationTests : IAsyncLifetime
         if (Directory.Exists(_testDataDir)) Directory.Delete(_testDataDir, true);
 
         // Start test server
-        var storage = new StorageEngine(_testDataDir, "phase_verify_key");
-        _server = new KbmsServer(TestHost, _testPort, storage);
+        _server = new KbmsServer(TestHost, _testPort, _testDataDir);
         _ = _server.StartAsync();
 
         // Wait for server

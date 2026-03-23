@@ -26,6 +26,12 @@ public class KbmsServer
     private readonly ConnectionManager _connectionManager;
     private readonly AuthenticationManager _authManager;
     private readonly KnowledgeManager _knowledgeManager;
+    private readonly KBMS.Storage.V3.DiskManager _diskManager;
+    private readonly KBMS.Storage.V3.BufferPoolManager _bpm;
+    private readonly KBMS.Storage.V3.KbCatalog _kbCatalog;
+    private readonly KBMS.Storage.V3.ConceptCatalog _conceptCatalog;
+    private readonly KBMS.Storage.V3.UserCatalog _userCatalog;
+    private readonly KBMS.Storage.V3.WalManagerV3 _wal;
     private readonly Logger _logger;
     private bool _isRunning;
     private TcpListener? _listener;
@@ -36,19 +42,43 @@ public class KbmsServer
         Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
     };
 
-    public KbmsServer() : this("127.0.0.1", 3307, new StorageEngine("data", "kbms_encryption_key"))
+    public KbmsServer() : this("127.0.0.1", 3307, "data")
     {
     }
 
-    public KbmsServer(string host, int port, StorageEngine storage)
+    public KbmsServer(string host, int port) : this(host, port, "data")
+    {
+    }
+
+    public KbmsServer(string host, int port, string dataDir)
     {
         _host = host;
         _port = port;
         _logger = new Logger();
         _connectionManager = new ConnectionManager();
-        _authManager = new AuthenticationManager(storage);
-        _knowledgeManager = new KnowledgeManager(storage);
+        
+        // V3 Infrastructure Setup
+        if (!Directory.Exists(dataDir)) Directory.CreateDirectory(dataDir);
+        string dbFile = Path.Combine(dataDir, "v3_database.kdb");
+        
+        _diskManager = new KBMS.Storage.V3.DiskManager(dbFile);
+        _bpm = new KBMS.Storage.V3.BufferPoolManager(_diskManager, 256);
+        _wal = new KBMS.Storage.V3.WalManagerV3(dbFile);
+        
+        _kbCatalog = new KBMS.Storage.V3.KbCatalog(_bpm, _diskManager);
+        _conceptCatalog = new KBMS.Storage.V3.ConceptCatalog(_bpm, _diskManager);
+        _userCatalog = new KBMS.Storage.V3.UserCatalog(_bpm, _diskManager);
+        
+        _authManager = new AuthenticationManager(_userCatalog);
+        _knowledgeManager = new KnowledgeManager(_bpm, _diskManager, _kbCatalog, _conceptCatalog, _userCatalog, _wal);
+        
         _isRunning = false;
+
+        // Initialize system users if empty
+        if (!_userCatalog.ListUsers().Any())
+        {
+            _userCatalog.CreateUser("root", "root", UserRole.ROOT);
+        }
     }
 
     public async Task StartAsync()

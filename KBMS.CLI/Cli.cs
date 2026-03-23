@@ -189,7 +189,7 @@ public class Cli
             Console.WriteLine("CLI will continue in offline mode. Type 'CONNECT' to retry.");
         }
 
-        Console.WriteLine("KBMS CLI v1.1");
+        Console.WriteLine("KBMS CLI v3.0.0 (Page-based Binary Edition)");
         Console.WriteLine("Type 'HELP' for available commands, 'EXIT' to quit.");
         Console.WriteLine("Type 'CONNECT' to reconnect if connection is lost.\n");
 

@@ -49,7 +49,7 @@ public class CliServerIntegrationTests : IAsyncLifetime
 
         // Start test server
         var storage = new StorageEngine(_testDataDir, "test_encryption_key");
-        _server = new KbmsServer(TestHost, _testPort, storage);
+        _server = new KbmsServer(TestHost, _testPort, _testDataDir);
         _ = _server.StartAsync();
 
         // Wait for server to be ready with retries

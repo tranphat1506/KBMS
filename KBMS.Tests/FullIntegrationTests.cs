@@ -30,7 +30,7 @@ public class FullIntegrationTests : IAsyncLifetime
     {
         if (Directory.Exists(_testDataDir)) Directory.Delete(_testDataDir, true);
         var storage = new Storage.StorageEngine(_testDataDir, "full_test_key");
-        _server = new Server.KbmsServer("localhost", _testPort, storage);
+        _server = new Server.KbmsServer("localhost", _testPort, _testDataDir);
         _ = _server.StartAsync();
 
         for (int i = 0; i < 20; i++)

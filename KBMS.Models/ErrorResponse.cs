@@ -8,6 +8,7 @@ namespace KBMS.Models;
 /// </summary>
 public class ErrorResponse
 {
+    public bool success => false;
     public string Type { get; set; } = string.Empty;      // ParserError, RuntimeError, AuthError, PermissionError, ExecutionError
     public string Message { get; set; } = string.Empty;
     public string? Query { get; set; }                     // Original query that failed

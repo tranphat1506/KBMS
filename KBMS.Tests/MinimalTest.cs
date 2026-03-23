@@ -18,7 +18,7 @@ public class MinimalTest
     {
         var _testDataDir = Path.Combine(Path.GetTempPath(), $"kbms_test_{Guid.NewGuid():N}");
         var storage = new StorageEngine(_testDataDir, "test_encryption_key");
-        var _server = new KbmsServer("localhost", 33005, storage);
+        var _server = new KbmsServer("localhost", 33005, _testDataDir);
         _ = _server.StartAsync();
         
         await Task.Delay(1000);

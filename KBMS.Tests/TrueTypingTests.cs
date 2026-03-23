@@ -124,11 +124,22 @@ namespace KBMS.Tests
         [Fact]
         public void KnowledgeManager_ShouldEnforceTypesOnInsert()
         {
-            var storage = new KBMS.Storage.StorageEngine("/tmp/kbms_test_typing", "test_key");
-            var km = new KnowledgeManager(storage);
+            var testDir = "/tmp/kbms_test_typing";
+            if (System.IO.Directory.Exists(testDir)) System.IO.Directory.Delete(testDir, true);
+            System.IO.Directory.CreateDirectory(testDir);
+            string dbFile = System.IO.Path.Combine(testDir, "test.kdb");
+
+            var diskManager = new KBMS.Storage.V3.DiskManager(dbFile);
+            var bpm = new KBMS.Storage.V3.BufferPoolManager(diskManager, 64);
+            var wal = new KBMS.Storage.V3.WalManagerV3(dbFile);
+            var kbCatalog = new KBMS.Storage.V3.KbCatalog(bpm, diskManager);
+            var conceptCatalog = new KBMS.Storage.V3.ConceptCatalog(bpm, diskManager);
+            var userCatalog = new KBMS.Storage.V3.UserCatalog(bpm, diskManager);
+
+            var km = new KnowledgeManager(bpm, diskManager, kbCatalog, conceptCatalog, userCatalog, wal);
             var kbName = "TestTypingKB";
             var user = new User { Username = "root", Role = UserRole.ROOT };
-            storage.CreateKb(kbName, System.Guid.NewGuid());
+            kbCatalog.CreateKb(kbName, System.Guid.NewGuid());
 
             var concept = new Concept
             {
@@ -139,7 +150,7 @@ namespace KBMS.Tests
                     new Variable { Name = "Qty", Type = "INT" }
                 }
             };
-            storage.CreateConcept(kbName, concept);
+            conceptCatalog.CreateConcept(kbName, concept);
 
             // 1. USE KB
             var useAst = new KBMS.Parser.Parser("USE " + kbName + ";").ParseAll().First();
@@ -149,7 +160,7 @@ namespace KBMS.Tests
             var insertAst = new KBMS.Parser.Parser("INSERT INTO Product ATTRIBUTE (Price: 19.995, Qty: 10.5);").ParseAll().First();
             km.Execute(insertAst, user, kbName);
             
-            var objects = storage.SelectObjects(kbName).Where(o => o.ConceptName == "Product").ToList();
+            var objects = km.SelectAllObjects(kbName).Where(o => o.ConceptName == "Product").ToList();
             Assert.Single(objects);
             
             var obj = objects[0];
@@ -161,7 +172,7 @@ namespace KBMS.Tests
             Assert.IsType<long>(obj.Values["Qty"]);
             Assert.Equal(10L, obj.Values["Qty"]);
 
-            System.IO.Directory.Delete("/tmp/kbms_test_typing", true);
+            System.IO.Directory.Delete(testDir, true);
         }
     }
 }

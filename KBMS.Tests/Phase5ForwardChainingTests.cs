@@ -32,7 +32,7 @@ namespace KBMS.Tests
         private async Task InitializeAsync()
         {
             var storage = new StorageEngine(_dataDir, _encryptionKey);
-            _server = new KbmsServer("127.0.0.1", _port, storage);
+            _server = new KbmsServer("127.0.0.1", _port, _dataDir);
             _ = _server.StartAsync(); 
             _cli = new Cli("127.0.0.1", _port);
             
