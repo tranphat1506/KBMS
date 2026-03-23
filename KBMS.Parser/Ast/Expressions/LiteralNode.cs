@@ -21,6 +21,8 @@ public class LiteralNode : ExpressionNode
     {
         if (ValueType == "string" && Value != null)
             return $"'{Value}'";
+        if (Value is IFormattable formattable)
+            return formattable.ToString(null, System.Globalization.CultureInfo.InvariantCulture);
         return Value?.ToString() ?? "null";
     }
 }

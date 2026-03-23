@@ -139,6 +139,7 @@ public enum TokenType
     SAVE,           // SAVE
     DOMAIN,         // DOMAIN
     RANGE,          // RANGE
+    CALC,           // CALC
 
     // Keywords - Aggregation
     COUNT,          // COUNT

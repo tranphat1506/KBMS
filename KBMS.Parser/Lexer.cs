@@ -143,6 +143,7 @@ public class Lexer
         { "SAVE", TokenType.SAVE },
         { "DOMAIN", TokenType.DOMAIN },
         { "RANGE", TokenType.RANGE },
+        { "CALC", TokenType.CALC },
 
         // Aggregation Keywords
         { "COUNT", TokenType.COUNT },

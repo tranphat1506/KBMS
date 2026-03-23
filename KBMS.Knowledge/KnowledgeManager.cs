@@ -1038,9 +1038,10 @@ public class KnowledgeManager
                         var newValues = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
                         foreach (var col in colsToInclude)
                         {
-                            var sourceName = col.Name;
+                            var sourceName = col.Expression?.ToString() ?? col.Name;
                             var outName = col.Alias ?? col.Name;
 
+                            // 1. Try direct resolution (for simple field names)
                             var val = ResolveValue(obj, sourceName, tableAlias, entityName);
                             if (val != null)
                             {
@@ -1048,13 +1049,16 @@ public class KnowledgeManager
                             }
                             else
                             {
-                                // Try evaluating as expression
+                                // 2. Try evaluating as expression
                                  try {
-                                    var exprForEval = sourceName;
+                                    // Use the parsed expression if available, otherwise fallback to the raw name
+                                    var exprForEval = col.Expression != null ? col.Expression.ToString() : sourceName;
+                                    
                                     var prefix = node.Alias ?? entityName;
-                                    if (!string.IsNullOrEmpty(prefix))
+                                    if (!string.IsNullOrEmpty(prefix) && col.Expression == null)
                                     {
-                                        // Globally strip TablePrefix from the expression (e.g. "p.price * 1.1" -> "price * 1.1")
+                                        // Globally strip TablePrefix from the expression ONLY for legacy raw strings
+                                        // (e.g. "p.price * 1.1" -> "price * 1.1")
                                         exprForEval = System.Text.RegularExpressions.Regex.Replace(exprForEval, $@"\b{prefix}\.", "");
                                     }
 
@@ -1063,16 +1067,17 @@ public class KnowledgeManager
                                     {
                                         if (kv.Value != null)
                                         {
-                                            // 1. Add as-is
+                                            // 1. Add as-is (could be "price" or "p1.price")
                                             parameters[kv.Key] = kv.Value;
-                                            // 2. If qualified, add leaf name
+                                            
+                                            // 2. If qualified (p1.price), add leaf name ("price")
                                             if (kv.Key.Contains('.'))
                                             {
                                                 var leaf = kv.Key.Split('.').Last();
                                                 if (!parameters.ContainsKey(leaf)) parameters[leaf] = kv.Value;
                                             }
-                                            // 3. If unqualified, add qualified names for current context
-                                            if (!kv.Key.Contains('.'))
+                                            // 3. If unqualified ("price"), add qualified names for current context ("p.price", "Product.price")
+                                            else 
                                             {
                                                 if (!string.IsNullOrEmpty(node.Alias)) parameters[$"{node.Alias}.{kv.Key}"] = kv.Value;
                                                 if (!string.IsNullOrEmpty(entityName)) parameters[$"{entityName}.{kv.Key}"] = kv.Value;

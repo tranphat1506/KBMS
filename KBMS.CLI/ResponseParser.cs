@@ -115,46 +115,52 @@ public static class ResponseParser
         try
         {
             var doc = JsonDocument.Parse(content);
-            var values = doc.RootElement;
-            _streamingCount++;
-
-            if (IsVerticalMode(_streamingMode))
-            {
-                Console.WriteLine($"*************************** {_streamingCount}. row ***************************");
-                int maxColLen = _streamingColumns.Max(c => c.Length) + 1;
-                var padSpaces = new string(' ', maxColLen + 1);
-                foreach (var col in _streamingColumns)
-                {
-                    var valStr = values.TryGetProperty(col, out var val) ? GetDisplayString(val) : "NULL";
-                    valStr = valStr.Replace("\n", "\n" + padSpaces);
-                    Console.WriteLine($"{PadLeft(col + ":", maxColLen)} {valStr}");
-                }
-                return;
-            }
-
-            // Normal table mode with multi-line cell support
-            var colLines = _streamingColumns.Select(c => 
-            {
-                string valStr = values.TryGetProperty(c, out var val) ? GetDisplayString(val) : "NULL";
-                return valStr.Split(new[] { '\r', '\n' }, StringSplitOptions.None);
-            }).ToList();
-
-            int maxLines = colLines.Count > 0 ? colLines.Max(lines => lines.Length) : 0;
-            if (maxLines == 0) maxLines = 1;
-
-            for (int i = 0; i < maxLines; i++)
-            {
-                var rowParts = new List<string>();
-                for (int j = 0; j < _streamingColumns.Count; j++)
-                {
-                    string cellLine = i < colLines[j].Length ? colLines[j][i] : "";
-                    rowParts.Add(Pad(cellLine, _streamingWidths[_streamingColumns[j]]));
-                }
-                Console.WriteLine("| " + string.Join(" | ", rowParts) + " |");
-            }
+            var root = doc.RootElement;
             
-            // Draw a bottom border for each row so multi-line rows are clearly separated
-            Console.WriteLine("|" + string.Join("+", _streamingColumns.Select(c => new string('-', _streamingWidths[c] + 2))) + "|");
+            if (root.ValueKind != JsonValueKind.Array) return;
+
+            foreach (var values in root.EnumerateArray())
+            {
+                _streamingCount++;
+
+                if (IsVerticalMode(_streamingMode))
+                {
+                    Console.WriteLine($"*************************** {_streamingCount}. row ***************************");
+                    int maxColLen = _streamingColumns.Max(c => c.Length) + 1;
+                    var padSpaces = new string(' ', maxColLen + 1);
+                    foreach (var col in _streamingColumns)
+                    {
+                        var valStr = values.TryGetProperty(col, out var val) ? GetDisplayString(val) : "NULL";
+                        valStr = valStr.Replace("\n", "\n" + padSpaces);
+                        Console.WriteLine($"{PadLeft(col + ":", maxColLen)} {valStr}");
+                    }
+                    continue;
+                }
+
+                // Normal table mode with multi-line cell support
+                var colLines = _streamingColumns.Select(c => 
+                {
+                    string valStr = values.TryGetProperty(c, out var val) ? GetDisplayString(val) : "NULL";
+                    return valStr.Split(new[] { '\r', '\n' }, StringSplitOptions.None);
+                }).ToList();
+
+                int maxLines = colLines.Count > 0 ? colLines.Max(lines => lines.Length) : 0;
+                if (maxLines == 0) maxLines = 1;
+
+                for (int i = 0; i < maxLines; i++)
+                {
+                    var rowParts = new List<string>();
+                    for (int j = 0; j < _streamingColumns.Count; j++)
+                    {
+                        string cellLine = i < colLines[j].Length ? colLines[j][i] : "";
+                        rowParts.Add(Pad(cellLine, _streamingWidths[_streamingColumns[j]]));
+                    }
+                    Console.WriteLine("| " + string.Join(" | ", rowParts) + " |");
+                }
+                
+                // Draw a bottom border for each row so multi-line rows are clearly separated
+                Console.WriteLine("|" + string.Join("+", _streamingColumns.Select(c => new string('-', _streamingWidths[c] + 2))) + "|");
+            }
         }
         catch { /* Skip malformed rows */ }
     }

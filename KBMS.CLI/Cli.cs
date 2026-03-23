@@ -227,7 +227,7 @@ public class Cli
 
             // Handle immediate meta-commands (no semicolon required, bypass buffer)
             var upperLine = trimmedLine.ToUpper();
-            if (commandBuilder.Length == 0 && (upperLine == "EXIT" || upperLine == "HELP" || upperLine == "CLEAR" || upperLine == "CONNECT" || upperLine.StartsWith("LOGIN ")))
+            if (commandBuilder.Length == 0 && (upperLine == "EXIT" || upperLine == "HELP" || upperLine == "CLEAR" || upperLine == "CONNECT" || upperLine.StartsWith("LOGIN ") || upperLine.StartsWith("SOURCE ")))
             {
                 // Process immediately
                 if (upperLine == "EXIT")
@@ -431,29 +431,34 @@ public class Cli
         try
         {
             var content = File.ReadAllText(filename);
-            var parser = new KBMS.Parser.Parser(content);
-            var asts = parser.ParseAll();
-
+            var lines = content.Split('\n');
+            var commandBuilder = new System.Text.StringBuilder();
             int count = 0;
-            foreach (var ast in asts)
+
+            foreach (var line in lines)
             {
-                var stmt = ast.ToString()?.Trim();
-                if (string.IsNullOrEmpty(stmt)) continue;
+                var trimmed = line.Trim();
+                if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith("--")) continue;
 
-                if (!stmt.EndsWith(";")) stmt += ";";
-                
-                Console.ForegroundColor = ConsoleColor.DarkGray;
-                Console.WriteLine($"\n[ {++count} ] Executing: {stmt}");
-                Console.ResetColor();
+                commandBuilder.AppendLine(line);
 
-                var response = await ExecuteCommandAsync(stmt);
-                
-                if (response?.Type == MessageType.ERROR)
+                if (trimmed.EndsWith(";"))
                 {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("\n[ STOPPED ] Script execution halted due to error.");
+                    var fullCommand = commandBuilder.ToString().Trim();
+                    commandBuilder.Clear();
+                    
+                    Console.ForegroundColor = ConsoleColor.DarkGray;
+                    Console.WriteLine($"\n[ {++count} ] Executing: {fullCommand}");
                     Console.ResetColor();
-                    break;
+
+                    var response = await ExecuteCommandAsync(fullCommand);
+                    if (response?.Type == MessageType.ERROR)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("\n[ STOPPED ] Script execution halted due to error.");
+                        Console.ResetColor();
+                        break;
+                    }
                 }
             }
             Console.WriteLine($"\nScript finished: {count} statements processed.");

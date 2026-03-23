@@ -1747,22 +1747,24 @@ public class Parser
 
             node.Aggregates.Add(agg);
         }
-        else if (Check(TokenType.IDENTIFIER))
+        else if (Check(TokenType.IDENTIFIER) || Check(TokenType.NUMBER) || Check(TokenType.LPAREN) || Check(TokenType.CALC))
         {
             // Heuristic to distinguish SELECT <ColumnList> FROM ... vs SELECT <ShorthandConceptName> [WHERE...]
-            // It's a column list if followed by DOT, AS, COMMA, or FROM.
+            // It's a column list if followed by DOT, AS, COMMA, or FROM, or if it starts with literal/expression markers.
             var next = PeekNext();
-            bool isColumnList = next != null && (
-                next.Type == TokenType.DOT || 
-                next.Type == TokenType.AS || 
-                next.Type == TokenType.COMMA || 
-                next.Type == TokenType.FROM ||
-                next.Type == TokenType.STAR ||
-                next.Type == TokenType.PLUS ||
-                next.Type == TokenType.MINUS ||
-                next.Type == TokenType.SLASH ||
-                next.Type == TokenType.NUMBER ||
-                next.Type == TokenType.LPAREN
+            bool isColumnList = Check(TokenType.NUMBER) || Check(TokenType.LPAREN) || Check(TokenType.CALC) || (
+                next != null && (
+                    next.Type == TokenType.DOT || 
+                    next.Type == TokenType.AS || 
+                    next.Type == TokenType.COMMA || 
+                    next.Type == TokenType.FROM ||
+                    next.Type == TokenType.STAR ||
+                    next.Type == TokenType.PLUS ||
+                    next.Type == TokenType.MINUS ||
+                    next.Type == TokenType.SLASH ||
+                    next.Type == TokenType.NUMBER ||
+                    next.Type == TokenType.LPAREN
+                )
             );
 
             if (isColumnList)
@@ -1899,31 +1901,27 @@ public class Parser
     {
         var col = new SelectColumn();
         
-        // Accumulate name/expression tokens until AS, COMMA, or FROM
-        var nameBuilder = new StringBuilder();
-        while (Peek() != null && !Check(TokenType.AS) && !Check(TokenType.COMMA) && !Check(TokenType.FROM) && !Check(TokenType.SEMICOLON))
-        {
-            var t = Peek()!;
-            if (nameBuilder.Length > 0 && t.Type != TokenType.DOT && nameBuilder[nameBuilder.Length - 1] != '.') 
-                nameBuilder.Append(" ");
-            nameBuilder.Append(Advance()!.Lexeme);
-        }
-        
-        var rawName = nameBuilder.ToString().Trim();
-        col.Name = rawName;
+        // Parse as a full expression
+        var expr = ParseExpression();
+        col.Expression = expr;
+        col.Name = expr.ToString(); // Fallback/Display name
 
         // Try to extract TablePrefix for simple p.name patterns
-        var dotIndex = rawName.IndexOf('.');
-        if (dotIndex > 0 && dotIndex < rawName.Length - 1)
+        if (expr is VariableNode varNode)
         {
-            var possiblePrefix = rawName.Substring(0, dotIndex);
-            var possibleName = rawName.Substring(dotIndex + 1);
-            
-            // Check if it's a simple identifier.identifier
-            if (!possiblePrefix.Contains(" ") && !possibleName.Contains(" ") && !possibleName.Contains("*"))
+            var rawName = varNode.Name;
+            var dotIndex = rawName.IndexOf('.');
+            if (dotIndex > 0 && dotIndex < rawName.Length - 1)
             {
-                col.TablePrefix = possiblePrefix;
-                col.Name = possibleName;
+                var possiblePrefix = rawName.Substring(0, dotIndex);
+                var possibleName = rawName.Substring(dotIndex + 1);
+                
+                // Check if it's a simple identifier.identifier
+                if (!possiblePrefix.Contains(" ") && !possibleName.Contains(" ") && !possibleName.Contains("*"))
+                {
+                    col.TablePrefix = possiblePrefix;
+                    col.Name = possibleName;
+                }
             }
         }
 
@@ -1945,8 +1943,13 @@ public class Parser
         // Parse optional AS alias
         if (Check(TokenType.AS))
         {
+            Consume(TokenType.AS);
             var aliasToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected alias");
             join.Alias = aliasToken.Lexeme;
+        }
+        else if (Check(TokenType.IDENTIFIER) && Peek()?.Type != TokenType.ON)
+        {
+            join.Alias = Consume(TokenType.IDENTIFIER)!.Lexeme;
         }
 
         // Parse ON clause
@@ -2393,6 +2396,7 @@ public class Parser
 
             if (Check(TokenType.IN))
             {
+                Consume(TokenType.IN);
                 var kbToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected knowledge base name");
                 node.KbName = kbToken.Lexeme;
             }
@@ -2406,6 +2410,7 @@ public class Parser
 
             if (Check(TokenType.IN))
             {
+                Consume(TokenType.IN);
                 var kbToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected knowledge base name");
                 node.KbName = kbToken.Lexeme;
             }
@@ -2419,6 +2424,7 @@ public class Parser
 
             if (Check(TokenType.IN))
             {
+                Consume(TokenType.IN);
                 var kbToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected knowledge base name");
                 node.KbName = kbToken.Lexeme;
             }
@@ -2437,6 +2443,7 @@ public class Parser
 
             if (Check(TokenType.IN))
             {
+                Consume(TokenType.IN);
                 var kbToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected knowledge base name");
                 node.KbName = kbToken.Lexeme;
             }
@@ -2646,7 +2653,16 @@ public class Parser
 
     private ExpressionNode ParsePrimary()
     {
-        var token = Peek();
+        var token = Peek() ?? throw Error("Unexpected end of input");
+
+        if (Check(TokenType.CALC))
+        {
+            Consume(TokenType.CALC);
+            Consume(TokenType.LPAREN);
+            var expr = ParseExpression();
+            Consume(TokenType.RPAREN);
+            return expr; // CALC(x) just returns the expression but makes it explicit
+        }
 
         if (token == null)
             throw Error("Unexpected end of expression");

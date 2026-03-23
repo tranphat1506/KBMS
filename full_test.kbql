@@ -1,96 +1,95 @@
 -- ============================================================
--- KBMS COMPREHENSIVE TEST SUITE (KBQL v1.2)
--- Highlighting: Phase 5 (Forward Chaining), True Typing, and Refined KQL
+-- KBMS COMPREHENSIVE TEST SUITE (KBQL v1.5)
+-- Features: CALC(), Advanced Math, Joins, Forward Chaining, Metadata
 -- ============================================================
 
 -- 1. KNOWLEDGE BASE SETUP
+-- We drop the KB to ensure a clean state for the test suite.
+DROP KNOWLEDGE BASE EnterpriseKB; 
 CREATE KNOWLEDGE BASE EnterpriseKB DESCRIPTION "Automated system for student and products management";
 USE EnterpriseKB;
 
--- 2. CONCEPT DEFINITION (PHASE 1-4)
--- Basic concept with constraints and variables
-CREATE CONCEPT Student (
+-- 2. CONCEPT DEFINITION
+CREATE CONCEPT Dept (VARIABLES(id: INT, name: STRING, budget: DECIMAL));
+CREATE CONCEPT Emp (VARIABLES(id: INT, name: STRING, dept_id: INT, salary: DECIMAL, bonus_rate: DECIMAL));
+
+CREATE CONCEPT Product (
     VARIABLES (
         id: INT,
         name: STRING,
-        grade: DECIMAL(5, 2),
-        honor: STRING,
-        gifted: BOOLEAN
+        price: DECIMAL,
+        stock: INT,
+        category: STRING
     )
 );
 
--- Recursive Hierarchy (IS-A)
-CREATE CONCEPT Undergrad (VARIABLES(major: STRING, credits: INT));
-CREATE HIERARCHY Undergrad IS_A Student;
+-- 3. INFERENCE ENGINE SETUP
+-- Rule: Salary + Bonus calculation
+CREATE RULE CalcTotalComp
+SCOPE Emp
+IF salary > 0
+THEN SET salary = salary * (1 + bonus_rate);
 
--- 3. INFERENCE ENGINE SETUP (PHASE 5)
--- Multi-step forward chaining rules
--- Rule 1: High grade leads to High honor
-CREATE RULE HighHonor 
-SCOPE Student 
-IF grade >= 90 
-THEN SET honor = 'High';
+-- 4. DATA INSERTION
+INSERT INTO Dept ATTRIBUTE (1, 'Engineering', 1000000);
+INSERT INTO Dept ATTRIBUTE (2, 'Marketing', 500000);
 
--- Rule 2: High honor leads to Gifted status (Recursive)
-CREATE RULE HonorToGift 
-SCOPE Student 
-IF honor = 'High' 
-THEN SET gifted = true;
+INSERT INTO Emp ATTRIBUTE (101, 'Alice', 1, 80000, 0.1);
+INSERT INTO Emp ATTRIBUTE (102, 'Bob', 1, 75000, 0.05);
+INSERT INTO Emp ATTRIBUTE (103, 'Charlie', 2, 60000, 0.15);
 
--- 4. DATA MANIPULATION & FORWARD CHAINING (PHASE 5/6)
--- Bulk Insert (Phase 6)
--- Observe that 'honor' and 'gifted' will be automatically computed via Forward Chaining
-INSERT INTO Student ATTRIBUTE (1, 'Alice', 95);
-INSERT INTO Student ATTRIBUTE (2, 'Bob', 85);
-INSERT INTO Student ATTRIBUTE (3, 'Charlie', 92);
+INSERT INTO Product ATTRIBUTE (501, 'Laptop', 1200.0, 10, 'Electronics');
+INSERT INTO Product ATTRIBUTE (502, 'Monitor', 300.0, 25, 'Electronics');
+INSERT INTO Product ATTRIBUTE (503, 'Chair', 150.0, 100, 'Furniture');
 
--- Verify Forward Chaining Results
-SELECT name, grade, honor, gifted FROM Student;
+-- 5. ADVANCED QUERIES (The New Features)
 
--- Verify via WHERE Clause (Tests Parser & Quote Handling)
-SELECT * FROM Student WHERE honor = 'High';
-
--- 5. TRUETYPING & ALIASES (PHASE 2)
-CREATE CONCEPT Product (VARIABLES(id: INT, price: DECIMAL, stock: INT));
-INSERT INTO Product ATTRIBUTE (501, 1000.0, 50);
-
--- Complex expressions and Column Aliases
+-- A. CALC() and Complex Expressions
 SELECT 
-    p.id AS ProductID, 
-    p.price * 1.1 AS PriceWithVAT,
-    p.stock - 1 AS ForecastStock
-FROM Product p 
-WHERE p.price > 500;
+    p.name, 
+    p.price, 
+    CALC(p.price * 1.1) AS PriceWithTax,
+    CALC(p.price * p.stock) AS InventoryValue,
+    100 + 200 AS ConstantTest
+FROM Product p;
 
--- 6. METADATA & VIRTUAL TABLES (PHASE 3/4)
--- Querying system metadata
-SELECT * FROM Student.variables;
-SELECT * FROM Student.rules;
+-- B. Joins with Shorthand Aliases
+SELECT 
+    e.name AS EmployeeName, 
+    d.name AS DepartmentName,
+    CALC(e.salary / d.budget * 100) AS BudgetPercentage
+FROM Emp e 
+JOIN Dept d ON e.dept_id = d.id
+WHERE e.salary > 70000;
 
--- Querying virtual tables (Phase 3)
--- This evaluates rules as if they were tables
-SELECT * FROM RULE HighHonor;
+-- C. Standalone Expressions (Literals at start)
+SELECT 1.1 * 2.2 AS MathResult FROM Product LIMIT 1;
 
--- 7. UPDATE & FORWARD CHAINING
--- Updating a student's grade should trigger re-evaluation?
--- (Current implementation triggers on INSERT/UPDATE)
-UPDATE Student ATTRIBUTE ( SET grade: 98 ) WHERE name = 'Bob';
+-- D. Nested CALC and Functions
+SELECT 
+    name, 
+    price, 
+    CALC(Sqrt(price) * 10) AS WeightedPrice
+FROM Product 
+WHERE category = 'Electronics';
 
--- Bob should now have honor='High' and gifted=true
-SELECT * FROM Student WHERE name = 'Bob';
-
--- 8. KML & ADMINISTRATION
-DESCRIBE (CONCEPT: Student);
-DESCRIBE (HIERARCHY: 'Student:Undergrad');
-EXPLAIN (SELECT * FROM Student WHERE grade > 90);
-
--- SHOW Commands
+-- 6. METADATA & SYSTEM QUERIES
+SELECT * FROM Product.variables;
 SHOW CONCEPTS IN EnterpriseKB;
-SHOW RULES TYPE inference;
 
--- 9. CLEANUP
+-- 7. UPDATE & RE-EVALUATION
+UPDATE Emp ATTRIBUTE (SET bonus_rate: 0.2) WHERE name = 'Alice';
+
+-- Verify Alice's salary was re-calculated via Rule (Forward Chaining)
+SELECT name, salary FROM Emp WHERE name = 'Alice';
+
+-- 8. MAINTENANCE & DESCRIPTION
+DESCRIBE (CONCEPT: Emp);
+EXPLAIN (SELECT * FROM Emp e JOIN Dept d ON e.dept_id = d.id);
+
+-- 9. CLEANUP (Optional)
 -- DROP KNOWLEDGE BASE EnterpriseKB;
 
 -- ============================================================
--- END OF TEST SUITE
+-- END OF TEST SUITE v1.5
 -- ============================================================

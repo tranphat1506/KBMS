@@ -51,6 +51,11 @@ public class SelectColumn
     public string? Alias { get; set; }
 
     /// <summary>
+    /// Parsed expression node (if this column is an expression).
+    /// </summary>
+    public ExpressionNode? Expression { get; set; }
+
+    /// <summary>
     /// True if this column is SELECT *
     /// </summary>
     public bool IsStar => Name == "*";
