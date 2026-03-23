@@ -153,6 +153,11 @@ public class KbCatalog
 
     public bool DropKb(string name)
     {
+        if (name.Equals("system", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
         List<int> pageSnapshot;
         lock (_lock) { pageSnapshot = new List<int>(_pageIds); }
 

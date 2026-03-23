@@ -1,14 +1,70 @@
 @import "tailwindcss";
 
+:root {
+  /* Light Theme tokens */
+  --bg-app: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-surface-alt: #f1f5f9;
+  --bg-sidebar: #f8fafc;
+  
+  --text-main: #1e293b;
+  --text-sub: #64748b;
+  --text-muted: #94a3b8;
+  
+  --border-subtle: #e2e8f0;
+  --border-muted: #f1f5f9;
+  
+  --brand-primary: #10b981; /* Emerald 500 */
+  --brand-primary-hover: #34d399; /* Emerald 400 - Vibrant interaction */
+  --brand-primary-light: #ecfdf5;
+  --brand-primary-text: #065f46;
+}
+
+.dark {
+  /* Dark Theme tokens */
+  --bg-app: #0f172a; /* Slate 900 */
+  --bg-surface: #1e293b; /* Slate 800 */
+  --bg-surface-alt: #334155; /* Slate 700 */
+  --bg-sidebar: #0f172a;
+  
+  --text-main: #f8fafc;
+  --text-sub: #94a3b8;
+  --text-muted: #64748b;
+  
+  --border-subtle: #334155;
+  --border-muted: #1e293b;
+  
+  --brand-primary: #059669; /* Emerald 600 - Deeper/integrated */
+  --brand-primary-hover: #10b981; /* Emerald 500 - Standard hover */
+  --brand-primary-light: #064e3b;
+  --brand-primary-text: #a7f3d0;
+}
+
 @theme {
   --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
 @layer base {
   body {
-    background-color: var(--color-slate-50);
-    color: var(--color-slate-800);
+    background-color: var(--bg-app);
+    color: var(--text-main);
+    font-size: var(--studio-font-size, 14px);
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
+
+  /* Global Typographic Scaling */
+  .size-small { --studio-font-size: 12px; font-size: 12px; }
+  .size-medium { --studio-font-size: 13px; font-size: 13px; }
+  .size-big { --studio-font-size: 15px; font-size: 15px; }
+
+  /* Global Weight Orchestration */
+  /* User requested 'thin', 'regular', 'medium' */
+  .font-thin { font-weight: 300 !important; }
+  .font-regular { font-weight: 400 !important; }
+  .font-medium { font-weight: 500 !important; }
+  
+  /* Critical protection for bold titles and headers */
+  .font-bold, font-bold, h1, h2, h3, .uppercase { font-weight: 700 !important; }
 }
 
 @layer utilities {
@@ -20,13 +76,13 @@
     background: transparent;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
+    background: var(--border-subtle);
     border: 3px solid transparent;
     background-clip: padding-box;
     border-radius: 9999px;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
+    background: var(--text-muted);
     border: 3px solid transparent;
     background-clip: padding-box;
   }

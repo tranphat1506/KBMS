@@ -320,6 +320,11 @@ public class KnowledgeManager
 
     private object HandleDropKnowledgeBase(DropKbNode node)
     {
+        if (node.KbName.Equals("system", StringComparison.OrdinalIgnoreCase))
+        {
+            return ErrorResponse.ExecutionErrorResponse("The 'system' knowledge base is protected and cannot be dropped.");
+        }
+
         var success = _kbCatalog.DropKb(node.KbName);
         return success
             ? new { success = true, message = $"Knowledge base '{node.KbName}' dropped successfully." }

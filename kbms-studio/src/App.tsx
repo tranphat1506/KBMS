@@ -1,6 +1,7 @@
 import Layout from './components/Layout';
 import ConnectModal from './components/ConnectModal';
 import { useKbmsStore } from './store/kbmsStore';
+import StudioSettings from './components/management/StudioSettings';
 
 import { useEffect } from 'react';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -8,6 +9,7 @@ import ConfirmDialog from './components/ConfirmDialog';
 
 function App() {
   const isConnectModalOpen = useKbmsStore(state => state.isConnectModalOpen);
+  const isStudioSettingsOpen = useKbmsStore(state => state.isStudioSettingsOpen);
   const setStatus = useKbmsStore(state => state.setStatus);
   const tabs = useKbmsStore(state => state.tabs);
   const showConfirm = useKbmsStore(state => state.showConfirm);
@@ -82,14 +84,24 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setStatus]);
 
+  const studioSettings = useKbmsStore(state => state.studioSettings);
+  const fontSizeClass = `size-${studioSettings.fontSize}`;
+  const fontWeightClass = `font-${studioSettings.fontWeight}`;
+  const themeClass = studioSettings.theme === 'dark' ? 'dark' : '';
+
   return (
     <ErrorBoundary>
-      <div className="h-screen w-screen overflow-hidden bg-slate-50 font-sans text-slate-800 flex flex-col antialiased relative">
+      <div className={`h-screen w-screen overflow-hidden bg-[var(--bg-app)] font-sans text-[var(--text-main)] flex flex-col antialiased relative ${fontSizeClass} ${fontWeightClass} ${themeClass} transition-colors duration-200`}>
         <Layout />
         <ConfirmDialog />
         {isConnectModalOpen && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/20 backdrop-blur-[2px] animate-in fade-in duration-200">
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-200">
             <ConnectModal />
+          </div>
+        )}
+        {isStudioSettingsOpen && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[4px] animate-in fade-in duration-300">
+            <StudioSettings />
           </div>
         )}
       </div>

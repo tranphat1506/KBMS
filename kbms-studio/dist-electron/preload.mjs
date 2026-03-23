@@ -9,6 +9,7 @@ electron.contextBridge.exposeInMainWorld("kbmsApi", {
 	getStatus: () => electron.ipcRenderer.invoke("kbms:get-status"),
 	getStats: (requestId) => electron.ipcRenderer.invoke("kbms:get-stats", requestId),
 	getSessions: (requestId) => electron.ipcRenderer.invoke("kbms:get-sessions", requestId),
+	mgmtAction: (action, data = {}, requestId) => electron.ipcRenderer.invoke("kbms:mgmt-action", action, data, requestId),
 	subscribeLogs: () => electron.ipcRenderer.send("kbms:subscribe-logs"),
 	saveFile: (content, currentPath, isNewFile = true) => electron.ipcRenderer.invoke("kbms:save-file", content, currentPath, isNewFile),
 	openFile: () => electron.ipcRenderer.invoke("kbms:open-file"),

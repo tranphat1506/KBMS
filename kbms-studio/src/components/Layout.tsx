@@ -4,36 +4,36 @@ import EditorPane from './EditorPane';
 import ResultsPane from './ResultsPane';
 import StatusBar from './StatusBar';
 import ActivityBar from './ActivityBar';
-import SystemDashboard from './SystemDashboard';
+import SystemManagement from './SystemManagement';
 import { useKbmsStore } from '../store/kbmsStore';
 
 export default function Layout() {
   const { activeSidebarView } = useKbmsStore();
 
   return (
-    <div className="h-screen w-full flex flex-col bg-[#f8fafc] text-slate-800 font-sans overflow-hidden selection:bg-emerald-200">
+    <div className="flex flex-col h-full bg-[var(--bg-app)] text-[var(--text-main)] transition-colors duration-200">
       <Navbar />
       <div className="flex-1 flex overflow-hidden">
         <ActivityBar />
         
         {/* Sidebar */}
-        <div className="w-[280px] flex-shrink-0 border-r border-[#e2e8f0] bg-[#f8fafc] shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-10 relative flex flex-col">
+        <div className="w-[280px] flex-shrink-0 border-r border-[var(--border-subtle)] bg-[var(--bg-app)] shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-10 relative flex flex-col transition-colors duration-200">
            <Sidebar />
         </div>
         
         {/* Main Content */}
-        <div className="flex-1 flex flex-col min-w-0 bg-white relative">
+        <div className="flex-1 flex flex-col min-w-0 bg-[var(--bg-surface)] relative transition-colors duration-200">
           {activeSidebarView === 'system' ? (
-            <SystemDashboard />
+            <SystemManagement />
           ) : (
             <>
               {/* Editor */}
-              <div className="h-[55%] border-b border-[#e2e8f0] relative shadow-sm z-10 flex flex-col">
+              <div className="h-[55%] border-b border-[var(--border-subtle)] relative shadow-sm z-10 flex flex-col">
                 <EditorPane />
               </div>
               
               {/* Results */}
-              <div className="h-[45%] relative flex flex-col bg-[#f8fafc]">
+              <div className="h-[45%] relative flex flex-col bg-[var(--bg-app)]">
                 <ResultsPane />
               </div>
             </>

@@ -115,6 +115,14 @@ function createWindow() {
      return kbmsClient.getSessions(requestId);
   });
 
+  ipcMain.handle('kbms:mgmt-action', async (_, action: string, data: any = {}, requestId?: string) => {
+     try {
+       return await kbmsClient.sendManagementAction(action, data, requestId);
+     } catch (err: any) {
+       return { success: false, error: err.message };
+     }
+  });
+
   ipcMain.on('kbms:subscribe-logs', () => {
      kbmsClient.subscribeLogs();
   });

@@ -81,7 +81,7 @@ public class KbmsServer
         _bootstrapper.Bootstrap();
 
 
-        _managementManager = new KBMS.Server.V3.ManagementManager(_connectionManager, _sysLogger);
+        _managementManager = new KBMS.Server.V3.ManagementManager(_connectionManager, _sysLogger, v3Router, _userCatalog);
         
         _isRunning = false;
 
@@ -489,26 +489,56 @@ public class KbmsServer
         try
         {
             var content = message.Content;
-            if (content.StartsWith("KILL_SESSION "))
+            object? result = null;
+
+            if (content.StartsWith("{"))
+            {
+                var cmd = JsonSerializer.Deserialize<KBMS.Models.V3.ManagementCommandPayload>(content, _jsonOptions);
+                if (cmd != null)
+                {
+                    result = cmd.Action switch
+                    {
+                        "LIST_USERS" => _managementManager.ListUsers(),
+                        "UPSERT_USER" => _managementManager.UpsertUser(cmd.Username, cmd.Password, cmd.Role),
+                        "DELETE_USER" => _managementManager.DeleteUser(cmd.Username),
+                        "GRANT" => _managementManager.GrantPermission(cmd.Username, cmd.Kb, cmd.Privilege),
+                        "REVOKE" => _managementManager.RevokePermission(cmd.Username, cmd.Kb),
+                        "SEARCH_LOGS" => _managementManager.GetLogs(cmd.LogType, cmd.UserFilter, cmd.LogLevel, cmd.StartTime, cmd.EndTime),
+                        "GET_SETTINGS" => _managementManager.GetServerSettings(),
+                        "UPDATE_SETTING" => _managementManager.UpdateSetting(cmd.SettingName, cmd.SettingValue),
+                        "KILL_SESSION" => new { success = _connectionManager.KillSession(cmd.SessionId) },
+                        _ => throw new Exception($"Unknown management action: {cmd.Action}")
+                    };
+                }
+            }
+            else if (content.StartsWith("KILL_SESSION "))
             {
                 var sessionId = content.Substring("KILL_SESSION ".Length).Trim();
-                if (_connectionManager.KillSession(sessionId))
-                {
-                    await SendProtocolMessageAsync(clientId, stream, new Message { Type = MessageType.RESULT, RequestId = message.RequestId, Content = ToJson(new { success = true, message = $"Session {sessionId} terminated" }) });
-                }
-                else
-                {
-                    await SendProtocolMessageAsync(clientId, stream, new Message { Type = MessageType.ERROR, RequestId = message.RequestId, Content = "Session not found" });
-                }
+                result = new { success = _connectionManager.KillSession(sessionId) };
             }
             else
             {
-                await SendProtocolMessageAsync(clientId, stream, new Message { Type = MessageType.ERROR, Content = "Unknown management command" });
+                throw new Exception("Unknown management command format");
             }
+
+            await SendProtocolMessageAsync(clientId, stream, new Message
+            {
+                Type = MessageType.RESULT,
+                RequestId = message.RequestId,
+                Content = ToJson(result ?? new { success = true })
+            });
+
+            // Send FETCH_DONE to signal completion
+            await SendProtocolMessageAsync(clientId, stream, new Message
+            {
+                Type = MessageType.FETCH_DONE,
+                RequestId = message.RequestId,
+                Content = "{}"
+            });
         }
         catch (Exception ex)
         {
-            await SendProtocolMessageAsync(clientId, stream, new Message { Type = MessageType.ERROR, Content = ex.Message });
+            await SendProtocolMessageAsync(clientId, stream, new Message { Type = MessageType.ERROR, RequestId = message.RequestId, Content = ex.Message });
         }
     }
 

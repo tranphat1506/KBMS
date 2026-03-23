@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('kbmsApi', {
   getStatus: () => ipcRenderer.invoke('kbms:get-status'),
   getStats: (requestId?: string) => ipcRenderer.invoke('kbms:get-stats', requestId),
   getSessions: (requestId?: string) => ipcRenderer.invoke('kbms:get-sessions', requestId),
+  mgmtAction: (action: string, data: any = {}, requestId?: string) => ipcRenderer.invoke('kbms:mgmt-action', action, data, requestId),
   subscribeLogs: () => ipcRenderer.send('kbms:subscribe-logs'),
   saveFile: (content: string, currentPath?: string, isNewFile: boolean = true) => ipcRenderer.invoke('kbms:save-file', content, currentPath, isNewFile),
   openFile: () => ipcRenderer.invoke('kbms:open-file'),

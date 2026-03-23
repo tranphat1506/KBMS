@@ -216,6 +216,22 @@ export class KbmsTCPClient {
       });
    }
 
+   sendManagementAction(action: string, data: any = {}, requestId?: string): Promise<any> {
+      return new Promise((resolve, reject) => {
+         if (!requestId) requestId = `mgmt_${action.toLowerCase()}_${Date.now()}`;
+         this.pendingRequestsMetadata.set(requestId, { isBackground: true });
+         this.requestQueue.push({ 
+            type: MessageType.MANAGEMENT_CMD,
+            query: JSON.stringify({ action, ...data }),
+            isBackground: true, 
+            requestId, 
+            resolve, 
+            reject 
+         });
+         this.processQueue();
+      });
+   }
+
    subscribeLogs() {
       if (!this.socket || this.socket.destroyed) return;
       this.socket.write(Protocol.pack({
@@ -333,17 +349,28 @@ export class KbmsTCPClient {
          }
       }
       else if (msg.type === MessageType.RESULT) {
-         if (!this.queryResultData) {
-            this.queryResultData = { headers: ["Result"], rows: [], messages: [] };
-         }
+         // Management actions expect raw data (arrays/objects) if they carry payload
+         const isMgmt = this.activeRequest?.type === MessageType.MANAGEMENT_CMD;
+         
+         if (isMgmt && msg.content.trim().startsWith('{') || isMgmt && msg.content.trim().startsWith('[')) {
+            try {
+               this.queryResultData = JSON.parse(msg.content);
+            } catch {
+               this.queryResultData = { headers: ["Result"], rows: [], messages: [{ type: 'info', text: msg.content }] };
+            }
+         } else {
+            if (!this.queryResultData) {
+               this.queryResultData = { headers: ["Result"], rows: [], messages: [] };
+            }
 
-         const { text, markers, isError } = this.extractErrorInfo(msg.content);
-         if (markers.length > 0) {
-            if (!this.queryResultData.editorMarkers) this.queryResultData.editorMarkers = [];
-            this.queryResultData.editorMarkers.push(...markers);
+            const { text, markers, isError } = this.extractErrorInfo(msg.content);
+            if (markers.length > 0) {
+               if (!this.queryResultData.editorMarkers) this.queryResultData.editorMarkers = [];
+               this.queryResultData.editorMarkers.push(...markers);
+            }
+            this.queryResultData.messages.push({ type: isError ? 'error' : 'info', text: text });
+            this.sendToUI('kbms-stream', { type: 'result', text, markers, isBackground, requestId: msg.requestId });
          }
-         this.queryResultData.messages.push({ type: isError ? 'error' : 'info', text: text });
-         this.sendToUI('kbms-stream', { type: 'result', text, markers, isBackground, requestId: msg.requestId });
       }
       else if (msg.type === MessageType.LOGS_STREAM) {
          try {

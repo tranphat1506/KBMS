@@ -248,6 +248,24 @@ var KbmsTCPClient = class {
 			this.processQueue();
 		});
 	}
+	sendManagementAction(action, data = {}, requestId) {
+		return new Promise((resolve, reject) => {
+			if (!requestId) requestId = `mgmt_${action.toLowerCase()}_${Date.now()}`;
+			this.pendingRequestsMetadata.set(requestId, { isBackground: true });
+			this.requestQueue.push({
+				type: MessageType.MANAGEMENT_CMD,
+				query: JSON.stringify({
+					action,
+					...data
+				}),
+				isBackground: true,
+				requestId,
+				resolve,
+				reject
+			});
+			this.processQueue();
+		});
+	}
 	subscribeLogs() {
 		if (!this.socket || this.socket.destroyed) return;
 		this.socket.write(Protocol.pack({
@@ -376,27 +394,42 @@ var KbmsTCPClient = class {
 			console.error("(KBMS Client) Failed to parse row", e);
 		}
 		else if (msg.type === MessageType.RESULT) {
-			if (!this.queryResultData) this.queryResultData = {
-				headers: ["Result"],
-				rows: [],
-				messages: []
-			};
-			const { text, markers, isError } = this.extractErrorInfo(msg.content);
-			if (markers.length > 0) {
-				if (!this.queryResultData.editorMarkers) this.queryResultData.editorMarkers = [];
-				this.queryResultData.editorMarkers.push(...markers);
+			const isMgmt = this.activeRequest?.type === MessageType.MANAGEMENT_CMD;
+			if (isMgmt && msg.content.trim().startsWith("{") || isMgmt && msg.content.trim().startsWith("[")) try {
+				this.queryResultData = JSON.parse(msg.content);
+			} catch {
+				this.queryResultData = {
+					headers: ["Result"],
+					rows: [],
+					messages: [{
+						type: "info",
+						text: msg.content
+					}]
+				};
 			}
-			this.queryResultData.messages.push({
-				type: isError ? "error" : "info",
-				text
-			});
-			this.sendToUI("kbms-stream", {
-				type: "result",
-				text,
-				markers,
-				isBackground,
-				requestId: msg.requestId
-			});
+			else {
+				if (!this.queryResultData) this.queryResultData = {
+					headers: ["Result"],
+					rows: [],
+					messages: []
+				};
+				const { text, markers, isError } = this.extractErrorInfo(msg.content);
+				if (markers.length > 0) {
+					if (!this.queryResultData.editorMarkers) this.queryResultData.editorMarkers = [];
+					this.queryResultData.editorMarkers.push(...markers);
+				}
+				this.queryResultData.messages.push({
+					type: isError ? "error" : "info",
+					text
+				});
+				this.sendToUI("kbms-stream", {
+					type: "result",
+					text,
+					markers,
+					isBackground,
+					requestId: msg.requestId
+				});
+			}
 		} else if (msg.type === MessageType.LOGS_STREAM) try {
 			const logData = JSON.parse(msg.content);
 			this.sendToUI("kbms-stream", {
@@ -571,6 +604,16 @@ function createWindow() {
 	});
 	ipcMain.handle("kbms:get-sessions", async (_, requestId) => {
 		return kbmsClient.getSessions(requestId);
+	});
+	ipcMain.handle("kbms:mgmt-action", async (_, action, data = {}, requestId) => {
+		try {
+			return await kbmsClient.sendManagementAction(action, data, requestId);
+		} catch (err) {
+			return {
+				success: false,
+				error: err.message
+			};
+		}
 	});
 	ipcMain.on("kbms:subscribe-logs", () => {
 		kbmsClient.subscribeLogs();

@@ -10,18 +10,18 @@ export default function Navbar() {
   const alt = isMac ? '⌥' : 'Alt';
 
   return (
-    <div className={`h-11 bg-white flex items-center px-4 justify-between border-b border-slate-200 shadow-[0_1px_3px_rgba(0,0,0,0.02)] z-20 font-sans select-none ${isMac ? 'pl-[90px]' : ''}`} style={{ WebkitAppRegion: 'drag' } as any}>
+    <div className={`h-11 bg-[var(--bg-surface)] flex items-center px-4 justify-between border-b border-[var(--border-subtle)] shadow-[0_1px_3px_rgba(0,0,0,0.02)] z-20 font-sans select-none transition-colors duration-200 ${isMac ? 'pl-[90px]' : ''}`} style={{ WebkitAppRegion: 'drag' } as any}>
       <div className="flex items-center space-x-5" style={{ WebkitAppRegion: 'no-drag' } as any}>
-        <div className="flex items-center space-x-1.5 text-emerald-600 select-none">
-          <DatabaseZap className="w-4 h-4 fill-emerald-100" />
-          <span className="font-medium text-[13px] tracking-tight text-slate-700 uppercase">KBMS Studio</span>
+        <div className="flex items-center space-x-1.5 text-[var(--brand-primary)] select-none">
+          <DatabaseZap className="w-4 h-4 fill-[var(--brand-primary-light)]/30" />
+          <span className="font-medium text-[13px] tracking-tight text-[var(--text-main)] uppercase">KBMS Studio</span>
         </div>
         
-        <div className="flex items-center space-x-0.5 bg-slate-100/80 p-0.5 rounded border border-slate-200 shadow-inner">
+        <div className="flex items-center space-x-0.5 bg-[var(--bg-app)] p-0.5 rounded border border-[var(--border-subtle)] shadow-inner">
           <button 
             title={`Open File (${cmd} + O)`} 
             onClick={openTab} 
-            className="flex items-center space-x-1 px-2.5 py-1 text-[11px] font-normal text-slate-600 hover:bg-white hover:text-emerald-700 hover:shadow-sm rounded transition-all cursor-pointer"
+            className="flex items-center space-x-1 px-2.5 py-1 text-[11px] font-normal text-[var(--text-sub)] hover:bg-[var(--bg-surface)] hover:text-[var(--brand-primary)] hover:shadow-sm rounded transition-all cursor-pointer"
           >
             <FolderOpen className="w-3.5 h-3.5" />
             <span>Open File</span>
@@ -30,14 +30,14 @@ export default function Navbar() {
              title={`Save File (${cmd} + S)`}
              onClick={() => hasTabs && saveTab(activeTabId)} 
              disabled={!hasTabs}
-             className="flex items-center space-x-1 px-2.5 py-1 text-[11px] font-normal text-slate-600 hover:bg-white hover:text-emerald-700 hover:shadow-sm rounded transition-all disabled:opacity-50 disabled:hover:bg-transparent disabled:cursor-not-allowed cursor-pointer"
+             className="flex items-center space-x-1 px-2.5 py-1 text-[11px] font-normal text-[var(--text-sub)] hover:bg-[var(--bg-surface)] hover:text-[var(--brand-primary)] hover:shadow-sm rounded transition-all disabled:opacity-50 disabled:hover:bg-transparent disabled:cursor-not-allowed cursor-pointer"
           >
             <Save className="w-3.5 h-3.5" />
             <span>Save</span>
           </button>
         </div>
         
-        <div className="w-px h-4 bg-slate-200" />
+        <div className="w-px h-4 bg-[var(--border-muted)]" />
         
         <div className="flex items-center space-x-2">
            <button 
@@ -46,8 +46,8 @@ export default function Navbar() {
              disabled={isExecuting || status !== 'connected'}
              className={`flex items-center space-x-1.5 px-3 py-1 text-[11px] font-medium text-white rounded shadow-sm transition-all relative cursor-pointer ${
                isExecuting || status !== 'connected' 
-                 ? 'bg-slate-300 cursor-not-allowed opacity-70 border border-slate-400/50' 
-                 : 'bg-emerald-500 hover:bg-emerald-400 border border-emerald-600 shadow-[0_1px_2px_rgba(16,185,129,0.15)] active:scale-95'
+                 ? 'bg-[var(--bg-app)] cursor-not-allowed opacity-70 border border-[var(--border-subtle)] text-[var(--text-muted)]' 
+                 : 'bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] border border-[var(--brand-primary-hover)] shadow-[0_1px_2px_rgba(16,185,129,0.15)] active:scale-95'
              }`}
            >
              <Play className="w-3 h-3 fill-current" />
@@ -60,8 +60,8 @@ export default function Navbar() {
              disabled={!isExecuting}
              className={`flex items-center space-x-1.5 px-3 py-1 text-[11px] font-medium rounded shadow-sm border transition-all cursor-pointer ${
                  !isExecuting 
-                 ? 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed' 
-                 : 'bg-white text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 shadow-[0_1px_2px_rgba(239,68,68,0.1)] active:scale-95'
+                 ? 'bg-[var(--bg-app)] text-[var(--text-muted)] border-[var(--border-subtle)] cursor-not-allowed' 
+                 : 'bg-[var(--bg-surface)] text-rose-500 border-rose-500/20 hover:bg-rose-500/10 hover:border-rose-500/30 shadow-[0_1px_2px_rgba(239,68,68,0.1)] active:scale-95'
              }`}
            >
              <Square className="w-3 h-3 fill-current" />
@@ -75,7 +75,7 @@ export default function Navbar() {
           value={selectedKb}
           onChange={(e) => useKbmsStore.getState().changeKnowledgeBase(e.target.value)}
           disabled={status !== 'connected' || isExecuting} 
-          className={`text-[11px] outline-none font-normal border rounded px-2 py-0.5 cursor-pointer transition-colors shadow-sm min-w-[170px] disabled:opacity-50 ${selectedKb === '' ? 'text-slate-400 border-slate-200 bg-slate-100' : 'text-slate-700 border-emerald-300 bg-white'}`}
+          className={`text-[11px] outline-none font-normal border rounded px-2 py-0.5 cursor-pointer transition-colors shadow-sm min-w-[170px] disabled:opacity-50 ${selectedKb === '' ? 'text-[var(--text-muted)] border-[var(--border-subtle)] bg-[var(--bg-app)]' : 'text-[var(--text-main)] border-[var(--brand-primary)]/40 bg-[var(--bg-surface)]'}`}
         >
           <option value="" disabled>Select Knowledge Base...</option>
           {useKbmsStore.getState().metadata.databases.map(db => (

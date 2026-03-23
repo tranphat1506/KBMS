@@ -17,6 +17,13 @@ export interface ServerProfile {
   pass?: string;
 }
 
+export interface StudioSettings {
+  theme: 'dark' | 'light';
+  primaryColor: string;
+  fontSize: 'small' | 'medium' | 'big';
+  fontWeight: 'thin' | 'regular' | 'medium';
+}
+
 export interface KbmsState {
   status: 'disconnected' | 'connecting' | 'connected' | 'error';
   connectionDetails: { host: string; port: number; name?: string } | null;
@@ -41,21 +48,36 @@ export interface KbmsState {
   activeSidebarView: 'explorer' | 'system';
   systemLogs: any[];
   auditLogs: any[];
+  systemUsers: any[];
+  systemSettings: any[];
   systemStats: any | null;
   systemSessions: any[];
+  systemActiveTab: 'overview' | 'users' | 'logs' | 'settings' | 'sessions';
+  studioSettings: StudioSettings;
+  isStudioSettingsOpen: boolean;
   selectedKb: string;
   lastError: string | null;
   lastDescribeResult: any | null;
   metadataDetails: Record<string, any>;
   editorMarkers: any[];
   currentRequestId: string | null;
+  setSystemActiveTab: (tab: 'overview' | 'users' | 'logs' | 'settings' | 'sessions') => void;
   setSelectedKb: (kb: string) => void;
   setActiveSidebarView: (v: 'explorer' | 'system') => void;
-  fetchSystemLogs: () => Promise<void>;
-  fetchAuditLogs: () => Promise<void>;
+  fetchSystemLogs: (filter?: any) => Promise<void>;
+  fetchAuditLogs: (filter?: any) => Promise<void>;
+  fetchSystemUsers: () => Promise<void>;
+  upsertUser: (userData: any) => Promise<void>;
+  deleteUser: (username: string) => Promise<void>;
+  grantPermission: (username: string, kb: string, privilege: string) => Promise<void>;
+  revokePermission: (username: string, kb: string) => Promise<void>;
+  fetchSettings: () => Promise<void>;
+  updateSetting: (name: string, value: string) => Promise<void>;
   refreshStats: () => Promise<void>;
   refreshSessions: () => Promise<void>;
   killSession: (sessionId: string) => Promise<void>;
+  updateStudioSetting: (key: keyof StudioSettings, value: any) => void;
+  setStudioSettingsOpen: (v: boolean) => void;
   subscribeLogs: () => void;
   setConnectModalOpen: (v: boolean) => void;
   setQuery: (query: string) => void;
@@ -123,6 +145,19 @@ const loadLastCredentials = () => {
   return null;
 };
 
+const loadStudioSettings = (): StudioSettings => {
+  try {
+    const stored = localStorage.getItem('kbms_studio_settings');
+    if (stored) return JSON.parse(stored);
+  } catch (e) { }
+  return {
+    theme: 'light',
+    primaryColor: 'emerald',
+    fontSize: 'medium',
+    fontWeight: 'regular'
+  };
+};
+
 export const useKbmsStore = create<KbmsState>((set, get) => ({
   status: 'disconnected',
   connectionDetails: loadConnectionDetails(),
@@ -146,8 +181,13 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
   activeSidebarView: 'explorer',
   systemLogs: [],
   auditLogs: [],
+  systemUsers: [],
+  systemSettings: [],
   systemStats: null,
   systemSessions: [],
+  systemActiveTab: 'overview',
+  studioSettings: loadStudioSettings(),
+  isStudioSettingsOpen: false,
   isConnectModalOpen: false,
   selectedKb: '',
   lastError: null,
@@ -161,6 +201,13 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
     message: ''
   },
 
+  setSystemActiveTab: (tab) => set({ systemActiveTab: tab }),
+  updateStudioSetting: (key, value) => set((state) => {
+    const newSettings = { ...state.studioSettings, [key]: value };
+    localStorage.setItem('kbms_studio_settings', JSON.stringify(newSettings));
+    return { studioSettings: newSettings };
+  }),
+  setStudioSettingsOpen: (v) => set({ isStudioSettingsOpen: v }),
   setSelectedKb: (kb) => set({ selectedKb: kb }),
   setActiveSidebarView: (v) => set({ activeSidebarView: v }),
   setConnectModalOpen: (v: boolean) => set({ isConnectModalOpen: v }),
@@ -173,39 +220,105 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
     confirmDialog: { ...state.confirmDialog, isOpen: false } 
   })),
 
-  fetchSystemLogs: async () => {
+  fetchSystemLogs: async (filter = {}) => {
     if (get().status !== 'connected') return;
     try {
-      // Temporarily switch to 'system' KB to fetch logs
-      const currentKb = get().selectedKb;
-      await get().execute("USE system;", { isBackground: true });
-      const res = await get().execute("SELECT * FROM system_logs ORDER BY timestamp DESC LIMIT 50;", { isBackground: true });
-      if (res && res.rows) {
-        set({ systemLogs: res.rows });
-      }
-      // Switch back
-      if (currentKb && currentKb !== 'system') {
-        await get().execute(`USE ${currentKb};`, { isBackground: true });
+      // @ts-ignore
+      const res = await window.kbmsApi.mgmtAction('SEARCH_LOGS', { logType: 'system', ...filter });
+      if (Array.isArray(res)) {
+        set({ systemLogs: res.map((obj: any) => obj.Values || obj.values || obj) });
       }
     } catch (err) {
       console.error("Failed to fetch system logs:", err);
     }
   },
 
-  fetchAuditLogs: async () => {
+  fetchAuditLogs: async (filter = {}) => {
     if (get().status !== 'connected') return;
     try {
-      const currentKb = get().selectedKb;
-      await get().execute("USE system;", { isBackground: true });
-      const res = await get().execute("SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT 50;", { isBackground: true });
-      if (res && res.rows) {
-        set({ auditLogs: res.rows });
-      }
-      if (currentKb && currentKb !== 'system') {
-        await get().execute(`USE ${currentKb};`, { isBackground: true });
+      // @ts-ignore
+      const res = await window.kbmsApi.mgmtAction('SEARCH_LOGS', { logType: 'audit', ...filter });
+      if (Array.isArray(res)) {
+        set({ auditLogs: res.map((obj: any) => obj.Values || obj.values || obj) });
       }
     } catch (err) {
       console.error("Failed to fetch audit logs:", err);
+    }
+  },
+
+  fetchSystemUsers: async () => {
+    if (get().status !== 'connected') return;
+    try {
+      // @ts-ignore
+      const res = await window.kbmsApi.mgmtAction('LIST_USERS');
+      if (Array.isArray(res)) {
+        set({ systemUsers: res });
+      }
+    } catch (err) {
+      console.error("Failed to fetch system users:", err);
+    }
+  },
+
+  upsertUser: async (userData) => {
+    try {
+      // @ts-ignore
+      await window.kbmsApi.mgmtAction('UPSERT_USER', userData);
+      get().fetchSystemUsers();
+    } catch (err) {
+      console.error("Failed to upsert user:", err);
+    }
+  },
+
+  deleteUser: async (username) => {
+    try {
+      // @ts-ignore
+      await window.kbmsApi.mgmtAction('DELETE_USER', { username });
+      get().fetchSystemUsers();
+    } catch (err) {
+      console.error("Failed to delete user:", err);
+    }
+  },
+
+  grantPermission: async (username, kb, privilege) => {
+    try {
+      // @ts-ignore
+      await window.kbmsApi.mgmtAction('GRANT', { username, kb, privilege });
+      get().fetchSystemUsers();
+    } catch (err) {
+      console.error("Failed to grant permission:", err);
+    }
+  },
+
+  revokePermission: async (username, kb) => {
+    try {
+      // @ts-ignore
+      await window.kbmsApi.mgmtAction('REVOKE', { username, kb });
+      get().fetchSystemUsers();
+    } catch (err) {
+      console.error("Failed to revoke permission:", err);
+    }
+  },
+
+  fetchSettings: async () => {
+    if (get().status !== 'connected') return;
+    try {
+      // @ts-ignore
+      const res = await window.kbmsApi.mgmtAction('GET_SETTINGS');
+      if (Array.isArray(res)) {
+        set({ systemSettings: res.map((obj: any) => obj.Values || obj.values || obj) });
+      }
+    } catch (err) {
+      console.error("Failed to fetch settings:", err);
+    }
+  },
+
+  updateSetting: async (name, value) => {
+    try {
+      // @ts-ignore
+      await window.kbmsApi.mgmtAction('UPDATE_SETTING', { settingName: name, settingValue: value });
+      get().fetchSettings();
+    } catch (err) {
+      console.error("Failed to update setting:", err);
     }
   },
 
@@ -249,8 +362,8 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
   killSession: async (sessionId: string) => {
     try {
       // @ts-ignore
-      const res = await window.kbmsApi.execute(`KILL_SESSION ${sessionId}`, { isBackground: true, isManagement: true });
-      if (res && res.success) {
+      const res = await window.kbmsApi.mgmtAction('KILL_SESSION', { sessionId });
+      if (res && (res.success || res.success === undefined)) {
         set(state => ({
           systemSessions: state.systemSessions.filter(s => s.SessionId !== sessionId)
         }));
