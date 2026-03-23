@@ -1712,9 +1712,15 @@ public class KnowledgeManager
                 initialFacts[kvp.Key] = kvp.Value;
         }
 
-        // Initialize engine and solve
+        // Initialize engine and solve (Backward Chaining / Goal-Driven)
         var engine = GetConfiguredEngine(kbName);
-        var result = engine.FindClosure(concept, initialFacts, node.FindVariables);
+        
+        // Ensure concept is loaded via engine's resolver to get linked rules
+        var resolvedConcept = engine.ConceptResolver?.Invoke(node.ConceptName) ?? concept;
+
+        var result = node.FindVariables.Count > 0 
+            ? engine.SolveBackward(resolvedConcept, initialFacts, node.FindVariables)
+            : engine.FindClosure(resolvedConcept, initialFacts, new List<string>());
 
         if (result.Success && node.SaveResults)
         {
@@ -2637,7 +2643,7 @@ public class KnowledgeManager
                         var scopeName = r.Scope;
                         return new Models.ConceptRule { 
                             Id = r.Id, 
-                            Kind = r.RuleType ?? "deduction", 
+                            Kind = r.Name ?? r.RuleType ?? "deduction", 
                             Hypothesis = r.Hypothesis?.Select(h => {
                                 var s = h.Content ?? "";
                                 if (!string.IsNullOrEmpty(scopeName) && s.StartsWith(scopeName + "(", StringComparison.OrdinalIgnoreCase) && s.EndsWith(")"))
