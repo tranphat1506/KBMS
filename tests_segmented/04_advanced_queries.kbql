@@ -1,0 +1,16 @@
+USE EnterpriseKB;
+
+-- 6. ADVANCED QUERYING (TRUETYPING, ALIASES, METADATA)
+INSERT INTO Product ATTRIBUTE (501, 1000.0, 50);
+
+SELECT 
+    p.id AS ProductID, 
+    p.price * 1.1 AS PriceWithVAT,
+    p.stock - 1 AS ForecastStock
+FROM Product p 
+WHERE p.price > 500;
+
+-- Metadata check
+SELECT * FROM Student.variables;
+SELECT * FROM Student.rules;
+SELECT * FROM RULE HighHonor;

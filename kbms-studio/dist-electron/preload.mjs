@@ -1,1 +1,29 @@
-let e=require(`electron`);e.contextBridge.exposeInMainWorld(`kbmsApi`,{execute:(t,n=!1,r)=>(console.log(`[Preload] Execute called with isBackground=${n}, requestId=${r}`),e.ipcRenderer.invoke(`kbms:execute`,t,n,r)),connect:(t,n,r,i)=>e.ipcRenderer.invoke(`kbms:connect`,t,n,r,i),disconnect:()=>e.ipcRenderer.invoke(`kbms:disconnect`),getStatus:()=>e.ipcRenderer.invoke(`kbms:get-status`),saveFile:(t,n,r=!0)=>e.ipcRenderer.invoke(`kbms:save-file`,t,n,r),openFile:()=>e.ipcRenderer.invoke(`kbms:open-file`),onStatusChange:t=>{let n=(e,n)=>t(n);return e.ipcRenderer.on(`kbms-status`,n),()=>e.ipcRenderer.removeListener(`kbms-status`,n)},onDataStream:t=>{let n=(e,n)=>t(n);return e.ipcRenderer.on(`kbms-stream`,n),()=>e.ipcRenderer.removeListener(`kbms-stream`,n)},setUnsavedStatus:t=>e.ipcRenderer.send(`kbms:set-unsaved-status`,t),onAppCloseRequested:t=>{e.ipcRenderer.on(`kbms:app-close-request`,()=>t())},forceQuit:()=>e.ipcRenderer.send(`kbms:force-quit`)});
+let electron = require("electron");
+//#region electron/preload.ts
+electron.contextBridge.exposeInMainWorld("kbmsApi", {
+	execute: (query, isBackground = false, requestId) => {
+		console.log(`[Preload] Execute called with isBackground=${isBackground}, requestId=${requestId}`);
+		return electron.ipcRenderer.invoke("kbms:execute", query, isBackground, requestId);
+	},
+	connect: (host, port, user, pass) => electron.ipcRenderer.invoke("kbms:connect", host, port, user, pass),
+	disconnect: () => electron.ipcRenderer.invoke("kbms:disconnect"),
+	getStatus: () => electron.ipcRenderer.invoke("kbms:get-status"),
+	saveFile: (content, currentPath, isNewFile = true) => electron.ipcRenderer.invoke("kbms:save-file", content, currentPath, isNewFile),
+	openFile: () => electron.ipcRenderer.invoke("kbms:open-file"),
+	onStatusChange: (callback) => {
+		const listener = (_event, status) => callback(status);
+		electron.ipcRenderer.on("kbms-status", listener);
+		return () => electron.ipcRenderer.removeListener("kbms-status", listener);
+	},
+	onDataStream: (callback) => {
+		const listener = (_event, data) => callback(data);
+		electron.ipcRenderer.on("kbms-stream", listener);
+		return () => electron.ipcRenderer.removeListener("kbms-stream", listener);
+	},
+	setUnsavedStatus: (status) => electron.ipcRenderer.send("kbms:set-unsaved-status", status),
+	onAppCloseRequested: (callback) => {
+		electron.ipcRenderer.on("kbms:app-close-request", () => callback());
+	},
+	forceQuit: () => electron.ipcRenderer.send("kbms:force-quit")
+});
+//#endregion

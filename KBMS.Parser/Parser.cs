@@ -1756,7 +1756,13 @@ public class Parser
                 next.Type == TokenType.DOT || 
                 next.Type == TokenType.AS || 
                 next.Type == TokenType.COMMA || 
-                next.Type == TokenType.FROM
+                next.Type == TokenType.FROM ||
+                next.Type == TokenType.STAR ||
+                next.Type == TokenType.PLUS ||
+                next.Type == TokenType.MINUS ||
+                next.Type == TokenType.SLASH ||
+                next.Type == TokenType.NUMBER ||
+                next.Type == TokenType.LPAREN
             );
 
             if (isColumnList)
@@ -1766,6 +1772,9 @@ public class Parser
                 while (Check(TokenType.COMMA))
                 {
                     Consume(TokenType.COMMA);
+                    if (Check(TokenType.FROM))
+                        throw Error("Trailing comma in SELECT list");
+
                     if (Check(TokenType.STAR))
                     {
                         Consume(TokenType.STAR);

@@ -763,7 +763,10 @@ public class InferenceEngine
             }
             if (type is "STRING" or "VARCHAR" or "TEXT")
             {
-                return val?.ToString() ?? "";
+                var s = val?.ToString() ?? "";
+                if (s.StartsWith("'") && s.EndsWith("'") && s.Length >= 2)
+                    s = s.Substring(1, s.Length - 2).Replace("''", "'");
+                return s;
             }
         }
         catch { }

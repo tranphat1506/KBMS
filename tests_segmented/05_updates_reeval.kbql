@@ -1,0 +1,8 @@
+USE EnterpriseKB;
+
+-- 7. UPDATE & RE-EVALUATION
+-- Bob (grade 85) initially not gifted.
+UPDATE Student ATTRIBUTE ( SET grade: 98 ) WHERE name = 'Bob';
+
+-- Bob should now be gifted via triggered forward chaining
+SELECT name, honor, gifted FROM Student WHERE name = 'Bob';

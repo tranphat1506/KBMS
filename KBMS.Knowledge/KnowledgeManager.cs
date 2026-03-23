@@ -832,7 +832,7 @@ public class KnowledgeManager
 
                 // Apply WHERE conditions
                 if (node.Conditions.Count > 0)
-                    hierarchyObjects = EvaluateConditions(hierarchyObjects, node.Conditions, kbName);
+                    hierarchyObjects = EvaluateConditions(hierarchyObjects, node.Conditions, kbName, node.Alias, entityName);
 
                 // Apply ORDER BY
                 if (node.OrderBy.Count > 0)
@@ -990,13 +990,13 @@ public class KnowledgeManager
             // 2. Apply WHERE conditions
             if (node.Conditions.Count > 0)
             {
-                objects = EvaluateConditions(objects, node.Conditions, kbName);
+                objects = EvaluateConditions(objects, node.Conditions, kbName, node.Alias, entityName);
             }
 
             // 3. Apply JOINs
             foreach (var join in node.Joins)
             {
-                objects = ApplyJoin(objects, join, kbName);
+                objects = ApplyJoin(objects, node.Alias, entityName, join, kbName);
             }
 
             // 4. Apply GROUP BY + Aggregation
@@ -1041,14 +1041,15 @@ public class KnowledgeManager
                             var sourceName = col.Name;
                             var outName = col.Alias ?? col.Name;
 
-                            if (obj.Values.TryGetValue(sourceName, out var val))
+                            var val = ResolveValue(obj, sourceName, tableAlias, entityName);
+                            if (val != null)
                             {
                                 newValues[outName] = val;
                             }
                             else
                             {
                                 // Try evaluating as expression
-                                try {
+                                 try {
                                     var exprForEval = sourceName;
                                     var prefix = node.Alias ?? entityName;
                                     if (!string.IsNullOrEmpty(prefix))
@@ -1057,10 +1058,26 @@ public class KnowledgeManager
                                         exprForEval = System.Text.RegularExpressions.Regex.Replace(exprForEval, $@"\b{prefix}\.", "");
                                     }
 
-                                    var parameters = new Dictionary<string, object>();
+                                    var parameters = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
                                     foreach (var kv in obj.Values)
                                     {
-                                        if (kv.Value != null) parameters[kv.Key] = kv.Value;
+                                        if (kv.Value != null)
+                                        {
+                                            // 1. Add as-is
+                                            parameters[kv.Key] = kv.Value;
+                                            // 2. If qualified, add leaf name
+                                            if (kv.Key.Contains('.'))
+                                            {
+                                                var leaf = kv.Key.Split('.').Last();
+                                                if (!parameters.ContainsKey(leaf)) parameters[leaf] = kv.Value;
+                                            }
+                                            // 3. If unqualified, add qualified names for current context
+                                            if (!kv.Key.Contains('.'))
+                                            {
+                                                if (!string.IsNullOrEmpty(node.Alias)) parameters[$"{node.Alias}.{kv.Key}"] = kv.Value;
+                                                if (!string.IsNullOrEmpty(entityName)) parameters[$"{entityName}.{kv.Key}"] = kv.Value;
+                                            }
+                                        }
                                     }
                                     newValues[outName] = engine.EvaluateFormula(exprForEval, parameters);
                                 } catch {
@@ -1104,13 +1121,13 @@ public class KnowledgeManager
         }
     }
 
-    private List<ObjectInstance> EvaluateConditions(List<ObjectInstance> objects, List<Condition> conditions, string kbName)
+    private List<ObjectInstance> EvaluateConditions(List<ObjectInstance> objects, List<Condition> conditions, string kbName, string? alias = null, string? conceptName = null)
     {
         var result = new List<ObjectInstance>();
 
         foreach (var obj in objects)
         {
-            if (EvaluateObjectConditions(obj, conditions, kbName))
+            if (EvaluateObjectConditions(obj, conditions, kbName, alias, conceptName))
             {
                 result.Add(obj);
             }
@@ -1119,16 +1136,16 @@ public class KnowledgeManager
         return result;
     }
 
-    private bool EvaluateObjectConditions(ObjectInstance obj, List<Condition> conditions, string kbName)
+    private bool EvaluateObjectConditions(ObjectInstance obj, List<Condition> conditions, string kbName, string? alias = null, string? conceptName = null)
     {
         if (conditions.Count == 0) return true;
 
-        var result = EvaluateCondition(obj, conditions[0], kbName);
+        var result = EvaluateCondition(obj, conditions[0], kbName, alias, conceptName);
 
         for (int i = 1; i < conditions.Count; i++)
         {
             var cond = conditions[i];
-            var value = EvaluateCondition(obj, cond, kbName);
+            var value = EvaluateCondition(obj, cond, kbName, alias, conceptName);
 
             if (conditions[i - 1].LogicalOperator == "OR")
             {
@@ -1143,19 +1160,10 @@ public class KnowledgeManager
         return result;
     }
 
-    private bool EvaluateCondition(ObjectInstance obj, Condition condition, string kbName)
+    private bool EvaluateCondition(ObjectInstance obj, Condition condition, string kbName, string? alias = null, string? conceptName = null)
     {
-        // Try to get a case-insensitive match for the field
-        object? value = null;
-        var fieldKey = obj.Values.Keys.FirstOrDefault(k => k.Equals(condition.Field, StringComparison.OrdinalIgnoreCase));
-        if (fieldKey != null)
-        {
-            value = obj.Values[fieldKey];
-        }
-        else
-        {
-            return false;
-        }
+        var value = ResolveValue(obj, condition.Field, alias, conceptName);
+        if (value == null) return false;
 
         var compareValue = condition.Value;
 
@@ -1230,7 +1238,7 @@ public class KnowledgeManager
         return double.TryParse(value.ToString(), out result);
     }
 
-    private List<ObjectInstance> ApplyJoin(List<ObjectInstance> objects, JoinClause join, string kbName)
+    private List<ObjectInstance> ApplyJoin(List<ObjectInstance> objects, string? leftAlias, string? leftConcept, JoinClause join, string kbName)
     {
         var joinObjects = _storage.SelectObjects(kbName, null);
         joinObjects = joinObjects.Where(o => o.ConceptName == join.Target).ToList();
@@ -1243,7 +1251,7 @@ public class KnowledgeManager
             {
                 if (join.OnCondition != null)
                 {
-                    if (EvaluateJoinCondition(obj, joinObj, join.OnCondition))
+                    if (EvaluateJoinCondition(obj, leftAlias, leftConcept, joinObj, join.Alias, join.Target, join.OnCondition))
                     {
                         var merged = MergeObjects(obj, joinObj, join.Alias);
                         result.Add(merged);
@@ -1261,18 +1269,54 @@ public class KnowledgeManager
         return result;
     }
 
-    private bool EvaluateJoinCondition(ObjectInstance left, ObjectInstance right, Condition condition)
+    private bool EvaluateJoinCondition(ObjectInstance left, string? leftAlias, string? leftConcept, 
+                                       ObjectInstance right, string? rightAlias, string? rightConcept, 
+                                       Condition condition)
     {
-        var leftValue = left.Values.GetValueOrDefault(condition.Field);
-        var rightValue = right.Values.GetValueOrDefault(condition.Value?.ToString() ?? "");
+        var leftValue = ResolveValue(left, condition.Field, leftAlias, leftConcept);
+        var rightValue = ResolveValue(right, condition.Value?.ToString() ?? "", rightAlias, rightConcept);
 
         if (leftValue == null || rightValue == null) return false;
 
         return condition.Operator switch
         {
-            "=" => Equals(leftValue, rightValue),
+            "=" => Equals(leftValue, rightValue) || CompareValues(leftValue, rightValue) == 0,
             _ => false
         };
+    }
+
+    private object? ResolveValue(ObjectInstance obj, string field, string? alias = null, string? conceptName = null)
+    {
+        if (string.IsNullOrEmpty(field)) return null;
+
+        // 1. Try exact match (including if it already contains a dot from a prior merge)
+        if (obj.Values.TryGetValue(field, out var val)) return val;
+
+        var searchField = field;
+        if (field.Contains('.'))
+        {
+            var parts = field.Split('.');
+            if (parts.Length == 2)
+            {
+                var prefix = parts[0];
+                var actual = parts[1];
+
+                if (prefix.Equals(alias, StringComparison.OrdinalIgnoreCase) || 
+                    prefix.Equals(conceptName, StringComparison.OrdinalIgnoreCase))
+                {
+                    searchField = actual;
+                }
+            }
+        }
+
+        // 2. Try match again
+        if (obj.Values.TryGetValue(searchField, out val)) return val;
+
+        // 3. Case-insensitive search
+        var key = obj.Values.Keys.FirstOrDefault(k => k.Equals(searchField, StringComparison.OrdinalIgnoreCase));
+        if (key != null) return obj.Values[key];
+
+        return null;
     }
 
     private ObjectInstance MergeObjects(ObjectInstance left, ObjectInstance right, string? alias)
@@ -1587,7 +1631,7 @@ public class KnowledgeManager
                                  .Where(o => o.ConceptName == node.ConceptName)
                                  .ToList();
 
-        var matchingObjects = EvaluateConditions(allObjects, node.Conditions, kbName);
+        var matchingObjects = EvaluateConditions(allObjects, node.Conditions, kbName, null, node.ConceptName);
         if (matchingObjects.Count == 0)
         {
             return ErrorResponse.ExecutionErrorResponse("No objects found matching conditions.");

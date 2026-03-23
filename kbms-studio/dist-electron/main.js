@@ -1,93 +1,161 @@
-import { BrowserWindow as e, app as t, dialog as n, ipcMain as r } from "electron";
-import i from "node:fs";
-import a from "node:path";
-import { fileURLToPath as o } from "node:url";
-import s from "node:net";
-import { Buffer as c } from "node:buffer";
+import { BrowserWindow, app, dialog, ipcMain } from "electron";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import net from "node:net";
+import { Buffer as Buffer$1 } from "node:buffer";
 //#region electron/kbms-protocol.ts
-var l = /* @__PURE__ */ function(e) {
-	return e[e.LOGIN = 1] = "LOGIN", e[e.QUERY = 2] = "QUERY", e[e.RESULT = 3] = "RESULT", e[e.ERROR = 4] = "ERROR", e[e.LOGOUT = 5] = "LOGOUT", e[e.METADATA = 6] = "METADATA", e[e.ROW = 7] = "ROW", e[e.FETCH_DONE = 8] = "FETCH_DONE", e;
-}({}), u = class {
-	static pack(e) {
-		let t = c.from(e.content, "utf8"), n = e.sessionId ? c.from(e.sessionId, "utf8") : c.alloc(0), r = e.requestId ? c.from(e.requestId, "utf8") : c.alloc(0), i = n.length, a = r.length, o = t.length + 2 + i + 2 + a, s = c.alloc(4);
-		s.writeInt32BE(o, 0);
-		let l = c.from([e.type]), u = c.alloc(2);
-		u.writeUInt16BE(i, 0);
-		let d = c.alloc(2);
-		return d.writeUInt16BE(a, 0), c.concat([
-			s,
-			l,
-			u,
-			n,
-			d,
-			r,
-			t
+var MessageType = /* @__PURE__ */ function(MessageType) {
+	MessageType[MessageType["LOGIN"] = 1] = "LOGIN";
+	MessageType[MessageType["QUERY"] = 2] = "QUERY";
+	MessageType[MessageType["RESULT"] = 3] = "RESULT";
+	MessageType[MessageType["ERROR"] = 4] = "ERROR";
+	MessageType[MessageType["LOGOUT"] = 5] = "LOGOUT";
+	MessageType[MessageType["METADATA"] = 6] = "METADATA";
+	MessageType[MessageType["ROW"] = 7] = "ROW";
+	MessageType[MessageType["FETCH_DONE"] = 8] = "FETCH_DONE";
+	return MessageType;
+}({});
+var Protocol = class {
+	static pack(message) {
+		const contentBuffer = Buffer$1.from(message.content, "utf8");
+		const sessionIdBuffer = message.sessionId ? Buffer$1.from(message.sessionId, "utf8") : Buffer$1.alloc(0);
+		const requestIdBuffer = message.requestId ? Buffer$1.from(message.requestId, "utf8") : Buffer$1.alloc(0);
+		const sessionIdLength = sessionIdBuffer.length;
+		const requestIdLength = requestIdBuffer.length;
+		const totalLength = contentBuffer.length + 2 + sessionIdLength + 2 + requestIdLength;
+		const lengthBuffer = Buffer$1.alloc(4);
+		lengthBuffer.writeInt32BE(totalLength, 0);
+		const typeBuffer = Buffer$1.from([message.type]);
+		const sessionIdLenBuffer = Buffer$1.alloc(2);
+		sessionIdLenBuffer.writeUInt16BE(sessionIdLength, 0);
+		const requestIdLenBuffer = Buffer$1.alloc(2);
+		requestIdLenBuffer.writeUInt16BE(requestIdLength, 0);
+		return Buffer$1.concat([
+			lengthBuffer,
+			typeBuffer,
+			sessionIdLenBuffer,
+			sessionIdBuffer,
+			requestIdLenBuffer,
+			requestIdBuffer,
+			contentBuffer
 		]);
 	}
-	static unpack(e) {
-		let t = [], n = 0;
-		for (; n + 4 <= e.length;) {
-			let r = e.readInt32BE(n), i = 5 + r;
-			if (n + i > e.length) break;
-			let a = e.readUInt8(n + 4), o = e.readUInt16BE(n + 5), s;
-			o > 0 && (s = e.toString("utf8", n + 7, n + 7 + o));
-			let c = n + 7 + o, l = e.readUInt16BE(c), u;
-			l > 0 && (u = e.toString("utf8", c + 2, c + 2 + l));
-			let d = r - 2 - o - 2 - l, f = c + 2 + l, p = e.toString("utf8", f, f + d);
-			t.push({
-				type: a,
-				content: p,
-				sessionId: s,
-				requestId: u
-			}), n += i;
+	/**
+	* Parses a buffer stream and returns messages.
+	* Returns the parsed messages and the remaining buffer.
+	*/
+	static unpack(buffer) {
+		const messages = [];
+		let offset = 0;
+		while (offset + 4 <= buffer.length) {
+			const length = buffer.readInt32BE(offset);
+			const packetTotalBytes = 5 + length;
+			if (offset + packetTotalBytes > buffer.length) break;
+			const type = buffer.readUInt8(offset + 4);
+			const sessionIdLength = buffer.readUInt16BE(offset + 5);
+			let sessionId = void 0;
+			if (sessionIdLength > 0) sessionId = buffer.toString("utf8", offset + 7, offset + 7 + sessionIdLength);
+			const requestIdOffset = offset + 7 + sessionIdLength;
+			const requestIdLength = buffer.readUInt16BE(requestIdOffset);
+			let requestId = void 0;
+			if (requestIdLength > 0) requestId = buffer.toString("utf8", requestIdOffset + 2, requestIdOffset + 2 + requestIdLength);
+			const payloadLength = length - 2 - sessionIdLength - 2 - requestIdLength;
+			const contentStart = requestIdOffset + 2 + requestIdLength;
+			const content = buffer.toString("utf8", contentStart, contentStart + payloadLength);
+			messages.push({
+				type,
+				content,
+				sessionId,
+				requestId
+			});
+			offset += packetTotalBytes;
 		}
 		return {
-			messages: t,
-			remaining: e.subarray(n)
+			messages,
+			remaining: buffer.subarray(offset)
 		};
 	}
-}, d = new class {
+};
+//#endregion
+//#region electron/kbms-client.ts
+var KbmsTCPClient = class {
 	constructor() {
-		this.socket = null, this.buffer = Buffer.alloc(0), this.win = null, this.sessionId = "", this.connectResolver = null, this.currentQueryResolver = null, this.currentQueryRejecter = null, this.queryResultData = null, this.requestQueue = [], this.isProcessingQueue = !1, this.isReconnecting = !1, this.activeRequest = null, this.pendingRequestsMetadata = /* @__PURE__ */ new Map(), this.heartbeatTimer = null;
+		this.socket = null;
+		this.buffer = Buffer.alloc(0);
+		this.win = null;
+		this.sessionId = "";
+		this.connectResolver = null;
+		this.currentQueryResolver = null;
+		this.currentQueryRejecter = null;
+		this.queryResultData = null;
+		this.requestQueue = [];
+		this.isProcessingQueue = false;
+		this.isReconnecting = false;
+		this.activeRequest = null;
+		this.pendingRequestsMetadata = /* @__PURE__ */ new Map();
+		this.heartbeatTimer = null;
 	}
-	setWindow(e) {
-		this.win = e;
+	setWindow(win) {
+		this.win = win;
 	}
-	sendToUI(e, t) {
+	sendToUI(channel, payload) {
 		if (this.win && !this.win.isDestroyed() && this.win.webContents && !this.win.webContents.isDestroyed()) try {
-			this.win.webContents.send(e, t);
+			this.win.webContents.send(channel, payload);
 		} catch (e) {
 			console.error("(KBMS Client) Failed to send message to UI:", e);
 		}
 	}
-	connect(e = "127.0.0.1", t = 3307, n = "admin", r = "admin") {
-		return new Promise((i) => {
-			this.disconnect(), this.socket = new s.Socket(), this.socket.setKeepAlive(!0, 3e4), this.socket.setTimeout(6e5), this.connectResolver = i, this.socket.connect(t, e, () => {
-				console.log(`(KBMS Client) Socket connected to ${e}:${t}`), this.sendToUI("kbms-status", "connected");
-				let i = `LOGIN ${n} ${r}`;
-				this.socket?.write(u.pack({
-					type: l.LOGIN,
-					content: i
-				})), this.startHeartbeat();
-			}), this.socket.on("data", (e) => {
+	connect(host = "127.0.0.1", port = 3307, user = "admin", pass = "admin") {
+		return new Promise((resolve) => {
+			this.disconnect();
+			this.socket = new net.Socket();
+			this.socket.setKeepAlive(true, 3e4);
+			this.socket.setTimeout(6e5);
+			this.connectResolver = resolve;
+			this.socket.connect(port, host, () => {
+				console.log(`(KBMS Client) Socket connected to ${host}:${port}`);
+				this.sendToUI("kbms-status", "connected");
+				const loginPayload = `LOGIN ${user} ${pass}`;
+				this.socket?.write(Protocol.pack({
+					type: MessageType.LOGIN,
+					content: loginPayload
+				}));
+				this.startHeartbeat();
+			});
+			this.socket.on("data", (data) => {
 				try {
-					this.buffer = Buffer.concat([this.buffer, e]);
-					let { messages: t, remaining: n } = u.unpack(this.buffer);
-					this.buffer = n;
-					for (let e of t) try {
-						this.handleServerMessage(e);
-					} catch (e) {
-						console.error("(KBMS Client) Error handling message:", e);
+					this.buffer = Buffer.concat([this.buffer, data]);
+					const { messages, remaining } = Protocol.unpack(this.buffer);
+					this.buffer = remaining;
+					for (const msg of messages) try {
+						this.handleServerMessage(msg);
+					} catch (err) {
+						console.error("(KBMS Client) Error handling message:", err);
 					}
-				} catch (e) {
-					console.error("(KBMS Client) Data processing error:", e);
+				} catch (err) {
+					console.error("(KBMS Client) Data processing error:", err);
 				}
-			}), this.socket.on("close", () => {
-				console.log("(KBMS Client) Connection closed"), this.cleanup("Connection closed"), this.sendToUI("kbms-status", "disconnected"), this.socket = null;
-			}), this.socket.on("timeout", () => {
-				console.warn("(KBMS Client) Socket Timeout"), this.cleanup("Socket Timeout"), this.socket && this.socket.destroy();
-			}), this.socket.on("error", (e) => {
-				console.error("(KBMS Client) Socket error:", e.message), this.cleanup(e.message), this.sendToUI("kbms-status", "error"), this.connectResolver &&= (this.connectResolver(!1), null);
+			});
+			this.socket.on("close", () => {
+				console.log("(KBMS Client) Connection closed");
+				this.cleanup("Connection closed");
+				this.sendToUI("kbms-status", "disconnected");
+				this.socket = null;
+			});
+			this.socket.on("timeout", () => {
+				console.warn("(KBMS Client) Socket Timeout");
+				this.cleanup("Socket Timeout");
+				if (this.socket) this.socket.destroy();
+			});
+			this.socket.on("error", (err) => {
+				console.error("(KBMS Client) Socket error:", err.message);
+				this.cleanup(err.message);
+				this.sendToUI("kbms-status", "error");
+				if (this.connectResolver) {
+					this.connectResolver(false);
+					this.connectResolver = null;
+				}
 			});
 		});
 	}
@@ -99,230 +167,324 @@ var l = /* @__PURE__ */ function(e) {
 			port: this.socket?.remotePort
 		};
 	}
-	cleanup(e) {
-		for (this.currentQueryRejecter && this.currentQueryRejecter(Error(e)), this.currentQueryResolver = null, this.currentQueryRejecter = null, this.queryResultData = null, this.sessionId = ""; this.requestQueue.length > 0;) this.requestQueue.shift()?.reject(Error(e));
-		this.isProcessingQueue = !1, this.stopHeartbeat();
+	cleanup(message) {
+		if (this.currentQueryRejecter) this.currentQueryRejecter(new Error(message));
+		this.currentQueryResolver = null;
+		this.currentQueryRejecter = null;
+		this.queryResultData = null;
+		this.sessionId = "";
+		while (this.requestQueue.length > 0) this.requestQueue.shift()?.reject(new Error(message));
+		this.isProcessingQueue = false;
+		this.stopHeartbeat();
 	}
 	startHeartbeat() {
-		this.stopHeartbeat(), this.heartbeatTimer = setInterval(() => {
+		this.stopHeartbeat();
+		this.heartbeatTimer = setInterval(() => {
 			if (this.socket && !this.socket.destroyed && this.sessionId) {
-				let e = "hb_" + Date.now();
-				console.log("(KBMS Client) Sending Heartbeat..."), this.pendingRequestsMetadata.set(e, { isBackground: !0 }), this.socket.write(u.pack({
-					type: l.QUERY,
+				const requestId = "hb_" + Date.now();
+				console.log("(KBMS Client) Sending Heartbeat...");
+				this.pendingRequestsMetadata.set(requestId, { isBackground: true });
+				this.socket.write(Protocol.pack({
+					type: MessageType.QUERY,
 					content: "",
-					requestId: e,
+					requestId,
 					sessionId: this.sessionId
 				}));
 			}
 		}, 45e3);
 	}
 	stopHeartbeat() {
-		this.heartbeatTimer &&= (clearInterval(this.heartbeatTimer), null);
+		if (this.heartbeatTimer) {
+			clearInterval(this.heartbeatTimer);
+			this.heartbeatTimer = null;
+		}
 	}
-	execute(e, t = !1, n) {
-		return new Promise((r, i) => {
-			n ||= `web_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`, this.pendingRequestsMetadata.set(n, { isBackground: t }), this.requestQueue.push({
-				query: e,
-				isBackground: t,
-				requestId: n,
-				resolve: r,
-				reject: i
-			}), this.processQueue();
+	execute(query, isBackground = false, requestId) {
+		return new Promise((resolve, reject) => {
+			if (!requestId) requestId = `web_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+			this.pendingRequestsMetadata.set(requestId, { isBackground });
+			this.requestQueue.push({
+				query,
+				isBackground,
+				requestId,
+				resolve,
+				reject
+			});
+			this.processQueue();
 		});
 	}
 	async processQueue() {
 		if (this.isProcessingQueue || this.requestQueue.length === 0) return;
-		if (this.isProcessingQueue = !0, this.activeRequest = this.requestQueue[0], !this.socket || this.socket.destroyed) {
-			this.activeRequest.reject(/* @__PURE__ */ Error("Not connected to server")), this.requestQueue.shift(), this.isProcessingQueue = !1, this.activeRequest = null, this.processQueue();
+		this.isProcessingQueue = true;
+		this.activeRequest = this.requestQueue[0];
+		if (!this.socket || this.socket.destroyed) {
+			this.activeRequest.reject(/* @__PURE__ */ new Error("Not connected to server"));
+			this.requestQueue.shift();
+			this.isProcessingQueue = false;
+			this.activeRequest = null;
+			this.processQueue();
 			return;
 		}
-		this.currentQueryResolver = this.activeRequest.resolve, this.currentQueryRejecter = this.activeRequest.reject, this.queryResultData = null;
-		let e = u.pack({
-			type: l.QUERY,
+		this.currentQueryResolver = this.activeRequest.resolve;
+		this.currentQueryRejecter = this.activeRequest.reject;
+		this.queryResultData = null;
+		const payload = Protocol.pack({
+			type: MessageType.QUERY,
 			content: this.activeRequest.query,
 			sessionId: this.sessionId,
 			requestId: this.activeRequest.requestId
 		});
-		this.socket.write(e);
+		this.socket.write(payload);
 	}
-	handleServerMessage(e) {
-		console.log(`(KBMS Client) Incoming message [${e.type}]: ${e.content.substring(0, 100)}`);
-		let t = e.requestId ? this.pendingRequestsMetadata.get(e.requestId) : null, n = t ? t.isBackground : this.activeRequest ? !!this.activeRequest.isBackground : !1;
-		if (e.type === l.RESULT && e.content.startsWith("LOGIN_SUCCESS")) {
-			console.log("(KBMS Client) Login SUCCESS");
-			let t = e.content.split(":");
-			t.length > 3 && (this.sessionId = t[3]), this.connectResolver &&= (this.connectResolver(!0), null);
+	handleServerMessage(msg) {
+		console.log(`(KBMS Client) Incoming message [${msg.type}]: ${msg.content.substring(0, 100)}`);
+		const meta = msg.requestId ? this.pendingRequestsMetadata.get(msg.requestId) : null;
+		const isBackground = meta ? meta.isBackground : this.activeRequest ? !!this.activeRequest.isBackground : false;
+		if (msg.type === MessageType.RESULT && msg.content.startsWith("LOGIN_SUCCESS")) {
+			console.log(`(KBMS Client) Login SUCCESS`);
+			const parts = msg.content.split(":");
+			if (parts.length > 3) this.sessionId = parts[3];
+			if (this.connectResolver) {
+				this.connectResolver(true);
+				this.connectResolver = null;
+			}
 			return;
 		}
-		if (e.type === l.ERROR) {
-			if (console.error(`(KBMS Client) Server Error: ${e.content}`), this.connectResolver) {
-				this.connectResolver(!1), this.connectResolver = null;
+		if (msg.type === MessageType.ERROR) {
+			console.error(`(KBMS Client) Server Error: ${msg.content}`);
+			if (this.connectResolver) {
+				this.connectResolver(false);
+				this.connectResolver = null;
 				return;
 			}
-			this.queryResultData ||= {
+			if (!this.queryResultData) this.queryResultData = {
 				headers: ["Error"],
 				rows: [],
 				messages: []
 			};
-			let { text: t, markers: r } = this.extractErrorInfo(e.content);
-			r.length > 0 && (this.queryResultData.editorMarkers || (this.queryResultData.editorMarkers = []), this.queryResultData.editorMarkers.push(...r)), this.queryResultData.messages.push({
+			const { text, markers } = this.extractErrorInfo(msg.content);
+			if (markers.length > 0) {
+				if (!this.queryResultData.editorMarkers) this.queryResultData.editorMarkers = [];
+				this.queryResultData.editorMarkers.push(...markers);
+			}
+			this.queryResultData.messages.push({
 				type: "error",
-				text: t
-			}), this.sendToUI("kbms-stream", {
-				type: "error",
-				text: t,
-				markers: r,
-				requestId: e.requestId,
-				isBackground: n
+				text
 			});
-		} else if (e.type === l.METADATA) try {
-			let t = JSON.parse(e.content);
-			t.error ? (this.queryResultData ||= {
-				headers: ["Error"],
-				rows: [],
-				messages: []
-			}, this.queryResultData.messages.push({
+			this.sendToUI("kbms-stream", {
 				type: "error",
-				text: t.error
-			})) : (this.queryResultData = {
-				ConceptName: t.ConceptName || t.conceptName || "",
-				headers: t.Columns || [],
-				rows: [],
-				messages: []
-			}, this.sendToUI("kbms-stream", {
-				type: "metadata",
-				metadata: t,
-				isBackground: n,
-				requestId: e.requestId
-			}));
+				text,
+				markers,
+				requestId: msg.requestId,
+				isBackground
+			});
+		} else if (msg.type === MessageType.METADATA) try {
+			const metadata = JSON.parse(msg.content);
+			if (metadata.error) {
+				if (!this.queryResultData) this.queryResultData = {
+					headers: ["Error"],
+					rows: [],
+					messages: []
+				};
+				this.queryResultData.messages.push({
+					type: "error",
+					text: metadata.error
+				});
+			} else {
+				this.queryResultData = {
+					ConceptName: metadata.ConceptName || metadata.conceptName || "",
+					headers: metadata.Columns || [],
+					rows: [],
+					messages: []
+				};
+				this.sendToUI("kbms-stream", {
+					type: "metadata",
+					metadata,
+					isBackground,
+					requestId: msg.requestId
+				});
+			}
 		} catch (e) {
 			console.error("(KBMS Client) Failed to parse metadata", e);
 		}
-		else if (e.type === l.ROW) try {
-			let t = JSON.parse(e.content);
-			!Array.isArray(t) && t.error ? (this.queryResultData ||= {
-				headers: ["Error"],
-				rows: [],
-				messages: []
-			}, this.queryResultData.messages.push({
-				type: "error",
-				text: t.error
-			})) : (this.queryResultData && (Array.isArray(t) ? this.queryResultData.rows.push(...t) : this.queryResultData.rows.push(t)), this.sendToUI("kbms-stream", {
-				type: "row",
-				row: t,
-				isBackground: n,
-				requestId: e.requestId
-			}));
+		else if (msg.type === MessageType.ROW) try {
+			const rowData = JSON.parse(msg.content);
+			if (!Array.isArray(rowData) && rowData.error) {
+				if (!this.queryResultData) this.queryResultData = {
+					headers: ["Error"],
+					rows: [],
+					messages: []
+				};
+				this.queryResultData.messages.push({
+					type: "error",
+					text: rowData.error
+				});
+			} else {
+				if (this.queryResultData) if (Array.isArray(rowData)) this.queryResultData.rows.push(...rowData);
+				else this.queryResultData.rows.push(rowData);
+				this.sendToUI("kbms-stream", {
+					type: "row",
+					row: rowData,
+					isBackground,
+					requestId: msg.requestId
+				});
+			}
 		} catch (e) {
 			console.error("(KBMS Client) Failed to parse row", e);
 		}
-		else if (e.type === l.RESULT) {
-			this.queryResultData ||= {
+		else if (msg.type === MessageType.RESULT) {
+			if (!this.queryResultData) this.queryResultData = {
 				headers: ["Result"],
 				rows: [],
 				messages: []
 			};
-			let { text: t, markers: r, isError: i } = this.extractErrorInfo(e.content);
-			r.length > 0 && (this.queryResultData.editorMarkers || (this.queryResultData.editorMarkers = []), this.queryResultData.editorMarkers.push(...r)), this.queryResultData.messages.push({
-				type: i ? "error" : "info",
-				text: t
-			}), this.sendToUI("kbms-stream", {
-				type: "result",
-				text: t,
-				markers: r,
-				isBackground: n,
-				requestId: e.requestId
+			const { text, markers, isError } = this.extractErrorInfo(msg.content);
+			if (markers.length > 0) {
+				if (!this.queryResultData.editorMarkers) this.queryResultData.editorMarkers = [];
+				this.queryResultData.editorMarkers.push(...markers);
+			}
+			this.queryResultData.messages.push({
+				type: isError ? "error" : "info",
+				text
 			});
-		} else if (e.type === l.FETCH_DONE) {
+			this.sendToUI("kbms-stream", {
+				type: "result",
+				text,
+				markers,
+				isBackground,
+				requestId: msg.requestId
+			});
+		} else if (msg.type === MessageType.FETCH_DONE) {
 			try {
-				let t = JSON.parse(e.content);
-				this.queryResultData ||= {
+				const summary = JSON.parse(msg.content);
+				if (!this.queryResultData) this.queryResultData = {
 					headers: [],
 					rows: [],
 					messages: []
 				};
-				let r = `Done: ${t.statementsExecuted || 0} stmts in ${t.executionTime}s`;
+				const text = `Done: ${summary.statementsExecuted || 0} stmts in ${summary.executionTime}s`;
 				this.queryResultData.messages.push({
 					type: "info",
-					text: r
-				}), this.sendToUI("kbms-stream", {
+					text
+				});
+				this.sendToUI("kbms-stream", {
 					type: "result",
-					text: r,
-					isBackground: n,
-					requestId: e.requestId
+					text,
+					isBackground,
+					requestId: msg.requestId
 				});
 			} catch {}
-			let t = this.currentQueryResolver, r = this.queryResultData;
-			this.currentQueryResolver = null, this.currentQueryRejecter = null, this.queryResultData = null, t && t(r), this.requestQueue.shift(), e.requestId && this.pendingRequestsMetadata.delete(e.requestId), this.isProcessingQueue = !1, this.processQueue();
+			const resolver = this.currentQueryResolver;
+			const result = this.queryResultData;
+			this.currentQueryResolver = null;
+			this.currentQueryRejecter = null;
+			this.queryResultData = null;
+			if (resolver) resolver(result);
+			this.requestQueue.shift();
+			if (msg.requestId) this.pendingRequestsMetadata.delete(msg.requestId);
+			this.isProcessingQueue = false;
+			this.processQueue();
 		}
 	}
-	extractErrorInfo(e) {
-		let t = e, n = [], r = !1;
+	extractErrorInfo(content) {
+		let text = content;
+		let markers = [];
+		let isError = false;
 		try {
-			let i = JSON.parse(e), a = i.Message || i.message || i.Error || i.error, o = i.Type || i.type || "", s = i.Line ?? i.line, c = i.Column ?? i.column;
-			if (r = o.toLowerCase().includes("error") || !!(i.Error || i.error), a) {
-				let e = s != null && c != null && s > 0 ? ` at line ${s}, col ${c}` : "";
-				t = o ? `[${o}] ${a}${e}` : `${a}${e}`, s != null && c != null && s > 0 && n.push({
-					startLineNumber: s,
-					startColumn: c,
-					endLineNumber: s,
-					endColumn: c + 1,
-					message: a,
+			const json = JSON.parse(content);
+			const msgField = json.Message || json.message || json.Error || json.error;
+			const typeField = json.Type || json.type || "";
+			const line = json.Line ?? json.line;
+			const col = json.Column ?? json.column;
+			isError = typeField.toLowerCase().includes("error") || !!(json.Error || json.error);
+			if (msgField) {
+				const location = line != null && col != null && line > 0 ? ` at line ${line}, col ${col}` : "";
+				text = typeField ? `[${typeField}] ${msgField}${location}` : `${msgField}${location}`;
+				if (line != null && col != null && line > 0) markers.push({
+					startLineNumber: line,
+					startColumn: col,
+					endLineNumber: line,
+					endColumn: col + 1,
+					message: msgField,
 					severity: 8
 				});
 			}
 		} catch {
-			r = e.toLowerCase().includes("error");
+			isError = content.toLowerCase().includes("error");
 		}
 		return {
-			text: t,
-			markers: n,
-			isError: r
+			text,
+			markers,
+			isError
 		};
 	}
 	disconnect() {
-		this.stopHeartbeat(), this.socket && (this.socket.destroy(), this.socket = null, this.sessionId = "", this.win?.webContents.send("kbms-status", "disconnected"));
+		this.stopHeartbeat();
+		if (this.socket) {
+			this.socket.destroy();
+			this.socket = null;
+			this.sessionId = "";
+			this.win?.webContents.send("kbms-status", "disconnected");
+		}
 	}
-}(), f = a.dirname(o(import.meta.url));
-process.env.DIST = a.join(f, "../dist"), process.env.VITE_PUBLIC = t.isPackaged ? process.env.DIST : a.join(process.env.DIST, "../public");
-var p;
-function m() {
-	p = new e({
-		icon: a.join(process.env.VITE_PUBLIC, "electron-vite.svg"),
-		webPreferences: { preload: a.join(f, "preload.mjs") },
+};
+var kbmsClient = new KbmsTCPClient();
+//#endregion
+//#region electron/main.ts
+var __dirname = path.dirname(fileURLToPath(import.meta.url));
+process.env.DIST = path.join(__dirname, "../dist");
+process.env.VITE_PUBLIC = app.isPackaged ? process.env.DIST : path.join(process.env.DIST, "../public");
+var win;
+function createWindow() {
+	win = new BrowserWindow({
+		icon: path.join(process.env.VITE_PUBLIC, "electron-vite.svg"),
+		webPreferences: { preload: path.join(__dirname, "preload.mjs") },
 		width: 1280,
 		height: 800,
 		titleBarStyle: "hiddenInset",
 		backgroundColor: "#ffffff"
-	}), d.setWindow(p), r.handle("kbms:execute", async (e, t, n = !1, r) => {
+	});
+	kbmsClient.setWindow(win);
+	ipcMain.handle("kbms:execute", async (_, query, isBackground = false, requestId) => {
 		try {
-			console.log("Execute called from UI:", t, n ? "(Background)" : "", r ? `[Req: ${r}]` : "");
-			let e = await d.execute(t, n, r);
-			return console.log("[DEBUG] Execute result returned to UI:", JSON.stringify(e, null, 2)), e;
-		} catch (e) {
+			console.log("Execute called from UI:", query, isBackground ? "(Background)" : "", requestId ? `[Req: ${requestId}]` : "");
+			const result = await kbmsClient.execute(query, isBackground, requestId);
+			console.log("[DEBUG] Execute result returned to UI:", JSON.stringify(result, null, 2));
+			return result;
+		} catch (err) {
 			return {
-				success: !1,
-				messages: [e.message],
+				success: false,
+				messages: [err.message],
 				rows: [],
 				headers: []
 			};
 		}
-	}), r.handle("kbms:connect", async (e, t, n, r, i) => {
+	});
+	ipcMain.handle("kbms:connect", async (_, host, port, user, pass) => {
 		try {
-			return { success: await d.connect(t, n, r, i) };
-		} catch (e) {
+			return { success: await kbmsClient.connect(host, port, user, pass) };
+		} catch (err) {
 			return {
-				success: !1,
-				error: e.message
+				success: false,
+				error: err.message
 			};
 		}
-	}), r.handle("kbms:get-status", async () => d.getStatus()), r.handle("kbms:disconnect", async () => (d.disconnect(), { success: !0 })), r.handle("kbms:save-file", async (e, t, r, o = !1) => {
-		if (!p) return { success: !1 };
-		let s = r, c = s && a.isAbsolute(s);
-		if (o || !c) {
-			let { canceled: e, filePath: t } = await n.showSaveDialog(p, {
-				title: o ? "Save As" : "Save KBQL Query",
-				defaultPath: s || "Query.kbql",
+	});
+	ipcMain.handle("kbms:get-status", async () => {
+		return kbmsClient.getStatus();
+	});
+	ipcMain.handle("kbms:disconnect", async () => {
+		kbmsClient.disconnect();
+		return { success: true };
+	});
+	ipcMain.handle("kbms:save-file", async (_e, content, currentPath, isNewFile = false) => {
+		if (!win) return { success: false };
+		let targetPath = currentPath;
+		const isAbsolutePath = targetPath && path.isAbsolute(targetPath);
+		if (isNewFile || !isAbsolutePath) {
+			const { canceled, filePath } = await dialog.showSaveDialog(win, {
+				title: isNewFile ? "Save As" : "Save KBQL Query",
+				defaultPath: targetPath || "Query.kbql",
 				filters: [{
 					name: "KBMS Query",
 					extensions: [
@@ -332,29 +494,32 @@ function m() {
 					]
 				}]
 			});
-			if (e || !t) return {
-				success: !1,
-				canceled: !0
+			if (canceled || !filePath) return {
+				success: false,
+				canceled: true
 			};
-			s = t;
+			targetPath = filePath;
 		}
 		try {
-			return s ? (i.writeFileSync(s, t, "utf8"), {
-				success: !0,
-				filePath: s
-			}) : {
-				success: !1,
+			if (!targetPath) return {
+				success: false,
 				error: "No target path"
 			};
-		} catch (e) {
+			fs.writeFileSync(targetPath, content, "utf8");
 			return {
-				success: !1,
-				error: e.message
+				success: true,
+				filePath: targetPath
+			};
+		} catch (err) {
+			return {
+				success: false,
+				error: err.message
 			};
 		}
-	}), r.handle("kbms:open-file", async () => {
-		if (!p) return { success: !1 };
-		let { canceled: e, filePaths: t } = await n.showOpenDialog(p, {
+	});
+	ipcMain.handle("kbms:open-file", async () => {
+		if (!win) return { success: false };
+		const { canceled, filePaths } = await dialog.showOpenDialog(win, {
 			title: "Open KBQL Query",
 			filters: [{
 				name: "KBMS Query",
@@ -366,34 +531,43 @@ function m() {
 			}],
 			properties: ["openFile"]
 		});
-		if (e || t.length === 0) return {
-			success: !1,
-			canceled: !0
+		if (canceled || filePaths.length === 0) return {
+			success: false,
+			canceled: true
 		};
 		try {
-			let e = i.readFileSync(t[0], "utf8");
+			const content = fs.readFileSync(filePaths[0], "utf8");
 			return {
-				success: !0,
-				filePath: t[0],
-				content: e
+				success: true,
+				filePath: filePaths[0],
+				content
 			};
-		} catch (e) {
+		} catch (err) {
 			return {
-				success: !1,
-				error: e.message
+				success: false,
+				error: err.message
 			};
 		}
-	}), process.env.VITE_DEV_SERVER_URL ? p.loadURL(process.env.VITE_DEV_SERVER_URL) : p.loadFile(a.join(process.env.DIST, "index.html"));
-	let t = !1;
-	r.on("kbms:set-unsaved-status", (e, n) => {
-		t = n;
-	}), r.on("kbms:force-quit", () => {
-		t = !1, p && p.close();
-	}), p.on("close", (e) => {
-		t && p && (e.preventDefault(), p.webContents.send("kbms:app-close-request"));
+	});
+	if (process.env.VITE_DEV_SERVER_URL) win.loadURL(process.env.VITE_DEV_SERVER_URL);
+	else win.loadFile(path.join(process.env.DIST, "index.html"));
+	let hasUnsavedChanges = false;
+	ipcMain.on("kbms:set-unsaved-status", (_, status) => {
+		hasUnsavedChanges = status;
+	});
+	ipcMain.on("kbms:force-quit", () => {
+		hasUnsavedChanges = false;
+		if (win) win.close();
+	});
+	win.on("close", (e) => {
+		if (hasUnsavedChanges && win) {
+			e.preventDefault();
+			win.webContents.send("kbms:app-close-request");
+		}
 	});
 }
-t.on("window-all-closed", () => {
-	process.platform !== "darwin" && t.quit();
-}), t.whenReady().then(m);
+app.on("window-all-closed", () => {
+	if (process.platform !== "darwin") app.quit();
+});
+app.whenReady().then(createWindow);
 //#endregion
