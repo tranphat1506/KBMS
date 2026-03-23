@@ -38,6 +38,9 @@ export interface KbmsState {
   };
   profiles: ServerProfile[];
   isConnectModalOpen: boolean;
+  activeSidebarView: 'explorer' | 'system';
+  systemLogs: any[];
+  auditLogs: any[];
   selectedKb: string;
   lastError: string | null;
   lastDescribeResult: any | null;
@@ -45,6 +48,9 @@ export interface KbmsState {
   editorMarkers: any[];
   currentRequestId: string | null;
   setSelectedKb: (kb: string) => void;
+  setActiveSidebarView: (v: 'explorer' | 'system') => void;
+  fetchSystemLogs: () => Promise<void>;
+  fetchAuditLogs: () => Promise<void>;
   setConnectModalOpen: (v: boolean) => void;
   setQuery: (query: string) => void;
   setActiveTab: (t: 'results' | 'messages') => void;
@@ -131,6 +137,9 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
     operators: []
   },
   profiles: loadProfiles(),
+  activeSidebarView: 'explorer',
+  systemLogs: [],
+  auditLogs: [],
   isConnectModalOpen: false,
   selectedKb: '',
   lastError: null,
@@ -145,6 +154,7 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
   },
 
   setSelectedKb: (kb) => set({ selectedKb: kb }),
+  setActiveSidebarView: (v) => set({ activeSidebarView: v }),
   setConnectModalOpen: (v: boolean) => set({ isConnectModalOpen: v }),
   stopExecution: () => set({ isExecuting: false }),
   clearEditorMarkers: () => set({ editorMarkers: [] }),
@@ -154,6 +164,42 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
   closeConfirm: () => set((state) => ({ 
     confirmDialog: { ...state.confirmDialog, isOpen: false } 
   })),
+
+  fetchSystemLogs: async () => {
+    if (get().status !== 'connected') return;
+    try {
+      // Temporarily switch to 'system' KB to fetch logs
+      const currentKb = get().selectedKb;
+      await get().execute("USE system;", { isBackground: true });
+      const res = await get().execute("SELECT * FROM system_logs ORDER BY timestamp DESC LIMIT 50;", { isBackground: true });
+      if (res && res.rows) {
+        set({ systemLogs: res.rows });
+      }
+      // Switch back
+      if (currentKb && currentKb !== 'system') {
+        await get().execute(`USE ${currentKb};`, { isBackground: true });
+      }
+    } catch (err) {
+      console.error("Failed to fetch system logs:", err);
+    }
+  },
+
+  fetchAuditLogs: async () => {
+    if (get().status !== 'connected') return;
+    try {
+      const currentKb = get().selectedKb;
+      await get().execute("USE system;", { isBackground: true });
+      const res = await get().execute("SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT 50;", { isBackground: true });
+      if (res && res.rows) {
+        set({ auditLogs: res.rows });
+      }
+      if (currentKb && currentKb !== 'system') {
+        await get().execute(`USE ${currentKb};`, { isBackground: true });
+      }
+    } catch (err) {
+      console.error("Failed to fetch audit logs:", err);
+    }
+  },
 
   saveProfile: (p) => set((state) => {
     const exists = state.profiles.some(x => x.id === p.id);

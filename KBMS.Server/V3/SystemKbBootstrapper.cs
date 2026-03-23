@@ -11,11 +11,18 @@ namespace KBMS.Server.V3;
 /// </summary>
 public class SystemKbBootstrapper
 {
-    private readonly StorageEngine _engine;
+    private readonly KBMS.Storage.V3.KbCatalog _kbCatalog;
+    private readonly KBMS.Storage.V3.ConceptCatalog _conceptCatalog;
+    private readonly KBMS.Knowledge.V3.V3DataRouter _v3Router;
 
-    public SystemKbBootstrapper(StorageEngine engine)
+    public SystemKbBootstrapper(
+        KBMS.Storage.V3.KbCatalog kbCatalog, 
+        KBMS.Storage.V3.ConceptCatalog conceptCatalog,
+        KBMS.Knowledge.V3.V3DataRouter v3Router)
     {
-        _engine = engine;
+        _kbCatalog = kbCatalog;
+        _conceptCatalog = conceptCatalog;
+        _v3Router = v3Router;
     }
 
     /// <summary>
@@ -26,10 +33,10 @@ public class SystemKbBootstrapper
     {
         try
         {
-            if (_engine.LoadKb("system") == null)
+            if (_kbCatalog.LoadKb("system") == null)
             {
                 Console.WriteLine("[SystemBootstrapper] 'system' Knowledge Base not found. Bootstrapping...");
-                _engine.CreateKb("system", Guid.Empty, "System Configuration and Logs");
+                _kbCatalog.CreateKb("system", Guid.Empty, "System Configuration and Logs");
                 
                 // 1. Audit Logs Concept
                 var auditConcept = new Concept { Name = "audit_logs" };
@@ -38,26 +45,26 @@ public class SystemKbBootstrapper
                 auditConcept.Variables.Add(new Variable { Name = "command", Type = "STRING" });
                 auditConcept.Variables.Add(new Variable { Name = "status", Type = "STRING" });
                 auditConcept.Variables.Add(new Variable { Name = "ip_address", Type = "STRING" });
-                _engine.CreateConcept("system", auditConcept);
+                _conceptCatalog.CreateConcept("system", auditConcept);
 
                 // 2. System Logs Concept
                 var sysConcept = new Concept { Name = "system_logs" };
                 sysConcept.Variables.Add(new Variable { Name = "timestamp", Type = "STRING" });
                 sysConcept.Variables.Add(new Variable { Name = "level", Type = "STRING" });
                 sysConcept.Variables.Add(new Variable { Name = "message", Type = "STRING" });
-                _engine.CreateConcept("system", sysConcept);
+                _conceptCatalog.CreateConcept("system", sysConcept);
 
                 // 3. Settings Concept (Variables)
                 var settingsConcept = new Concept { Name = "settings" };
                 settingsConcept.Variables.Add(new Variable { Name = "variable_name", Type = "STRING" });
                 settingsConcept.Variables.Add(new Variable { Name = "variable_value", Type = "STRING" });
-                _engine.CreateConcept("system", settingsConcept);
+                _conceptCatalog.CreateConcept("system", settingsConcept);
 
                 // 4. Version Concept 
                 var verConcept = new Concept { Name = "version" };
                 verConcept.Variables.Add(new Variable { Name = "version_string", Type = "STRING" });
                 verConcept.Variables.Add(new Variable { Name = "build_date", Type = "STRING" });
-                _engine.CreateConcept("system", verConcept);
+                _conceptCatalog.CreateConcept("system", verConcept);
 
                 // 5. Seed initial data
                 SeedSettingsAndVersion();
@@ -75,16 +82,16 @@ public class SystemKbBootstrapper
         var versionObj = new ObjectInstance { ConceptName = "version" };
         versionObj.Values["version_string"] = "3.0.0-rc1";
         versionObj.Values["build_date"] = DateTime.Now.ToString("yyyy-MM-dd");
-        _engine.InsertObject("system", versionObj);
+        _v3Router.InsertObject("system", versionObj);
 
         var maxConnObj = new ObjectInstance { ConceptName = "settings" };
         maxConnObj.Values["variable_name"] = "max_connections";
         maxConnObj.Values["variable_value"] = "1000";
-        _engine.InsertObject("system", maxConnObj);
+        _v3Router.InsertObject("system", maxConnObj);
 
         var pageSizeObj = new ObjectInstance { ConceptName = "settings" };
         pageSizeObj.Values["variable_name"] = "page_size";
         pageSizeObj.Values["variable_value"] = "16384";
-        _engine.InsertObject("system", pageSizeObj);
+        _v3Router.InsertObject("system", pageSizeObj);
     }
 }

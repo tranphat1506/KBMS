@@ -11,11 +11,11 @@ namespace KBMS.Server.V3;
 /// </summary>
 public class SystemLogger
 {
-    private readonly StorageEngine _engine;
+    private readonly KBMS.Knowledge.V3.V3DataRouter _v3Router;
     
-    public SystemLogger(StorageEngine engine)
+    public SystemLogger(KBMS.Knowledge.V3.V3DataRouter v3Router)
     {
-        _engine = engine;
+        _v3Router = v3Router;
     }
 
     /// <summary>
@@ -32,7 +32,7 @@ public class SystemLogger
             logObj.Values["level"] = level;
             logObj.Values["message"] = message;
             
-            _engine.InsertObject("system", logObj);
+            _v3Router.InsertObject("system", logObj);
             
             // Console mirroring for tailing
             Console.WriteLine($"[{timestamp}] [{level.ToUpper()}] {message}");
@@ -60,7 +60,7 @@ public class SystemLogger
             auditObj.Values["status"] = status;
             auditObj.Values["ip_address"] = ipAddress;
             
-            _engine.InsertObject("system", auditObj);
+            _v3Router.InsertObject("system", auditObj);
         }
         catch 
         {

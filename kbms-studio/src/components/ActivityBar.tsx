@@ -1,8 +1,8 @@
-import { Database, Search, Settings, FileCode2, FlaskConical } from 'lucide-react';
+import { Database, Search, Settings, FileCode2, Server } from 'lucide-react';
 import { useKbmsStore } from '../store/kbmsStore';
 
 export default function ActivityBar() {
-  const setConnectModalOpen = useKbmsStore(state => state.setConnectModalOpen);
+  const { setConnectModalOpen, activeSidebarView, setActiveSidebarView } = useKbmsStore();
   const isMac = navigator.userAgent.indexOf('Mac') > -1;
   const cmd = isMac ? '⌘' : 'Ctrl';
 
@@ -14,16 +14,34 @@ export default function ActivityBar() {
         title="Connect to Server Manager"
       >
         <Database className="w-4 h-4 stroke-[2]" />
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-emerald-500 rounded-r-full -ml-1.5" />
       </button>
-      <button className="text-slate-500 hover:text-slate-800 transition-colors p-1.5 rounded hover:bg-slate-200/50 cursor-pointer" title={`Object Explorer (${cmd} + Shift + E)`}>
+
+      <div className="w-6 h-[1px] bg-slate-200 my-1" />
+
+      <button 
+        onClick={() => setActiveSidebarView('explorer')}
+        className={`transition-colors p-1.5 rounded relative group cursor-pointer ${activeSidebarView === 'explorer' ? 'text-emerald-700 bg-emerald-50' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-200/50'}`} 
+        title={`Object Explorer (${cmd} + Shift + E)`}
+      >
         <FileCode2 className="w-4 h-4 stroke-[1.5]" />
+        {activeSidebarView === 'explorer' && (
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-emerald-500 rounded-r-full -ml-[8px]" />
+        )}
       </button>
+
+      <button 
+        onClick={() => setActiveSidebarView('system')}
+        className={`transition-colors p-1.5 rounded relative group cursor-pointer ${activeSidebarView === 'system' ? 'text-emerald-700 bg-emerald-50' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-200/50'}`} 
+        title="System Management (Server Logs & Status)"
+      >
+        <Server className="w-4 h-4 stroke-[1.5]" />
+        {activeSidebarView === 'system' && (
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-emerald-500 rounded-r-full -ml-[8px]" />
+        )}
+      </button>
+
       <button className="text-slate-300 transition-colors p-1.5 rounded cursor-not-allowed" title={`Global Search (${cmd} + Shift + F) - Coming Soon`}>
         <Search className="w-4 h-4 stroke-[1.5]" />
-      </button>
-      <button className="text-slate-300 transition-colors p-1.5 rounded cursor-not-allowed" title="Test Explorer - Coming Soon">
-        <FlaskConical className="w-4 h-4 stroke-[1.5]" />
       </button>
       
       <div className="flex-1" />

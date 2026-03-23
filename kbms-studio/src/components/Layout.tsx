@@ -4,8 +4,12 @@ import EditorPane from './EditorPane';
 import ResultsPane from './ResultsPane';
 import StatusBar from './StatusBar';
 import ActivityBar from './ActivityBar';
+import SystemDashboard from './SystemDashboard';
+import { useKbmsStore } from '../store/kbmsStore';
 
 export default function Layout() {
+  const { activeSidebarView } = useKbmsStore();
+
   return (
     <div className="h-screen w-full flex flex-col bg-[#f8fafc] text-slate-800 font-sans overflow-hidden selection:bg-emerald-200">
       <Navbar />
@@ -19,15 +23,21 @@ export default function Layout() {
         
         {/* Main Content */}
         <div className="flex-1 flex flex-col min-w-0 bg-white relative">
-           {/* Editor */}
-           <div className="h-[55%] border-b border-[#e2e8f0] relative shadow-sm z-10 flex flex-col">
-             <EditorPane />
-           </div>
-           
-           {/* Results */}
-           <div className="h-[45%] relative flex flex-col bg-[#f8fafc]">
-             <ResultsPane />
-           </div>
+          {activeSidebarView === 'system' ? (
+            <SystemDashboard />
+          ) : (
+            <>
+              {/* Editor */}
+              <div className="h-[55%] border-b border-[#e2e8f0] relative shadow-sm z-10 flex flex-col">
+                <EditorPane />
+              </div>
+              
+              {/* Results */}
+              <div className="h-[45%] relative flex flex-col bg-[#f8fafc]">
+                <ResultsPane />
+              </div>
+            </>
+          )}
         </div>
       </div>
       <StatusBar />

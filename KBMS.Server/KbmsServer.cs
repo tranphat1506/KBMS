@@ -33,6 +33,8 @@ public class KbmsServer
     private readonly KBMS.Storage.V3.UserCatalog _userCatalog;
     private readonly KBMS.Storage.V3.WalManagerV3 _wal;
     private readonly Logger _logger;
+    private readonly KBMS.Server.V3.SystemKbBootstrapper _bootstrapper;
+    private readonly KBMS.Server.V3.SystemLogger _sysLogger;
     private bool _isRunning;
     private TcpListener? _listener;
     private readonly CancellationTokenSource _cts = new();
@@ -71,6 +73,15 @@ public class KbmsServer
         
         _authManager = new AuthenticationManager(_userCatalog);
         _knowledgeManager = new KnowledgeManager(_bpm, _diskManager, _kbCatalog, _conceptCatalog, _userCatalog, _wal);
+        
+        // V3 System KB & Logging
+        var v3Router = _knowledgeManager.V3Router;
+        _sysLogger = new KBMS.Server.V3.SystemLogger(v3Router);
+        _bootstrapper = new KBMS.Server.V3.SystemKbBootstrapper(_kbCatalog, _conceptCatalog, v3Router);
+        _bootstrapper.Bootstrap();
+
+        // Wire main logger to persistent V3 logger
+        _logger.SetSystemLogger(_sysLogger);
         
         _isRunning = false;
 
@@ -210,6 +221,8 @@ public class KbmsServer
             _connectionManager.SetSessionUser(clientId, user);
             var session = _connectionManager.GetSession(clientId);
             
+            _sysLogger.LogAudit(user.Username, "LOGIN", "SUCCESS", clientId);
+
             return new Message
             {
                 Type = MessageType.RESULT,
@@ -268,6 +281,8 @@ public class KbmsServer
                     // Refresh currentKb from session in case it was updated by a previous statement (e.g., USE)
                     currentKb = _connectionManager.GetCurrentKb(clientId);
                     var result = _knowledgeManager.Execute(ast, user, currentKb);
+                    
+                    _sysLogger.LogAudit(user.Username, ast.ToString() ?? "QUERY", "SUCCESS", clientId);
                     
                     if (result is QueryResultSet qrs && qrs.Success)
                     {

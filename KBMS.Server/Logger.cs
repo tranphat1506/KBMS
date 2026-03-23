@@ -19,10 +19,16 @@ public enum LogLevel
 public class Logger
 {
     private readonly LogLevel _minLevel;
+    private KBMS.Server.V3.SystemLogger? _sysLogger;
 
     public Logger(LogLevel minLevel = LogLevel.Info)
     {
         _minLevel = minLevel;
+    }
+
+    public void SetSystemLogger(KBMS.Server.V3.SystemLogger sysLogger)
+    {
+        _sysLogger = sysLogger;
     }
 
     /// <summary>
@@ -36,6 +42,9 @@ public class Logger
         var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
         var levelStr = level.ToString().ToUpper().PadRight(7);
         Console.WriteLine($"[{timestamp}] [{levelStr}] [{sessionId}] {message}");
+
+        // Mirror to System KB if available
+        _sysLogger?.LogSystemEvent(level.ToString(), $"[{sessionId}] {message}");
     }
 
     /// <summary>
