@@ -22,19 +22,19 @@ namespace KBMS.Knowledge.V3;
 /// </summary>
 public class V3DataRouter
 {
-    private readonly BufferPoolManager _bpm;
-    private readonly DiskManager _diskManager;
+    private readonly StoragePool _storagePool;
     private readonly QueryOptimizer _optimizer;
     
     // Catalog: "kbName:conceptName" -> list of physical page IDs holding that concept's data
     private readonly Dictionary<string, List<int>> _pageCatalog = new();
     private readonly object _catalogLock = new();
 
-    public V3DataRouter(BufferPoolManager bpm, DiskManager diskManager)
+    public V3DataRouter(StoragePool storagePool)
     {
-        _bpm = bpm;
-        _diskManager = diskManager;
-        _optimizer = new QueryOptimizer(bpm);
+        _storagePool = storagePool;
+        // Use system storage for optimizer scratch space (or manage it separately)
+        var systemManagers = _storagePool.GetManagers("system");
+        _optimizer = new QueryOptimizer(systemManagers.Bpm);
     }
 
     // ==================== Insert Path (V1 -> V3) ====================
@@ -47,14 +47,18 @@ public class V3DataRouter
     {
         try
         {
+            var managers = _storagePool.GetManagers(kbName);
+            var bpm = managers.Bpm;
+            var diskManager = managers.Disk;
+
             var tuple = ObjectToTuple(obj);
             var data = tuple.Serialize();
             var catalogKey = $"{kbName}:{obj.ConceptName}";
 
             lock (_catalogLock)
             {
-                var pageId = GetOrAllocateWritablePage(catalogKey, data.Length);
-                var page = _bpm.FetchPage(pageId);
+                var pageId = GetOrAllocateWritablePage(kbName, catalogKey, data.Length);
+                var page = bpm.FetchPage(pageId);
                 if (page == null) return false;
 
                 var slottedPage = new SlottedPage(page);
@@ -64,18 +68,18 @@ public class V3DataRouter
 
                 if (slotId < 0)
                 {
-                    _bpm.UnpinPage(page.PageId, false);
-                    var newPageId = _diskManager.AllocatePage();
+                    bpm.UnpinPage(page.PageId, false);
+                    var newPageId = diskManager.AllocatePage();
                     _pageCatalog[catalogKey].Add(newPageId);
 
-                    page = _bpm.FetchPage(newPageId);
+                    page = bpm.FetchPage(newPageId);
                     if (page == null) return false;
                     slottedPage = new SlottedPage(page);
                     slottedPage.Init(newPageId);
                     slotId = slottedPage.InsertTuple(data);
                 }
 
-                _bpm.UnpinPage(page.PageId, true);
+                bpm.UnpinPage(page.PageId, true);
                 return slotId >= 0;
             }
         }
@@ -104,9 +108,12 @@ public class V3DataRouter
             pageIds = new List<int>(ids);
         }
 
+        var managers = _storagePool.GetManagers(kbName);
+        var bpm = managers.Bpm;
+
         foreach (var pageId in pageIds)
         {
-            var page = _bpm.FetchPage(pageId);
+            var page = bpm.FetchPage(pageId);
             if (page == null) continue;
 
             var slottedPage = new SlottedPage(page);
@@ -126,7 +133,7 @@ public class V3DataRouter
                 }
             }
 
-            _bpm.UnpinPage(page.PageId, false);
+            bpm.UnpinPage(page.PageId, false);
         }
 
         return results;
@@ -148,9 +155,12 @@ public class V3DataRouter
             pageIds = new List<int>(ids);
         }
 
+        var managers = _storagePool.GetManagers(kbName);
+        var bpm = managers.Bpm;
+
         foreach (var pageId in pageIds)
         {
-            var page = _bpm.FetchPage(pageId);
+            var page = bpm.FetchPage(pageId);
             if (page == null) continue;
 
             var sp = new SlottedPage(page);
@@ -165,7 +175,7 @@ public class V3DataRouter
                 if (obj.Id == id)
                 {
                     sp.DeleteTuple(i);
-                    _bpm.UnpinPage(page.PageId, true);
+                    bpm.UnpinPage(page.PageId, true);
 
                     // Re-insert with updated values
                     var updated = new ObjectInstance { Id = id, ConceptName = conceptName, Values = newValues };
@@ -173,7 +183,7 @@ public class V3DataRouter
                 }
             }
 
-            _bpm.UnpinPage(page.PageId, false);
+            bpm.UnpinPage(page.PageId, false);
         }
 
         return false;
@@ -195,10 +205,13 @@ public class V3DataRouter
             pageIds = new List<int>(ids);
         }
 
+        var managers = _storagePool.GetManagers(kbName);
+        var bpm = managers.Bpm;
+
         int deleted = 0;
         foreach (var pageId in pageIds)
         {
-            var page = _bpm.FetchPage(pageId);
+            var page = bpm.FetchPage(pageId);
             if (page == null) continue;
 
             var sp = new SlottedPage(page);
@@ -220,7 +233,7 @@ public class V3DataRouter
                 }
             }
 
-            _bpm.UnpinPage(page.PageId, anyDeleted);
+            bpm.UnpinPage(page.PageId, anyDeleted);
         }
 
         return deleted;
@@ -326,19 +339,40 @@ public class V3DataRouter
 
     // ==================== Catalog Management ====================
 
-    private int GetOrAllocateWritablePage(string catalogKey, int dataSize)
+    private int GetOrAllocateWritablePage(string kbName, string catalogKey, int dataSize)
     {
+        var managers = _storagePool.GetManagers(kbName);
+        var diskManager = managers.Disk;
+
         lock (_catalogLock)
         {
             if (!_pageCatalog.ContainsKey(catalogKey) || _pageCatalog[catalogKey].Count == 0)
             {
-                var newPageId = _diskManager.AllocatePage();
+                var newPageId = diskManager.AllocatePage();
                 _pageCatalog[catalogKey] = new List<int> { newPageId };
                 return newPageId;
             }
 
             // Return the last page in the chain (most likely to have space)
             return _pageCatalog[catalogKey].Last();
+        }
+    }
+
+    public int GetConceptPageCount(string kbName, string conceptName)
+    {
+        var catalogKey = $"{kbName}:{conceptName}";
+        lock (_catalogLock)
+        {
+            return _pageCatalog.ContainsKey(catalogKey) ? _pageCatalog[catalogKey].Count : 0;
+        }
+    }
+
+    public bool ConceptExists(string kbName, string conceptName)
+    {
+        var catalogKey = $"{kbName}:{conceptName}";
+        lock (_catalogLock)
+        {
+            return _pageCatalog.ContainsKey(catalogKey) && _pageCatalog[catalogKey].Count > 0;
         }
     }
 

@@ -4,10 +4,59 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>kbms-studio</title>
+    <title>KBMS Studio</title>
+    <script>
+      (function() {
+        try {
+          const settings = JSON.parse(localStorage.getItem('kbms_studio_settings') || '{}');
+          const theme = settings.theme || 'light';
+          const fontSize = settings.fontSize || 'medium';
+          const fontWeight = settings.fontWeight || 'regular';
+          
+          const root = document.documentElement;
+          if (theme === 'dark') root.classList.add('dark');
+          root.classList.add('size-' + fontSize);
+          root.classList.add('font-' + fontWeight);
+          
+          // Set initial background to prevent flicker
+          root.style.backgroundColor = theme === 'dark' ? '#0f172a' : '#f8fafc';
+        } catch (e) {}
+      })();
+    </script>
+    <style>
+      #splash-wrapper {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: inherit;
+        z-index: 9999;
+        transition: opacity 0.5s ease, visibility 0.5s;
+      }
+      .loader {
+        width: 48px;
+        height: 48px;
+        border: 3px solid #10b981;
+        border-bottom-color: transparent;
+        border-radius: 50%;
+        display: inline-block;
+        box-sizing: border-box;
+        animation: rotation 1s linear infinite;
+      }
+      @keyframes rotation {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      .dark .loader { border-color: #059669; border-bottom-color: transparent; }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="splash-wrapper">
+        <span class="loader"></span>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

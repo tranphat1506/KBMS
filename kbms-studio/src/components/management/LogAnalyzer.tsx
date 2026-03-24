@@ -1,30 +1,96 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useKbmsStore } from '../../store/kbmsStore';
-import { Search, Filter, Calendar, User, Tag, AlertCircle, Info, Download } from 'lucide-react';
+import { Search, Filter, Calendar, User, Tag, AlertCircle, Info, Download, Loader2 } from 'lucide-react';
 
-export default function LogAnalyzer() {
+export default function LogAnalyzer(props: { onSelect?: (log: any) => void }) {
   const { systemLogs, auditLogs, fetchSystemLogs, fetchAuditLogs } = useKbmsStore();
   const [logType, setLogType] = useState<'system' | 'audit'>('system');
   const [filters, setFilters] = useState({
     userFilter: '',
     logLevel: '',
     startTime: '',
-    endTime: ''
+    endTime: '',
+    limit: 50,
+    offset: 0
   });
 
-  const handleSearch = () => {
-    if (logType === 'system') {
-      fetchSystemLogs(filters);
-    } else {
-      fetchAuditLogs(filters);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const observerTarget = useRef<HTMLDivElement>(null);
+
+  const handleSearch = async (overrideFilters?: any, append: boolean = false) => {
+    if (loading) return;
+    setLoading(true);
+    const searchFilters = overrideFilters || filters;
+    try {
+      const count = logType === 'system' 
+        ? await fetchSystemLogs(searchFilters, append)
+        : await fetchAuditLogs(searchFilters, append);
+      
+      setHasMore(count === (searchFilters.limit || 50));
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    handleSearch();
+    // Reset and fetch when logType changes
+    setPage(1);
+    setHasMore(true);
+    const initialFilters = { ...filters, offset: 0 };
+    setFilters(initialFilters);
+    handleSearch(initialFilters, false);
   }, [logType]);
 
-  const currentLogs = logType === 'system' ? systemLogs : auditLogs;
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting && hasMore && !loading && page > 0) {
+          const nextOffset = page * filters.limit;
+          setPage(p => p + 1);
+          setFilters(f => ({ ...f, offset: nextOffset }));
+          handleSearch({ ...filters, offset: nextOffset }, true);
+        }
+      },
+      { threshold: 1.0, rootMargin: '20px' }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasMore, loading, page, filters.limit, logType]);
+
+  const allLogs = logType === 'system' ? systemLogs : auditLogs;
+  
+  // Local filter for real-time logs to prevent "unfiltered" new entries
+  const currentLogs = allLogs.filter((l: any) => {
+    // Basic severity match
+    if (logType === 'system' && filters.logLevel) {
+      const lvl = (l.level || l.Level || '').toUpperCase();
+      if (filters.logLevel === 'INFO' && !lvl.startsWith('INFO')) return false;
+      if (filters.logLevel === 'WARN' && !lvl.startsWith('WARN')) return false;
+      if (filters.logLevel === 'ERROR' && !lvl.startsWith('ERR')) return false;
+    }
+
+    // Basic text match (if server-side search is still in flight or for real-time)
+    if (filters.userFilter) {
+      const search = filters.userFilter.toLowerCase();
+      if (logType === 'system') {
+         const msg = (l.message || '').toLowerCase();
+         const comp = (l.component || '').toLowerCase();
+         if (!msg.includes(search) && !comp.includes(search)) return false;
+      } else {
+         const user = (l.username || '').toLowerCase();
+         const cmd = (l.command || '').toLowerCase();
+         if (!user.includes(search) && !cmd.includes(search)) return false;
+      }
+    }
+
+    return true;
+  });
 
   return (
     <div className="flex flex-col h-full space-y-6 overflow-hidden animate-in fade-in duration-300">
@@ -33,13 +99,23 @@ export default function LogAnalyzer() {
         <div className="flex items-center space-x-6">
           <div className="flex bg-[var(--bg-app)] p-1 rounded border border-[var(--border-subtle)]">
             <button 
-              onClick={() => setLogType('system')}
+              disabled={loading}
+              onClick={() => {
+                setPage(1);
+                setFilters(prev => ({ ...prev, offset: 0 }));
+                setLogType('system');
+              }}
               className={`px-4 py-1.5 text-xs font-thin rounded transition-all ${logType === 'system' ? 'bg-[var(--bg-surface)] text-[var(--brand-primary)] border border-[var(--border-muted)] shadow-sm' : 'text-[var(--text-sub)] hover:text-[var(--text-main)]'}`}
             >
               System Events
             </button>
             <button 
-              onClick={() => setLogType('audit')}
+              disabled={loading}
+              onClick={() => {
+                setPage(1);
+                setFilters(prev => ({ ...prev, offset: 0 }));
+                setLogType('audit');
+              }}
               className={`px-4 py-1.5 text-xs font-thin rounded transition-all ${logType === 'audit' ? 'bg-[var(--bg-surface)] text-[var(--brand-primary)] border border-[var(--border-muted)] shadow-sm' : 'text-[var(--text-sub)] hover:text-[var(--text-main)]'}`}
             >
               Audit Registry
@@ -59,7 +135,11 @@ export default function LogAnalyzer() {
           </div>
 
           <button 
-            onClick={handleSearch}
+            onClick={() => {
+              setPage(1);
+              setFilters(f => ({ ...f, offset: 0 }));
+              handleSearch({ ...filters, offset: 0 }, false);
+            }}
             className="px-8 py-2 bg-[var(--brand-primary)] text-white rounded text-xs font-thin hover:bg-[var(--brand-primary-hover)] transition-colors border border-[var(--brand-primary-hover)] shadow-sm"
           >
             Execute Query
@@ -117,20 +197,44 @@ export default function LogAnalyzer() {
             </div>
           ) : (
             currentLogs.map((log: any, i: number) => (
-              <LogEntry key={`${i}-${log.timestamp}`} log={log} type={logType} />
+              <LogEntry 
+                key={`${i}-${log.timestamp}`} 
+                log={log} 
+                type={logType} 
+                // @ts-ignore
+                onClick={() => props.onSelect?.(log)} 
+              />
             ))
           )}
+          
+          {/* Scroll Target */}
+          <div ref={observerTarget} className="h-10 flex items-center justify-center">
+            {loading && (
+              <div className="flex items-center space-x-2 text-[var(--text-muted)] animate-pulse">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-[10px] uppercase tracking-widest font-thin">Synchronizing...</span>
+              </div>
+            )}
+            {!hasMore && currentLogs.length > 0 && (
+              <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest font-thin opacity-50">
+                End of registry reached
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function LogEntry({ log, type }: { log: any; type: 'system' | 'audit' }) {
+function LogEntry({ log, type, onClick }: { log: any; type: 'system' | 'audit'; onClick: () => void }) {
   if (type === 'system') {
     const level = (log.level || 'INFO').toUpperCase();
     return (
-      <div className="flex items-start p-4 bg-[var(--bg-surface)] rounded border border-[var(--border-muted)] group hover:border-[var(--brand-primary)]/20 transition-all shadow-sm">
+      <div 
+        onClick={onClick}
+        className="flex items-start p-4 bg-[var(--bg-surface)] rounded border border-[var(--border-muted)] group hover:border-[var(--brand-primary)]/40 transition-all shadow-sm cursor-pointer active:scale-[0.99]"
+      >
         <div className="mt-1 shrink-0">
           {level === 'ERROR' ? <AlertCircle className="w-4 h-4 text-rose-500" /> : 
            level === 'WARN' ? <AlertCircle className="w-4 h-4 text-amber-500" /> : 
@@ -154,7 +258,10 @@ function LogEntry({ log, type }: { log: any; type: 'system' | 'audit' }) {
   // Audit Entry
   const status = (log.status || 'UNKNOWN').toUpperCase();
   return (
-    <div className="flex flex-col p-4 bg-[var(--bg-surface)] rounded border border-[var(--border-muted)] hover:border-[var(--brand-primary)]/20 transition-all shadow-sm">
+    <div 
+      onClick={onClick}
+      className="flex flex-col p-4 bg-[var(--bg-surface)] rounded border border-[var(--border-muted)] hover:border-[var(--brand-primary)]/40 transition-all shadow-sm cursor-pointer active:scale-[0.99]"
+    >
       <div className="flex items-center justify-between mb-2.5">
         <div className="flex items-center space-x-3">
           <div className={`w-1.5 h-1.5 rounded-full ${status === 'SUCCESS' ? 'bg-[var(--brand-primary)] shadow-[0_0_8px_var(--brand-primary)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]'}`} />

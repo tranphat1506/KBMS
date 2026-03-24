@@ -13,23 +13,22 @@ namespace KBMS.Tests;
 /// </summary>
 public class AuthV3Tests : IDisposable
 {
-    private readonly string _dbPath;
-    private readonly DiskManager _disk;
-    private readonly BufferPoolManager _bpm;
+    private readonly string _tempDir;
+    private readonly StoragePool _storagePool;
     private readonly UserCatalog _users;
 
     public AuthV3Tests()
     {
-        _dbPath = Path.GetTempFileName() + ".kdb";
-        _disk = new DiskManager(_dbPath);
-        _bpm = new BufferPoolManager(_disk, 32);
-        _users = new UserCatalog(_bpm, _disk);
+        _tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(_tempDir);
+        _storagePool = new StoragePool(_tempDir, 32);
+        _users = new UserCatalog(_storagePool);
     }
 
     public void Dispose()
     {
-        _bpm?.Dispose();
-        if (File.Exists(_dbPath)) File.Delete(_dbPath);
+        _storagePool?.Dispose();
+        if (Directory.Exists(_tempDir)) Directory.Delete(_tempDir, true);
     }
 
     [Fact]

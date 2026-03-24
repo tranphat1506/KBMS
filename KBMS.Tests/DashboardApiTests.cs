@@ -16,9 +16,14 @@ public class DashboardApiTests
     [Fact]
     public void ManagementManager_GetStats_ReturnsValidData()
     {
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        var pool = new KBMS.Storage.V3.StoragePool(tempDir, 16);
+        var router = new KBMS.Knowledge.V3.V3DataRouter(pool);
+
         var cm = new ConnectionManager();
-        var sysLogger = new SystemLogger(null!); // Router not needed for this test
-        var mm = new ManagementManager(cm, sysLogger);
+        var sysLogger = new SystemLogger(null!); 
+        var mm = new ManagementManager(cm, sysLogger, router, new KBMS.Storage.V3.UserCatalog(pool));
 
         var stats = mm.GetSystemStats();
         
@@ -30,9 +35,14 @@ public class DashboardApiTests
     [Fact]
     public void ManagementManager_ListSessions_ReturnsExistingSessions()
     {
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        var pool = new KBMS.Storage.V3.StoragePool(tempDir, 16);
+        var router = new KBMS.Knowledge.V3.V3DataRouter(pool);
+
         var cm = new ConnectionManager();
         var sysLogger = new SystemLogger(null!);
-        var mm = new ManagementManager(cm, sysLogger);
+        var mm = new ManagementManager(cm, sysLogger, router, new KBMS.Storage.V3.UserCatalog(pool));
         
         var clientId = "test_client";
         var session = cm.CreateSession(clientId, null!, "127.0.0.1");
@@ -47,9 +57,14 @@ public class DashboardApiTests
     [Fact]
     public async Task ManagementManager_BroadcastLog_SendsToSubscribers()
     {
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        var pool = new KBMS.Storage.V3.StoragePool(tempDir, 16);
+        var router = new KBMS.Knowledge.V3.V3DataRouter(pool);
+
         var cm = new ConnectionManager();
         var sysLogger = new SystemLogger(null!);
-        var mm = new ManagementManager(cm, sysLogger);
+        var mm = new ManagementManager(cm, sysLogger, router, new KBMS.Storage.V3.UserCatalog(pool));
         
         using var ms = new MemoryStream();
         mm.SubscribeToLogs("client1", ms);
@@ -58,7 +73,7 @@ public class DashboardApiTests
         sysLogger.Info("System", "Test message");
 
         // Wait a bit for async broadcast
-        await Task.Delay(100);
+        await Task.Delay(500);
 
         ms.Position = 0;
         Assert.True(ms.Length > 0);

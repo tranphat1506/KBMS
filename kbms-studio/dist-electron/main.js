@@ -186,14 +186,10 @@ var KbmsTCPClient = class {
 		this.heartbeatTimer = setInterval(() => {
 			if (this.socket && !this.socket.destroyed && this.sessionId) {
 				const requestId = "hb_" + Date.now();
-				console.log("(KBMS Client) Sending Heartbeat...");
-				this.pendingRequestsMetadata.set(requestId, { isBackground: true });
-				this.socket.write(Protocol.pack({
-					type: MessageType.QUERY,
-					content: "",
-					requestId,
-					sessionId: this.sessionId
-				}));
+				console.log("(KBMS Client) Sending Heartbeat via Queue...");
+				this.execute("", true, requestId).catch((err) => {
+					if (!err.message.includes("Empty query or comments ignored")) console.warn("(KBMS Client) Heartbeat failed:", err.message);
+				});
 			}
 		}, 45e3);
 	}
@@ -312,7 +308,16 @@ var KbmsTCPClient = class {
 			return;
 		}
 		if (msg.type === MessageType.ERROR) {
-			console.error(`(KBMS Client) Server Error: ${msg.content}`);
+			if (msg.content.includes("Empty query or comments ignored") && msg.requestId?.startsWith("hb_")) {
+				if (this.connectResolver) {
+					this.connectResolver(false);
+					this.connectResolver = null;
+				}
+				if (msg.requestId?.startsWith("hb_")) {
+					this.pendingRequestsMetadata.delete(msg.requestId);
+					if (!this.connectResolver) return;
+				}
+			} else console.error(`(KBMS Client) Server Error: ${msg.content}`);
 			if (this.connectResolver) {
 				this.connectResolver(false);
 				this.connectResolver = null;

@@ -17,25 +17,24 @@ namespace KBMS.Tests;
 /// </summary>
 public class DataOperationsV3Tests : IDisposable
 {
-    private readonly string _dbPath;
-    private readonly DiskManager _disk;
-    private readonly BufferPoolManager _bpm;
+    private readonly string _tempDir;
+    private readonly StoragePool _storagePool;
     private readonly V3DataRouter _router;
     private const string KB = "TestKB";
     private const string CONCEPT = "Student";
 
     public DataOperationsV3Tests()
     {
-        _dbPath = Path.GetTempFileName() + ".kdb";
-        _disk = new DiskManager(_dbPath);
-        _bpm = new BufferPoolManager(_disk, 128);
-        _router = new V3DataRouter(_bpm, _disk);
+        _tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(_tempDir);
+        _storagePool = new StoragePool(_tempDir, 128);
+        _router = new V3DataRouter(_storagePool);
     }
 
     public void Dispose()
     {
-        _bpm?.Dispose();
-        if (File.Exists(_dbPath)) File.Delete(_dbPath);
+        _storagePool?.Dispose();
+        if (Directory.Exists(_tempDir)) Directory.Delete(_tempDir, true);
     }
 
     private ObjectInstance MakeStudent(string name, int age) => new ObjectInstance

@@ -16,18 +16,16 @@ namespace KBMS.Storage.V3;
 /// </summary>
 public class KbCatalog
 {
-    private readonly BufferPoolManager _bpm;
-    private readonly DiskManager _diskManager;
-
+    private readonly StoragePool _storagePool;
     private readonly List<int> _pageIds = new();
     private readonly object _lock = new();
 
     private const string CATALOG_KEY = "catalog:kbs";
 
-    public KbCatalog(BufferPoolManager bpm, DiskManager diskManager)
+    public KbCatalog(StoragePool storagePool)
     {
-        _bpm = bpm;
-        _diskManager = diskManager;
+        _storagePool = storagePool;
+        LoadPageIds();
     }
 
     // ===================== CREATE =====================
@@ -48,12 +46,16 @@ public class KbCatalog
             RuleCount = 0
         };
 
+        var managers = _storagePool.GetManagers("system");
+        var bpm = managers.Bpm;
+        var diskManager = managers.Disk;
+
         var data = SerializeKb(kb);
 
         lock (_lock)
         {
-            var pageId = GetOrAllocatePage(data.Length);
-            var page = _bpm.FetchPage(pageId);
+            var pageId = GetOrAllocatePage();
+            var page = bpm.FetchPage(pageId);
             if (page == null) throw new Exception("Could not fetch page for KB catalog.");
 
             var sp = new SlottedPage(page);
@@ -62,19 +64,23 @@ public class KbCatalog
 
             if (slotId < 0)
             {
-                _bpm.UnpinPage(page.PageId, false);
-                var newPageId = _diskManager.AllocatePage();
+                bpm.UnpinPage(page.PageId, false);
+                var newPageId = diskManager.AllocatePage();
                 _pageIds.Add(newPageId);
+                SavePageIds(); // Persist the new page ID
 
-                page = _bpm.FetchPage(newPageId);
+                page = bpm.FetchPage(newPageId);
                 if (page == null) throw new Exception("Could not fetch new page for KB catalog.");
                 sp = new SlottedPage(page);
                 sp.Init(newPageId);
                 sp.InsertTuple(data);
             }
 
-            _bpm.UnpinPage(page.PageId, true);
+            bpm.UnpinPage(page.PageId, true);
         }
+
+        // Initialize the KB's own storage file
+        _storagePool.GetManagers(name);
 
         return kb;
     }
@@ -93,9 +99,12 @@ public class KbCatalog
         List<int> pageSnapshot;
         lock (_lock) { pageSnapshot = new List<int>(_pageIds); }
 
+        var managers = _storagePool.GetManagers("system");
+        var bpm = managers.Bpm;
+
         foreach (var pageId in pageSnapshot)
         {
-            var page = _bpm.FetchPage(pageId);
+            var page = bpm.FetchPage(pageId);
             if (page == null) continue;
 
             var sp = new SlottedPage(page);
@@ -108,7 +117,7 @@ public class KbCatalog
                 if (kb != null) results.Add(kb);
             }
 
-            _bpm.UnpinPage(page.PageId, false);
+            bpm.UnpinPage(page.PageId, false);
         }
 
         return results;
@@ -120,11 +129,15 @@ public class KbCatalog
     {
         if (!DropKb(kb.Name)) return false;
 
+        var managers = _storagePool.GetManagers("system");
+        var bpm = managers.Bpm;
+        var diskManager = managers.Disk;
+
         var data = SerializeKb(kb);
         lock (_lock)
         {
-            var pageId = GetOrAllocatePage(data.Length);
-            var page = _bpm.FetchPage(pageId);
+            var pageId = GetOrAllocatePage();
+            var page = bpm.FetchPage(pageId);
             if (page == null) return false;
 
             var sp = new SlottedPage(page);
@@ -133,18 +146,19 @@ public class KbCatalog
 
             if (slotId < 0)
             {
-                _bpm.UnpinPage(page.PageId, false);
-                var newPageId = _diskManager.AllocatePage();
+                bpm.UnpinPage(page.PageId, false);
+                var newPageId = diskManager.AllocatePage();
                 _pageIds.Add(newPageId);
+                SavePageIds(); // Persist
 
-                page = _bpm.FetchPage(newPageId);
+                page = bpm.FetchPage(newPageId);
                 if (page == null) return false;
                 sp = new SlottedPage(page);
                 sp.Init(newPageId);
                 sp.InsertTuple(data);
             }
 
-            _bpm.UnpinPage(page.PageId, true);
+            bpm.UnpinPage(page.PageId, true);
         }
         return true;
     }
@@ -161,9 +175,12 @@ public class KbCatalog
         List<int> pageSnapshot;
         lock (_lock) { pageSnapshot = new List<int>(_pageIds); }
 
+        var managers = _storagePool.GetManagers("system");
+        var bpm = managers.Bpm;
+
         foreach (var pageId in pageSnapshot)
         {
-            var page = _bpm.FetchPage(pageId);
+            var page = bpm.FetchPage(pageId);
             if (page == null) continue;
 
             var sp = new SlottedPage(page);
@@ -176,12 +193,12 @@ public class KbCatalog
                 if (kb != null && kb.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
                 {
                     sp.DeleteTuple(i);
-                    _bpm.UnpinPage(page.PageId, true);
+                    bpm.UnpinPage(page.PageId, true);
                     return true;
                 }
             }
 
-            _bpm.UnpinPage(page.PageId, false);
+            bpm.UnpinPage(page.PageId, false);
         }
 
         return false;
@@ -198,14 +215,64 @@ public class KbCatalog
         catch { return null; }
     }
 
+    // ===================== PERSISTENCE =====================
+
+    private void LoadPageIds()
+    {
+        var managers = _storagePool.GetManagers("system");
+        var bpm = managers.Bpm;
+        var page = bpm.FetchPage(0); // Page 0 is reserved for system header
+        if (page == null) return;
+
+        try
+        {
+            // Simple format: [Count (4 bytes)][PageId1 (4 bytes)][PageId2 (4 bytes)]...
+            int count = BitConverter.ToInt32(page.Data, 0);
+            if (count > 0 && count < 1000) // Sanity check
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    int id = BitConverter.ToInt32(page.Data, 4 + (i * 4));
+                    if (id > 0) _pageIds.Add(id);
+                }
+            }
+        }
+        catch { }
+        finally { bpm.UnpinPage(0, false); }
+    }
+
+    private void SavePageIds()
+    {
+        var managers = _storagePool.GetManagers("system");
+        var bpm = managers.Bpm;
+        var page = bpm.FetchPage(0);
+        if (page == null) return;
+
+        try
+        {
+            BitConverter.GetBytes(_pageIds.Count).CopyTo(page.Data, 0);
+            for (int i = 0; i < _pageIds.Count; i++)
+            {
+                BitConverter.GetBytes(_pageIds[i]).CopyTo(page.Data, 4 + (i * 4));
+            }
+            bpm.UnpinPage(0, true);
+            bpm.FlushPage(0);
+        }
+        catch { bpm.UnpinPage(0, false); }
+    }
+
     // ===================== HELPERS =====================
 
-    private int GetOrAllocatePage(int dataSize)
+    private int GetOrAllocatePage()
     {
+        var managers = _storagePool.GetManagers("system");
+        var diskManager = managers.Disk;
+
         if (_pageIds.Count == 0)
         {
-            var id = _diskManager.AllocatePage();
+            var id = diskManager.AllocatePage();
             _pageIds.Add(id);
+            SavePageIds(); // Persist the first page ID
             return id;
         }
 

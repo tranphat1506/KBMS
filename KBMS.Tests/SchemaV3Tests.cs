@@ -14,25 +14,24 @@ namespace KBMS.Tests;
 /// </summary>
 public class SchemaV3Tests : IDisposable
 {
-    private readonly string _dbPath;
-    private readonly DiskManager _disk;
-    private readonly BufferPoolManager _bpm;
+    private readonly string _tempDir;
+    private readonly StoragePool _storagePool;
     private readonly ConceptCatalog _conceptCatalog;
     private readonly KbCatalog _kbCatalog;
 
     public SchemaV3Tests()
     {
-        _dbPath = Path.GetTempFileName() + ".kdb";
-        _disk = new DiskManager(_dbPath);
-        _bpm = new BufferPoolManager(_disk, 64);
-        _conceptCatalog = new ConceptCatalog(_bpm, _disk);
-        _kbCatalog = new KbCatalog(_bpm, _disk);
+        _tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(_tempDir);
+        _storagePool = new StoragePool(_tempDir, 64);
+        _conceptCatalog = new ConceptCatalog(_storagePool);
+        _kbCatalog = new KbCatalog(_storagePool);
     }
 
     public void Dispose()
     {
-        _bpm?.Dispose();
-        if (File.Exists(_dbPath)) File.Delete(_dbPath);
+        _storagePool?.Dispose();
+        if (Directory.Exists(_tempDir)) Directory.Delete(_tempDir, true);
     }
 
     // ========== KB Catalog Tests ==========

@@ -124,19 +124,17 @@ namespace KBMS.Tests
         [Fact]
         public void KnowledgeManager_ShouldEnforceTypesOnInsert()
         {
-            var testDir = "/tmp/kbms_test_typing";
+            var testDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "kbms_test_typing_" + System.Guid.NewGuid().ToString("N"));
             if (System.IO.Directory.Exists(testDir)) System.IO.Directory.Delete(testDir, true);
             System.IO.Directory.CreateDirectory(testDir);
-            string dbFile = System.IO.Path.Combine(testDir, "test.kdb");
 
-            var diskManager = new KBMS.Storage.V3.DiskManager(dbFile);
-            var bpm = new KBMS.Storage.V3.BufferPoolManager(diskManager, 64);
-            var wal = new KBMS.Storage.V3.WalManagerV3(dbFile);
-            var kbCatalog = new KBMS.Storage.V3.KbCatalog(bpm, diskManager);
-            var conceptCatalog = new KBMS.Storage.V3.ConceptCatalog(bpm, diskManager);
-            var userCatalog = new KBMS.Storage.V3.UserCatalog(bpm, diskManager);
+            var pool = new KBMS.Storage.V3.StoragePool(testDir, 64);
+            var kbCatalog = new KBMS.Storage.V3.KbCatalog(pool);
+            var conceptCatalog = new KBMS.Storage.V3.ConceptCatalog(pool);
+            var userCatalog = new KBMS.Storage.V3.UserCatalog(pool);
+            var router = new KBMS.Knowledge.V3.V3DataRouter(pool);
 
-            var km = new KnowledgeManager(bpm, diskManager, kbCatalog, conceptCatalog, userCatalog, wal);
+            var km = new KnowledgeManager(pool, kbCatalog, conceptCatalog, userCatalog, router);
             var kbName = "TestTypingKB";
             var user = new User { Username = "root", Role = UserRole.ROOT };
             kbCatalog.CreateKb(kbName, System.Guid.NewGuid());

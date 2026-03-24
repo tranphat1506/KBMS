@@ -142,22 +142,21 @@ export class KbmsTCPClient {
       this.stopHeartbeat();
    }
 
-   private startHeartbeat() {
-      this.stopHeartbeat();
-      this.heartbeatTimer = setInterval(() => {
-         if (this.socket && !this.socket.destroyed && this.sessionId) {
-            const requestId = 'hb_' + Date.now();
-            console.log("(KBMS Client) Sending Heartbeat...");
-            this.pendingRequestsMetadata.set(requestId, { isBackground: true });
-            this.socket.write(Protocol.pack({
-               type: MessageType.QUERY,
-               content: '',
-               requestId: requestId,
-               sessionId: this.sessionId
-            }));
-         }
-      }, 45000); // 45 seconds
-   }
+    private startHeartbeat() {
+       this.stopHeartbeat();
+       this.heartbeatTimer = setInterval(() => {
+          if (this.socket && !this.socket.destroyed && this.sessionId) {
+              const requestId = 'hb_' + Date.now();
+              console.log("(KBMS Client) Sending Heartbeat via Queue...");
+              // Send an empty background query as a heartbeat to keep the tunnel alive
+              this.execute('', true, requestId).catch(err => {
+                if (!err.message.includes("Empty query or comments ignored")) {
+                    console.warn("(KBMS Client) Heartbeat failed:", err.message);
+                }
+              });
+          }
+       }, 45000); // 45 seconds
+    }
 
    private stopHeartbeat() {
       if (this.heartbeatTimer) {
@@ -289,7 +288,25 @@ export class KbmsTCPClient {
       }
 
       if (msg.type === MessageType.ERROR) {
-         console.error(`(KBMS Client) Server Error: ${msg.content}`);
+         // Silence "Empty query or comments ignored" errors for heartbeats
+         if (msg.content.includes("Empty query or comments ignored") && msg.requestId?.startsWith('hb_')) {
+             // Ignore heartbeat error response
+             // If this error is for a heartbeat, and there's a pending connection resolver,
+             // it means the initial connection failed for some reason, so we should still reject it.
+             if (this.connectResolver) {
+                this.connectResolver(false);
+                this.connectResolver = null;
+             }
+             // For heartbeats, we don't want to propagate this specific error further
+             // unless it's blocking the initial connection.
+             if (msg.requestId?.startsWith('hb_')) {
+                this.pendingRequestsMetadata.delete(msg.requestId); // Clean up
+                if (!this.connectResolver) return;
+             }
+         } else {
+             console.error(`(KBMS Client) Server Error: ${msg.content}`);
+         }
+
          if (this.connectResolver) {
             this.connectResolver(false);
             this.connectResolver = null;

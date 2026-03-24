@@ -20,17 +20,13 @@ public class KnowledgeUpdateTests
         // Setup temporary storage
         string testDir = Path.Combine(Path.GetTempPath(), "KBMS_Test_" + Guid.NewGuid().ToString());
         if (!Directory.Exists(testDir)) Directory.CreateDirectory(testDir);
-        string dbFile = Path.Combine(testDir, "test.kdb");
+        var pool = new KBMS.Storage.V3.StoragePool(testDir, 64);
+        var kbCatalog = new KBMS.Storage.V3.KbCatalog(pool);
+        var conceptCatalog = new KBMS.Storage.V3.ConceptCatalog(pool);
+        var userCatalog = new KBMS.Storage.V3.UserCatalog(pool);
 
-        var diskManager = new KBMS.Storage.V3.DiskManager(dbFile);
-        var bpm = new KBMS.Storage.V3.BufferPoolManager(diskManager, 64);
-        var wal = new KBMS.Storage.V3.WalManagerV3(dbFile);
-        var kbCatalog = new KBMS.Storage.V3.KbCatalog(bpm, diskManager);
-        var conceptCatalog = new KBMS.Storage.V3.ConceptCatalog(bpm, diskManager);
-        var userCatalog = new KBMS.Storage.V3.UserCatalog(bpm, diskManager);
-
-        var router = new KBMS.Knowledge.V3.V3DataRouter(bpm, diskManager);
-        var km = new KnowledgeManager(bpm, diskManager, kbCatalog, conceptCatalog, userCatalog, wal, router);
+        var router = new KBMS.Knowledge.V3.V3DataRouter(pool);
+        var km = new KnowledgeManager(pool, kbCatalog, conceptCatalog, userCatalog, router);
 
         string kbName = "UpdateTestKB";
         kbCatalog.CreateKb(kbName, Guid.NewGuid());

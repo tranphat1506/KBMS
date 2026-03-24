@@ -46,4 +46,10 @@ public class ManagementCommandPayload
     
     [JsonPropertyName("sessionId")]
     public string SessionId { get; set; } = string.Empty;
+
+    [JsonPropertyName("limit")]
+    public int Limit { get; set; } = 100;
+
+    [JsonPropertyName("offset")]
+    public int Offset { get; set; } = 0;
 }

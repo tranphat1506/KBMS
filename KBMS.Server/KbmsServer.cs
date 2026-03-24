@@ -16,7 +16,9 @@ using KBMS.Parser.Ast;
 using KBMS.Parser.Ast.Kdl;
 using KBMS.Parser.Ast.Kql;
 using KBMS.Storage;
+using KBMS.Storage.V3;
 using KBMS.Knowledge;
+using KBMS.Knowledge.V3;
 
 namespace KBMS.Server;
 
@@ -26,13 +28,11 @@ public class KbmsServer
     private readonly string _host;
     private readonly ConnectionManager _connectionManager;
     private readonly AuthenticationManager _authManager;
+    private readonly StoragePool _storagePool;
     private readonly KnowledgeManager _knowledgeManager;
-    private readonly KBMS.Storage.V3.DiskManager _diskManager;
-    private readonly KBMS.Storage.V3.BufferPoolManager _bpm;
     private readonly KBMS.Storage.V3.KbCatalog _kbCatalog;
     private readonly KBMS.Storage.V3.ConceptCatalog _conceptCatalog;
     private readonly KBMS.Storage.V3.UserCatalog _userCatalog;
-    private readonly KBMS.Storage.V3.WalManagerV3 _wal;
     private readonly KBMS.Server.V3.SystemKbBootstrapper _bootstrapper;
     private readonly KBMS.Server.V3.SystemLogger _sysLogger;
     private readonly KBMS.Server.V3.ManagementManager _managementManager;
@@ -59,27 +59,21 @@ public class KbmsServer
         _port = port;
         _connectionManager = new ConnectionManager();
         
-        // V3 Infrastructure Setup
-        if (!Directory.Exists(dataDir)) Directory.CreateDirectory(dataDir);
-        string dbFile = Path.Combine(dataDir, "v3_database.kdb");
+        // V3 Multi-DB Infrastructure
+        _storagePool = new StoragePool(dataDir, 256);
         
-        _diskManager = new KBMS.Storage.V3.DiskManager(dbFile);
-        _bpm = new KBMS.Storage.V3.BufferPoolManager(_diskManager, 256);
-        _wal = new KBMS.Storage.V3.WalManagerV3(dbFile);
-        
-        _kbCatalog = new KBMS.Storage.V3.KbCatalog(_bpm, _diskManager);
-        _conceptCatalog = new KBMS.Storage.V3.ConceptCatalog(_bpm, _diskManager);
-        _userCatalog = new KBMS.Storage.V3.UserCatalog(_bpm, _diskManager);
+        _kbCatalog = new KBMS.Storage.V3.KbCatalog(_storagePool);
+        _conceptCatalog = new KBMS.Storage.V3.ConceptCatalog(_storagePool);
+        _userCatalog = new KBMS.Storage.V3.UserCatalog(_storagePool);
         
         _authManager = new AuthenticationManager(_userCatalog);
-        _knowledgeManager = new KnowledgeManager(_bpm, _diskManager, _kbCatalog, _conceptCatalog, _userCatalog, _wal);
+        _knowledgeManager = new KnowledgeManager(_storagePool, _kbCatalog, _conceptCatalog, _userCatalog);
         
         // V3 System KB & Logging
         var v3Router = _knowledgeManager.V3Router;
         _sysLogger = new KBMS.Server.V3.SystemLogger(v3Router);
         _bootstrapper = new KBMS.Server.V3.SystemKbBootstrapper(_kbCatalog, _conceptCatalog, v3Router);
         _bootstrapper.Bootstrap();
-
 
         _managementManager = new KBMS.Server.V3.ManagementManager(_connectionManager, _sysLogger, v3Router, _userCatalog);
         
@@ -90,6 +84,17 @@ public class KbmsServer
         {
             _userCatalog.CreateUser("root", "root", UserRole.ROOT);
         }
+    }
+
+    public void RunUpdate()
+    {
+        KBMS.Server.V3.SystemUpdater.Run(_kbCatalog, _conceptCatalog, _userCatalog, _knowledgeManager.V3Router);
+    }
+
+    public void MigrateV2(string v2Path, string v2Key)
+    {
+        var converter = new KBMS.Server.V3.V2ToV3Converter(_storagePool, _kbCatalog, _conceptCatalog, _userCatalog, _knowledgeManager.V3Router);
+        converter.Migrate(v2Path, v2Key);
     }
 
     public async Task StartAsync()
@@ -236,7 +241,7 @@ public class KbmsServer
             _connectionManager.SetSessionUser(clientId, user);
             var session = _connectionManager.GetSession(clientId);
             
-            _sysLogger.LogAudit(user.Username, "LOGIN", "SUCCESS", clientId);
+            _sysLogger.LogAudit(user.Username, "LOGIN", "SUCCESS", clientId, user.Role.ToString(), "SYSTEM");
 
             return new Message
             {
@@ -297,7 +302,7 @@ public class KbmsServer
                     currentKb = _connectionManager.GetCurrentKb(clientId);
                     var result = _knowledgeManager.Execute(ast, user, currentKb);
                     
-                    _sysLogger.LogAudit(user.Username, ast.ToString() ?? "QUERY", "SUCCESS", clientId);
+                    _sysLogger.LogAudit(user.Username, ast.ToString() ?? "QUERY", "SUCCESS", clientId, user.Role.ToString(), currentKb, stopwatch.Elapsed.TotalMilliseconds);
                     
                     if (result is QueryResultSet qrs && qrs.Success)
                     {
@@ -473,8 +478,12 @@ public class KbmsServer
             return;
         }
 
-        _managementManager.SubscribeToLogs(clientId, stream);
-        _sysLogger.Info(clientId, "Subscribed to real-time logs");
+        var session = _connectionManager.GetSession(clientId);
+        if (session != null)
+        {
+            _managementManager.SubscribeToLogs(clientId, session);
+            _sysLogger.Info(clientId, "Subscribed to real-time logs");
+        }
     }
 
     private async Task HandleManagementCommandAsync(Message message, string clientId, Stream stream)
@@ -503,10 +512,11 @@ public class KbmsServer
                         "DELETE_USER" => _managementManager.DeleteUser(cmd.Username),
                         "GRANT" => _managementManager.GrantPermission(cmd.Username, cmd.Kb, cmd.Privilege),
                         "REVOKE" => _managementManager.RevokePermission(cmd.Username, cmd.Kb),
-                        "SEARCH_LOGS" => _managementManager.GetLogs(cmd.LogType, cmd.UserFilter, cmd.LogLevel, cmd.StartTime, cmd.EndTime),
+                        "SEARCH_LOGS" => _managementManager.GetLogs(cmd.LogType, cmd.UserFilter, cmd.LogLevel, cmd.StartTime, cmd.EndTime, cmd.Limit, cmd.Offset),
                         "GET_SETTINGS" => _managementManager.GetServerSettings(),
                         "UPDATE_SETTING" => _managementManager.UpdateSetting(cmd.SettingName, cmd.SettingValue),
                         "KILL_SESSION" => new { success = _connectionManager.KillSession(cmd.SessionId) },
+                        "LOG_TEST" => new { success = true, _ = Task.Run(() => _managementManager.LogTest(clientId, cmd.LogLevel, cmd.Password)) }, // Use password field as test message
                         _ => throw new Exception($"Unknown management action: {cmd.Action}")
                     };
                 }

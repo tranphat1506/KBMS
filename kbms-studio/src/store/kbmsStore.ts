@@ -24,6 +24,23 @@ export interface StudioSettings {
   fontWeight: 'thin' | 'regular' | 'medium';
 }
 
+export interface NotificationSetting {
+  enableQuerySuccess: boolean;
+  enableServerLogs: boolean;
+  logLevels: string[]; // ['ERROR', 'WARN', 'INFO']
+  mutedTypes: string[]; // Types to hide from toasts
+}
+
+export interface Notification {
+  id: string;
+  type: 'query' | 'log';
+  severity: 'info' | 'warn' | 'error' | 'success';
+  title: string;
+  message: string;
+  timestamp: number;
+  read: boolean;
+}
+
 export interface KbmsState {
   status: 'disconnected' | 'connecting' | 'connected' | 'error';
   connectionDetails: { host: string; port: number; name?: string } | null;
@@ -52,7 +69,7 @@ export interface KbmsState {
   systemSettings: any[];
   systemStats: any | null;
   systemSessions: any[];
-  systemActiveTab: 'overview' | 'users' | 'logs' | 'settings' | 'sessions';
+  systemActiveTab: 'overview' | 'users' | 'logs' | 'settings' | 'sessions' | 'debug';
   studioSettings: StudioSettings;
   isStudioSettingsOpen: boolean;
   selectedKb: string;
@@ -61,11 +78,18 @@ export interface KbmsState {
   metadataDetails: Record<string, any>;
   editorMarkers: any[];
   currentRequestId: string | null;
-  setSystemActiveTab: (tab: 'overview' | 'users' | 'logs' | 'settings' | 'sessions') => void;
+  notifications: Notification[];
+  notificationSettings: NotificationSetting;
+  toastQueue: Notification[]; // Pending toasts
+  activeToasts: Notification[]; // Currently visible toasts (batch of up to 3)
+  selectedNotification: Notification | null;
+  setSelectedNotification: (n: Notification | null) => void;
+  markAsRead: (id: string) => void;
+  setSystemActiveTab: (tab: 'overview' | 'users' | 'logs' | 'settings' | 'sessions' | 'debug') => void;
   setSelectedKb: (kb: string) => void;
   setActiveSidebarView: (v: 'explorer' | 'system') => void;
-  fetchSystemLogs: (filter?: any) => Promise<void>;
-  fetchAuditLogs: (filter?: any) => Promise<void>;
+  fetchSystemLogs: (filter?: any, append?: boolean) => Promise<number>;
+  fetchAuditLogs: (filter?: any, append?: boolean) => Promise<number>;
   fetchSystemUsers: () => Promise<void>;
   upsertUser: (userData: any) => Promise<void>;
   deleteUser: (username: string) => Promise<void>;
@@ -76,8 +100,14 @@ export interface KbmsState {
   refreshStats: () => Promise<void>;
   refreshSessions: () => Promise<void>;
   killSession: (sessionId: string) => Promise<void>;
-  updateStudioSetting: (key: keyof StudioSettings, value: any) => void;
-  setStudioSettingsOpen: (v: boolean) => void;
+  logTest: (level: string, message: string) => Promise<void>;
+  dismissBatch: () => void;
+  addNotification: (n: Omit<Notification, 'id' | 'timestamp' | 'read'>) => void;
+  dismissToast: (id: string) => void;
+  processNextToast: () => void;
+  removeNotification: (id: string) => void;
+  clearNotifications: () => void;
+  updateNotificationSettings: (settings: Partial<NotificationSetting>) => void;
   subscribeLogs: () => void;
   setConnectModalOpen: (v: boolean) => void;
   setQuery: (query: string) => void;
@@ -158,6 +188,19 @@ const loadStudioSettings = (): StudioSettings => {
   };
 };
 
+const loadNotificationSettings = (): NotificationSetting => {
+  try {
+    const stored = localStorage.getItem('kbms_notification_settings');
+    if (stored) return JSON.parse(stored);
+  } catch (e) { }
+  return {
+    enableQuerySuccess: true,
+    enableServerLogs: true,
+    logLevels: ['ERROR', 'WARN', 'INFO'],
+    mutedTypes: []
+  };
+};
+
 export const useKbmsStore = create<KbmsState>((set, get) => ({
   status: 'disconnected',
   connectionDetails: loadConnectionDetails(),
@@ -195,6 +238,15 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
   editorMarkers: [],
   currentRequestId: null,
   metadataDetails: {},
+  notifications: [],
+  notificationSettings: loadNotificationSettings(),
+  toastQueue: [],
+  activeToasts: [],
+  selectedNotification: null,
+  setSelectedNotification: (n) => set({ selectedNotification: n }),
+  markAsRead: (id) => set(state => ({
+    notifications: state.notifications.map(n => n.id === id ? { ...n, read: true } : n)
+  })),
   confirmDialog: {
     isOpen: false,
     title: '',
@@ -202,12 +254,12 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
   },
 
   setSystemActiveTab: (tab) => set({ systemActiveTab: tab }),
-  updateStudioSetting: (key, value) => set((state) => {
+  updateStudioSetting: (key: keyof StudioSettings, value: any) => set((state) => {
     const newSettings = { ...state.studioSettings, [key]: value };
     localStorage.setItem('kbms_studio_settings', JSON.stringify(newSettings));
     return { studioSettings: newSettings };
   }),
-  setStudioSettingsOpen: (v) => set({ isStudioSettingsOpen: v }),
+  setStudioSettingsOpen: (v: boolean) => set({ isStudioSettingsOpen: v }),
   setSelectedKb: (kb) => set({ selectedKb: kb }),
   setActiveSidebarView: (v) => set({ activeSidebarView: v }),
   setConnectModalOpen: (v: boolean) => set({ isConnectModalOpen: v }),
@@ -220,29 +272,126 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
     confirmDialog: { ...state.confirmDialog, isOpen: false } 
   })),
 
-  fetchSystemLogs: async (filter = {}) => {
-    if (get().status !== 'connected') return;
+  updateNotificationSettings: (settings) => set(state => {
+    const newSettings = { ...state.notificationSettings, ...settings };
+    localStorage.setItem('kbms_notification_settings', JSON.stringify(newSettings));
+    return { notificationSettings: newSettings };
+  }),
+
+  addNotification: (n) => {
+    const { notificationSettings } = get();
+    
+    // Check if notifications are disabled for this type
+    if (n.type === 'query' && !notificationSettings.enableQuerySuccess) return;
+    if (n.type === 'log' && !notificationSettings.enableServerLogs) return;
+    if (n.type === 'log') {
+       const severity = n.severity.toUpperCase();
+       const allowedLevels = notificationSettings.logLevels;
+       if (!allowedLevels.includes(severity) && !(severity === 'INFO' && allowedLevels.includes('Information'))) return;
+    }
+
+    const id = Date.now().toString();
+    const newNotification: Notification = { ...n, id, timestamp: Date.now(), read: false };
+    
+    // Add to queue if not muted
+    set(state => ({
+      notifications: [newNotification, ...state.notifications].slice(0, 100),
+      toastQueue: state.notificationSettings.mutedTypes.includes(n.type) 
+        ? state.toastQueue 
+        : [...state.toastQueue, newNotification]
+    }));
+
+    // Start processing queue if nothing is active
+    if (get().activeToasts.length === 0) {
+       get().processNextToast();
+    }
+  },
+
+  processNextToast: () => {
+    const { toastQueue, activeToasts } = get();
+    // Only process if no toasts are currently visible and there are items in queue
+    if (activeToasts.length > 0 || toastQueue.length === 0) return;
+
+    // Take up to 3 from the queue
+    const batch = toastQueue.slice(0, 3);
+    
+    // Play sound ONLY once for the whole batch if any are not muted
+    const hasUnmuted = batch.some(n => !get().notificationSettings.mutedTypes.includes(n.type));
+    if (hasUnmuted) {
+      const audio = new Audio('/notification-sound.wav');
+      audio.volume = 0.8;
+      audio.play().catch(() => {});
+    }
+
+    set(state => ({
+      activeToasts: batch,
+      toastQueue: state.toastQueue.slice(batch.length)
+    }));
+  },
+
+  dismissBatch: () => {
+    set({ activeToasts: [] });
+    setTimeout(() => {
+      get().processNextToast();
+    }, 1000);
+  },
+
+  dismissToast: (id) => {
+    set(state => {
+      const newActive = state.activeToasts.filter(t => t.id !== id);
+      
+      // If manually dismissing the last one, trigger next batch
+      if (newActive.length === 0) {
+        setTimeout(() => {
+          get().processNextToast();
+        }, 1000);
+      }
+      
+      return { activeToasts: newActive };
+    });
+  },
+
+  removeNotification: (id) => set(state => ({
+    notifications: state.notifications.filter(n => n.id !== id)
+  })),
+
+  clearNotifications: () => set({ notifications: [] }),
+
+  fetchSystemLogs: async (filter: any = {}, append: boolean = false) => {
+    if (get().status !== 'connected') return 0;
     try {
       // @ts-ignore
       const res = await window.kbmsApi.mgmtAction('SEARCH_LOGS', { logType: 'system', ...filter });
       if (Array.isArray(res)) {
-        set({ systemLogs: res.map((obj: any) => obj.Values || obj.values || obj) });
+        const logs = res.map((obj: any) => obj.Values || obj.values || obj);
+        set((state) => ({ 
+          systemLogs: append ? [...state.systemLogs, ...logs] : logs 
+        }));
+        return logs.length;
       }
+      return 0;
     } catch (err) {
       console.error("Failed to fetch system logs:", err);
+      return 0;
     }
   },
 
-  fetchAuditLogs: async (filter = {}) => {
-    if (get().status !== 'connected') return;
+  fetchAuditLogs: async (filter: any = {}, append: boolean = false) => {
+    if (get().status !== 'connected') return 0;
     try {
       // @ts-ignore
       const res = await window.kbmsApi.mgmtAction('SEARCH_LOGS', { logType: 'audit', ...filter });
       if (Array.isArray(res)) {
-        set({ auditLogs: res.map((obj: any) => obj.Values || obj.values || obj) });
+        const logs = res.map((obj: any) => obj.Values || obj.values || obj);
+        set((state) => ({ 
+          auditLogs: append ? [...state.auditLogs, ...logs] : logs 
+        }));
+        return logs.length;
       }
+      return 0;
     } catch (err) {
       console.error("Failed to fetch audit logs:", err);
+      return 0;
     }
   },
 
@@ -370,6 +519,15 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
       }
     } catch (e) {
       console.error("(Store) Failed to kill session:", e);
+    }
+  },
+
+  logTest: async (level, message) => {
+    try {
+      // @ts-ignore
+      await window.kbmsApi.mgmtAction('LOG_TEST', { logLevel: level, password: message });
+    } catch (e) {
+      console.error("(Store) Failed to trigger log test:", e);
     }
   },
 
@@ -699,7 +857,16 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
         get().fetchMetadata();
       }
       
-      return resData; // Return the data for callers like fetchMetadata
+      // Notify on success if we are NOT in explorer view (meaning background success)
+      if (!isBackground && !isDescribe && (!res || !res.error)) {
+        // We only notify on success if it's NOT a background query
+        // and NOT a metadata-only query (describe).
+        // However, the user now says "query nào background thì không hiện", 
+        // and previously said "nếu không phải ở trang đó thì mới thông báo".
+        // I will remove the background notification trigger as requested.
+      }
+      
+      return resData;
     } catch (e: any) {
       console.error(`(Store) Execution error [Background: ${isBackground}]:`, e);
       if (!isBackground) {
@@ -719,10 +886,29 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
   handleResultFragment: (f: any) => {
     if (f.type === 'log-signal') {
       const log = f.data;
-      if (log.type === 'SYSTEM') {
-        set({ systemLogs: [log.data, ...get().systemLogs].slice(0, 100) });
-      } else if (log.type === 'AUDIT') {
-        set({ auditLogs: [log.data, ...get().auditLogs].slice(0, 100) });
+      if (log.type === 'SYSTEM' || log.type === 'AUDIT') {
+        const data = log.data;
+        const logList = log.type === 'SYSTEM' ? get().systemLogs : get().auditLogs;
+        const setKey = log.type === 'SYSTEM' ? 'systemLogs' : 'auditLogs';
+        
+        set({ [setKey]: [data, ...logList].slice(0, 100) });
+        
+        // Level Mapping
+        const rawLevel = data.level || 'Information';
+        const mappedLevel = rawLevel === 'Information' ? 'INFO' : rawLevel === 'Warning' ? 'WARN' : rawLevel === 'Error' ? 'ERROR' : rawLevel;
+        
+        if (get().notificationSettings.enableServerLogs && get().notificationSettings.logLevels.includes(mappedLevel)) {
+          // The user specifically asked to EXCLUDE audit logs from notifications
+          // but they SHOULD still triggers for SYSTEM logs.
+          if (log.type === 'SYSTEM') {
+            get().addNotification({
+              type: 'log',
+              severity: rawLevel === 'Error' ? 'error' : rawLevel === 'Warning' ? 'warn' : 'info',
+              title: `System ${rawLevel}`,
+              message: data.message || 'Log entry received'
+            });
+          }
+        }
       }
       return; 
     }

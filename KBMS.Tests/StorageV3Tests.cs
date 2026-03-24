@@ -33,7 +33,7 @@ public class StorageV3Tests : IDisposable
     public void DiskManager_AllocateAndReadWritePage_Success()
     {
         int pageId = _diskManager.AllocatePage();
-        Assert.Equal(0, pageId);
+        Assert.Equal(1, pageId);
 
         var page = new Page { PageId = pageId };
         

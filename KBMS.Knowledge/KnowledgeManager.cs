@@ -5,12 +5,12 @@ using KBMS.Models;
 using KBMS.Parser.Ast;
 using KBMS.Parser.Ast.Kdl;
 using KBMS.Parser.Ast.Kml;
-using KBMS.Parser.Ast;
 using KBMS.Parser.Ast.Kql;
 using KBMS.Parser.Ast.Kcl;
 using KBMS.Parser.Ast.Tcl;
 using KBMS.Parser.Ast.Expressions;
 using KBMS.Storage;
+using KBMS.Storage.V3;
 using KBMS.Knowledge.V3;
 
 namespace KBMS.Knowledge;
@@ -20,35 +20,29 @@ namespace KBMS.Knowledge;
 /// </summary>
 public class KnowledgeManager
 {
-    private readonly KBMS.Storage.V3.BufferPoolManager _bpm;
-    private readonly KBMS.Storage.V3.DiskManager _diskManager;
+    private readonly StoragePool _storagePool;
     private readonly V3DataRouter _v3Router;
     public V3DataRouter V3Router => _v3Router;
     private readonly KBMS.Storage.V3.KbCatalog _kbCatalog;
     private readonly KBMS.Storage.V3.ConceptCatalog _conceptCatalog;
     private readonly KBMS.Storage.V3.UserCatalog _userCatalog;
-    private readonly KBMS.Storage.V3.WalManagerV3 _wal;
 
     // Transaction buffering
     private bool _inTransaction = false;
     private readonly List<(string kbName, ObjectInstance obj)> _txBuffer = new();
 
     public KnowledgeManager(
-        KBMS.Storage.V3.BufferPoolManager bpm, 
-        KBMS.Storage.V3.DiskManager diskManager,
-        KBMS.Storage.V3.KbCatalog kbCatalog,
-        KBMS.Storage.V3.ConceptCatalog conceptCatalog,
-        KBMS.Storage.V3.UserCatalog userCatalog,
-        KBMS.Storage.V3.WalManagerV3 wal,
+        StoragePool storagePool,
+        KbCatalog kbCatalog,
+        ConceptCatalog conceptCatalog,
+        UserCatalog userCatalog,
         V3DataRouter? v3Router = null)
     {
-        _bpm = bpm;
-        _diskManager = diskManager;
-        _v3Router = v3Router ?? new V3DataRouter(bpm, diskManager);
+        _storagePool = storagePool;
         _kbCatalog = kbCatalog;
         _conceptCatalog = conceptCatalog;
         _userCatalog = userCatalog;
-        _wal = wal;
+        _v3Router = v3Router ?? new V3DataRouter(storagePool);
     }
 
     /// <summary>

@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import {
   Database, ChevronDown, ChevronRight, Folder, Table, GitBranch, Link, Settings2,
-  TerminalSquare, Copy, RefreshCw, AlignLeft, Unplug, Search, Activity, LayoutDashboard, FileText, Users
+  TerminalSquare, Copy, RefreshCw, AlignLeft, Unplug, Search, Activity, LayoutDashboard, FileText, Users,
+  Wrench
 } from 'lucide-react';
 import { useKbmsStore } from '../store/kbmsStore';
 
@@ -198,6 +199,13 @@ export default function Sidebar() {
                 >
                   <Settings2 className={`w-3.5 h-3.5 ${systemActiveTab === 'settings' ? 'text-[var(--brand-primary)]' : 'text-[var(--text-muted)] group-hover:text-[var(--brand-primary)]'}`} />
                   <span className="flex-1 text-left">Server Settings</span>
+                </button>
+                <button 
+                  onClick={() => setSystemActiveTab('debug' as any)}
+                  className={`w-full flex items-center space-x-2 px-2.5 py-2 rounded hover:bg-[var(--brand-primary-light)] transition-all group cursor-pointer text-[12px] border border-transparent ${systemActiveTab === ('debug' as any) ? 'bg-[var(--brand-primary-light)] text-[var(--brand-primary-text)] border-[var(--brand-primary)]/20 font-medium' : 'text-[var(--text-sub)]'}`}
+                >
+                  <Wrench className={`w-3.5 h-3.5 ${systemActiveTab === ('debug' as any) ? 'text-[var(--brand-primary)]' : 'text-[var(--text-muted)] group-hover:text-[var(--brand-primary)]'}`} />
+                  <span className="flex-1 text-left">DEBUG Tool</span>
                 </button>
               </div>
             </div>

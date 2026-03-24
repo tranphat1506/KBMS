@@ -2,6 +2,7 @@ import Layout from './components/Layout';
 import ConnectModal from './components/ConnectModal';
 import { useKbmsStore } from './store/kbmsStore';
 import StudioSettings from './components/management/StudioSettings';
+import NotificationDetailModal from './components/NotificationDetailModal';
 
 import { useEffect } from 'react';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -39,6 +40,15 @@ function App() {
       window.kbmsApi.setUnsavedStatus(hasUnsaved);
     }
   }, [tabs]);
+
+  useEffect(() => {
+    // Remove splash screen once App component is mounted
+    const splash = document.getElementById('splash-wrapper');
+    if (splash) {
+      splash.style.opacity = '0';
+      setTimeout(() => splash.remove(), 500);
+    }
+  }, []);
 
   useEffect(() => {
     // @ts-ignore
@@ -94,6 +104,7 @@ function App() {
       <div className={`h-screen w-screen overflow-hidden bg-[var(--bg-app)] font-sans text-[var(--text-main)] flex flex-col antialiased relative ${fontSizeClass} ${fontWeightClass} ${themeClass} transition-colors duration-200`}>
         <Layout />
         <ConfirmDialog />
+        <NotificationDetailModal />
         {isConnectModalOpen && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-200">
             <ConnectModal />

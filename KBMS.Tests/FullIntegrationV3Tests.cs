@@ -17,33 +17,29 @@ namespace KBMS.Tests;
 /// </summary>
 public class FullIntegrationV3Tests : IDisposable
 {
-    private readonly string _dbPath;
-    private readonly DiskManager _disk;
-    private readonly BufferPoolManager _bpm;
+    private readonly string _tempDir;
+    private readonly StoragePool _storagePool;
     private readonly V3DataRouter _data;
     private readonly ConceptCatalog _concepts;
     private readonly KbCatalog _kbs;
     private readonly UserCatalog _users;
-    private readonly WalManagerV3 _wal;
 
     public FullIntegrationV3Tests()
     {
-        _dbPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".kdb");
-        _disk = new DiskManager(_dbPath);
-        _bpm = new BufferPoolManager(_disk, 256);
-        _data = new V3DataRouter(_bpm, _disk);
-        _concepts = new ConceptCatalog(_bpm, _disk);
-        _kbs = new KbCatalog(_bpm, _disk);
-        _users = new UserCatalog(_bpm, _disk);
-        _wal = new WalManagerV3(_dbPath);
+        _tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(_tempDir);
+        _storagePool = new StoragePool(_tempDir, 256);
+        
+        _data = new V3DataRouter(_storagePool);
+        _concepts = new ConceptCatalog(_storagePool);
+        _kbs = new KbCatalog(_storagePool);
+        _users = new UserCatalog(_storagePool);
     }
 
     public void Dispose()
     {
-        _wal?.Dispose();
-        _bpm?.Dispose();
-        if (File.Exists(_dbPath)) File.Delete(_dbPath);
-        if (File.Exists(_dbPath + ".wal")) File.Delete(_dbPath + ".wal");
+        _storagePool?.Dispose();
+        if (Directory.Exists(_tempDir)) Directory.Delete(_tempDir, true);
     }
 
     // =========================================================
@@ -166,7 +162,7 @@ public class FullIntegrationV3Tests : IDisposable
     [Fact]
     public void Optimizer_Can_Build_Scan_Plan()
     {
-        var optimizer = new KBMS.Knowledge.V3.Optimizer.QueryOptimizer(_bpm);
+        var optimizer = new KBMS.Knowledge.V3.Optimizer.QueryOptimizer(_storagePool.GetManagers("University").Bpm);
 
         var selectNode = new KBMS.Parser.Ast.Kql.SelectNode
         {
@@ -228,22 +224,24 @@ public class FullIntegrationV3Tests : IDisposable
     [Fact]
     public void WAL_Detects_Uncommitted_Writes_For_Recovery()
     {
-        // Simulate inserting data then "crashing" before commit
-        var txnId = _wal.Begin();
+        var managers = _storagePool.GetManagers("RecoveryTest");
+        var wal = managers.Wal;
+        var txnId = wal.Begin();
 
         var before = new byte[32];
         var after = new byte[32];
         after[0] = 0xDE; after[1] = 0xAD;
 
-        _wal.LogWrite(txnId, pageId: 42, before, after);
+        wal.LogWrite(txnId, pageId: 42, before, after);
         // DO NOT commit — simulates crash
 
         // Open a NEW WalManagerV3 to simulate restart
-        using var recoveryWal = new WalManagerV3(_dbPath);
+        string dbPath = Path.Combine(_tempDir, "RecoveryTest.kdb");
+        using var recoveryWal = new WalManagerV3(dbPath);
         var uncommitted = recoveryWal.RecoverUncommitted();
 
         Assert.NotEmpty(uncommitted);
         var entry = uncommitted.First(e => e.pageId == 42);
-        Assert.Equal(0x00, entry.beforeImage[0]); // Before-image has original zeros
+        Assert.Equal(0x00, entry.beforeImage[0]); 
     }
 }

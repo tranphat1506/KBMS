@@ -13,10 +13,15 @@ public class DiskManager : IDisposable
     private readonly string _dbFilePath;
     private FileStream? _dbFile;
     private int _nextPageId = 0;
+    private readonly Encryption _encryption;
 
-    public DiskManager(string dbFilePath)
+    // 16384 (Data) + 16 (IV) + 16 (AES Padding) = 16416 bytes on disk
+    private const int DISK_BLOCK_SIZE = Page.PAGE_SIZE + 32;
+
+    public DiskManager(string dbFilePath, string? encryptionKey = "kbms_default_system_key_v3")
     {
         _dbFilePath = dbFilePath;
+        _encryption = new Encryption(encryptionKey ?? "kbms_default_system_key_v3");
         EnsureFileExists();
     }
 
@@ -28,16 +33,18 @@ public class DiskManager : IDisposable
             Directory.CreateDirectory(directory);
         }
 
-        if (!File.Exists(_dbFilePath))
+        if (!File.Exists(_dbFilePath) || new FileInfo(_dbFilePath).Length == 0)
         {
-            _dbFile = new FileStream(_dbFilePath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None);
+            _dbFile = new FileStream(_dbFilePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
             _nextPageId = 0;
+            // Always allocate Page 0 as the header page immediately
+            AllocatePage(); 
         }
         else
         {
             _dbFile = new FileStream(_dbFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
-            // Calculate next page ID based on file size
-            _nextPageId = (int)(_dbFile.Length / Page.PAGE_SIZE);
+            // Calculate next page ID based on encrypted block size
+            _nextPageId = (int)(_dbFile.Length / DISK_BLOCK_SIZE);
         }
     }
 
@@ -48,18 +55,23 @@ public class DiskManager : IDisposable
     {
         if (_dbFile == null) throw new InvalidOperationException("DiskManager is not initialized.");
         
-        long offset = (long)pageId * Page.PAGE_SIZE;
+        long offset = (long)pageId * DISK_BLOCK_SIZE;
         if (offset >= _dbFile.Length)
         {
-            Array.Clear(page.Data, 0, Page.PAGE_SIZE); // Padding for out-of-bounds reads
+            Array.Clear(page.Data, 0, Page.PAGE_SIZE);
             return;
         }
 
         _dbFile.Seek(offset, SeekOrigin.Begin);
+        byte[] encryptedData = new byte[DISK_BLOCK_SIZE];
+        int read = _dbFile.Read(encryptedData, 0, DISK_BLOCK_SIZE);
         
-        // ReadExactly ensures we pull exactly 16KB
-        _dbFile.ReadExactly(page.Data, 0, Page.PAGE_SIZE);
-        page.PageId = pageId;
+        if (read > 0)
+        {
+            byte[] decrypted = _encryption.Decrypt(encryptedData);
+            Array.Copy(decrypted, 0, page.Data, 0, Math.Min(decrypted.Length, Page.PAGE_SIZE));
+            page.PageId = pageId;
+        }
     }
 
     /// <summary>
@@ -69,9 +81,15 @@ public class DiskManager : IDisposable
     {
         if (_dbFile == null) throw new InvalidOperationException("DiskManager is not initialized.");
 
-        long offset = (long)pageId * Page.PAGE_SIZE;
+        byte[] encrypted = _encryption.Encrypt(page.Data);
+        if (encrypted.Length != DISK_BLOCK_SIZE)
+        {
+            // Optional: log or handle size mismatch if Encryption utility changes
+        }
+
+        long offset = (long)pageId * DISK_BLOCK_SIZE;
         _dbFile.Seek(offset, SeekOrigin.Begin);
-        _dbFile.Write(page.Data, 0, Page.PAGE_SIZE);
+        _dbFile.Write(encrypted, 0, encrypted.Length);
         
         // Ensure OS flushes to physical media
         _dbFile.Flush(flushToDisk: true); 

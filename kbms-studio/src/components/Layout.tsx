@@ -5,6 +5,7 @@ import ResultsPane from './ResultsPane';
 import StatusBar from './StatusBar';
 import ActivityBar from './ActivityBar';
 import SystemManagement from './SystemManagement';
+import NotificationToasts from './NotificationToasts';
 import { useKbmsStore } from '../store/kbmsStore';
 
 export default function Layout() {
@@ -41,6 +42,7 @@ export default function Layout() {
         </div>
       </div>
       <StatusBar />
+      <NotificationToasts />
     </div>
   );
 }

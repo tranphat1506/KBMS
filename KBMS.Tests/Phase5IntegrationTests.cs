@@ -12,12 +12,10 @@ namespace KBMS.Tests;
 public class Phase5IntegrationTests : IDisposable
 {
     private readonly string _dataDir;
-    private readonly KBMS.Storage.V3.DiskManager _diskManager;
-    private readonly KBMS.Storage.V3.BufferPoolManager _bpm;
+    private readonly KBMS.Storage.V3.StoragePool _storagePool;
     private readonly KBMS.Storage.V3.KbCatalog _kbCatalog;
     private readonly KBMS.Storage.V3.ConceptCatalog _conceptCatalog;
     private readonly KBMS.Storage.V3.UserCatalog _userCatalog;
-    private readonly KBMS.Storage.V3.WalManagerV3 _wal;
     private readonly KBMS.Knowledge.KnowledgeManager _km;
     private readonly User _root;
 
@@ -25,16 +23,14 @@ public class Phase5IntegrationTests : IDisposable
     {
         _dataDir = Path.Combine(Path.GetTempPath(), "KBMS_P5_Test_" + Guid.NewGuid().ToString("N"));
         if (!Directory.Exists(_dataDir)) Directory.CreateDirectory(_dataDir);
-        string dbFile = Path.Combine(_dataDir, "test.kdb");
+        
+        _storagePool = new KBMS.Storage.V3.StoragePool(_dataDir, 64);
+        _kbCatalog = new KBMS.Storage.V3.KbCatalog(_storagePool);
+        _conceptCatalog = new KBMS.Storage.V3.ConceptCatalog(_storagePool);
+        _userCatalog = new KBMS.Storage.V3.UserCatalog(_storagePool);
+        var router = new KBMS.Knowledge.V3.V3DataRouter(_storagePool);
 
-        _diskManager = new KBMS.Storage.V3.DiskManager(dbFile);
-        _bpm = new KBMS.Storage.V3.BufferPoolManager(_diskManager, 64);
-        _wal = new KBMS.Storage.V3.WalManagerV3(dbFile);
-        _kbCatalog = new KBMS.Storage.V3.KbCatalog(_bpm, _diskManager);
-        _conceptCatalog = new KBMS.Storage.V3.ConceptCatalog(_bpm, _diskManager);
-        _userCatalog = new KBMS.Storage.V3.UserCatalog(_bpm, _diskManager);
-
-        _km = new KBMS.Knowledge.KnowledgeManager(_bpm, _diskManager, _kbCatalog, _conceptCatalog, _userCatalog, _wal);
+        _km = new KBMS.Knowledge.KnowledgeManager(_storagePool, _kbCatalog, _conceptCatalog, _userCatalog, router);
         _root = new User { Username = "root", SystemAdmin = true };
         _userCatalog.CreateUser("root", "password", UserRole.ROOT);
     }
