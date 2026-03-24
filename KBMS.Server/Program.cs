@@ -8,7 +8,9 @@ class Program
 {
     static async Task Main(string[] args)
     {
-        var server = new KbmsServer();
+        string configPath = "kbms.ini";
+        var config = ConfigManager.Load(configPath);
+        var server = new KbmsServer(config);
         
         // Check for flags
         if (args.Length > 0 && args[0] == "--update")

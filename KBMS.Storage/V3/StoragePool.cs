@@ -13,13 +13,15 @@ public class StoragePool : IDisposable
 {
     private readonly string _dataDir;
     private readonly int _defaultPoolSize;
+    private readonly string _masterKey;
     private readonly Dictionary<string, (DiskManager Disk, BufferPoolManager Bpm, WalManagerV3 Wal)> _pools = new();
     private readonly object _lock = new();
 
-    public StoragePool(string dataDir, int defaultPoolSize = 100)
+    public StoragePool(string dataDir, int defaultPoolSize = 100, string masterKey = "KBMS_V3_MASTER_SECRET_2026")
     {
         _dataDir = dataDir;
         _defaultPoolSize = defaultPoolSize;
+        _masterKey = masterKey;
         if (!Directory.Exists(_dataDir)) Directory.CreateDirectory(_dataDir);
     }
 
@@ -43,11 +45,7 @@ public class StoragePool : IDisposable
             
             string fullPath = Path.Combine(_dataDir, fileName);
             
-            // In a production system, we'd look up the KB's specific encryption key from the system catalog.
-            // For now, we use a consistent system-wide Master Key for all KBs.
-            string masterKey = "KBMS_V3_MASTER_SECRET_2026";
-            
-            var disk = new DiskManager(fullPath, masterKey);
+            var disk = new DiskManager(fullPath, _masterKey);
             var bpm = new BufferPoolManager(disk, _defaultPoolSize);
             var wal = new WalManagerV3(fullPath);
             

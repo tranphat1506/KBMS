@@ -21,6 +21,7 @@ public class ManagementManager
     private readonly KBMS.Knowledge.V3.V3DataRouter _v3Router;
     private readonly KBMS.Storage.V3.UserCatalog _userCatalog;
     private readonly ConcurrentDictionary<string, byte> _logSubscribers = new();
+    private readonly ConcurrentDictionary<string, Stream> _testSubscribers = new();
     private class ManualSubscriber
     {
         public Session Session { get; set; }
@@ -71,6 +72,11 @@ public class ManagementManager
             case "ERROR": _sysLogger.Error(sessionId, message, "Diagnostics"); break;
         }
     }
+    public void SubscribeToLogs(string clientId, Stream stream)
+    {
+        _testSubscribers[clientId] = stream;
+    }
+
     public void SubscribeToLogs(string clientId, Session session = null)
     {
         if (session != null)
@@ -87,6 +93,7 @@ public class ManagementManager
     {
         _logSubscribers.TryRemove(clientId, out _);
         _manualSubscribers.TryRemove(clientId, out _);
+        _testSubscribers.TryRemove(clientId, out _);
     }
 
     private void BroadcastLog(object logData)
@@ -155,6 +162,25 @@ public class ManagementManager
                 catch
                 {
                     _manualSubscribers.TryRemove(clientId, out _);
+                }
+            });
+        }
+
+        // Stream-based Test Subscribers
+        foreach (var entry in _testSubscribers)
+        {
+            var clientId = entry.Key;
+            var stream = entry.Value;
+
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await Protocol.SendMessageAsync(stream, message);
+                }
+                catch
+                {
+                    _testSubscribers.TryRemove(clientId, out _);
                 }
             });
         }

@@ -43,7 +43,6 @@ public class DiskManager : IDisposable
         else
         {
             _dbFile = new FileStream(_dbFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
-            // Calculate next page ID based on encrypted block size
             _nextPageId = (int)(_dbFile.Length / DISK_BLOCK_SIZE);
         }
     }

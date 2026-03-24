@@ -39,28 +39,60 @@ public class KbmsServer
     private bool _isRunning;
     private TcpListener? _listener;
     private readonly CancellationTokenSource _cts = new();
+    private int _defaultTimeoutSeconds = 60;
 
     private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
     {
         Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
     };
 
-    public KbmsServer() : this("127.0.0.1", 3307, "data")
+    public KbmsServer() : this("127.0.0.1", 3307, "data", "KBMS_V3_MASTER_SECRET_2026")
     {
     }
 
-    public KbmsServer(string host, int port) : this(host, port, "data")
+    public KbmsServer(ConfigManager config) : this(config.Host, config.Port, config.DataDir, config.MasterKey)
+    {
+        // Apply Config
+        _connectionManager.MaxConnections = config.MaxConnections;
+        if (config.SystemSettings.TryGetValue("DefaultTimeout", out var timeoutStr) && int.TryParse(timeoutStr, out var timeout))
+        {
+            _defaultTimeoutSeconds = timeout;
+        }
+
+        // Apply root user from config
+        if (!_userCatalog.ListUsers().Any(u => u.Username.Equals(config.RootUsername, StringComparison.OrdinalIgnoreCase)))
+        {
+            _userCatalog.CreateUser(config.RootUsername, config.RootPassword, UserRole.ROOT);
+        }
+
+        Console.WriteLine($"[Config] version: {config.Version}");
+        _knowledgeManager.V3Router.UpdateSystemSetting("version", config.Version);
+        _knowledgeManager.V3Router.UpdateSystemSetting("max_connections", config.MaxConnections.ToString());
+
+        // Apply settings
+        foreach (var setting in config.SystemSettings)
+        {
+            Console.WriteLine($"[Config] Applying: {setting.Key} = {setting.Value}");
+            _knowledgeManager.V3Router.UpdateSystemSetting(setting.Key, setting.Value);
+        }
+    }
+
+    public KbmsServer(string host, int port) : this(host, port, "data", "KBMS_V3_MASTER_SECRET_2026")
     {
     }
 
-    public KbmsServer(string host, int port, string dataDir)
+    public KbmsServer(string host, int port, string dataDir) : this(host, port, dataDir, "KBMS_V3_MASTER_SECRET_2026")
+    {
+    }
+
+    public KbmsServer(string host, int port, string dataDir, string masterKey)
     {
         _host = host;
         _port = port;
         _connectionManager = new ConnectionManager();
         
         // V3 Multi-DB Infrastructure
-        _storagePool = new StoragePool(dataDir, 256);
+        _storagePool = new StoragePool(dataDir, 256, masterKey);
         
         _kbCatalog = new KBMS.Storage.V3.KbCatalog(_storagePool);
         _conceptCatalog = new KBMS.Storage.V3.ConceptCatalog(_storagePool);
@@ -76,10 +108,9 @@ public class KbmsServer
         _bootstrapper.Bootstrap();
 
         _managementManager = new KBMS.Server.V3.ManagementManager(_connectionManager, _sysLogger, v3Router, _userCatalog);
-        
         _isRunning = false;
 
-        // Initialize system users if empty
+        // Initialize system users if empty (fallback)
         if (!_userCatalog.ListUsers().Any())
         {
             _userCatalog.CreateUser("root", "root", UserRole.ROOT);
@@ -103,6 +134,7 @@ public class KbmsServer
         _listener = new TcpListener(ipAddress, _port);
         _listener.Start();
         _isRunning = true;
+        _ = StartSessionCleanupTask();
 
         _sysLogger.Info("System", $"KBMS Server started on {_host}:{_port}");
 
@@ -128,13 +160,39 @@ public class KbmsServer
                 catch (Exception ex)
                 {
                     if (_isRunning)
-                        _sysLogger.Error("System", $"Accept error: {ex.Message}");
+                    {
+                        if (ex.InnerException is InvalidOperationException || ex is InvalidOperationException)
+                        {
+                            _sysLogger.Warning("System", $"Connection rejected: {ex.Message}");
+                        }
+                        else
+                        {
+                            _sysLogger.Error("System", $"Accept error: {ex.Message}");
+                        }
+                    }
                 }
             }
         }
         finally
         {
             _listener.Stop();
+        }
+    }
+
+    private async Task StartSessionCleanupTask()
+    {
+        while (_isRunning && !_cts.Token.IsCancellationRequested)
+        {
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(30), _cts.Token);
+                _connectionManager.CleanupExpiredSessions(TimeSpan.FromSeconds(_defaultTimeoutSeconds));
+            }
+            catch (OperationCanceledException) { break; }
+            catch (Exception ex)
+            {
+                _sysLogger.Error("System", $"Cleanup Task Error: {ex.Message}");
+            }
         }
     }
 
@@ -150,11 +208,22 @@ public class KbmsServer
     {
         var clientId = GenerateClientId();
         var ip = client.Client.RemoteEndPoint?.ToString() ?? "unknown";
-        var session = _connectionManager.CreateSession(clientId, client, ip);
+        using var stream = client.GetStream();
+
+        Session? session = null;
+        try
+        {
+            session = _connectionManager.CreateSession(clientId, client, ip);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _sysLogger.Warning(clientId, $"Connection rejected: {ex.Message}");
+            await Protocol.SendMessageAsync(stream, new Message { Type = MessageType.ERROR, Content = "CONNECTION_LIMIT_REACHED: " + ex.Message });
+            client.Close();
+            return;
+        }
         
         _sysLogger.Info(clientId, "New connection established");
-
-        using var stream = client.GetStream();
         try
         {
             while (client.Connected)

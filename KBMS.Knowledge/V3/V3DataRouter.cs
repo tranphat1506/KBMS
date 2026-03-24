@@ -387,4 +387,47 @@ public class V3DataRouter
             return new Dictionary<string, List<int>>(_pageCatalog);
         }
     }
+
+    /// <summary>
+    /// Convenience method to upsert a system setting into the "settings" or "version" concept.
+    /// </summary>
+    public bool UpdateSystemSetting(string key, string value)
+    {
+        if (key.Equals("Version", StringComparison.OrdinalIgnoreCase))
+        {
+            var existingVer = SelectObjects("system", "version");
+            if (existingVer.Count > 0)
+            {
+                var obj = existingVer[0];
+                obj.Values["version_string"] = value;
+                obj.Values["build_date"] = DateTime.Now.ToString("yyyy-MM-dd");
+                UpdateObject("system", "version", obj.Id, obj.Values);
+            }
+            else
+            {
+                var obj = new ObjectInstance { ConceptName = "version" };
+                obj.Values["version_string"] = value;
+                obj.Values["build_date"] = DateTime.Now.ToString("yyyy-MM-dd");
+                InsertObject("system", obj);
+            }
+            return true;
+        }
+
+        // Generic settings
+        var existing = SelectObjects("system", "settings", o => o.ContainsKey("variable_name") && o["variable_name"]?.ToString() == key);
+        if (existing.Count > 0)
+        {
+            var obj = existing[0];
+            obj.Values["variable_value"] = value;
+            UpdateObject("system", "settings", obj.Id, obj.Values);
+        }
+        else
+        {
+            var obj = new ObjectInstance { ConceptName = "settings" };
+            obj.Values["variable_name"] = key;
+            obj.Values["variable_value"] = value;
+            InsertObject("system", obj);
+        }
+        return true;
+    }
 }

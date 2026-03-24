@@ -62,6 +62,13 @@ public class KbCatalog
             if (sp.TupleCount == 0 && sp.FreeSpacePointer == 0) sp.Init(page.PageId);
             var slotId = sp.InsertTuple(data);
 
+            // Ensure the page ID is recorded in the header if it's the first time
+            if (!_pageIds.Contains(page.PageId))
+            {
+                _pageIds.Add(page.PageId);
+                SavePageIds();
+            }
+
             if (slotId < 0)
             {
                 bpm.UnpinPage(page.PageId, false);
@@ -245,18 +252,25 @@ public class KbCatalog
     {
         var managers = _storagePool.GetManagers("system");
         var bpm = managers.Bpm;
+        var wal = managers.Wal;
         var page = bpm.FetchPage(0);
         if (page == null) return;
 
         try
         {
+            var txnId = wal.Begin();
+            byte[] before = (byte[])page.Data.Clone();
+
             BitConverter.GetBytes(_pageIds.Count).CopyTo(page.Data, 0);
             for (int i = 0; i < _pageIds.Count; i++)
             {
                 BitConverter.GetBytes(_pageIds[i]).CopyTo(page.Data, 4 + (i * 4));
             }
+
+            wal.LogWrite(txnId, 0, before, page.Data);
             bpm.UnpinPage(0, true);
             bpm.FlushPage(0);
+            wal.Commit(txnId);
         }
         catch { bpm.UnpinPage(0, false); }
     }

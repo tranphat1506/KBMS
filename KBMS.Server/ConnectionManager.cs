@@ -9,6 +9,7 @@ public class ConnectionManager
 {
     private readonly ConcurrentDictionary<string, Session> _sessions;
     private readonly Random _random = new();
+    public int MaxConnections { get; set; } = 100;
 
     public ConnectionManager()
     {
@@ -17,6 +18,10 @@ public class ConnectionManager
 
     public Session CreateSession(string clientId, TcpClient client, string ipAddress)
     {
+        if (_sessions.Count >= MaxConnections)
+        {
+            throw new InvalidOperationException($"Connection limit reached ({MaxConnections}). Please try again later.");
+        }
         var sessionId = GenerateSessionId();
         var session = new Session
         {
