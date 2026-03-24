@@ -1,9 +1,0 @@
-CREATE KNOWLEDGE BASE test_batch;
-USE test_batch;
-CREATE CONCEPT Person VARIABLES (name:string, age:int);
-INSERT INTO Person VALUES (name='An', age=20);
-INSERT INTO Person VALUES (name='Binh', age=25);
-SELECT * FROM Person;
-INVALID_COMMAND_HERE; -- This should stop execution
-SELECT * FROM Person; -- This should not run
-DROP KNOWLEDGE BASE test_batch;

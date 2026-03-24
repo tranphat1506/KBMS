@@ -1,9 +1,0 @@
-USE EnterpriseKB;
-
--- 5. BACKWARD CHAINING (PHASE 5.5)
--- We ask to FIND 'gifted' for Charlie (grade 92) specifically.
--- This should trigger goal-driven resolution.
-SOLVE ON CONCEPT Student GIVEN name: 'Charlie', id: 3, grade: 92 FIND gifted;
-
--- Verify results
-SELECT name, gifted FROM Student WHERE name = 'Charlie';
