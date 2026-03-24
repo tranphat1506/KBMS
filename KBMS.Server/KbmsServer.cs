@@ -429,12 +429,17 @@ public class KbmsServer
                     }
                     else if (result is ErrorResponse err)
                     {
+                        // Inject location info from AST if missing
+                        if (err.Line == null || err.Line == 0) err.Line = ast.Line;
+                        if (err.Column == null || err.Column == 0) err.Column = ast.Column;
+
                         await SendProtocolMessageAsync(clientId, stream, new Message 
                         { 
                             Type = MessageType.ERROR, 
                             RequestId = requestId,
                             Content = ToJson(err) 
                         });
+                        break; // Stop execution on error
                     }
                     else if (result != null)
                     {
@@ -458,13 +463,13 @@ public class KbmsServer
                     { 
                         Type = MessageType.ERROR, 
                         RequestId = requestId,
-                        Content = ToJson(ErrorResponse.RuntimeErrorResponse(ex, ast.ToString() ?? "")) 
+                        Content = ToJson(ErrorResponse.RuntimeErrorResponse(ex, ast.ToString() ?? "", ast.Line, ast.Column)) 
                     });
                     break; 
                 }
             }
         }
-        catch (ParserException ex)
+        catch (KBMS.Parser.ParserException ex)
         {
             await SendProtocolMessageAsync(clientId, stream, new Message 
             { 
@@ -624,22 +629,7 @@ public class KbmsServer
     private async Task SendProtocolMessageAsync(string clientId, Stream stream, Message message)
     {
         var session = _connectionManager.GetSession(clientId);
-        if (session != null)
-        {
-            await session.MessageLock.WaitAsync();
-            try
-            {
-                await Protocol.SendMessageAsync(stream, message);
-            }
-            finally
-            {
-                session.MessageLock.Release();
-            }
-        }
-        else
-        {
-            await Protocol.SendMessageAsync(stream, message);
-        }
+        await Protocol.SendMessageAsync(stream, message, session?.MessageLock);
     }
 
     private string ToJson(object obj) => JsonSerializer.Serialize(obj, _jsonOptions);

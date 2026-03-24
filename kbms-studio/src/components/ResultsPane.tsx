@@ -23,7 +23,7 @@ const PaginatedTable = ({ res }: { res: any }) => {
             <tr>
               <th className="px-2 py-1.5 border-b border-r border-[var(--border-subtle)] bg-[var(--bg-surface-alt)] w-12 text-center text-[var(--text-muted)] font-medium font-mono">#</th>
               {res.headers?.map((h: string, i: number) => (
-                <th key={i} className="px-4 py-2 font-bold text-[var(--text-main)] border-b border-r border-[var(--border-subtle)] last:border-r-0 whitespace-nowrap text-[11px] tracking-wider uppercase">
+                <th key={i} className="px-4 py-2 font-bold text-[var(--text-main)] border-b border-r border-[var(--border-subtle)] last:border-r-0 whitespace-nowrap text-[11px] tracking-wider">
                   {h}
                 </th>
               ))}

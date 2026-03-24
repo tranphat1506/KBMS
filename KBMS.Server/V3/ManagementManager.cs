@@ -119,16 +119,8 @@ public class ManagementManager
             {
                 try
                 {
-                    await session.MessageLock.WaitAsync();
-                    try
-                    {
-                        var stream = session.Client.GetStream();
-                        await Protocol.SendMessageAsync(stream, message);
-                    }
-                    finally
-                    {
-                        session.MessageLock.Release();
-                    }
+                    var stream = session.Client.GetStream();
+                    await Protocol.SendMessageAsync(stream, message, session.MessageLock);
                 }
                 catch
                 {
@@ -148,16 +140,8 @@ public class ManagementManager
             {
                 try
                 {
-                    await session.MessageLock.WaitAsync();
-                    try
-                    {
-                        var stream = session.Client.GetStream();
-                        await Protocol.SendMessageAsync(stream, message);
-                    }
-                    finally
-                    {
-                        session.MessageLock.Release();
-                    }
+                    var stream = session.Client.GetStream();
+                    await Protocol.SendMessageAsync(stream, message, session.MessageLock);
                 }
                 catch
                 {

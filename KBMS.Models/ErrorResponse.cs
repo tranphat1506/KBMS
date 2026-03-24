@@ -34,13 +34,15 @@ public class ErrorResponse
     /// <summary>
     /// Create error response for runtime exceptions
     /// </summary>
-    public static ErrorResponse RuntimeErrorResponse(Exception ex, string query)
+    public static ErrorResponse RuntimeErrorResponse(Exception ex, string query, int? line = null, int? column = null)
     {
         return new ErrorResponse
         {
             Type = "RuntimeError",
             Message = ex.Message,
-            Query = query
+            Query = query,
+            Line = line > 0 ? line : null,
+            Column = column > 0 ? column : null
         };
     }
 
@@ -76,13 +78,15 @@ public class ErrorResponse
     /// <summary>
     /// Create error response for execution errors (e.g., from knowledge manager)
     /// </summary>
-    public static ErrorResponse ExecutionErrorResponse(string message, string? query = null)
+    public static ErrorResponse ExecutionErrorResponse(string message, string? query = null, int? line = null, int? column = null)
     {
         return new ErrorResponse
         {
             Type = "ExecutionError",
             Message = message,
-            Query = query
+            Query = query,
+            Line = line > 0 ? line : null,
+            Column = column > 0 ? column : null
         };
     }
 }

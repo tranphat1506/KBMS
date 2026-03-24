@@ -1,4 +1,5 @@
 using System;
+using System.Buffers.Binary;
 using System.IO;
 using System.Net.Sockets;
 using System.Text;
@@ -12,57 +13,51 @@ public class Protocol
     {
         // Read length (4 bytes, big-endian)
         var lengthBytes = new byte[4];
-        var readLength = await stream.ReadAsync(lengthBytes, 0, 4);
+        var readLength = await ReadExactAsync(stream, lengthBytes, 4);
         if (readLength < 4)
             return null;
 
-        var length = BitConverter.ToInt32(lengthBytes.Reverse().ToArray(), 0);
+        var length = BinaryPrimitives.ReadInt32BigEndian(lengthBytes);
 
         if (length == 0)
             throw new IOException("Connection closed");
 
         // Read type (1 byte)
         var typeByte = new byte[1];
-        await stream.ReadAsync(typeByte, 0, 1);
+        await ReadExactAsync(stream, typeByte, 1);
         var type = (MessageType)typeByte[0];
 
         // Read session ID length (2 bytes)
         var sessionIdLengthBytes = new byte[2];
-        await stream.ReadAsync(sessionIdLengthBytes, 0, 2);
-        var sessionIdLength = BitConverter.ToUInt16(sessionIdLengthBytes.Reverse().ToArray(), 0);
+        await ReadExactAsync(stream, sessionIdLengthBytes, 2);
+        var sessionIdLength = BinaryPrimitives.ReadUInt16BigEndian(sessionIdLengthBytes);
 
         string? sessionId = null;
         if (sessionIdLength > 0)
         {
             var sessionIdBytes = new byte[sessionIdLength];
-            await stream.ReadAsync(sessionIdBytes, 0, sessionIdLength);
+            await ReadExactAsync(stream, sessionIdBytes, sessionIdLength);
             sessionId = Encoding.UTF8.GetString(sessionIdBytes);
         }
 
-        // Read request ID length (2 bytes) - NEW
+        // Read request ID length (2 bytes)
         var requestIdLengthBytes = new byte[2];
-        await stream.ReadAsync(requestIdLengthBytes, 0, 2);
-        var requestIdLength = BitConverter.ToUInt16(requestIdLengthBytes.Reverse().ToArray(), 0);
+        await ReadExactAsync(stream, requestIdLengthBytes, 2);
+        var requestIdLength = BinaryPrimitives.ReadUInt16BigEndian(requestIdLengthBytes);
 
         string? requestId = null;
         if (requestIdLength > 0)
         {
             var requestIdBytes = new byte[requestIdLength];
-            await stream.ReadAsync(requestIdBytes, 0, requestIdLength);
+            await ReadExactAsync(stream, requestIdBytes, requestIdLength);
             requestId = Encoding.UTF8.GetString(requestIdBytes);
         }
 
         // Read payload
         var payloadLength = length - 2 - sessionIdLength - 2 - requestIdLength;
         var payloadBytes = new byte[payloadLength];
-        var totalRead = 0;
-        while (totalRead < payloadLength)
-        {
-            var read = await stream.ReadAsync(payloadBytes, totalRead, payloadLength - totalRead);
-            if (read == 0)
-                throw new IOException("Connection closed while reading payload");
-            totalRead += read;
-        }
+        await ReadExactAsync(stream, payloadBytes, payloadLength);
+        
         var content = Encoding.UTF8.GetString(payloadBytes);
 
         return new Message
@@ -74,7 +69,7 @@ public class Protocol
         };
     }
 
-    public static async Task SendMessageAsync(Stream stream, Message message)
+    public static async Task SendMessageAsync(Stream stream, Message message, SemaphoreSlim? messageLock = null)
     {
         var contentBytes = Encoding.UTF8.GetBytes(message.Content);
         
@@ -90,36 +85,54 @@ public class Protocol
 
         var totalLength = contentBytes.Length + 2 + sessionIdBytes.Length + 2 + requestIdBytes.Length;
 
-        // Length (4 bytes, big-endian)
-        var lengthBytes = BitConverter.GetBytes(totalLength).Reverse().ToArray();
-        await stream.WriteAsync(lengthBytes, 0, 4);
-
-        // Type (1 byte)
-        var typeBytes = new[] { (byte)message.Type };
-        await stream.WriteAsync(typeBytes, 0, 1);
-
-        // Session ID length (2 bytes)
-        var sessionIdLenBytes = BitConverter.GetBytes(sessionIdLength).Reverse().ToArray();
-        await stream.WriteAsync(sessionIdLenBytes, 0, 2);
-
-        // Session ID (if present)
+        // Sequence of bytes to send:
+        // [4:Length][1:Type][2:SessLen][Sess][2:ReqLen][Req][Payload]
+        
+        var fullMessage = new byte[4 + 1 + 2 + sessionIdLength + 2 + requestIdLength + contentBytes.Length];
+        
+        BinaryPrimitives.WriteInt32BigEndian(new Span<byte>(fullMessage, 0, 4), totalLength);
+        fullMessage[4] = (byte)message.Type;
+        BinaryPrimitives.WriteUInt16BigEndian(new Span<byte>(fullMessage, 5, 2), sessionIdLength);
+        
+        var offset = 7;
         if (sessionIdLength > 0)
         {
-            await stream.WriteAsync(sessionIdBytes, 0, sessionIdLength);
+            Array.Copy(sessionIdBytes, 0, fullMessage, offset, sessionIdLength);
+            offset += sessionIdLength;
         }
 
-        // Request ID length (2 bytes) - NEW
-        var requestIdLenBytes = BitConverter.GetBytes(requestIdLength).Reverse().ToArray();
-        await stream.WriteAsync(requestIdLenBytes, 0, 2);
+        BinaryPrimitives.WriteUInt16BigEndian(new Span<byte>(fullMessage, offset, 2), requestIdLength);
+        offset += 2;
 
-        // Request ID (if present)
         if (requestIdLength > 0)
         {
-            await stream.WriteAsync(requestIdBytes, 0, requestIdLength);
+            Array.Copy(requestIdBytes, 0, fullMessage, offset, requestIdLength);
+            offset += requestIdLength;
         }
 
-        // Payload
-        await stream.WriteAsync(contentBytes, 0, contentBytes.Length);
-        await stream.FlushAsync();
+        Array.Copy(contentBytes, 0, fullMessage, offset, contentBytes.Length);
+
+        if (messageLock != null) await messageLock.WaitAsync();
+        try
+        {
+            await stream.WriteAsync(fullMessage, 0, fullMessage.Length);
+            await stream.FlushAsync();
+        }
+        finally
+        {
+            if (messageLock != null) messageLock.Release();
+        }
+    }
+
+    private static async Task<int> ReadExactAsync(Stream stream, byte[] buffer, int count)
+    {
+        int totalRead = 0;
+        while (totalRead < count)
+        {
+            int read = await stream.ReadAsync(buffer, totalRead, count - totalRead);
+            if (read == 0) return totalRead;
+            totalRead += read;
+        }
+        return totalRead;
     }
 }

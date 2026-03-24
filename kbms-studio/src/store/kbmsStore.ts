@@ -804,7 +804,7 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
     const requestId = isBackground ? null : `req_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
     if (!isBackground) {
-      set({ isExecuting: true, activeTab: 'results', result: [], currentRequestId: requestId }); 
+      set({ isExecuting: true, activeTab: 'results', result: [], currentRequestId: requestId, editorMarkers: [] }); 
     } else {
       // Do not set isExecuting for background queries to keep UI clean
     }
@@ -835,12 +835,17 @@ export const useKbmsStore = create<KbmsState>((set, get) => ({
 
       if (!isBackground) {
         if (!isDescribe) {
-          newState.editorMarkers = res?.editorMarkers || [];
+          // Preserve markers if they were already added via handleResultFragment
+          const currentMarkers = get().editorMarkers;
+          newState.editorMarkers = (res?.editorMarkers && res.editorMarkers.length > 0) 
+            ? [...currentMarkers, ...res.editorMarkers]
+            : currentMarkers;
+
           const hasError = res && res.messages && res.messages.some((m: any) => 
               typeof m === 'string' ? m.toLowerCase().includes('error') : (m.type === 'error' || m.type === 'Error')
           );
           const hasResultTable = res && (res.ConceptName || (res.rows && res.rows.length > 0) || (res.headers && res.headers.length > 0 && res.headers[0] !== 'Result'));
-          newState.activeTab = (hasResultTable && !hasError) ? 'results' : 'messages';
+          newState.activeTab = (hasError || newState.editorMarkers.length > 0) ? 'messages' : (hasResultTable ? 'results' : 'messages');
         }
       }
 

@@ -22,7 +22,6 @@ export default function EditorPane() {
   const stopExecution = useKbmsStore(state => state.stopExecution);
   const metadata = useKbmsStore(state => state.metadata);
   const editorMarkers = useKbmsStore(state => state.editorMarkers);
-  const clearEditorMarkers = useKbmsStore(state => state.clearEditorMarkers);
   const monaco = useMonaco();
   
   const [editorInstance, setEditorInstance] = useState<any>(null);
@@ -89,7 +88,7 @@ export default function EditorPane() {
     } else {
       monaco.editor.setModelMarkers(model, 'kbms-server', []);
     }
-  }, [monaco, editorInstance, editorMarkers]);
+  }, [monaco, editorInstance, editorMarkers, activeTabId]);
   useEffect(() => {
     if (monaco) {
       const kbmsKeywords = [
@@ -291,9 +290,6 @@ export default function EditorPane() {
           onMount={handleEditorDidMount}
           onChange={(val) => {
              setQuery(val || '');
-             if (editorMarkers && editorMarkers.length > 0) {
-                clearEditorMarkers();
-             }
           }}
         />
       </div>
