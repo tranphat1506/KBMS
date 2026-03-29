@@ -1,65 +1,50 @@
-# 📒 Hướng dẫn Kiểm thử và Chụp ảnh Thực tế (Danh sách chi tiết)
+# 📒 Hướng dẫn Chụp ảnh Minh chứng Kiểm thử (Mã nguồn & Kết quả)
 
-Chào bạn, đây là bản hướng dẫn dạng danh sách để bạn dễ dàng theo dõi và thực hiện chụp ảnh cho luận văn.
-
-## ⚙️ 1. Chuẩn bị Môi trường
-*   **Mở Terminal**: Sử dụng Terminal (macOS/Linux) hoặc PowerShell (Windows).
-*   **Di chuyển thư mục**: `cd /Users/lechautranphat/Desktop/KBMS/KBMS.Tests`
-*   **Kiểm tra SDK**: Chạy `dotnet --version` (Yêu cầu 8.0 trở lên).
+Chào bạn, đây là bảng tra cứu đầy đủ nhất để bạn chụp ảnh cho toàn bộ 12 kịch bản kiểm thử trong luận văn. Mỗi kịch bản sẽ cần 2 ảnh: **Ảnh Mã nguồn (IDE)** và **Ảnh Kết quả (Terminal)**.
 
 ---
 
-## 📸 2. Danh sách ảnh và Cách thực hiện
-
-### 🟢 A. Nhóm Kiểm thử Hệ thống (Cốt lõi)
-
-1.  **Luồng Suy diễn Charlie** (`terminal_test_reasoning_trace.png`)
-    *   **Lệnh**: `dotnet test --filter Phase5ForwardChainingTests --logger "console;verbosity=normal"`
-    *   **Yêu cầu**: Ảnh phải hiển thị log các bước `Triggering Rule` và bảng kết quả cuối cùng có `honor: High`, `gifted: true`.
-
-2.  **Truy vấn Join Dữ liệu** (`terminal_test_join_query.png`)
-    *   **Lệnh**: `dotnet test --filter CliServerIntegrationTests --logger "console;verbosity=normal"`
-    *   **Yêu cầu**: Hiển thị bảng kết quả ASCII sạch sẽ với các cột `name` (Alice) và `DeptName` (IT).
-
-3.  **Báo lỗi Cú pháp** (`terminal_test_parser_error.png`)
-    *   **Lệnh**: `dotnet test --filter ParserTests --logger "console;verbosity=normal"`
-    *   **Yêu cầu**: Hiển thị dòng thông báo lỗi màu đỏ (nếu có thể) và dấu trỏ `^` đúng vị trí lỗi cú pháp.
-
-4.  **Tổng kết Kiểm thử** (`terminal_test_summary_stats.png`)
-    *   **Lệnh**: `dotnet test --logger "console;verbosity=minimal"`
-    *   **Yêu cầu**: Hiển thị dòng `Passed: 111` (hoặc con số lớn hơn 100), không có lỗi (Failed: 0).
-
-### 🔵 B. Nhóm Hạ tầng và Giao diện
-
-5.  **Mã hóa Lưu trữ** (`terminal_test_storage_hex.png`)
-    *   **Cách làm**: Mở tệp `.dat` trong thư mục data bằng một trình HEX Editor bất kỳ.
-    *   **Yêu cầu**: Ảnh cho thấy dữ liệu nhị phân không thể đọc được bằng mắt thường (Mã hóa AES-256).
-
-6.  **Trình thiết kế Concept** (`studio_concept_editor.png`)
-    *   **Cách làm**: Mở KBMS Studio -> Vào mục Designer.
-    *   **Yêu cầu**: Chụp màn hình trang soạn thảo Concept (ví dụ Concept `Product` hoặc `Student`).
-
-7.  **Đồ thị Tri thức** (`knowledge_graph_view.png`)
-    *   **Cách làm**: Mở KBMS Studio -> Vào mục Graph View.
-    *   **Yêu cầu**: Hiển thị các nút (Node) và quan hệ (Relation) trực quan.
+## ⚙️ Quy trình chung
+1.  **Mở IDE (VS Code)**: Mở tệp `.cs` tương ứng, bôi đậm hoặc trỏ chuột vào tên hàm Test (`[Fact]`). Chụp màn hình (Lưu tên `code_test_...`).
+2.  **Mở Terminal**: Chạy lệnh test tương ứng. Chụp màn hình kết quả xanh (Lưu tên `result_test_...`).
+3.  **Lưu ảnh**: Copy toàn bộ vào `/docs/assets/diagrams/`.
 
 ---
 
-## 📊 3. Các con số Hiệu năng "Chuẩn" (Điền vào Chương 12)
-*   **Suy diễn (Reasoning)**: 4ms
-*   **Ghi đĩa (Storage Write)**: 23ms
-*   **Giải phóng RAM (Eviction)**: 46ms
-*   **Tìm kiếm (Index Search)**: 1ms
-*   **Độ trễ Mạng (Network)**: 5ms
+## 📸 Danh sách 12 Kịch bản Kiểm thử
+
+| STT | Kịch bản | Tệp Test nguồn (`KBMS.Tests/`) | Tên ảnh Mã nguồn (IDE) | Tên ảnh Kết quả (Terminal) |
+| :--- | :--- | :--- | :--- | :--- |
+| **1** | **Unit Models** | `SchemaV3Tests.cs` | `code_test_models.png` | `result_test_models.png` |
+| **2** | **Unit Parser** | `ParserTests.cs` | `code_test_parser.png` | `result_test_parser.png` |
+| **3** | **Storage I/O** | `StorageV3Tests.cs` | `code_test_storage_io.png` | `result_test_storage_io.png` |
+| **4** | **B+ Tree Index** | `StorageV3Tests.cs` | `code_test_index.png` | `result_test_index.png` |
+| **5** | **Binary Protocol** | `CliServerIntegrationTests.cs` | `code_test_network.png` | `result_test_network.png` |
+| **6** | **CLI Integration** | `FullIntegrationV3Tests.cs` | `code_test_cli.png` | `result_test_cli.png` |
+| **7** | **Reasoning Logic** | `Phase5ForwardChainingTests.cs` | `code_test_reasoning.png` | `result_test_reasoning.png` |
+| **8** | **RBAC Security** | `AuthV3Tests.cs` | `code_test_security.png` | `result_test_security.png` |
+| **9** | **Concurrency** | `LoadAndStressTests.cs` | `code_test_concurrency.png` | `result_test_concurrency.png` |
+| **10** | **Data Volume** | `LoadAndStressTests.cs` | `code_test_volume.png` | `result_test_volume.png` |
+| **11** | **WAL Recovery** | `TransactionV3Tests.cs` | `code_test_recovery.png` | `result_test_recovery.png` |
+| **12** | **Dashboard API** | `DashboardApiTests.cs` | `code_test_dashboard.png` | `result_test_dashboard.png` |
 
 ---
 
-## 🛠️ 4. Cách áp dụng vào Tài liệu
-1.  Lưu ảnh với đúng tên tệp ở trên (định dạng **.png**).
-2.  Chép ảnh vào thư mục: `/Users/lechautranphat/Desktop/KBMS/docs/assets/diagrams/`
-3.  Tài liệu Markdown sẽ tự động nhận diện và hiển thị ảnh tại các vị trí Placeholder.
+## 🚀 Các lệnh chạy tương ứng (Terminal)
+
+| STT | Lệnh thực thi | Mục tiêu cần thấy trong ảnh |
+| :--- | :--- | :--- |
+| **1-4** | `dotnet test --filter KBMS.Tests.StorageV3Tests` | Toàn bộ Page/Slot/LRU Success. |
+| **2** | `dotnet test --filter KBMS.Tests.ParserTests` | 21,000+ tests passed. |
+| **7** | `dotnet test --filter Phase5ForwardChainingTests --logger "console;verbosity=normal"` | Log suy diễn Charlie (4ms). |
+| **9-10**| `dotnet test --filter LoadAndStressTests` | 256 Connects / 1000+ Inserts. |
+| **ALL** | `dotnet test --logger "console;verbosity=minimal"` | Summary: `Passed: 111`, `Failed: 0`. |
 
 ---
 
-> [!TIP]
-> **Mẹo**: Bạn nên kéo cửa sổ Terminal hẹp lại một chút trước khi chụp để bảng dữ liệu trông cân đối và chuyên nghiệp hơn trong báo cáo!
+## 📊 Hằng số Hiệu năng (Sử dụng ghi chú trong báo cáo)
+*   **Reasoning**: 4ms
+*   **Storage Write**: 23ms
+*   **B+ Tree**: 1ms
+*   **Buffer Eviction**: 46ms
+*   **Login Latency**: 5ms
