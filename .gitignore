@@ -96,3 +96,9 @@ TestResults2/
 server.log
 server2.log
 *.log
+
+# KBMS Build & Releases
+releases/
+kbms-studio/release/
+kbms-studio/dist/
+kbms-studio/dist-electron/
