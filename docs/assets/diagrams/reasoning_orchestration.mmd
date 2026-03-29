@@ -1,0 +1,10 @@
+graph TD
+    Parser[Bộ phân tích KBQL] -- AST: SolveNode --> Engine[Bộ máy Suy diễn]
+    Engine -- Giải quyết Kế thừa --> Catalog[Danh mục Tri thức]
+    Engine -- Truy xuất Sự thật --> BTree[Lưu trữ B+ Tree]
+    Engine -- Tác vụ Toán học --> Solver[Bộ giải Toán: Brent/Newton]
+    Engine -- Khớp Luật --> Rules[Bộ xử lý Luật]
+    
+    Rules -- Sự thật mới --> Engine
+    Solver -- Nghiệm số --> Engine
+    Engine -- Tập kết quả cuối --> Result[Vết suy diễn/Tập đóng]

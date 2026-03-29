@@ -1,0 +1,25 @@
+sequenceDiagram
+    participant ST as KBMS.Storage
+    participant BP as BufferPoolManager
+    participant WAL as WalManager
+    participant DM as DiskManager
+
+    ST->>WAL: Ghi log thay đổi (Append Log Record)
+    WAL->>DM: Flush log xuống file .wal (Sync)
+    
+    ST->>BP: FetchPage(pageId)
+    alt Nếu trang không có trong RAM
+        BP->>DM: ReadPage(pageId) từ file .kdb
+        DM-->>BP: Trả về dữ liệu trang
+    end
+    
+    BP->>BP: Cập nhật dữ liệu trong Memory
+    BP->>BP: Đánh dấu trang là Dirty
+    
+    Note over BP,DM: Chính sách LRU Eviction
+    alt Nếu Buffer Pool đầy
+        BP->>BP: Tìm trang ít sử dụng nhất (LRU)
+        alt Nếu trang đó bị bẩn (Dirty)
+            BP->>DM: WritePage (Flush xuống đĩa)
+        end
+    end

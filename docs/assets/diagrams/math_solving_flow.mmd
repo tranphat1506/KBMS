@@ -1,0 +1,7 @@
+graph TD
+    Start["Bắt đầu: PT f(x)=0"] --> Bracket["Tìm khoảng cách ly nghiệm a, b"]
+    Bracket --> Iter{Vòng lặp Brent}
+    Iter -- "Nội suy Bậc hai" --> Check[Kiểm tra độ chính xác]
+    Iter -- "Secant/Bisection" --> Check
+    Check -- "Chưa" --> Iter
+    Check -- "Xong" --> Final["Trả về nghiệm x"]

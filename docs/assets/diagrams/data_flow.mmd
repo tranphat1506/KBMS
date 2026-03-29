@@ -1,0 +1,9 @@
+graph TD
+    Client[Client: Studio/CLI] -- KBQL Query --> Network[Communication Layer]
+    Network -- Request Package --> Parser[Language Layer]
+    Parser -- AST Tree --> Reasoning[Reasoning Layer]
+    Reasoning -- Knowledge Request --> Storage[Storage Layer]
+    Storage -- Physical Data --> Disk[(Physical Disk)]
+    Storage -- Facts/Entities --> Reasoning
+    Reasoning -- Final Result Set --> Network
+    Network -- Result Package --> Client

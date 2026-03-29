@@ -1,0 +1,17 @@
+sequenceDiagram
+    participant U as Người dùng (Studio/CLI)
+    participant N as Network (Binary Protocol)
+    participant S as Server (KnowledgeManager)
+    participant E as Engine (Parser/Reasoning)
+    participant ST as Storage (B+ Tree/WAL)
+
+    U->>N: Gửi truy vấn (KBQL Command)
+    N->>S: Giải mã gói tin (Message Type)
+    S->>E: Yêu cầu thực thi (Orchestration)
+    E->>E: Phân tích cú pháp (AST Compilation)
+    E->>ST: Truy xuất/Ghi dữ liệu Page nhị phân
+    ST-->>E: Trả về nút B+ Tree / Page Data
+    E->>E: Thực hiện suy diễn (nếu là SOLVE)
+    E-->>S: Trả về kết quả thô
+    S-->>N: Đóng gói Metadata & Rows (Streaming)
+    N-->>U: Hiển thị kết quả (Visualization)

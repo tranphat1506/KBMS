@@ -1,0 +1,27 @@
+graph LR
+    User([Học viên / Nghiên cứu sinh])
+    Admin([Quản trị viên])
+    Dev([Nhà phát triển hệ thống])
+
+    subgraph Interface [Interface Layer]
+        CLI["KBMS CLI"]
+        Studio["KBMS Studio (IDE)"]
+    end
+
+    subgraph Service [Core Services]
+        KDL[Thiết kế Tri thức - CREATE]
+        RE[Suy diễn tự động - SOLVE]
+        KML[Bảo trì Dữ liệu - REINDEX]
+        KCL[Bảo mật & Phân quyền - GRANT]
+    end
+
+    User --> Studio
+    User --> CLI
+    Admin --> Studio
+    Dev --> CLI
+
+    Studio --> KDL
+    Studio --> RE
+    Studio --> KCL
+    CLI --> KML
+    CLI --- Server["KBMS Core Server"]

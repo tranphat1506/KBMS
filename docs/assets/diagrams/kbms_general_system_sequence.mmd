@@ -1,0 +1,17 @@
+sequenceDiagram
+    participant U as Người dùng (Studio/CLI)
+    participant N as Network Layer (Binary)
+    participant S as Server Layer (Manager)
+    participant E as Engine Layer (Parser/Solver)
+    participant ST as Storage Layer (B+ Tree/WAL)
+
+    U->>N: Gửi truy vấn (MessageType.QUERY)
+    N->>S: Giải mã gói tin (Protocol Decoding)
+    S->>E: Điều phối thực thi (Orchestration)
+    E->>E: Phân tích cú pháp (AST Compilation)
+    E->>ST: Truy xuất/Ghi dữ liệu Page
+    ST-->>E: Trả về B+ Tree Node / Fact
+    E->>E: Thực hiện suy diễn F-Closure
+    E-->>S: Trả về kết quả thô
+    S-->>N: Streaming Results (Metadata/Row)
+    N-->>U: Hiển thị kết quả (Visualization)

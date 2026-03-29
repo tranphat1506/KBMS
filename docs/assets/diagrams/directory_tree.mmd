@@ -1,0 +1,12 @@
+graph TD
+    DataDir[data/] --> System[system/]
+    DataDir --> UserKB1[knowledge_base_A/]
+    DataDir --> UserKB2[knowledge_base_B/]
+    
+    System --> SysConf[system.config]
+    System --> SysLogs[logs.kdb]
+    
+    UserKB1 --> Meta[metadata.kmf]
+    UserKB1 --> Concepts[concepts.kmf]
+    UserKB1 --> Objects[objects.kdf]
+    UserKB1 --> WAL[transactions.klf]

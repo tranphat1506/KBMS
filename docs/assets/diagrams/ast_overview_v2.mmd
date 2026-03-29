@@ -1,0 +1,15 @@
+graph LR
+    Base["AstNode (Lớp cha)"]
+    
+    Base --- KDL["KDL (Định nghĩa - Xanh)"]
+    Base --- KQL["KQL (Truy vấn - Lam)"]
+    Base --- KML["KML (Thao tác - Cam)"]
+    Base --- KCL["KCL (Bảo mật - Xám)"]
+    Base --- TCL["TCL (Giao dịch - Đỏ)"]
+    
+    style Base fill:#f9f,stroke:#333,stroke-width:4px
+    style KDL fill:#dfd,stroke:#333
+    style KQL fill:#bbf,stroke:#333
+    style KML fill:#ffe,stroke:#333
+    style KCL fill:#eee,stroke:#333
+    style TCL fill:#fdd,stroke:#333
