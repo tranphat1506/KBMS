@@ -86,6 +86,8 @@ export interface KbmsState {
   setSelectedNotification: (n: Notification | null) => void;
   markAsRead: (id: string) => void;
   setSystemActiveTab: (tab: 'overview' | 'users' | 'logs' | 'settings' | 'sessions' | 'debug') => void;
+  updateStudioSetting: (key: keyof StudioSettings, value: any) => void;
+  setStudioSettingsOpen: (v: boolean) => void;
   setSelectedKb: (kb: string) => void;
   setActiveSidebarView: (v: 'explorer' | 'system') => void;
   fetchSystemLogs: (filter?: any, append?: boolean) => Promise<number>;

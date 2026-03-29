@@ -3,7 +3,7 @@
   "displayName": "KBMS Studio",
   "productName": "KBMS Studio",
   "private": true,
-  "version": "0.0.0",
+  "version": "3.4.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -47,7 +47,8 @@
     },
     "files": [
       "dist",
-      "dist-electron"
+      "dist-electron",
+      "LICENSE"
     ],
     "mac": {
       "icon": "public/icon.png"

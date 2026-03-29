@@ -11,46 +11,46 @@
 
 ---
 
-## 🚀 Tính năng Cốt lõi
+## Tính năng Cốt lõi
 
-*   **Bộ máy Suy diễn Mạnh mẽ:** Hỗ trợ suy diễn tiến (Forward Chaining) và giải hệ phương trình đa biến (Brent's Method, Newton-Raphson).
-*   **Lưu trữ Hiệu suất cao:** Sử dụng cây B+ Tree trên Slotted Pages, quản lý bộ nhớ đệm (Buffer Pool LRU) và đảm bảo an toàn dữ liệu với Write-Ahead Logging (WAL).
-*   **Bảo mật Công nghiệp:** Mã hóa mật khẩu SHA-256 kèm Salt, phân quyền người dùng (RBAC) và đặc quyền trên từng KB.
-*   **Ngôn ngữ KBQL:** Ngôn ngữ truy vấn mạnh mẽ, hỗ trợ DDL (CREATE), DML (INSERT/UPDATE), và DQL (SELECT/INFER).
-*   **Giao tiếp Nhị phân:** Giao thức TCP nhị phân tùy chỉnh (Binary Protocol) tối ưu hóa cho tốc độ truyền tải và xử lý dòng (Streaming).
+* **Bộ máy Suy diễn Mạnh mẽ:** Hỗ trợ suy diễn tiến (Forward Chaining) và giải hệ phương trình đa biến (Brent's Method, Newton-Raphson).
+* **Lưu trữ Hiệu suất cao:** Sử dụng cây B+ Tree trên Slotted Pages, quản lý bộ nhớ đệm (Buffer Pool LRU) và đảm bảo an toàn dữ liệu với Write-Ahead Logging (WAL).
+* **Bảo mật Công nghiệp:** Mã hóa mật khẩu SHA-256 kèm Salt, phân quyền người dùng (RBAC) và đặc quyền trên từng KB.
+* **Ngôn ngữ KBQL:** Ngôn ngữ truy vấn mạnh mẽ, hỗ trợ DDL (CREATE), DML (INSERT/UPDATE), và DQL (SELECT/INFER).
+* **Giao tiếp Nhị phân:** Giao thức TCP nhị phân tùy chỉnh (Binary Protocol) tối ưu hóa cho tốc độ truyền tải và xử lý dòng (Streaming).
 
 ---
 
-## 📖 Hướng dẫn Hệ thống Tài liệu (Documentation)
+## Hướng dẫn Hệ thống Tài liệu (Documentation)
 
 Bộ tài liệu chi tiết của KBMS được tổ chức khoa học để giúp bạn tiếp cận hệ thống từ mọi cấp độ:
 
 ### 1. Bắt đầu nhanh (Getting Started)
-*   [Giới thiệu tổng quan](docs/01-getting-started/01-introduction.md) - Cách cài đặt và chạy truy vấn đầu tiên.
-*   [Thuật ngữ & Khái niệm](docs/01-getting-started/02-glossary.md) - Giải thích GT, KL, FClosure, Fact...
-*   [Triển khai & Tối ưu](docs/01-getting-started/03-deployment-tuning.md) - Docker, `kbms.ini` và cấu hình Production.
+* [Giới thiệu tổng quan](docs/01-getting-started/01-introduction.md) - Cách cài đặt và chạy truy vấn đầu tiên.
+* [Thuật ngữ & Khái niệm](docs/01-getting-started/02-glossary.md) - Giải thích GT, KL, FClosure, Fact...
+* [Triển khai & Tối ưu](docs/01-getting-started/03-deployment-tuning.md) - Docker, `kbms.ini` và cấu hình Production.
 
 ### 2. Kiến trúc & Bảo mật (Architecture)
-*   [Tổng quan Kiến trúc](docs/02-architecture/01-overview.md) - Sơ đồ Use Case và Layered Architecture.
-*   [Các thành phần lõi](docs/02-architecture/02-components.md) - Parser, Reasoning, Storage Engine.
-*   [Quản trị & Bảo mật](docs/02-architecture/03-security.md) - Cơ chế Auth và Privileges.
+* [Tổng quan Kiến trúc](docs/02-architecture/01-overview.md) - Sơ đồ Use Case và Layered Architecture.
+* [Các thành phần lõi](docs/02-architecture/02-components.md) - Parser, Reasoning, Storage Engine.
+* [Quản trị & Bảo mật](docs/02-architecture/03-security.md) - Cơ chế Auth và Privileges.
 
 ### 3. Tham chiếu Ngôn ngữ KBQL
-*   [Tài liệu Ngôn ngữ](docs/03-kbql-reference/) - Chi tiết cú pháp DDL, DML, DQL và quy tắc suy diễn.
+* [Tài liệu Ngôn ngữ](docs/03-kbql-reference/) - Chi tiết cú pháp DDL, DML, DQL và quy tắc suy diễn.
 
 ### 4. Kỹ thuật Chuyên sâu (Internals)
-*   [Storage Engine](docs/04-storage/01-overview.md) - B+ Tree, Paging, Buffer Pool & WAL.
-*   [Reasoning Engine](docs/05-reasoning/01-reasoning-engine.md) - Forward Chaining & Equation Solving.
-*   [Network Layer](docs/06-network/01-protocol.md) - Đặc tả Giao thức nhị phân và Packet Handling.
+* [Storage Engine](docs/04-storage/01-overview.md) - B+ Tree, Paging, Buffer Pool & WAL.
+* [Reasoning Engine](docs/05-reasoning/01-reasoning-engine.md) - Forward Chaining & Equation Solving.
+* [Network Layer](docs/06-network/01-protocol.md) - Đặc tả Giao thức nhị phân và Packet Handling.
 
 ### 5. Thực hành & Mở rộng
-*   [Gói Tri thức Mẫu](docs/08-use-cases/03-samples.md) - Các template về Tài chính, Động vật, Quản lý kho.
-*   [Ví dụ Hình học](docs/08-use-cases/01-geometry.md) & [Ví dụ Y tế](docs/08-use-cases/02-medical-diagnosis.md).
-*   [Developer Guide](docs/10-developer/01-extensibility.md) - Cách mở rộng Function và Operator mới.
+* [Gói Tri thức Mẫu](docs/08-use-cases/03-samples.md) - Các template về Tài chính, Động vật, Quản lý kho.
+* [Ví dụ Hình học](docs/08-use-cases/01-geometry.md) & [Ví dụ Y tế](docs/08-use-cases/02-medical-diagnosis.md).
+* [Developer Guide](docs/10-developer/01-extensibility.md) - Cách mở rộng Function và Operator mới.
 
 ---
 
-## 🛠️ Cài đặt & Chạy thử
+## ️ Cài đặt & Chạy thử
 
 Yêu cầu: **.NET 8.0 SDK** đã được cài đặt trên máy tính của bạn.
 
@@ -70,14 +70,14 @@ dotnet run
 
 ---
 
-## 📝 Ví dụ KBQL nhanh
+## Ví dụ KBQL nhanh
 
 ```sql
 -- Định nghĩa Khái niệm hình học
 CREATE CONCEPT Triangle (
-    VARIABLES ( a: DOUBLE, b: DOUBLE, c: DOUBLE, s: DOUBLE ),
-    CONSTRAINTS ( a + b > c, a + c > b, b + c > a ),
-    EQUATIONS ( s = (a + b + c) / 2 )
+ VARIABLES ( a: DOUBLE, b: DOUBLE, c: DOUBLE, s: DOUBLE ),
+ CONSTRAINTS ( a + b > c, a + c > b, b + c > a ),
+ EQUATIONS ( s = (a + b + c) / 2 )
 );
 
 -- Thêm dữ liệu và yêu cầu suy diễn
