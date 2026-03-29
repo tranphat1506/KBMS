@@ -11,16 +11,43 @@ KBQL được thiết kế dựa trên ba trụ cột chính:
 
 ## 2. Các Thành phần Chính của KBQL
 
-Hệ thống lệnh của KBQL được chia thành 4 nhóm chính:
-
 | Nhóm Lệnh | Chức năng | Các lệnh tiêu biểu |
 | :--- | :--- | :--- |
-| **DDL** (Data Definition) | Định nghĩa cấu trúc tri thức | `CREATE KB`, `CREATE CONCEPT`, `CREATE RULE` |
-| **DML** (Data Manipulation) | Thao tác trên tập các sự kiện | `INSERT`, `UPDATE`, `DELETE` |
-| **DQL** (Data Query) | Truy vấn và yêu cầu suy diễn | `SELECT`, `INFER`, `ASK` |
-| **DCL/System** | Quản lý hệ thống và metadata | `USE`, `DESCRIBE`, `EXPLAIN`, `SHOW` |
+| **KDL** (Knowledge Definition) | Định nghĩa cấu trúc tri thức, luật, phân cấp | `CREATE KB`, `CONCEPT`, `RULE`, `HIERARCHY`, `RELATION` |
+| **KML** (Knowledge Manipulation) | Thao tác trên tập các sự kiện (Facts) | `INSERT`, `UPDATE`, `DELETE`, `IMPORT`, `EXPORT` |
+| **KQL** (Knowledge Query) | Truy vấn và yêu cầu suy diễn | `SELECT`, `SOLVE`, `SHOW`, `EXPLAIN`, `DESCRIBE` |
+| **KCL** (Knowledge Control) | Quản lý người dùng và quyền truy cập | `GRANT`, `REVOKE`, `CREATE/ALTER/DROP USER` |
+| **TCL** (Transaction Control) | Quản lý giao dịch và tính toàn vẹn | `BEGIN`, `COMMIT`, `ROLLBACK` |
+| **Admin** (Maintenance) | Bảo trì và tối ưu hóa hệ thống | `MAINTENANCE (VACUUM, REINDEX, CHECK)` |
 
-## 3. Khái niệm Cốt lõi
+## 3. Hỗ trợ Chỉnh sửa (ALTER Support)
+
+Không phải tất cả các đối tượng trong KBMS đều hỗ trợ lệnh `ALTER`. Dưới đây là bảng tra cứu:
+
+| Đối tượng | Hỗ trợ ALTER | Ghi chú |
+| :--- | :--- | :--- |
+| **Concept** | ✅ Có | Hỗ trợ thêm/xóa biến, luật, ràng buộc, quan hệ nội bộ. |
+| **Knowledge Base** | ✅ Có | Hỗ trợ thay đổi mô tả (Description). |
+| **User** | ✅ Có | Hỗ trợ đổi mật khẩu và vai trò quản trị. |
+| **Relation** | ❌ Không | Cần `DROP` và `CREATE` lại. |
+| **Hierarchy** | ❌ Không | Sử dụng `ADD/REMOVE HIERARCHY`. |
+| **Rule** (Toàn cục) | ❌ Không | Cần `DROP` và `CREATE` lại (Khác với Rule nội bộ Concept). |
+| **Operator/Function**| ❌ Không | Cần `DROP` và `CREATE` lại. |
+
+## 4. Kiểu Dữ liệu Hỗ trợ (Data Types)
+
+KBQL cung cấp bộ kiểu dữ liệu phong phú để định nghĩa Concept:
+
+| Nhóm | Kiểu dữ liệu | Mô tả |
+| :--- | :--- | :--- |
+| **Số học** | `INT`, `BIGINT`, `DECIMAL`, `FLOAT`, `DOUBLE` | Các kiểu số nguyên và số thực. |
+| **Chuỗi** | `VARCHAR(n)`, `CHAR(n)`, `TEXT`, `STRING` | Lưu trữ văn bản (hỗ trợ độ dài tùy chỉnh). |
+| **Logic** | `BOOLEAN` | Giá trị `true` hoặc `false`. |
+| **Thời gian** | `DATE`, `DATETIME`, `TIMESTAMP` | Quản lý thời gian và sự kiện. |
+| **Tri thức** | `OBJECT`, `<ConceptName>` | Tham chiếu đến một đối tượng hoặc một Khái niệm khác. |
+| **Đặc biệt** | `NULL` | Trạng thái rỗng. |
+
+## 4. Khái niệm Cốt lõi
 
 ### Concept (Khái niệm)
 Thay vì dùng "Table", KBQL sử dụng **Concept**. Một Concept đại diện cho một thực thể hoặc một lớp đối tượng trong thế giới thực, bao gồm các biến (Variables) định nghĩa thuộc tính của nó.
