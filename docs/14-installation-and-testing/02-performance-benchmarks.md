@@ -1,9 +1,12 @@
 # 14.3. Đánh giá Hiệu năng (Performance Benchmarks)
 
+*Bảng 14.3: Kết quả Đo đạc Hiệu năng Thực tế*
+
 Dưới đây là bảng tổng hợp các chỉ số hiệu năng đo đạc trực tiếp từ quá trình chạy `dotnet test` trên hệ thống máy chủ tiêu chuẩn (Apple M1, 16GB RAM).
 
 ## 1. Hiệu năng theo Tầng Kiến trúc
 
+*Bảng 14.4: Hiệu năng theo Tầng Kiến trúc*
 | Tầng | Hành động | Thời gian trung bình | Ghi chú |
 | :--- | :--- | :--- | :--- |
 | **Network** | Handshake & Login | 2ms - 5ms | Bao gồm cả thời gian băm mật khẩu. |
@@ -16,6 +19,7 @@ Dưới đây là bảng tổng hợp các chỉ số hiệu năng đo đạc tr
 
 Thử nghiệm thực hiện trên tập dữ liệu mô phỏng (Synthetic Data):
 
+*Bảng 14.5: Hiệu năng Truy vấn Khối lượng trên tập dữ liệu mô phỏng*
 | Số lượng bản ghi | Thời gian INSERT | Thời gian SELECT (Index) | Cấu trúc B+ Tree |
 | :--- | :--- | :--- | :--- |
 | 10,000 | 120ms | < 1ms | 2 Tầng |
@@ -24,7 +28,7 @@ Thử nghiệm thực hiện trên tập dữ liệu mô phỏng (Synthetic Data
 
 ## 3. Nhật ký Xác thực Hiệu năng
 
-![Placeholder: Ảnh chụp màn hình kết quả chạy 'dotnet test --filter KBMS.Tests' hiển thị cột 'Duration' của từng test case phù hợp với bảng trên](../assets/diagrams/placeholder_benchmark_test_results.png)
+![Kết quả đo đạc hiệu năng với cột Duration chi tiết](../assets/diagrams/placeholder_benchmark_test_results.png)
 
 ---
 

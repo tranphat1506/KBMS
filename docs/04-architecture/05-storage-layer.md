@@ -6,7 +6,7 @@ Tầng Lưu trữ chịu trách nhiệm đảm bảo tính bền vững (Durabil
 
 Hệ thống quản lý việc lưu trữ qua một phân cấp các Manager chuyên biệt:
 
-![Sơ đồ thành phần tầng lưu trữ.](../assets/diagrams/storage_layer_map.png)
+![Sơ đồ thành phần tầng lưu trữ. | width=0.75](../assets/diagrams/storage_layer_map.png)
 *Hình 4.4: Bản đồ giải phẫu thành phần tầng lưu trữ vật lý.*
 
 *   **StoragePool (Singleton)**: Quản lý danh sách các KBs đang nạp và đảm bảo Thread-safety khi truy cập đa luồng.

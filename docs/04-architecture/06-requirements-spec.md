@@ -6,6 +6,7 @@ Tài liệu này tổng hợp toàn bộ các yêu cầu Chức năng (Functiona
 
 Hệ thống cung cấp đầy đủ các nhóm chức năng từ mức ứng dụng đến mức lưu trữ:
 
+*Bảng 4.1: Đặc tả yêu cầu phi chức năng hệ thống KBMS*
 | Tầng Kiến trúc | Nhóm Chức năng | Hành động cụ thể |
 | :--- | :--- | :--- |
 | **Application** | Thiết kế & Giám sát | IDE Monaco, Kéo thả đồ thị, Dashboad thông số, REPL nâng cao. |

@@ -1,0 +1,232 @@
+\chapter{Design}
+\section{Khảo sát Hiện trạng & Mục tiêu (Survey & Objectives)}
+
+Dự án KBMS (Knowledge Base Management System) được xây dựng nhằm thu hẹp khoảng cách giữa các hệ quản trị CSDL truyền thống và các hệ thống chuyên gia dựa trên tri thức.
+
+\subsection{Khảo sát Hiện trạng (Current State Survey)}
+
+Dựa trên phân tích so sánh với các hệ thống hiện có, chúng tôi nhận thấy các giới hạn sau:
+
+*   \textbf{CSDL Quan hệ (RDBMS):} Rất mạnh về lưu trữ đĩa (Persistence) và giao dịch (ACID) nhưng hoàn toàn thiếu khả năng suy diễn logic tự động [5]. Việc xử lý tri thức phải thực hiện ở tầng ứng dụng, gây khó khăn cho việc bảo trì luật.
+*   \textbf{Hệ thống Logic (Prolog):} Có khả năng suy diễn cực mạnh nhưng chủ yếu hoạt động trên bộ nhớ RAM, thiếu cơ chế quản lý dữ liệu nhị phân quy mô lớn trên đĩa cứng và khả năng quản lý đa người dùng thực thụ [8].
+*   \textbf{Công cụ Ontologies (Protégé):} Hỗ trợ mô hình hóa tri thức tốt nhưng hiệu năng truy vấn và khả năng tích hợp vào các hệ thống phần mềm thương mại còn hạn chế [7].
+
+\subsubsection{Bảng so sánh Tính năng Chi tiết}
+
+\textit{Bảng 3.1: So sánh Tính năng Chi tiết giữa KBMS và các hệ thống khác}
+
+| Đặc tính | CSDL Quan hệ [5] | Ngôn ngữ Logic [8] | Công cụ Tri thức [7] | \textbf{KBMS [1]} |
+| :--- | :--- | :--- | :--- | :--- |
+| \textbf{Kiểu dữ liệu} | Structured Tables | Logic Predicates | OWL / RDF | \textbf{Knowledge Concepts} |
+| \textbf{Suy diễn} | Không (Chỉ Join) | Rất mạnh (Backward) | Reasoner Plugin | \textbf{Mạnh (Forward)} |
+| \textbf{Lưu trữ đĩa} | B+ Tree, ACID | Chủ yếu RAM | Files (OWL/XML) | \textbf{B+ Tree nhị phân, WAL} |
+| \textbf{Đa người dùng} | Rất tốt | Không | Hạn chế | \textbf{Tốt (Socket/Auth)} |
+| \textbf{Giao diện} | Workbench / CLI | CLI đơn giản | Desktop phức tạp | \textbf{Studio IDE + CLI} |
+
+\subsubsection{Ưu thế vượt trội của KBMS}
+
+1.  \textbf{Sự kết hợp giữa Persistence và Reasoning}: KBMS tích hợp \textbf{Inference Engine} trực tiếp trên tầng \textbf{Physical Storage}, cho phép suy diễn trên hàng triệu thực thể được lưu trữ bền vững.
+2.  \textbf{Giao diện Phát triển (Studio IDE)}: Cung cấp môi trường trực quan hóa đồ thị tri thức và hỗ trợ IntelliSense, giúp rút ngắn thời gian thiết kế bài toán.
+3.  \textbf{Hiệu năng Truyền tin (Network Layer)}: Sử dụng giao thức nhị phân (Binary Protocol) giúp đạt tốc độ xử lý cao với độ trễ tối thiểu.
+
+\textbf{Kết luận:} Cần có một hệ thống kết hợp được cả \textbf{Hiệu năng lưu trữ (Indexing/WAL)} và \textbf{Khả năng suy diễn (Inference Engine)}.
+
+---
+
+\subsection{Mục tiêu Nghiên cứu (Research Objectives)}
+
+Dự án KBMS hướng tới việc xây dựng một hệ quản trị tri thức toàn diện với các mục tiêu cụ thể:
+1.  \textbf{Storage Engine:} Phát triển cấu trúc cây B+ Tree nhị phân và cơ chế ghi nhật ký phục hồi (WAL) để quản lý hàng triệu thực thể tri thức bền vững.
+2.  \textbf{Reasoning Engine:} Xây dựng bộ máy suy diễn tiến (Forward Chaining) dựa trên điểm đóng F-Closure cho phép tự động tính toán dữ liệu bổ sung.
+3.  \textbf{Language Compiler:} Thiết kế ngôn ngữ KBQL (Knowledge Base Query Language) và bộ biên dịch (Parser/Lexer) hỗ trợ KDL (Định nghĩa) và KQL (Truy vấn).
+4.  \textbf{Integrated IDE:} Phát triển môi trường Studio IDE chuyên nghiệp giúp trực quan hóa và thiết kế tri thức dễ dàng.
+
+---
+
+> [!TIP]
+> \textbf{Giá trị cốt lõi}: "Dữ liệu hóa Tri thức - Thông minh hóa Dữ liệu".
+
+\section{Tác nhân & Vai trò Hệ thống (Actors & Roles)}
+
+Hệ thống KBMS được thiết kế để phục vụ các nhu cầu khác nhau từ học tập, nghiên cứu đến triển khai hệ thống công nghiệp.
+
+\subsection{Phân loại Người dùng}
+
+\subsubsection{a. Học viên / Nghiên cứu sinh (Researchers)}
+*   \textbf{Nhu cầu}: Thiết kế các mô hình tri thức lý thuyết (Hình học, Y học, Hóa học).
+*   \textbf{Công cụ}: Sử dụng \textbf{KBMS Studio} làm môi trường chính để vẽ đồ thị tri thức và định nghĩa tập luật.
+*   \textbf{Hành động}: CREATE CONCEPT, INSERT FACT, SOLVE bài toán.
+
+\subsubsection{b. Quản trị viên (System Administrators)}
+*   \textbf{Nhu cầu}: Giám sát sức khỏe hệ thống và duy trì tính toàn vẹn của dữ liệu lớn.
+*   \textbf{Công cụ}: Sử dụng \textbf{System Dashboard} trong Studio và \textbf{CLI Management commands}.
+*   \textbf{Hành động}: REINDEX, CHECKPOINT, Quản lý Roles (GRANT/REVOKE), Giám sát RAM/Disk.
+
+\subsubsection{c. Nhà phát triển (Developers)}
+*   \textbf{Nhu cầu}: Tích hợp KBMS làm lõi thông minh cho các ứng dụng Expert System khác.
+*   \textbf{Công cụ}: Sử dụng \textbf{KBMS CLI} và tương tác trực tiếp qua \textbf{Binary Protocol}.
+*   \textbf{Hành động}: Bulk Insert, Tự động hóa qua Script (.kbql), Xử lý luồng kết quả Streaming.
+
+\subsection{Mô hình Phân quyền (RBAC)}
+
+Hệ thống sử dụng cơ chế \textbf{Role-Based Access Control} để bảo mật tri thức:
+*   \textbf{Admin}: Toàn quyền trên mọi Cơ sở tri thức (KB) và quản lý người dùng.
+*   \textbf{Researcher}: Quyền đọc/ghi/suy diễn trên các KB được cấp phép.
+*   \textbf{Guest}: Chỉ có quyền đọc (Read-only) trên các KB công khai.
+
+---
+
+> [!IMPORTANT]
+> Mọi hành động thao tác dữ liệu của người dùng đều được ghi nhận lại trong \textbf{Audit Logs} để phục vụ công tác kiểm soát an ninh.
+
+\section{Sơ đồ Hoạt động Tổng quát (Visual Overview)}
+
+Tài liệu này trình bày cái nhìn tổng quan về cách các thành phần tương tác và luồng dữ liệu xuyên suốt 4 tầng kiến trúc của KBMS.
+
+\subsection{Sơ đồ Use Case Tổng quát}
+
+Mô tả sự tương tác giữa các tác nhân bên ngoài và các dịch vụ lõi của hệ thống:
+
+\begin{figure}[ht!]
+\centering
+\includegraphics[width=0.8\textwidth]{assets/kbms\_general\_use\_case.png}
+\caption{Sơ đồ Use Case tổng quát sự tương tác giữa người dùng và các dịch vụ lõi.}
+\label{fig:3_1}
+\end{figure}
+
+*   \textbf{Interaction}: Người dùng tương tác thông qua hai môi trường (CLI/Studio).
+*   \textbf{Service Core}: Các yêu cầu được gửi tới Server để kích hoạt bộ suy diễn (RE), quản lý dữ liệu (KDL) hoặc bảo trì (KML).
+
+\subsection{Sơ đồ Sequence Hệ thống}
+
+Mô tả luồng "sinh mệnh" của một yêu cầu từ khi xuất phát tại App Layer cho tới khi được lưu trữ bền vững tại Storage Layer:
+
+\begin{figure}[ht!]
+\centering
+\includegraphics[width=0.8\textwidth]{assets/kbms\_general\_system\_sequence.png}
+\caption{Sơ đồ Sequence mô tả luồng sinh mệnh của một yêu cầu trong hệ thống.}
+\label{fig:3_2}
+\end{figure}
+
+\subsubsection{Các giai đoạn chính:}
+1.  \textbf{Request Stage}: App đóng gói yêu cầu nhị phân và gửi qua Network.
+2.  \textbf{Computing Stage}: Server Manager điều phối Parser để biên dịch câu lệnh và gửi tới Engine để tính toán/suy diễn.
+3.  \textbf{I/O Stage}: Engine tương tác với Storage Layer thông qua hệ thống Paging để đọc/ghi dữ liệu nhị phân.
+4.  \textbf{Response Stage}: Kết quả được "Streaming" ngược lại cho khách hàng theo từng Row dữ liệu để tối ưu hóa bộ nhớ.
+
+---
+
+> [!NOTE]
+> Sự phân tách rõ rệt này giúp hệ thống đạt được hiệu năng cao và dễ dàng bảo trì hoặc mở rộng từng phần độc lập.
+
+\section{Đặc tả Yêu cầu Hệ thống Master (Master Requirements)}
+
+Tài liệu này là bản tổng hợp toàn diện nhất về mọi chức năng và yêu cầu kỹ thuật của KBMS, được đối soát trực tiếp với mã nguồn hệ thống (C\# Server, Parser, Studio). Đây là "nền tảng xương sống" cho việc thiết kế và phát triển toàn bộ hệ thống.
+
+---
+
+\subsection{Yêu cầu Chức năng (Functional Requirements)}
+
+\textit{Bảng 3.2: Đặc tả Yêu cầu Chức năng Hệ thống Master}
+\begin{table}[ht!]
+\centering
+\begin{tabular}{|l|l|l|l|}
+\hline
+ID \& Nhóm Chức năng \& Mô tả Chi tiết \& Mức ưu tiên \\ \hline
+01 \& App Layer \& KBMS Studio, CLI, REPL \& High \\ \hline
+02 \& Network Layer \& Binary Protocol, Streaming \& High \\ \hline
+03 \& Server Layer \& Reasoning Engine, Parser \& Critical \\ \hline
+04 \& Storage Layer \& WAL, B+ Tree, Encryption \& Critical \\ \hline
+\end{tabular}
+\end{table}
+---
+
+\subsection{Yêu cầu Chức năng theo Tầng Kiến trúc (4 Tiers)}
+
+\subsubsection{a. Tầng Ứng dụng (App Layer)}
+
+*   \textbf{KBMS Studio (IDE Chuyên sâu)}:
+    *   \textbf{Monaco Engine}: Soạn thảo KBQL với Syntax Highlighting, IntelliSense và Squiggles báo lỗi thời gian thực.
+    *   \textbf{Knowledge Designer (VGE)}: Trực quan hóa đồ thị tri thức (Graph Nodes \& Edges), thiết kế KDL kéo thả.
+    *   \textbf{Management Dashboard}: Giám sát RAM/CPU/Disk/Network, quản lý User, Session và Log Analyzer.
+*   \textbf{KBMS CLI (Interactive Tool)}:
+    *   \textbf{REPL \& LineEditor}: Hỗ trợ phím tắt (`Home/End`, `Escx2`), lịch sử lệnh và thụt đầu dòng tự động.
+    *   \textbf{Response Parser}: Vẽ bảng động, hỗ trợ Multi-line Cell và chế độ hiển thị dọc (`\G`).
+    *   \textbf{Batch Processing}: Lệnh `SOURCE` thực thi tệp tin kịch bản `.kbql`.
+
+\subsubsection{b. Tầng Mạng (Network Layer - Binary Protocol)}
+
+*   \textbf{Custom Binary Protocol}: Mã hóa nhị phân tối ưu (1 byte Type, 4 byte Length).
+*   \textbf{Message Types (12+ loại)}: 
+    *   `1-LOGIN / 5-LOGOUT`: Xác thực và kết thúc phiên.
+    *   `2-QUERY`: Gửi lệnh thực thi.
+    *   `6-METADATA / 7-ROW / 8-FETCH\_DONE`: Luồng kết quả streaming.
+    *   `4-ERROR`: Báo lỗi line-accurate (Line/Column).
+    *   `10-STATS / 11-LOGS\_STREAM / 12-SESSIONS`: Dữ liệu quản trị hệ thống.
+    *   `13-MANAGEMENT\_CMD`: Lệnh điều khiển Server từ xa.
+
+\subsubsection{c. Tầng Máy chủ (Server Layer - Core & Reasoning)}
+
+*   \textbf{KnowledgeManager}: Điều phối luồng giữa Parser, Engine và Storage.
+*   \textbf{Reasoning Engine (Bộ máy Suy diễn)}:
+    *   \textbf{Thuật toán F-Closure}: Suy diễn tiến đến điểm đóng.
+    *   \textbf{Recursive Sub-closure}: Suy diễn tổ hợp các thành phần con.
+    *   \textbf{SameVariables Propagation}: Truyền thụ tính chất giữa các biến trùng tên.
+*   \textbf{Parser \& Compiler}:
+    *   \textbf{Lexer}: Nhận diện 190+ từ khóa.
+    *   \textbf{Parser}: 50+ loại AST Nodes hỗ trợ KDL, KQL, KML, TCL, KCL.
+*   \textbf{Security \& Auth}: Xác thực Base64, Role-Based Access Control (ROOT, ADMIN, RESEARCHER).
+*   \textbf{System Services}: `Bootstrapper`, `SystemUpdater`, `V2ToV3Converter`.
+
+\subsubsection{d. Tầng Lưu trữ (Storage Layer - Physical Engine)}
+
+*   \textbf{Physical Paging}: Trang dữ liệu 8KB cố định.
+*   \textbf{Indexing}: B+ Tree tối ưu tìm kiếm $O(\log n)$.
+*   \textbf{WAL (Write-Ahead Logging)}: Nhật ký phục hồi dữ liệu đảm bảo ACID.
+*   \textbf{Encryption}: Mã hóa tĩnh AES-256 đối với tệp `.dat` và `.kbf`.
+
+---
+
+\subsection{Bản đồ Chức năng KBQL (Detailed Registry)}
+
+Dưới đây là danh sách đầy đủ các câu lệnh hệ thống hỗ trợ:
+
+\subsubsection{Quản lý Kiểm soát (KCL - Security)}
+*   `CREATE/ALTER/DROP USER`: Quản lý tài khoản người dùng hệ thống.
+*   `GRANT/REVOKE`: Phân quyền truy cập theo từng Cơ sở tri thức (KB).
+
+\subsubsection{Định nghĩa Tri thức (KDL - Design)}
+*   `CREATE/DROP KNOWLEDGE BASE`: Quản lý thực thể KB.
+*   `CREATE/ALTER/DROP CONCEPT`: Quản lý các lớp đối tượng và thuộc tính.
+*   `CREATE/DROP RULE \& EQUATION`: Định nghĩa luật logic và phương trình toán học.
+*   `CREATE FUNCTION/OPERATOR`: Mở rộng khả năng tính toán.
+*   `ADD/REMOVE COMPUTATION \& HIERARCHY`: Thiết lập quan hệ tính toán và kế thừa.
+*   `CREATE INDEX`: Tối ưu hóa hiệu năng truy vấn.
+
+\subsubsection{Truy cập & Suy diễn (KQL/RE - Solve)}
+*   `SELECT / INSERT / UPDATE / DELETE`: Thao tác dữ liệu tri thức.
+*   `SOLVE`: Kích hoạt bộ máy suy diễn tìm lời giải cho mục tiêu.
+*   `EXPLAIN / DESCRIBE / SHOW`: Giải thích luồng suy diễn và xem cấu trúc tri thức.
+
+\subsubsection{Bảo trì & Hệ thống (KML - Maintenance)}
+*   `IMPORT / EXPORT / BULK INSERT`: Di trú dữ liệu quy mô lớn.
+*   `REINDEX / CHECKPOINT / VACUUM`: Tối ưu hóa và dọn dẹp lưu trữ vật lý.
+*   `MIGRATION V2`: Nâng cấp dữ liệu từ phiên bản cũ.
+
+\subsubsection{Quản lý Giao dịch (TCL - Transaction)}
+*   `BEGIN / COMMIT / ROLLBACK`: Đảm bảo tính nguyên tố (Atomicity) cho các chuỗi lệnh.
+
+---
+
+\subsection{Yêu cầu Phi chức năng (Non-functional)}
+
+*   \textbf{ACID Compliance}: Đảm bảo an toàn dữ liệu 100\% thông qua WAL.
+*   \textbf{High Performance}: Độ trễ < 10ms trên LAN, hỗ trợ Asynchronous I/O.
+*   \textbf{Security}: Mã hóa AES-256, Master Key Security.
+*   \textbf{Scalability}: Stateless socket handling, hỗ trợ hàng trăm kết nối đồng thời.
+
+---
+
+> [!NOTE]
+> Tài liệu này đã được đồng bộ hóa với cấu trúc mã nguồn thực tế tại các phân hệ `KBMS.Server`, `KBMS.Parser` và `KBMS.Storage`.
+

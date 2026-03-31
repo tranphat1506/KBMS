@@ -1,0 +1,218 @@
+\chapter{Studio}
+\section{Tổng quan & Tính năng KBMS Studio là một môi trường phát triển tích hợp (IDE) hiện đại, được xây dựng trên nền tảng **Electron** và **React**, cung cấp trải nghiệm trực quan hóa tri thức thay vì chỉ thao tác dòng lệnh thuần túy.}
+
+\subsection{Các Phân hệ Cốt lõi}
+
+\subsubsection{a. Knowledge Designer (Trình thiết kế trực quan)}
+*   Cho phép người dùng kéo thả và xem sơ đồ phả hệ Concept/Relation.
+*   Tự động phát hiện các xung đột logic khi thiết kế Schema bài toán.
+
+\subsubsection{b. Query Console (Cửa sổ truy vấn Monaco)}
+*   \textbf{Trình soạn thảo Monaco}: Lõi của VS Code được tích hợp sâu, hỗ trợ tô màu cú pháp (Syntax Highlighting) cho KBQL.
+*   \textbf{Error Squiggles}: Đánh dấu lỗi đỏ tại vị trí chính xác (Dòng/Cột) khi Server trả về `ParseException`.
+*   \textbf{IntelliSense}: Gợi ý các Concept và Thuộc tính đã định nghĩa.
+
+\subsubsection{c. Management Dashboard (Bảng điều khiển quản diện)}
+*   \textbf{Giám sát RAM/Disk}: Theo dõi thời gian thực thông qua hệ thống telemetry.
+*   \textbf{User \& Session Management}: 
+    *   \textbf{User Management}: Thêm/Xóa/Sửa tài khoản và phân quyền trực tiếp từ UI (`UserManagement.tsx`).
+    *   \textbf{Active Sessions}: Kiểm soát danh sách các máy khách đang kết nối, hỗ trợ ngắt kết nối (Kick) các phiên không hợp lệ (`ActiveSessions.tsx`).
+*   \textbf{Log Analyzer}: Bộ công cụ phân tích nhật ký nâng cao, hỗ trợ lọc theo cấp độ (Level) và thực thể tri thức (`LogAnalyzer.tsx`).
+
+\subsubsection{d. Real-time Notification System}
+*   \textbf{Push Alerts}: Nhận cảnh báo tức thời từ Server khi có sự cố hệ thống hoặc sự kiện an ninh (`NotificationBell.tsx`, `NotificationToasts.tsx`).
+*   \textbf{Audit Trails}: Xem nhật ký truy cập chi tiết cho từng người dùng.
+
+\subsubsection{e. Advanced Settings & Multi-server}
+*   \textbf{Connect Modal}: Hỗ trợ lưu trữ và chuyển đổi nhanh giữa nhiều máy chủ KBMS (`ConnectModal.tsx`).
+*   \textbf{System Settings}: Tùy chỉnh tham số Engine và giao diện người dùng (Themes).
+
+---
+
+\subsection{Tiêu chuẩn Giao diện (Aesthetics)}
+
+Studio được thiết kế với ngôn ngữ \textbf{Modern Dark Mode} kết hợp với bộ biểu tượng tối giản, giúp người dùng tập trung tối đa vào các cấu trúc tri thức phức tạp.
+
+*   \textbf{Responsive Layout}: Tự động điều chỉnh kích thước khi mở các panel theo dõi dữ liệu.
+*   \textbf{Streaming UI}: Kết quả trả về từ Server được đổ trực tiếp vào bảng dữ liệu (Data Grid) ngay khi có gói tin đầu tiên, không gây treo giao diện.
+
+> [!TIP]
+> \textbf{Khả năng Mở rộng}
+> Studio hỗ trợ cài đặt các plugin tùy chỉnh để xuất dữ liệu tri thức ra các định dạng đồ họa như SVG hoặc JSON cho các báo cáo học thuật. 🎨
+
+\section{Kiến trúc 4 Tầng & Luồng Xử lý Chi tiết}
+
+KBMS Studio vận hành dựa trên một kiến trúc phân tầng chặt chẽ, từ giao diện người dùng đến các trang dữ liệu nhị phân thấp cấp trên đĩa cứng.
+
+\subsection{Sơ đồ Luồng xử lý 4 Tầng (4-Tier Flow)}
+
+Sơ đồ dưới đây mô tả cách một câu lệnh Tri thức (như `SOLVE`) đi qua hệ thống:
+
+\begin{figure}[ht!]
+\centering
+\includegraphics[width=0.8\textwidth]{assets/4\_tier\_studio\_flow.png}
+\caption{Luồng xử lý một yêu cầu tri thức xuyên suốt 4 tầng từ Studio UI.}
+\label{fig:13_1}
+\end{figure}
+
+---
+
+\subsection{Đặc tả các Tầng}
+
+\subsubsection{Tầng 1: Application UI (React/Electron)}
+*   \textbf{Frontend}: React xử lý trạng thái luồng (Redux). Khi người dùng nhấn "Run", lệnh được chuyển xuống Electron Main process.
+*   \textbf{Auth}: Quản lý Session Token và quyền truy cập cục bộ trên giao diện.
+
+\subsubsection{Tầng 2: Network & Protocol (Socket)}
+*   \textbf{Binary Framing}: Chuyển đổi lệnh thành các gói tin nhị phân. 
+*   \textbf{Telemetry}: Gửi tín hiệu nhịp tim (Heartbeat) định kỳ để duy trì kết nối Socket ổn định giữa Studio và Server.
+
+\subsubsection{Tầng 3: Knowledge Engine (Server)}
+*   \textbf{KnowledgeManager}: Điều phối việc phân tách câu lệnh bằng Lexer/Parser.
+*   \textbf{Reasoning}: Nếu là lệnh `SOLVE`, bộ máy suy diễn sẽ thực hiện Forward Chaining trên các Page dữ liệu được nạp vào RAM.
+*   \textbf{Logs}: Ghi lại nhật ký truy cập (Audit) đồng thời Stream Log trở lại Studio UI.
+
+\subsubsection{Tầng 4: Storage Layer (Binary Data)}
+*   \textbf{B+ Tree}: Tìm kiếm bản ghi Object dựa trên Index.
+*   \textbf{LRU Cache}: Quản lý các trang dữ liệu (Pages) trong bộ nhớ đệm để tối ưu hóa tốc độ.
+*   \textbf{WAL (Write-Ahead Logging)}: Đảm bảo tính toàn vẹn tri thức ngay cả khi mất điện đột ngột.
+
+---
+
+\subsection{Luồng Thông báo Thời gian thực (Notification Flow)}
+
+Khác với luồng Request-Response thông thường, hệ thống Notification sử dụng cơ chế \textbf{Server Push}:
+
+\begin{figure}[ht!]
+\centering
+\includegraphics[width=0.8\textwidth]{assets/4\_tier\_notification\_flow.png}
+\caption{Cơ chế Server Push cho các thông báo hệ thống thời gian thực.}
+\label{fig:13_2}
+\end{figure}
+
+1.  \textbf{Trigger}: Một sự kiện an ninh hoặc hệ thống xảy ra tại Server.
+2.  \textbf{Push}: Server đóng gói `MessageType.NOTIFICATION` và đẩy qua Socket.
+3.  \textbf{Dispatch}: Electron Main nhận gói tin và gửi vào Redux Store của React.
+4.  \textbf{UI Feedback}: Component `NotificationToasts` hiển thị thông báo popup, đồng thời cập nhật số lượng tin nhắn mới tại `NotificationBell`.
+
+---
+
+\subsection{Quy trình Đăng nhập (Authentication Flow)}
+
+1.  \textbf{Handshake}: Studio gửi gói tin `LOGIN` kèm User/Pass được mã hóa Base64.
+2.  \textbf{Server Verify}: Server kiểm tra trong hệ thống quản lý User (Tầng 4).
+3.  \textbf{Session Record}: Nếu khớp, Server tạo một `SessionContext` trong RAM (Tầng 3) và trả về thông báo thành công.
+4.  \textbf{Prompt Update}: Studio cập nhật trạng thái đã đăng nhập và cho phép thao tác với Knowledge Base.
+
+> [!IMPORTANT]
+> \textbf{Data Consistency}
+> Mọi thay đổi về tri thức đều phải đi qua Tầng 4 (WAL) trước khi được phản hồi lên Tầng 1, đảm bảo tính nhất quán (ACID) tuyệt đối cho hệ thống. 🔒
+
+\section{Các Trường hợp Sử dụng Studio}
+
+KBMS Studio không chỉ là một trình soạn thảo, mà còn là một bộ công cụ giải quyết các bài toán tri thức chuyên sâu.
+
+\subsection{Kịch bản 1: Thiết kế Bản đồ Tri thức Hình học (KDL Design)}
+
+*   \textbf{Mục tiêu}: Định nghĩa các Concept như `Diem`, `DoanThang`, `TamGiac` và các `Rule` tính toán diện tích.
+*   \textbf{Sơ đồ Hoạt động}:
+
+![uc\_kdl\_design\_flow.png](../assets/diagrams/uc\_kdl\_design\_flow.png)
+
+*   \textbf{Quy trình chi tiết trong Studio}:
+    1.  \textbf{Nhập liệu}: Người dùng sử dụng \textbf{Monaco Editor} với tính năng Auto-complete để gõ nhanh `CREATE CONCEPT`.
+    2.  \textbf{Kiểm tra}: Parser tại Server thực hiện biên dịch thời gian thực. Nếu sai, \textbf{Error Squiggles} sẽ xuất hiện ngay lập tức.
+    3.  \textbf{Trực quan}: Khi cú pháp đúng, Designer sẽ vẽ lại sơ đồ Concept giúp người dùng kiểm tra các mối quan hệ (Properties/Constraints).
+    4.  \textbf{Lưu trữ}: Sau khi hoàn thiện, tri thức được lưu vào tệp `.kbql` hoặc nạp trực tiếp vào RAM Server.
+
+\subsection{Kịch bản 2: Giải toán Tự động (Reasoning & Solving)}
+
+*   \textbf{Mục tiêu}: Tìm lời giải cho bài toán: "Cho tam giác ABC vuông tại A, tính BC khi biết AB, AC".
+*   \textbf{Sơ đồ Hoạt động}:
+
+![uc\_reasoning\_solve\_flow.png](../assets/diagrams/uc\_reasoning\_solve\_flow.png)
+
+*   \textbf{Quy trình chi tiết trong Studio}:
+    1.  \textbf{Gửi yêu cầu}: Nhập lệnh `SOLVE ON TamGiac GIVEN AB=3, AC=4 FIND BC;`.
+    2.  \textbf{Suy diễn}: Server chuyển yêu cầu cho `Reasoning Engine` để thực hiện thuật toán F-Closure.
+    3.  \textbf{Phản hồi}: Kết quả giá trị (`BC=5`) nhảy ra trên \textbf{Data Grid}.
+    4.  \textbf{Truy vết}: Người dùng mở tab \textbf{Reasoning Trace} để xem cây suy luận: `Pitago Rule` -> `BC = Sqrt(AB^2 + AC^2)`.
+
+\subsection{Kịch bản 3: Quản trị Hệ thống (Advanced Management)}
+
+*   \textbf{Mục tiêu}: Theo dõi hiệu năng và bảo trì dữ liệu khi hệ thống chứa hàng triệu đối tượng.
+*   \textbf{Sơ đồ Hoạt động}:
+
+![uc\_system\_maint\_flow.png](../assets/diagrams/uc\_system\_maint\_flow.png)
+
+*   \textbf{Quy trình chi tiết trong Studio}:
+    1.  \textbf{Nạp dữ liệu}: Dùng giao diện Import để đẩy các tệp CSV chứa hàng triệu Objects thông qua lệnh \textbf{Bulk Insert}.
+    2.  \textbf{Giám sát}: Dashboard hiển thị thời gian thực mức độ chiếm dụng \textbf{RAM (LRU Cache)} và \textbf{Disk (Page Storage)}.
+    3.  \textbf{Bảo trì}: Thực hiện `MAINTENANCE REINDEX` trực tiếp từ Studio để tối ưu hóa cấu trúc cây B+ Tree sau khi nạp dữ liệu lớn.
+    4.  \textbf{Kiểm tra}: Theo dõi \textbf{Activity Logs} để đảm bảo mọi giao dịch (Transaction) đều hoàn thành an toàn.
+
+\subsection{Kịch bản 4: Giám sát An ninh & Phiên làm việc (Security & Session Management)}
+
+*   \textbf{Mục tiêu}: Admin kiểm soát các truy cập vào hệ thống và ngăn chặn các phiên làm việc đáng ngờ.
+*   \textbf{Sơ đồ Hoạt động}:
+
+![uc\_security\_session\_mgt.png](../assets/diagrams/uc\_security\_session\_mgt.png)
+
+*   \textbf{Quy trình chi tiết trong Studio}:
+    1.  \textbf{Tra cứu}: Admin mở tab \textbf{Active Sessions} để xem danh sách IP và User đang kết nối.
+    2.  \textbf{Phát hiện}: Nhận diện một phiên làm việc lạ từ IP không xác định.
+    3.  \textbf{Xử lý}: Nhấn nút \textbf{Kick}; Studio gửi lệnh `KICK\_SESSION` xuống Server.
+    4.  \textbf{Kết quả}: Server ngắt Socket ngay lập tức và gửi thông báo Notification tới toàn bộ Admin khác về hành động này.
+
+\subsection{Kịch bản 5: Phân tích Nhật ký Chuyên sâu (Deep Log Analysis)}
+
+*   \textbf{Mục tiêu}: Truy tìm nguyên nhân gốc rễ của các lỗi logic hoặc lỗi IO thấp cấp.
+*   \textbf{Sơ đồ Hoạt động}:
+
+![uc\_deep\_log\_analysis.png](../assets/diagrams/uc\_deep\_log\_analysis.png)
+
+*   \textbf{Quy trình chi tiết trong Studio}:
+    1.  \textbf{Lọc dữ liệu}: Sử dụng \textbf{Log Analyzer} để lọc các lỗi ở cấp độ `CRITICAL`.
+    2.  \textbf{Truy vấn}: Sử dụng RegEx để tìm kiếm các cụm từ khóa liên quan đến thực thể (v.d: `TamGiac\_01`).
+    3.  \textbf{Đánh giá}: Studio hiển thị biểu đồ tần suất lỗi, giúp xác định lỗi xảy ra do Rule logic hay do xung đột Page dữ liệu.
+    4.  \textbf{Xuất bản}: Xuất báo cáo dưới dạng tệp văn bản để phục vụ công tác bảo trì.
+
+---
+
+\subsection{Tổng kết Giá trị}
+
+Nhờ sự kết hợp giữa giao diện đồ họa (Studio) và hiệu năng của lõi C\#, người dùng có thể chuyển đổi linh hoạt từ việc \textbf{soạn thảo học thuật} sang \textbf{ứng dụng công nghiệp} một cách mượt mà.
+
+> [!TIP]
+> \textbf{Tư duy Tri thức}
+> Studio giúp biến các dòng lệnh khô khan thành các cấu trúc có thể nhìn thấy và chạm vào được, giúp việc học tập và nghiên cứu tri thức trở nên dễ dàng hơn bao giờ hết. 🎓
+
+\section{Xác thực Studio (Studio Validation)}
+
+Studio IDE là trung tâm điều khiển tri thức trực quan. Hiệu năng hiển thị và tính đúng đắn của Dashboard được kiểm soát qua bộ lọc dữ liệu thực tế.
+
+\subsection{Kiểm thử IntelliSense & Đồ họa}
+
+Xác thực khả năng hỗ trợ lập trình tri thức (Monaco Engine) và đồ thị tri thức (Graph View).
+
+*   \textbf{IntelliSense}: Tự động gợi ý từ khóa `CREATE`, `SELECT` và tên các Concept có sẵn.
+*   \textbf{Graph Re-rendering}: Tự động cập nhật đồ thị ngay khi một thực thể (Object) được chèn mới qua bảng điều khiển.
+
+\subsubsection{Minh chứng Mã nguồn (Dashboard API):}
+\textbf{[Missing Image: code_test_dashboard.png]}\\ \textit{Hình 13.1: Minh chứng mã nguồn API giám sát (Dashboard API).}
+
+\subsubsection{Minh chứng Giao diện (Studio IDE):}
+\textbf{[Missing Image: studio_concept_editor.png]}\\ \textit{Hình 13.2: Giao diện soạn thảo tri thức trực quan trong KBMS Studio.}
+
+\subsection{Kiểm thử Giám sát & Quản lý (Management Proof)}
+
+ Dashboard `System Snapshot` cho phép quản trị viên xem trạng thái thời gian thực của Server.
+
+\subsubsection{Minh chứng Kết quả (Live Logs):}
+\textbf{[Missing Image: terminal_test_studio_electron.png]}\\ \textit{Hình 13.3: Chứng minh luồng dữ liệu Studio và Electron Main truyền nhận gói tin nhị phân.}
+
+---
+
+> [!IMPORTANT]
+> KBMS Studio không chỉ là giao diện đồ họa mà là một công cụ chẩn đoán (Diagnostic Tool) mạnh mẽ giúp chuyên gia tri thức kiểm soát mọi khía cạnh của hệ thống.
+

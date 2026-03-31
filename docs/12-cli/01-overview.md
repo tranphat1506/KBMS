@@ -23,6 +23,7 @@ Quản trị
 
 ## 2. Các Lệnh Hệ thống Đặc biệt
 
+*Bảng 12.1: Danh mục lệnh điều khiển CLI*
 | Lệnh | Mô tả |
 | :--- | :--- |
 | `LOGIN <u|p>` | Đăng nhập bảo mật (mật khẩu không lưu vào lịch sử). |

@@ -33,7 +33,7 @@ Dù ở hệ điều hành nào, bạn cũng cần cài đặt các thành phầ
     npm run dev
     ```
 
-![Placeholder: Ảnh chụp màn hình Windows Terminal hiển thị Server đang chạy trên port 3307 kèm logo KBMS](../assets/diagrams/placeholder_windows_install_success.png)
+![Giao diện cài đặt thành công KBMS trên Windows](../assets/diagrams/placeholder_windows_install_success.png)
 
 ---
 
@@ -56,7 +56,7 @@ brew install node git
 chmod +x ./kbms-cli
 ```
 
-![Placeholder: Ảnh chụp màn hình macOS Terminal (iTerm2) hiển thị lệnh 'dotnet --version' trả về 8.0.x](../assets/diagrams/placeholder_macos_install_success.png)
+![Giao diện cài đặt thành công KBMS trên macOS](../assets/diagrams/placeholder_macos_install_success.png)
 
 ---
 
@@ -81,7 +81,7 @@ npm install
 npm run electron:dev
 ```
 
-![Placeholder: Ảnh chụp màn hình Linux Console hiển thị quá trình 'apt-get install' thành công các gói dotnet](../assets/diagrams/placeholder_linux_install_success.png)
+![Giao diện cài đặt thành công KBMS trên Linux](../assets/diagrams/placeholder_linux_install_success.png)
 
 ---
 
@@ -89,6 +89,7 @@ npm run electron:dev
 
 Sau khi cài đặt, hãy chạy lệnh sau để đảm bảo mọi thứ đã sẵn sàng:
 
+*Bảng 14.1: Yêu cầu cấu hình hệ thống tối thiểu*
 | Thành phần | Lệnh kiểm tra | Kết quả mong đợi |
 | :--- | :--- | :--- |
 | **Server Engine** | `dotnet --list-sdks` | Có phiên bản `8.0.x` |

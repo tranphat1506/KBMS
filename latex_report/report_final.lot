@@ -1,0 +1,43 @@
+\babel@toc {vietnamese}{}\relax 
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {3.1}{\ignorespaces So sánh Tính năng Chi tiết giữa KBMS và các hệ thống khác}}{13}{table.3.1}%
+\contentsline {table}{\numberline {3.2}{\ignorespaces Đặc tả Yêu cầu Chức năng Hệ thống Master}}{16}{table.3.2}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {4.1}{\ignorespaces Mô tả chức năng 4 tầng kiến trúc KBMS}}{21}{table.4.1}%
+\contentsline {table}{\numberline {4.2}{\ignorespaces Đặc tả yêu cầu phi chức năng hệ thống KBMS}}{25}{table.4.2}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {6.1}{\ignorespaces Phân loại Từ khóa dành riêng (Reserved Keywords)}}{34}{table.6.1}%
+\contentsline {table}{\numberline {6.2}{\ignorespaces Khả năng hỗ trợ lệnh ALTER cho từng đối tượng KBQL}}{35}{table.6.2}%
+\contentsline {table}{\numberline {6.3}{\ignorespaces Phân loại Kiểu dữ liệu nguyên thuỷ trong KBQL}}{35}{table.6.3}%
+\contentsline {table}{\numberline {6.4}{\ignorespaces Danh mục Hàm tích hợp (Built-in Functions) trong KBQL}}{43}{table.6.4}%
+\contentsline {table}{\numberline {6.5}{\ignorespaces Phân bổ kịch bản kiểm thử theo nhóm ngôn ngữ}}{46}{table.6.5}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {7.1}{\ignorespaces Thông số định lượng của Storage Engine V3}}{49}{table.7.1}%
+\contentsline {table}{\numberline {7.2}{\ignorespaces Bảng 11}}{50}{table.7.2}%
+\contentsline {table}{\numberline {7.3}{\ignorespaces Bảng 12}}{52}{table.7.3}%
+\contentsline {table}{\numberline {7.4}{\ignorespaces Bảng 13}}{55}{table.7.4}%
+\contentsline {table}{\numberline {7.5}{\ignorespaces Bảng 14}}{56}{table.7.5}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {8.1}{\ignorespaces Bảng ký hiệu thuật toán F-Closure}}{63}{table.8.1}%
+\contentsline {table}{\numberline {8.2}{\ignorespaces Tổng hợp kết quả kiểm thử bộ máy suy diễn}}{64}{table.8.2}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {9.1}{\ignorespaces Đặc tả cấu trúc gói tin nhị phân KBMS}}{65}{table.9.1}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {10.1}{\ignorespaces Tổng hợp kết quả kiểm thử hệ thống máy chủ}}{77}{table.10.1}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {11.1}{\ignorespaces Phân loại các nhóm Token trong Lexer}}{79}{table.11.1}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {12.1}{\ignorespaces Danh mục lệnh điều khiển CLI}}{87}{table.12.1}%
+\contentsline {table}{\numberline {12.2}{\ignorespaces Kiểm thử định dạng kết quả truy vấn trong CLI}}{91}{table.12.2}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {14.1}{\ignorespaces Yêu cầu cấu hình hệ thống tối thiểu}}{101}{table.14.1}%
+\contentsline {table}{\numberline {14.2}{\ignorespaces Danh sách kịch bản kiểm thử tích hợp toàn diện}}{102}{table.14.2}%
+\contentsline {table}{\numberline {14.3}{\ignorespaces Hiệu năng theo Tầng Kiến trúc}}{102}{table.14.3}%
+\contentsline {table}{\numberline {14.4}{\ignorespaces Hiệu năng Truy vấn Khối lượng trên tập dữ liệu mô phỏng}}{102}{table.14.4}%
+\contentsline {table}{\numberline {14.5}{\ignorespaces Danh mục các Bộ Dữ liệu Kiểm thử chuẩn}}{103}{table.14.5}%
+\contentsline {table}{\numberline {14.6}{\ignorespaces Dữ liệu nguồn bộ kiểm thử Charlie}}{103}{table.14.6}%
+\addvspace {10\p@ }

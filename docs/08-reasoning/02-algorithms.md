@@ -65,6 +65,7 @@ $$ \Delta \mathbf{x} = -\mathbf{J}^{-1} \mathbf{F}(\mathbf{x}) $$
 
 ## 4. Phân tích Độ phức tạp (Complexity Analysis)
 
+*Bảng 8.1: Bảng ký hiệu thuật toán F-Closure*
 | Thuật toán | Mục tiêu | Độ phức tạp | Lý do kỹ thuật (Server-side) |
 | :--- | :--- | :--- | :--- |
 | **FClosure** | Suy diễn tổng thể | $O(50 \times (R + E + SV))$ | Giới hạn $N=50$ vòng lặp tối đa. $R$: số luật, $E$: số phương trình, $SV$: số cặp biến tương đương. |

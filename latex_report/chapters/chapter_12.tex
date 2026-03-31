@@ -1,0 +1,173 @@
+\chapter{Cli}
+\section{Tổng quan Giao diện Dòng lệnh (CLI)}
+Quản trị
+
+`KBMS.CLI` là một ứng dụng Console (C\#) mạnh mẽ, cung cấp khả năng tương tác trực tiếp với máy chủ KBMS thông qua giao thức nhị phân và dòng lệnh KQL/KDL.
+
+\subsection{Các Tính năng Chính}
+
+*   \textbf{REPL (Read-Eval-Print Loop)}: Người dùng nhập câu lệnh, CLI gửi tới Server, nhận kết quả và in ra ngay lập tức.
+*   \textbf{Advanced Line Editing}: Hỗ trợ đầy đủ các phím di chuyển và thao tác nhanh (`LineEditor.cs`):
+    *   \textbf{Mũi tên Lên/Xuống}: Duyệt lịch sử lệnh.
+    *   \textbf{Home/End}: Di chuyển nhanh đến đầu/cuối dòng.
+    *   \textbf{Delete/Backspace}: Xóa ký tự tại con trỏ.
+    *   \textbf{Esc x2}: Xóa sạch bộ đệm đang nhập (Double Escape to Clear).
+*   \textbf{Multi-line Input}: Hỗ trợ nhập các câu lệnh dài. Chế độ thụt đầu dòng tự động `->` giúp phân biệt dòng tiếp nối.
+*   \textbf{Display Modes}: Cung cấp hai chế độ hiển thị chính thông qua `ResponseParser.cs`:
+    *   \textbf{Table Mode}: Hiển thị bảng ngang (MySQL style).
+    \textit{   }*Vertical Mode (\G)\textit{}: Hiển thị theo hàng dọc, tự động kích hoạt cho các lệnh `DESCRIBE` hoặc `EXPLAIN` để tối ưu hóa việc đọc cấu trúc tri thức phức tạp.
+*   \textbf{Chế độ Chạy Script (`SOURCE`)}: Cho phép thực thi các tệp tin truy vấn tri thức lớn (`.kbql`) một cách tự động, tự dừng khi gặp lỗi.
+*   \textbf{Xử lý Phản hồi Phức tạp}: Sử dụng `ResponseParser.cs` để hiển thị kết quả truy vấn dưới dạng bảng (Table), đồ thị tri thức hoặc thông báo lỗi line-accurate.
+*   \textbf{Tự động kết nối lại (Auto-reconnect)}: CLI tự động thử kết nối lại nếu máy chủ bị ngắt kết nối đột ngột (Heartbeat timeout).
+
+---
+
+\subsection{Các Lệnh Hệ thống Đặc biệt}
+
+| Lệnh | Mô tả |
+| :--- | :--- |
+| `LOGIN <u|p>` | Đăng nhập bảo mật (mật khẩu không lưu vào lịch sử). |
+| `SOURCE <path>` | Thực thi script từ tệp tin bên ngoài. |
+| `CONNECT` | Kết nối lại máy chủ thủ công. |
+| `CLEAR` | Xóa sạch màn hình console. |
+
+---
+
+\subsection{Trải nghiệm người dùng (UX)}
+
+Để mang lại trải nghiệm chuyên nghiệp như một hệ quản trị CSDL thực thụ, CLI được tích hợp các phím tắt:
+*   \textbf{Mũi tên Lên/Xuống}: Xem lại lịch sử lệnh đã gõ.
+*   \textbf{Home/End}: Di chuyển con trỏ nhanh trong dòng lệnh.
+*   \textbf{Esc x2}: Xóa nhanh input đang nhập dở.
+
+> [!TIP]
+> \textbf{LineEditor \& HistoryManager}
+> Hệ thống quản lý lịch sử lệnh của KBMS CLI được thiết kế để bỏ qua các lệnh nhạy cảm như `LOGIN` hoặc `CREATE USER`, đảm bảo an toàn thông tin tối đa cho người dùng. 🛡️
+
+\section{Luồng Xử lý Dữ liệu CLI}
+
+Để đảm bảo hiệu năng trong môi trường dòng lệnh, `KBMS.CLI` vận hành theo một luồng xử lý phi đồng bộ (Asynchronous) dựa trên socket.
+
+\subsection{Luồng Gửi lệnh (Command Execution Flow)}
+
+Khi người dùng nhấn Enter, CLI thực hiện các bước sau:
+
+![cli\_input\_flow.mmd](../assets/diagrams/cli\_input\_flow.png)
+
+1.  \textbf{Input Buffering}: Tích lũy các dòng cho đến khi gặp dấu `;`.
+2.  \textbf{Request Construction}: Đóng gói lệnh thành các `Message` (Dạng `QUERY` hoặc `LOGIN`).
+3.  \textbf{Binary Transport}: Gửi qua `KBMS.Network` (Socket).
+4.  \textbf{Wait for Response}: Lắng nghe phản hồi từ máy chủ.
+
+---
+
+\subsection{Bộ máy Phân tích Phản hồi (`ResponseParser`)}
+
+Phần phức tạp nhất của CLI nằm ở `ResponseParser.cs`. Do kết quả từ Server có thể là một luồng dữ liệu (Streaming ROWS), CLI phải xử lý từng gói tin:
+
+*   \textbf{METADATA}: Định nghĩa các cột (Name, Type).
+*   \textbf{ROW}: Dữ liệu thực tế cho từng bản ghi.
+*   \textbf{RESULT}: Thông điệp cuối cùng (v.d: "Insert successful").
+*   \textbf{ERROR}: Chứa thông tin lỗi (Message, Line, Column).
+
+\subsubsection{Quy trình hiển thị:}
+`ResponseParser.cs` thực hiện vẽ bảng "động" theo thuật toán tối ưu:
+1.  \textbf{Header Rendering}: Ngay khi nhận `METADATA`, CLI tính toán độ rộng cột lớn nhất dựa trên tên cột và vẽ khung Header.
+2.  \textbf{Multi-line Cell Support}: Nếu dữ liệu trong một ô chứa dấu xuống dòng (`\n`), CLI sẽ tự động chia ô đó thành nhiều dòng và vẽ đường kẻ phân cách hàng (`|---+---|`) để đảm bảo bảng luôn cân đối.
+3.  \textbf{Vertical Rendering}: Đối với các phản hồi thuộc nhóm `Explain\_` hoặc `Describe\_`, CLI chuyển sang chế độ hiển thị theo cặp `Field: Value` trên từng hàng dọc.
+
+---
+
+\subsection{Chế độ Chạy Script (Batch Source)}
+
+CLI hỗ trợ thực thi khối lượng lớn lệnh thông qua tệp tin `.kbql`. Luồng này được xử lý tuần tự để đảm bảo tính nhất quán:
+
+![uc\_cli\_batch\_source.png](../assets/diagrams/uc\_cli\_batch\_source.png)
+
+---
+
+\subsection{Đa luồng & Kết nối (Multi-threading)}
+
+CLI chạy hai luồng chính để duy trì trạng thái:
+1.  \textbf{Main Thread}: Chờ nhận input của người dùng.
+2.  \textbf{Heartbeat Thread}: (Tùy chọn) Gửi tín hiệu duy trì kết nối nếu cần thiết.
+
+> [!IMPORTANT]
+> \textbf{Streaming Mode}
+> Nhờ cơ chế nhận tin phi tập trung, người dùng có thể thấy kết quả trả về ngay lập tức cho các truy vấn lớn (`LIMIT 10000`) mà không cần chờ Server nén toàn bộ dữ liệu. ⚡
+
+\section{Các Trường hợp Sử dụng CLI}
+
+KBMS CLI là công cụ tối thượng cho các quản trị viên hệ thống và chuyên gia tri thức cần sự tốc độ và khả năng tự động hóa.
+
+\subsection{Kịch bản 1: Phân tích Cấu trúc (Structure Analysis)}
+
+*   \textbf{Mục tiêu}: Xem chi tiết định nghĩa của một Concept phức tạp với hàng chục biến.
+*   \textbf{Sơ đồ Hoạt động}:
+
+![uc\_cli\_vertical\_mode.png](../assets/diagrams/uc\_cli\_vertical\_mode.png)
+
+*   \textbf{Quy trình chi tiết}:
+    1.  \textbf{Gửi lệnh}: Người dùng gõ `DESCRIBE <ConceptName>;`.
+    2.  \textbf{Nhận diện}: CLI nhận gói tin Metadata có thuộc tính `ConceptName` bắt đầu bằng `Describe\_`.
+    3.  \textbf{Chế độ Dọc}: `ResponseParser` tự động chuyển sang Vertical Mode để hiển thị danh sách biến theo chiều dọc, tránh việc bảng bị tràn màn hình (Overflow).
+    4.  \textbf{Kết quả}: Từng biến được liệt kê rõ ràng kèm kiểu dữ liệu tương ứng.
+
+\subsection{Kịch bản 2: Tự động hóa Nạp Tri thức (Batch Loading)}
+
+*   \textbf{Mục tiêu}: Nạp hàng ngàn thực thể tri thức từ tệp tin script có sẵn.
+*   \textbf{Quy trình chi tiết}:
+    1.  \textbf{Chuẩn bị}: Tạo tệp `import.kbql` chứa các lệnh `INSERT`.
+    2.  \textbf{Thực thi}: Gõ `SOURCE import.kbql;` tại CLI.
+    3.  \textbf{Vòng lặp}: CLI đọc từng block lệnh (phân tách bởi dấu `;`) và gửi tới Server.
+    4.  \textbf{Xử lý sai sót}: Nếu một lệnh gặp lỗi, CLI sẽ dừng ngay lập tức và chỉ ra vị trí dòng lệnh bị lỗi trong tệp nguồn để quản trị viên sửa chữa.
+    5.  \textbf{Thống kê}: Sau khi hoàn thành, CLI in ra tổng số bản ghi đã nạp và tổng thời gian thực thi.
+
+---
+
+\subsection{Kịch bản 3: Kiểm tra Kết nối & An ninh (Security Check)}
+
+*   \textbf{Mục tiêu}: Đăng nhập và kiểm tra tình trạng kết nối tới máy chủ từ xa.
+*   \textbf{Quy trình}:
+    1.  Người dùng gõ `LOGIN <username> <password>`.
+    2.  CLI gửi gói tin `LOGIN` bảo mật tới Server.
+    3.  Server xác thực và trả về `LOGIN\_SUCCESS`.
+    4.  Prompt của CLI chuyển từ `login>` sang `kbms> `, sẵn sàng cho các lệnh truy vấn.
+
+> [!TIP]
+> \textbf{Hiệu năng Dòng lệnh}
+> Nhờ cơ chế streaming dữ liệu, CLI có thể hiển thị những bản ghi đầu tiên của một truy vấn `SELECT` lớn chỉ sau vài mili giây, giúp người dùng đánh giá dữ liệu mà không cần chờ đợi toàn bộ kết quả. ⚡
+
+\section{Xác thực CLI (CLI Validation)}
+
+KBMS CLI là giao diện dòng lệnh mạnh mẽ, cho phép tương tác trực tiếp và chạy các kịch bản tri thức quy mô lớn.
+
+\subsection{Kiểm thử Phiên làm việc (Session Logs)}
+
+Mọi thao tác trong CLI đều được ghi nhận và xác thực thông qua log kết nối tới Server.
+
+*   \textbf{Handshake nhị phân}: CLI gửi bản tin định danh và nhận SESSION\_ID.
+*   \textbf{Batch execution}: Chạy script qua lệnh `SOURCE`.
+
+\subsubsection{Minh chứng Mã nguồn (CLI System):}
+\textbf{[Missing Image: code_test_cli.png]}\\ \textit{Hình 12.1: Minh chứng mã nguồn kiểm thử giao diện dòng lệnh (CLI).}
+
+\subsubsection{Minh chứng Kết quả (Session Log):}
+\textbf{[Missing Image: terminal_test_cli_query.png]}\\ \textit{Hình 12.1: Giao diện tương tác CLI thực thi câu lệnh truy vấn tri thức.}
+
+\subsection{Kiểm thử Định dạng Kết quả}
+
+Xác thực khả năng căn chỉnh bảng và hiển thị kết quả truy vấn dưới dạng trực quan.
+
+| Query | Kết quả mô phỏng | Hiển thị bảng |
+| :--- | :--- | :--- |
+| `SELECT *` | 3 Rows | Bảng có header lam (Cyan) |
+| `DESCRIBE` | Metadata | Bảng thông tin Concept |
+
+\textbf{[Missing Image: placeholder_cli_describe_output.png]}\\ \textit{Hình 10.3: Hiển thị kết quả truy vấn dưới dạng bảng (Table View) trong CLI.}
+
+---
+
+> [!NOTE]
+> Bạn có thể chạy `full\_test.kbql` trực tiếp từ CLI để kiểm chứng toàn bộ 96 kịch bản thử nghiệm chỉ trong tích tắc.
+

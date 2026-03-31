@@ -1,0 +1,276 @@
+\chapter{Reasoning}
+\subsection{Kiến trúc Điều phối Reasoning}
+
+Bộ máy suy diễn không hoạt động độc lập mà đóng vai trò là "bộ não" trung tâm điều phối giữa ngôn ngữ truy vấn và dữ liệu vật lý.
+
+\begin{figure}[ht!]
+\centering
+\includegraphics[width=0.8\textwidth]{assets/reasoning\_orchestration.png}
+\caption{Sơ đồ điều phối giữa Engine suy diễn và các phân hệ ngoại vi.}
+\label{fig:8_1}
+\end{figure}
+
+<details>
+<summary>Cấu trúc Mermaid (Source)</summary>
+
+\begin{verbatim}
+graph TD
+    Parser[Bộ phân tích KBQL] -- AST: SolveNode --> Engine[Bộ máy Suy diễn]
+    Engine -- Giải quyết Kế thừa --> Catalog[Danh mục Tri thức]
+    Engine -- Truy xuất Sự thật --> BTree[Lưu trữ B+ Tree]
+    Engine -- Tác vụ Toán học --> Solver[Bộ giải Toán: Brent/Newton]
+    Engine -- Khớp Luật --> Rules[Bộ xử lý Luật]
+    
+    Rules -- Sự thật mới --> Engine
+    Solver -- Nghiệm số --> Engine
+    Engine -- Tập kết quả cuối --> Result[Vết suy diễn/Tập đóng]
+\end{verbatim}
+</details>
+
+\begin{figure}[ht!]
+\centering
+\includegraphics[width=0.8\textwidth]{assets/reasoning\_strategies.png}
+\caption{So sánh chiến lược Suy diễn tiến (Forward) và Suy diễn lùi (Backward).}
+\label{fig:8_2}
+\end{figure}
+
+<details>
+<summary>Cấu trúc Mermaid (Source)</summary>
+
+\begin{verbatim}
+graph LR
+    subgraph Suy_dien_Tien["Suy diễn Tiến (KBMS V3)"]
+        F1["Đầu vào: GT (Sự thật khởi tạo)"] --> F2["Tìm Tập đóng (Closure)"]
+        F2 --> F3["Kết quả: Tri thức dẫn xuất"]
+        F2 -.-> F4["Dừng sớm: Đạt mục tiêu KL"]
+    end
+    
+    subgraph Suy_dien_Lui["Suy diễn Lùi (Kinh điển)"]
+        B1["Đầu vào: Mục tiêu (Giả thuyết)"] --> B2["Mục tiêu con đệ quy"]
+        B2 --> B3["Chứng minh: Đúng/Sai"]
+    end
+\end{verbatim}
+</details>
+
+---
+
+\subsection{Nguyên lý Đóng kín Tri thức (Knowledge Closure)}
+
+Trực giác của KBMS dựa trên khái niệm \textbf{Tập đóng (Closure)}. Cho một tập hợp các sự thật đầu vào (\textbf{GT}) và một tập hợp các luật/phương trình (\textbf{Rules}), mục tiêu là tìm ra tập hợp lớn nhất các sự thật có thể được suy ra một cách logic.
+
+\begin{equation}
+Closure(GT, Rules) = GT \cup \{ \text{Kết luận từ các Luật và Phương trình được kích hoạt} \}
+\end{equation}
+
+Hệ thống sẽ lặp lại quá trình suy diễn cho đến khi đạt được trạng thái \textbf{Fixed-point} (điểm dừng) - nơi việc tiếp tục suy diễn không sinh ra thêm bất kỳ sự thật mới nào [6]. Việc tìm tập đóng này dựa trên thuật toán F-Closure tối ưu cho các vật thể tính toán [1].
+
+---
+
+\subsection{Biểu diễn Tri thức (Knowledge Representation)}
+
+Trong KBMS, tri thức được biểu diễn dưới dạng các đối tượng (Concepts) và các ràng buộc (Constraints) giữa chúng.
+
+\subsubsection{Các thành phần của một Concept}
+*   \textbf{Variables (Biến):} Các thuộc tính của đối tượng (ví dụ: `Price`, `Quantity`).
+*   \textbf{Rules (Luật):} Logic `IF-THEN` để suy diễn ra giá trị hoặc sự kiện mới.
+*   \textbf{Equations (Phương trình):} Các công thức toán học mô tả mối quan hệ giữa các biến.
+*   \textbf{Constraints (Ràng buộc):} Các điều kiện mà dữ liệu buộc phải thỏa mãn.
+*   \textbf{Relations (Quan hệ):} Mối liên kết giữa các Concept (IS-A, PART-OF, ...).
+
+---
+
+\subsection{Quy trình Suy diễn (Reasoning Lifecycle)}
+
+Khi một bản ghi dữ liệu (Fact) được đưa vào hệ thống, bộ máy suy diễn thực hiện các bước sau:
+
+1.  \textbf{Preprocessing (Tiền xử lý):} Nạp toàn bộ metadata của Concept, bao gồm các luật kế thừa từ IS-A và Part-Of.
+2.  \textbf{Initialization (Khởi tạo):} Đưa các Fact đầu vào vào tập \textbf{GT (Ground Truth)}.
+3.  \textbf{Cyclic Evaluation (Đánh giá vòng lặp):} Hệ thống liên tục quét qua tập hợp các Rules và Equations cho đến khi không còn Fact nào mới được sinh ra.
+4.  \textbf{Verification (Kiểm chứng):} Sau khi suy diễn xong, hệ thống kiểm tra lại toàn bộ các `Constraints` để đảm bảo kết quả suy diễn không vi phạm bất kỳ quy tắc nào.
+
+---
+
+\subsection{Chiến lược Suy diễn: Forward vs. Backward Chaining}
+
+Trong lý thuyết Hệ chuyên gia, có hai chiến lược chính:
+- \textbf{Forward Chaining (Suy diễn tiến)}: Từ sự thật (\textbf{GT}) suy ra kết luận. Thích hợp cho việc "khám phá" mọi tri thức có thể từ một tập dữ liệu nhỏ.
+- \textbf{Backward Chaining (Suy diễn lùi)}: Từ mục tiêu (\textbf{KL}) tìm ngược lại xem cần những sự thật nào. Thích hợp cho việc "kiểm chứng" giả thuyết trong một cơ sở tri thức khổng lồ.
+
+\subsubsection{Tại sao KBMS V3 chọn Forward Chaining?}
+Hệ thống KBMS hiện đại được tối ưu hóa cho các \textbf{Mô hình Vật thể Tính toán (Computational Objects)}. Trong các mô hình này (như Hình học hay Tài chính), các biến số và công thức có mối quan hệ ràng buộc chặt chẽ và cục bộ. Việc sử dụng \textbf{Goal-Directed Forward Chaining} mang lại các ưu điểm:
+1.  \textbf{Hiệu năng}: Tìm tập đóng (Closure) nhanh hơn việc duyệt cây mục tiêu đệ quy (SLD-resolution) trong các hệ thống chứa nhiều phương trình toán học.
+2.  \textbf{Tính đầy đủ}: Đảm bảo mọi hệ quả của một thay đổi dữ liệu đều được cập nhật vào GT.
+3.  \textbf{Dừng sớm (Early Exit)}: Mặc dù là suy diễn tiến, Server sẽ dừng ngay lập tức khi tất cả các biến mục tiêu trong danh sách \textbf{KL} đã được tìm thấy (Dòng code 378).
+
+\subsubsection{Giới hạn An toàn (Safety Limit)}
+Để ngăn chặn các vòng lặp vô hạn trong trường hợp tri thức bị mâu thuẫn hoặc đệ quy quá sâu, bộ máy suy diễn áp dụng giới hạn: \textbf{Tối đa 50 vòng lặp (Iterations)}. Nếu sau 50 lần quét mà hệ thống vẫn sinh ra Fact mới, nó sẽ tự động dừng và báo cáo trạng thái Closure hiện tại (Dòng code 93).
+
+---
+
+\subsubsection{IS-A (Kế thừa)}
+*   \textbf{Ý tưởng:} Nếu A \textbf{IS-A} B, thì mọi biến và luật của B sẽ được "truyền" sang A.
+\textit{   \textbf{Ví dụ:} `Square` IS-A `Rectangle`. Khi tính diện tích cho `Square`, hệ thống có thể dùng luôn luật `Area = Width } Height` của `Rectangle`.
+
+\subsubsection{PART-OF (Thành phần)}
+*   \textbf{Ý tưởng:} Mô tả cấu trúc phân rã của đối tượng. Một đối tượng lớn được tạo từ nhiều đối tượng con.
+*   \textbf{Ví dụ:} `Car` PART-OF `Engine`, `Wheel`. Hệ thống tự động ánh xạ các biến từ các phần con vào đối tượng cha để suy diễn tổng thể.
+
+\subsubsection{CONSTRUCT_RELATIONS (Quy tắc quan hệ)}
+*   \textbf{Ý tưởng:} Định nghĩa các quy luật chung cho một mối quan hệ cho trước (ví dụ: Quan hệ `CongRuence` - Bằng nhau trong hình học).
+*   \textbf{Ứng dụng:} Khi hai đối tượng thỏa mãn quan hệ này, các phương trình tương ứng (như `Object1.Size = Object2.Size`) sẽ được tự động tiêm vào hệ thống để giải.
+
+---
+
+\subsection{Giải trình và Truy vết (Traceability)}
+
+Bộ máy suy diễn KBMS không phải là một "Black Box" (Hộp đen). Nó cung cấp khả năng giải thích lý do tại sao một giá trị được tạo ra.
+*   \textbf{Derivation Trace:} Lưu trữ nguồn gốc (Source) của mỗi biến được suy diễn, bao gồm cả các biến đầu vào được dùng tại bước đó.
+*   \textbf{Cơ chế:} Mỗi lần một Rule hoặc Equation kích hoạt thành công, một bản ghi Trace sẽ được đẩy vào kết quả truy vấn.
+
+---
+
+\subsection{Kế hoạch Triển khai Mã nguồn Engine (Implementation Strategy)}
+
+Để hiện thực hóa bản thiết kế kỹ thuật trên thành phân hệ phần mềm hoạt động thực tế, lộ trình triển khai (Backend C\#) được chia làm 4 giai đoạn chính (Phases):
+
+\subsubsection{Giai đoạn 1: Tiền xử lý & Xây dựng Cấu trúc Tri thức (Preprocessing)}
+Xây dựng lớp Abstract Syntax Tree (AST) tiếp nhận từ bộ phân tích (Parser). Ở giai đoạn này, dữ liệu đầu vào (Sự thật - Fact) được "Làm phẳng" (Flattening) bằng cách quét chuỗi kế thừa `IS-A` và `PART-OF` nhằm lôi kéo tất cả Metadata cần thiết sang đối tượng con. Quá trình tiền xử lý biến danh mục tri thức thô thành một đối tượng sẵn sàng chạy (Executable Concept).
+
+\subsubsection{Giai đoạn 2: Lõi Suy diễn Lan truyền (Deductive Core & Propagation)}
+Xây dựng vòng lặp chính của cơ chế \textbf{Goal-Directed Forward Chaining} (FClosure). 
+*   Cài đặt luồng nhận diện chuỗi biến tương đương và sao chép/lan truyền giá trị tức thời (\textbf{SameVariables Propagation}).
+*   Chạy luồng khớp mệnh đề IF-THEN (\textbf{Rule Matching}) để đẩy liên tiếp kết luận logic vào Tập Sự Thật (Ground Truth).
+
+\subsubsection{Giai đoạn 3: Tích hợp Lõi giải Toán học (Mathematical Solvers)}
+Phát triển các Adapter kết nối lớp thuật toán tính toán với hệ thống:
+*   Adapter Phương trình 1 ẩn (\textbf{Brent's Method}): Quét qua các biểu thức còn 1 biến và tiến hành tính toán hội tụ nghiệm số tự động.
+*   Adapter Hệ phương trình (\textbf{Newton-Raphson 2D}): Nhận diện cụm 2 phương trình chung 2 ẩn, định cấu hình ma trận Jacobian và cập nhật vòng lặp đệ quy.
+
+\subsubsection{Giai đoạn 4: Bảo vệ Hệ thống & Truy vết (Safety Constraints & Traceability)}
+Đảm bảo Engine chạy độc lập không gây vắt kiệt RAM máy chủ bằng cách cài giới hạn an toàn \textbf{$N=50$ vòng lặp tối đa (Iterations)}. Nếu sau 50 chu kỳ duyệt hệ thống vẫn chưa trả về điểm đóng (Closure), thuật toán tự ngắt kết nối. Song song đó, viết bộ thu thập nhật ký truy xuất (\textbf{Trace System}) để xuất định dạng dữ liệu cây giải trình thành dạng JSON chuyển qua cho Front-End UI hiển thị.
+
+---
+
+\subsection{Các Thuật toán Suy diễn Cốt lõi (Forward Chaining - FClosure)}
+
+Thuật toán này là xương sống của KBMS, thực hiện việc mở rộng tập tri thức GT cho đến khi đạt điểm đóng (Closure).
+
+\subsubsection{Các Giai đoạn Thực thi (Phases)}
+Bên trong vòng lặp chính, bộ máy thực hiện các bước sau theo thứ tự ưu tiên:
+
+1.  \textbf{Recursive Sub-closure (Phase 6.2)}: Duyệt qua các biến có kiểu dữ liệu là một Concept khác. Hệ thống sẽ tự động gọi hồi quy `FindClosure` cho các đối tượng con này để đồng bộ tri thức từ dưới lên.
+2.  \textbf{SameVariables Propagation (RC2)}: Lan truyền giá trị giữa các cặp biến được đánh dấu tương đương. Ví dụ: `a = b` thì nếu biết `a`, hệ thống tự động gán giá trị cho `b`.
+3.  \textbf{Computation Relations (RC3)}: Thực thi các quan hệ tính toán trực tiếp (\textbf{Rf}) từ biểu thức.
+4.  \textbf{Logic Rules (RC4)}: Khớp mẫu các luật `IF-THEN`. Nếu mẫu khớp, các kết luận mới được đẩy vào GT.
+5.  \textbf{Equation Solving (RC5)}: Giải các phương trình toán học và hệ phương trình để tìm các ẩn số mới.
+
+\subsubsection{Ví dụ Chạy khô (FClosure Dry Run)}
+\textit{(Bảng ví dụ Triangle đã được cung cấp ở phần trước)}
+
+\subsubsection{Sơ đồ Luồng FClosure (Chi tiết Server-side)}
+
+![1. Sơ đồ Luồng FClosure](../assets/diagrams/fclosure\_algorithm.png)
+
+<details>
+<summary>Cấu trúc Mermaid (Source)</summary>
+
+\begin{verbatim}
+graph TD
+    Start["Bắt đầu: Input Fact"] --> Load["Nạp Metadata Hiệu dụng (Làm phẳng)"]
+    Load --> Loop{Vòng lặp Iter < 50?}
+    Loop -- "Iter++" --> Sub["P6.2: Suy diễn Đệ quy (Sub-closure)"]
+    Sub --> SV["RC2: Lan truyền biến tương đương"]
+    SV --> Rule["RC4: Khớp mẫu Luật Logic"]
+    Rule --> Eq["RC5: Giải phương trình Toán học"]
+    Eq -- "Có Fact mới?" --> Loop
+    Loop -- "Đạt Tập đóng / Iter=50" --> Verify["P7: Kiểm tra Ràng buộc"]
+    Verify --> End["Kết thúc: Trả về ReasoningResult"]
+\end{verbatim}
+</details>
+
+---
+
+\subsection{Giải phương trình 1D (Brent's Method - RC5)}
+
+KBMS sử dụng thuật toán Brent để tìm nghiệm của phương trình $f(x)=0$ trong một khoảng cô lập.
+
+\subsubsection{Độ hội tụ (Convergence)}
+Thuật toán kết hợp giữa Bisection (đảm bảo hội tụ) và Secant/Inverse Quadratic Interpolation (đảm bảo tốc độ).
+- \textbf{Tốc độ}: Hội tụ siêu tuyến tính với bậc $\phi \approx 1.618$.
+- \textbf{Ưu điểm}: Không yêu cầu tính đạo hàm $f'(x)$.
+
+---
+
+\subsection{Giải hệ phương trình 2D (Newton-Raphson - RC5)}
+
+Được kích hoạt khi phát hiện 2 phương trình có chung 2 biến chưa biết (Dòng code 341-374).
+
+\subsubsection{Ma trận Jacobian & Công thức cập nhật}
+Hệ thống tính toán ma trận Jacobian $\mathbf{J}$ bằng phương pháp sai phân hữu hạn (Dòng code 573):
+\begin{equation}
+ \mathbf{J} = \begin{bmatrix} \frac{\partial f_1}{\partial x} & \frac{\partial f_1}{\partial y} \\ \frac{\partial f_2}{\partial x} & \frac{\partial f_2}{\partial y} \end{bmatrix} 
+\end{equation}
+
+Sau đó cập nhật giá trị theo công thức (Dòng code 579-583):
+\begin{equation}
+ \Delta \mathbf{x} = -\mathbf{J}^{-1} \mathbf{F}(\mathbf{x}) 
+\end{equation}
+
+---
+
+\subsection{Phân tích Độ phức tạp (Complexity Analysis)}
+
+| Thuật toán | Mục tiêu | Độ phức tạp | Lý do kỹ thuật (Server-side) |
+| :--- | :--- | :--- | :--- |
+| \textbf{FClosure} | Suy diễn tổng thể | $O(50 \times (R + E + SV))$ | Giới hạn $N=50$ vòng lặp tối đa. $R$: số luật, $E$: số phương trình, $SV$: số cặp biến tương đương. |
+| \textbf{Newton-Raphson} | Giải hệ 2D | $O(50 \times 4 \times eval)$ | Newton lặp max 50 lần; mỗi lần tính 4 đạo hàm riêng lẻ ($eval$). |
+| \textbf{Brent's Method} | Giải PT 1D | $O(1/\phi^n)$ | Hội tụ siêu tuyến tính, số bước lặp $n$ thường nhỏ (< 20). |
+| \textbf{Flattening} | Gộp tri thức | $O(H \times V)$ | $H$: chiều sâu kế thừa, $V$: tổng số biến trong hệ thống. |
+| \textbf{Trace System} | Giải thích | $O(D)$ | $D$: Độ sâu vết suy diễn (Reasoning Depth). |
+
+\subsection{Nhật ký Suy diễn (Reasoning Trace Example)}
+
+Khi bạn thực hiện lệnh `SOLVE`, KBMS trả về một bản giải trình chi tiết:
+
+\begin{verbatim}
+{
+  "closure": { "a": 3, "b": 4, "c": 5, "S": 6 },
+  "traces": [
+    { "target": "c", "source": "CosineLaw", "inputs": ["a", "b", "angleC"], "value": 5.0 },
+    { "target": "p", "source": "PerimeterFormula", "inputs": ["a", "b", "c"], "value": 6.0 },
+    { "target": "S", "source": "HeronFormula", "inputs": ["p", "a", "b", "c"], "value": 6.0 }
+  ]
+}
+\end{verbatim}
+
+\section{Xác thực Suy diễn (Reasoning Validation)}
+
+Bộ máy suy diễn là trung tâm trí tuệ của KBMS, do đó tính chính xác tuyệt đối của thuật toán F-Closure là bắt buộc.
+
+\subsection{Kiểm thử Thuật toán F-Closure}
+
+Hệ thống sử dụng tệp \textbf{`Phase5ForwardChainingTests.cs`} để mô phỏng các kịch bản suy diễn phức tạp:
+
+| Kịch bản | Dữ liệu đầu vào | Kết quả mong đợi |
+| :--- | :--- | :--- |
+| \textbf{Simple Rule} | `Emp.salary = 100` | `salary = 110` (Nếu bonus = 0.1) |
+| \textbf{Multi-step} | `Update Rule R1` -> `Triggers R2` | Điểm đóng F-Closure cuối cùng. |
+| \textbf{Recursive} | Luật đệ quy lồng nhau. | Dừng đúng lúc tại điểm đóng. |
+
+\subsubsection{Minh chứng Mã nguồn (F-Closure):}
+\textbf{[Missing Image: code_test_f_closure.png]}\\ \textit{Hình 8.3: Kịch bản kiểm thử thuật toán F-Closure nâng cao.}
+
+\subsubsection{Minh chứng Kết quả (Log Trace):}
+\textbf{[Missing Image: result_test_f_closure.png]}\\ \textit{Hình 8.4: Kết quả tìm tập đóng và vết suy diễn tương ứng.}
+
+\subsection{Kiểm thử Logic Toán học (Solver Testing)}
+
+Xác thực tính năng giải hệ phương trình thông qua `Newton-Raphson` và `Brent Solver`.
+
+![Placeholder: Ảnh chụp nhật ký log của Engine khi thực hiện tìm nghiệm của một phương trình bậc hai, hiển thị số bước lặp (Iterations) và sai số (Error margin)](../assets/diagrams/placeholder\_solver\_iterations\_log.png)
+
+---
+
+> [!TIP]
+> \textbf{Chứng minh thực tế}: Khi chạy `full\_test.kbql`, các luật tính toán lương và doanh thu được kích hoạt và kiểm toán 100\% về độ chính xác số học.
+

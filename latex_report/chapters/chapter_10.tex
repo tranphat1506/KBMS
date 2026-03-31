@@ -1,0 +1,245 @@
+\chapter{Server}
+\section{Điều phối Mạng & Luồng Hoạt động}
+
+Máy chủ KBMS (`KbmsServer.cs`) được thiết kế trên mô hình xử lý hiệu năng cao, cho phép tiếp nhận hàng ngàn kết nối đồng thời nhờ vào kiến trúc \textbf{Task-based Asynchronous Pattern (TAP)} của .NET.
+
+\subsection{Mô hình Xử lý Luồng (Async Threading Model)}
+
+Khác với các hệ thống cũ sử dụng `1-Thread-Per-Client`, KBMS sử dụng kỹ thuật bất đồng bộ thực thụ để giải phóng bộ nhớ và tăng khả năng chịu tải.
+
+\begin{figure}[ht!]
+\centering
+\includegraphics[width=0.8\textwidth]{assets/async\_threading\_model.png}
+\caption{Mô hình xử lý bất đồng bộ (Asynchronous) sử dụng ThreadPool của .NET.}
+\label{fig:10_1}
+\end{figure}
+
+1.  \textbf{Chấp nhận kết nối (Acceptance Loop)}: 
+    Vòng lặp `while` chính sử dụng `await \_listener.AcceptTcpClientAsync(...)`. Khi có client kết nối, hệ thống không đợi mà ngay lập tức spawn một tác vụ con (`\_ = HandleClientAsync(client)`) rồi quay lại lắng nghe client tiếp theo.
+2.  \textbf{Xử lý Gói tin (Fire-and-Forget)}: 
+    Nhiệm vụ xử lý client được đẩy hoàn toàn vào ThreadPool của hệ điều hành. Điều này giúp Main Thread của Server không bao giờ bị nghẽn (Non-blocking).
+3.  \textbf{Hàng đợi Ghi (Semaphore Lock)}: 
+    Do Server có thể gửi nhiều thông điệp bất đồng bộ (ví dụ: đang gửi kết quả Query thì Server muốn gửi thêm Live Log), lớp `Protocol` sử dụng `SemaphoreSlim` để khóa luồng ghi nhị phân, đảm bảo các byte không bị trộn lẫn trên đường truyền.
+
+---
+
+\subsection{Quản lý Phiên (Session Management)}
+
+Kéo dài sự tồn tại của kết nối và định danh người dùng thông qua lớp `ConnectionManager.cs`.
+
+*   \textbf{Lưu trữ an toàn luồng}: Toàn bộ các phiên làm việc được lưu trong một `ConcurrentDictionary`. Đây là cấu trúc dữ liệu tối ưu cho phép hàng trăm Thread con cùng lúc đọc/ghi thông tin Session mà không gây ra lỗi tranh chấp bộ nhớ (Race Conditions).
+*   \textbf{Dọn dẹp tài nguyên (Cleanup Task)}: 
+    Máy chủ khởi chạy một tiến trình ngầm `StartSessionCleanupTask` định kỳ mỗi \textbf{30 giây}. Nó quét qua danh sách `LastActivityAt` và tự động đóng các `Socket` của client đã quá lâu không tương tác (`DefaultTimeoutSeconds`), giúp rảnh RAM cho những kết nối mới.
+
+---
+
+\subsection{Vòng đời của một Giao dịch (Lifecycle)}
+
+Máy chủ vận hành theo một vòng lặp sự kiện (Event Loop) cho mỗi client:
+
+1.  \textbf{Receive}: Đọc Header (4 byte đầu) để biết kích thước gói.
+2.  \textbf{Dispatch}: Chuyển giao gói tin cho `ProcessMessageAsync`.
+3.  \textbf{Execute}: Nếu là truy vấn, Server gọi `KnowledgeManager` để xử lý.
+4.  \textbf{Respond}: Đóng gói kết quả và gửi ngược lại client.
+
+> [!TIP]
+> \textbf{Kỹ thuật TDS (Tabular Data Streaming)}
+> Khi gặp kết quả lớn (>100 dòng), Server sẽ không gửi 1 gói tin khổng lồ. Thay vào đó, nó chia nhỏ dữ liệu thành các lô `ROW (0x07)` và gửi liên tục. Client có thể bắt đầu hiển thị dữ liệu ngay khi lô đầu tiên tới nơi, tạo cảm giác hệ thống phản hồi tức thì (Instant Feedback).
+
+\section{Kiến trúc Bộ não Điều phối (Knowledge Engine)}
+
+`KnowledgeManager.cs` là thành phần trung tâm, đóng vai trò "Bộ não" của toàn bộ hệ thống KBMS. Nó kết nối giữa Tầng Ngôn ngữ (Parser/AST) và Tầng Lưu trữ/Suy diễn (Storage/Reasoning).
+
+\subsection{Cơ chế Bộ hạ lệnh (The Dispatcher)}
+
+Sau khi `KBMS.Parser` bẻ gãy câu lệnh thành một cây cú pháp (AST), `KnowledgeManager` sẽ thực hiện đệ quy qua danh sách các nút này và gọi hàm `Execute(ast, user, currentKb)`.
+
+\begin{verbatim}
+// Luồng thực thi lõi trong KnowledgeManager.cs
+public object Execute(AstNode ast, User user, string? currentKb) {
+    var kbName = DetermineKbName(ast) ?? currentKb;
+    var action = DetermineAction(ast);
+    
+    if (!CheckPrivilege(user, action, kbName)) 
+        return ErrorResponse.PermissionErrorResponse(action, kbName);
+        
+    return ExecuteQuery(ast, kbName);
+}
+\end{verbatim}
+
+\subsubsection{Chức năng chính:}
+*   \textbf{Routing (Định tuyến)}: Xác định lệnh này thuộc về Knowledge Base (KB) nào dựa trên từ khóa `USE` hoặc tham số câu lệnh.
+*   \textbf{Security Guard (Bảo vệ)}: Sử dụng `CheckPrivilege` để lọc quyền của `User` hiện tại (ROOT, ADMIN, WRITE, SELECT). Mọi hành động xâm phạm đều bị chặn ngay tại đây trước khi chạm vào dữ liệu.
+*   \textbf{Execution Pipeline}: Hàm `ExecuteQuery` chứa một bộ chuyển mạch (Switch-case) khổng lồ điều hướng hơn \textbf{50 loại nút AST} khác nhau (từ `CREATE\_CONCEPT` đến `SOLVE`).
+
+---
+
+\subsection{Các Công nghệ Liên kết Tri thức (Knowledge Binding)}
+
+Hệ thống điều phối của KBMS V3 mang tính đột phá nhờ các cơ chế sau:
+
+\subsubsection{Auto-expand Variables (Tự nở rộng biến)}
+Khi bạn khai báo một Concept chứa thuộc tính là một Concept khác (Ví dụ: `p: Point`), `KnowledgeManager` sẽ tự động "nở" biến này thành các thuộc tính con (`p.x`, `p.y`). 
+*   \textbf{Lợi ích}: Giúp bộ máy suy diễn (`ReasoningEngine`) có thể truy cập trực tiếp vào các biến cơ sở mà không cần phải parse lại cấu trúc object phức tạp (Flattening process).
+
+\subsubsection{Triggers Registry}
+`KnowledgeManager` duy trì một danh sách các \textbf{Trigger} đang hoạt động. Ngay sau khi một lệnh `INSERT`, `UPDATE` hoặc `DELETE` thành công, bộ điều phối sẽ tự động gọi hàm `FireTriggers` để kích hoạt các phản ứng dây chuyền (Chain reactions) trong tri thức.
+
+\subsubsection{V3 Data Router}
+Bộ điều phối không còn truy cập file trực tiếp. Nó giao tiếp thông qua `V3DataRouter`. Router này chịu trách nhiệm xác định vị trí vật lý của dữ liệu trên hàng chục tệp tin `.kbf`, `.dat` khác nhau, giúp KBMS mở rộng quy mô dữ liệu theo kiến trúc Multi-Database.
+
+---
+
+\subsection{Quản lý Giao dịch (Transaction Control)}
+
+Khác với các hệ thống đơn giản, bộ điều phối của bạn hỗ trợ \textbf{Transaction Control Language (TCL)}:
+*   \textbf{BEGIN TRANSACTION}: Bật cờ `inTransaction` và khởi tạo bộ đệm (`txBuffer`).
+*   \textbf{COMMIT}: Phóng toàn bộ dữ liệu từ Buffer Pool xuống đĩa qua WAL. 
+*   \textbf{ROLLBACK}: Xóa sạch bộ đệm, khôi phục trạng thái tri thức về điểm an toàn trước đó.
+
+> [!IMPORTANT]
+> \textbf{Sự kết hợp hoàn hảo}
+> Toàn bộ logic tri thức được đóng gói trong `KnowledgeManager.cs`. Đây là nơi điều phối việc tạo cơ sở tri thức, nạp/xả Concept vào Buffer Pool và kích hoạt Reasoning Engine.
+
+\textbf{[Missing Image: knowledge_manager_v3.png]}\\ \textit{Hình 10.2: Sơ đồ tương tác giữa Knowledge Manager và các phân hệ cấp thấp.}
+
+\section{Hạ tầng V3 (Infrastructure)}
+
+Phiên bản KBMS V3 giới thiệu một bước tiến lớn: \textbf{Tự khởi động bằng chính ngôn ngữ tri thức}. Mã nguồn tại `KBMS.Server/V3` chịu trách nhiệm thiết lập nền móng cho mọi Knowledge Base khác.
+
+\subsection{Cơ chế Tự nạp Hệ thống (System Bootstrapper)}
+
+Mỗi khi máy chủ KBMS khởi động lần đầu tiên trên một thư mục dữ liệu mới, `SystemKbBootstrapper.cs` sẽ được gọi để thực thi tiến trình "Khai thiên lập địa":
+
+![server\_boot\_flow.png](../assets/diagrams/server\_boot\_flow.png)
+\textit{Hình: Các bước khởi tạo hạ tầng từ Config đến Socket}
+
+1.  \textbf{Khởi tạo `system` KB}: Hệ thống tự động lệnh `CreateKnowledgeBase("system")`.
+2.  \textbf{Định nghĩa Siêu tri thức (Meta-Concepts)}: 
+    Bootstrapper nạp sẵn các khái niệm cốt lõi:
+    *   `User`: Lưu trữ Username, Password (Hash), Role, Permissions.
+    *   `KnowledgeBase`: Danh mục các KB hiện có.
+    *   `Session`: Theo dõi lịch sử đăng nhập/đăng xuất.
+3.  \textbf{Bootstrap Admin}: Nếu chưa có người dùng nào, hệ thống tự động tạo tài khoản `root` mặc định.
+
+---
+
+\subsection{Các Danh mục Chuyên biệt (Catalogs)}
+
+Khác với V2 (lưu mọi thứ chung 1 file), V3 tách biệt hoàn toàn để tối ưu hóa quản lý:
+
+*   \textbf{`KbCatalog.cs`}: Quản trị "Phả hệ" của các tri thức. Nó lưu trữ Metadata của hàng chục KB và quản lý quyền truy cập.
+*   \textbf{`ConceptCatalog.cs`}: Quản lý hàng ngàn Concept và Rule của mỗi KB. Nó hỗ trợ nạp đè và thay đổi cấu trúc Concept mà không làm hỏng dữ liệu vật lý.
+*   \textbf{`UserCatalog.cs`}: Hệ thống quản trị người dùng trung tâm. Nó đóng vai trò là "chứng minh thư" của cả máy chủ, cấp xác thực (Authentication) cho mọi kết nối TCP đi vào.
+
+---
+
+\subsection{Hệ thống Cập nhật & Di trú (Updater & Migrator)}
+
+Để giữ cho hệ thống luôn ổn định giữa các phiên bản, KBMS cung cấp các công cụ hạ tầng trong thư mục này:
+
+\subsubsection{`SystemUpdater.cs`}
+Tự động quét và vá các Schema của `system` KB khi người dùng nâng cấp phần mềm. Điều này đảm bảo các tri thức cũ luôn tương thích với bộ suy diễn mới.
+
+\subsubsection{`V2ToV3Converter.cs`}
+Đây là "Cây cầu nối" cho phép người dùng cũ của KBMS V2 chuyển toàn bộ tri thức sang V3. Nó thực hiện quét đĩa cũ, bóc tách `Objects` và tự động băm nhỏ dữ liệu để đẩy vào cấu trúc \textbf{Slotted Page 16KB} của V3.
+
+> [!CAUTION]
+> \textbf{Bảo vệ Hệ thống}
+> Tri thức `system` là cực kỳ quan trọng. Hệ thống đã được lập trình để ngăn chặn mọi câu lệnh `DROP KNOWLEDGE\_BASE system`. Nếu file này hỏng, máy chủ sẽ không thể khởi động được bất kỳ dịch vụ nào.
+
+\section{Quản trị & Đo lường từ xa (Telemetry)}
+
+Một máy chủ KBMS C\# hiện đại không thể thiếu khả năng tự theo dõi sức khỏe và phát tán nhật ký hoạt động (Logs). Mã nguồn tại `ManagementManager.cs` và `SystemLogger.cs` đảm nhiệm vai trò này.
+
+\subsection{Giám sát Hệ thống (Stats & Sessions)}
+
+Hệ thống cho phép các Client (đặc biệt là KBMS Studio) truy xuất dữ liệu vận hành thời gian thực thông qua bộ lệnh quản trị cấp cao:
+
+*   \textbf{Bộ đếm Metrics (STATS)}: 
+    Cung cấp thông tin về số lượng \textbf{Active Connections}, thời gian hoạt động của Server (Uptime), và tỷ lệ chiếm dụng RAM của `BufferPool`. Dữ liệu này giúp người quản trị biết khi nào cần mở rộng bộ nhớ máy chủ.
+*   \textbf{Quản lý phiên (SESSIONS)}: 
+    Trích xuất danh sách tất cả các người dùng đang Online. Cho phép thực hiện các thao tác "Kill Session" hoặc giới hạn số lượng kết nối đồng thời để bảo vệ tài nguyên hệ thống.
+
+---
+
+\subsection{Hệ thống Nhật ký Luồng (Live Log Streaming)}
+
+Đây là tính năng độc đáo nhất của KBMS V3, cho phép "lắng nghe" mọi biến động của máy chủ ngay lập tức.
+
+\subsubsection{`SystemLogger.cs`}
+Lớp này đóng vai trò là "ngòi bút" của hệ thống. Khi bất kỳ lỗi nào xảy ra trong `Storage` hay `Reasoning`, `SystemLogger` sẽ thực hiện đồng thời hai việc:
+1.  \textbf{Write to Disk}: Ghi vào file `.log` truyền thống để truy vết sau này.
+2.  \textbf{Write to System KB}: Ghi trực tiếp một Fact mới vào Concept `Log` của Knowledge Base `system`.
+
+\subsubsection{`LOGS_STREAM` Protocol}
+Khi một Admin Client gửi yêu cầu `LOGS\_STREAM`, `ManagementManager` sẽ thực hiện cơ chế \textbf{Pub/Sub (Publish/Subscribe)}:
+*   Bất kỳ dòng log mới nào vừa phát sinh sẽ được "bắn" ngay lập tức vào Socket của client đó dưới dạng gói tin chuẩn.
+*   Điều này cho phép xây dựng các bảng điều khiển (Dashboard) giám sát tri thức mà không cần phải làm mới (Refresh) trang web hay ứng dụng.
+
+---
+
+\subsection{Lệnh Quản trị Tối cao (Management Command)}
+
+Đối với các tác vụ thay đổi cấu hình nóng (Hot-swapping config) hoặc khôi phục dữ liệu, Server cung cấp Message Type `MANAGEMENT\_CMD (0x0D)`:
+*   \textbf{Chỉ dành cho ROOT}: Chỉ người dùng có vai trò ROOT mới có thể kích hoạt các lệnh này.
+*   \textbf{Tính năng}: Thay đổi tham số `MaxConnections`, cấu hình `BufferPoolSize`, hoặc khởi chạy tiến trình `Checkpoint` thủ công để dọn dẹp WAL.
+
+> [!TIP]
+> \textbf{Khả năng Truy vấn Log thông minh}
+> Vì toàn bộ log được lưu dưới dạng Fact trong `system` KB, bạn có thể dùng chính câu lệnh `SELECT` của KBQL để phân tích lỗi:
+> ```kbql
+> USE system;
+> SELECT level, message FROM Log WHERE time > '2023-01-01' AND level = 'ERROR';
+> ```
+> Đây chính là sức mạnh của việc dùng tri thức để quản trị tri thức (Self-Managing Knowledge).
+
+\section{Xác thực Máy chủ (Server Validation)}
+
+Máy chủ KBMS là trung tâm điều phối mọi yêu cầu, do đó nó được kiểm soát chặt chẽ từ khi khởi động đến khi xử lý các kịch bản thực tế.
+
+\subsection{Kiểm thử Khởi động (Startup Proof)}
+
+Hệ thống sử dụng bộ nạp \textbf{`SystemKbBootstrapper.cs`} để khởi tạo các danh mục hệ thống (Catalog).
+
+*   \textbf{Bootstrapping}: Tạo tệp `system.kdb` và đăng ký các Concept hệ thống (`users`, `audit\_logs`).
+*   \textbf{Log khởi động}:
+
+\textbf{[Missing Image: terminal_test_server_bootlogs.png]}\\ \textit{Hình 10.3: Nhật ký khởi động máy chủ thành công với đầy đủ các Manager.}
+
+\subsection{Kiểm thử Tích hợp Đa luồng (Multi-threading Proof)}
+
+Sử dụng \textbf{`CliServerIntegrationTests.cs`} để mô phỏng 100+ tình huống thực tế qua Socket nhị phân.
+
+| Tình huống | Mô tả | Kết quả |
+| :--- | :--- | :--- |
+| \textbf{Login-Query} | Đăng nhập và thực hiện SELECT ngay lập tức. | \textbf{Success} |
+| \textbf{Drop-While-Use} | Xóa KB khi đang có Session truy cập. | \textbf{Error Caught (Locked)} |
+| \textbf{Large-Metadata} | Truy vấn Concept có hàng trăm biến. | \textbf{Success} |
+
+\subsubsection{Minh chứng Mã nguồn (Integration):}
+\textbf{[Missing Image: code_test_server_integration.png]}\\ \textit{Hình 10.4: Kịch bản kiểm thử tích hợp (End-to-End) thông qua TCP Sockets.}
+
+\subsubsection{Minh chứng Kết quả (111 Tests):}
+\textbf{[Missing Image: result_test_cli.png]}\\ \textit{Hình 10.5: Kết quả thực thi 111 kịch bản kiểm thử tích hợp toàn diện.}
+
+---
+
+\subsection{Xác thực Bảo mật (Security & RBAC)}
+
+Xác thực tính năng phân quyền người dùng thông qua \textbf{`AuthV3Tests.cs`}. 
+
+*   \textbf{Root Access}: Toàn quyền thực hiện DDL/DML.
+*   \textbf{Non-root Access}: Bị từ chối khi thực hiện các lệnh nhạy cảm mà không có quyền.
+
+\subsubsection{Minh chứng Mã nguồn (Security):}
+\textbf{[Missing Image: code_test_security.png]}\\ \textit{Hình 10.6: Minh chứng mã nguồn kiểm thử bảo mật RBAC.}
+
+\subsubsection{Minh chứng Kết quả (Access Denied):}
+\textbf{[Missing Image: result_test_security.png]}\\ \textit{Hình 10.7: Kết quả từ chối truy cập (Access Denied) đối với người dùng không có quyền.}
+
+---
+
+> [!TIP]
+> \textbf{Giám sát thời gian thực}: Bạn có thể theo dõi hiệu năng của Server qua các chỉ số CPU/RAM được đo đạc bởi `ManagementManager.cs` trong phần Dashboard của Studio.
+

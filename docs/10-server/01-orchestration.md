@@ -6,7 +6,7 @@ Máy chủ KBMS (`KbmsServer.cs`) được thiết kế trên mô hình xử lý
 
 Khác với các hệ thống cũ sử dụng `1-Thread-Per-Client`, KBMS sử dụng kỹ thuật bất đồng bộ thực thụ để giải phóng bộ nhớ và tăng khả năng chịu tải.
 
-![async_threading_model.png](../assets/diagrams/async_threading_model.png)
+![Mô hình xử lý bất đồng bộ sử dụng ThreadPool của .NET](../assets/diagrams/async_threading_model.png)
 *Hình 10.1: Mô hình xử lý bất đồng bộ (Asynchronous) sử dụng ThreadPool của .NET.*
 
 1.  **Chấp nhận kết nối (Acceptance Loop)**: 

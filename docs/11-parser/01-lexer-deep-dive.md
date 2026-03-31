@@ -6,7 +6,7 @@
 
 Lexer vận hành như một máy trạng thái (State Machine) với hai con trỏ: `_start` (điểm bắt đầu của một từ) và `_current` (vị trí đang quét hiện tại).
 
-![lexer_token_flow_v2.png](../assets/diagrams/lexer_token_flow_v2.png)
+![Luồng Token được phân tách bởi Lexer trước khi đưa vào Parser](../assets/diagrams/lexer_token_flow_v2.png)
 *Hình: Quy trình quét chuỗi và định danh Token (dàn ngang)*
 
 ### Quy trình xử lý (`ScanToken`):
@@ -40,6 +40,7 @@ Hỗ trợ cả nháy đơn `'` và nháy kép `"`:
 
 KBMS sở hữu một kho từ điển từ khóa (Keywords) đồ sộ với hơn **190 Token Types**.
 
+*Bảng 11.1: Phân loại các nhóm Token trong Lexer*
 | Nhóm | Ví dụ từ khóa |
 | :--- | :--- |
 | **DML** | `SELECT`, `INSERT`, `UPDATE`, `DELETE`, `SOLVE` |

@@ -12,6 +12,7 @@ Dựa trên phân tích so sánh với các hệ thống hiện có, chúng tôi
 
 ### Bảng so sánh Tính năng Chi tiết
 
+*Bảng 3.1: So sánh Tính năng Chi tiết giữa KBMS và các hệ thống khác*
 | Đặc tính | CSDL Quan hệ [5] | Ngôn ngữ Logic [8] | Công cụ Tri thức [7] | **KBMS [1]** |
 | :--- | :--- | :--- | :--- | :--- |
 | **Kiểu dữ liệu** | Structured Tables | Logic Predicates | OWL / RDF | **Knowledge Concepts** |

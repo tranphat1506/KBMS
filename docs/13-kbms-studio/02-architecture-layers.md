@@ -6,7 +6,7 @@ KBMS Studio vận hành dựa trên một kiến trúc phân tầng chặt chẽ
 
 Sơ đồ dưới đây mô tả cách một câu lệnh Tri thức (như `SOLVE`) đi qua hệ thống:
 
-![4_tier_studio_flow.png](../assets/diagrams/4_tier_studio_flow.png)
+![Luồng xử lý một yêu cầu tri thức xuyên suốt 4 tầng từ Studio UI](../assets/diagrams/4_tier_studio_flow.png)
 *Hình 13.1: Luồng xử lý một yêu cầu tri thức xuyên suốt 4 tầng từ Studio UI.*
 
 ---
@@ -37,7 +37,7 @@ Sơ đồ dưới đây mô tả cách một câu lệnh Tri thức (như `SOLVE
 
 Khác với luồng Request-Response thông thường, hệ thống Notification sử dụng cơ chế **Server Push**:
 
-![4_tier_notification_flow.png](../assets/diagrams/4_tier_notification_flow.png)
+![Cơ chế Server Push cho các thông báo hệ thống thời gian thực](../assets/diagrams/4_tier_notification_flow.png)
 *Hình 13.2: Cơ chế Server Push cho các thông báo hệ thống thời gian thực.*
 
 1.  **Trigger**: Một sự kiện an ninh hoặc hệ thống xảy ra tại Server.

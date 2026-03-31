@@ -10,23 +10,24 @@ Mọi thao tác trong CLI đều được ghi nhận và xác thực thông qua 
 *   **Batch execution**: Chạy script qua lệnh `SOURCE`.
 
 ### Minh chứng Mã nguồn (CLI System):
-![code_test_cli.png](../assets/diagrams/code_test_cli.png)
+![Minh chứng mã nguồn kiểm thử giao diện dòng lệnh CLI](../assets/diagrams/code_test_cli.png)
 *Hình 12.1: Minh chứng mã nguồn kiểm thử giao diện dòng lệnh (CLI).*
 
 ### Minh chứng Kết quả (Session Log):
-![terminal_test_cli_query.png](../assets/diagrams/terminal_test_cli_query.png)
+![Giao diện tương tác CLI thực thi câu lệnh truy vấn tri thức](../assets/diagrams/terminal_test_cli_query.png)
 *Hình 12.1: Giao diện tương tác CLI thực thi câu lệnh truy vấn tri thức.*
 
 ## 2. Kiểm thử Định dạng Kết quả
 
 Xác thực khả năng căn chỉnh bảng và hiển thị kết quả truy vấn dưới dạng trực quan.
 
+*Bảng 12.1: Kiểm thử định dạng kết quả truy vấn trong CLI*
 | Query | Kết quả mô phỏng | Hiển thị bảng |
 | :--- | :--- | :--- |
 | `SELECT *` | 3 Rows | Bảng có header lam (Cyan) |
 | `DESCRIBE` | Metadata | Bảng thông tin Concept |
 
-![Placeholder: Ảnh chụp màn hình kết quả lệnh DESCRIBE (CONCEPT: Product) trong CLI, hiển thị bảng variables, types và descriptions](../assets/diagrams/placeholder_cli_describe_output.png)
+![Kết quả lệnh DESCRIBE hiển thị bảng biến và kiểu dữ liệu trong CLI](../assets/diagrams/placeholder_cli_describe_output.png)
 *Hình 10.3: Hiển thị kết quả truy vấn dưới dạng bảng (Table View) trong CLI.*
 
 ---

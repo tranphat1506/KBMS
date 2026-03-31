@@ -11,6 +11,7 @@ KBQL được thiết kế dựa trên ba trụ cột chính:
 
 ## 2. Các Thành phần Chính của KBQL
 
+*Bảng 6.1: Phân loại Từ khóa dành riêng (Reserved Keywords)*
 | Nhóm Lệnh | Chức năng | Các lệnh tiêu biểu |
 | :--- | :--- | :--- |
 | **KDL** (Knowledge Definition) | Định nghĩa cấu trúc tri thức, luật, phân cấp | `CREATE KB`, `CONCEPT`, `RULE`, `HIERARCHY`, `RELATION` |
@@ -24,6 +25,7 @@ KBQL được thiết kế dựa trên ba trụ cột chính:
 
 Không phải tất cả các đối tượng trong KBMS đều hỗ trợ lệnh `ALTER`. Dưới đây là bảng tra cứu:
 
+*Bảng 6.2: Khả năng hỗ trợ lệnh ALTER cho từng đối tượng KBQL*
 | Đối tượng | Hỗ trợ ALTER | Ghi chú |
 | :--- | :--- | :--- |
 | **Concept** | ✅ Có | Hỗ trợ thêm/xóa biến, luật, ràng buộc, quan hệ nội bộ. |
@@ -38,6 +40,7 @@ Không phải tất cả các đối tượng trong KBMS đều hỗ trợ lện
 
 KBQL cung cấp bộ kiểu dữ liệu phong phú để định nghĩa Concept:
 
+*Bảng 6.3: Phân loại Kiểu dữ liệu nguyên thuỷ trong KBQL*
 | Nhóm | Kiểu dữ liệu | Mô tả |
 | :--- | :--- | :--- |
 | **Số học** | `INT`, `BIGINT`, `DECIMAL`, `FLOAT`, `DOUBLE` | Các kiểu số nguyên và số thực. |

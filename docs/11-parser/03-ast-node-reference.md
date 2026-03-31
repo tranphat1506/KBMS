@@ -2,7 +2,7 @@
 
 Cây AST là đại diện logic hoàn chỉnh cho tri thức sau khi được biên dịch. Tại KBMS, mỗi câu lệnh được bóc tách thành một hoặc nhiều `AstNode` chuyên biệt, phân cấp theo 5 họ ngôn ngữ thực tế trong thư mục `KBMS.Parser/Ast`.
 
-![ast_overview_v2.png](../assets/diagrams/ast_overview_v2.png)
+![Tổng quan kiến trúc nút AST của ngôn ngữ KBQL](../assets/diagrams/ast_overview_v2.png)
 *Hình: Tổng quan 5 nhánh Phả hệ Tri thức KBMS*
 
 ---
@@ -10,7 +10,7 @@ Cây AST là đại diện logic hoàn chỉnh cho tri thức sau khi được b
 ## 1. Hệ phả KDL (Knowledge Definition Language)
 Đây là họ lớn nhất, chịu trách nhiệm định nghĩa "cơ thể" của tri thức:
 
-![ast_kdl_detail.png](../assets/diagrams/ast_kdl_detail.png)
+![Sơ đồ chi tiết nút AST cho ngôn ngữ KDL](../assets/diagrams/ast_kdl_detail.png)
 *Hình: Chi tiết các Node định nghĩa tri thức (KDL)*
 
 *   **Knowledge Base**: `CreateKnowledgeBaseNode`, `DropKbNode`, `UseKbNode`, `AlterKbNode`.
@@ -27,7 +27,7 @@ Cây AST là đại diện logic hoàn chỉnh cho tri thức sau khi được b
 ## 2. Hệ phả KQL & KML (Query & Maintenance)
 Các nhánh này chịu trách nhiệm hỏi đáp và bảo trì dữ liệu tri thức:
 
-![ast_kql_kml_detail.png](../assets/diagrams/ast_kql_kml_detail.png)
+![Sơ đồ chi tiết nút AST cho ngôn ngữ KQL và KML](../assets/diagrams/ast_kql_kml_detail.png)
 *Hình: Chi tiết các Node Truy vấn (KQL) và Thao tác (KML)*
 
 ### 2.1. Nhóm KQL (Knowledge Query Language)
@@ -48,7 +48,7 @@ Các nhánh này chịu trách nhiệm hỏi đáp và bảo trì dữ liệu tr
 ## 3. Hệ phả KCL & TCL (Control & Transaction)
 Nhánh bảo mật và quản lý giao dịch:
 
-![ast_kcl_tcl_detail.png](../assets/diagrams/ast_kcl_tcl_detail.png)
+![Sơ đồ chi tiết nút AST cho ngôn ngữ KCL và TCL](../assets/diagrams/ast_kcl_tcl_detail.png)
 *Hình: Chi tiết các Node Bảo mật (KCL) và Giao dịch (TCL)*
 
 *   **DCL (Control)**: `CreateUserNode`, `DropUserNode`, `AlterUserNode`, `GrantNode`, `RevokeNode`.

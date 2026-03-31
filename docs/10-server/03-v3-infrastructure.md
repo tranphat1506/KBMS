@@ -6,7 +6,7 @@ Phiên bản KBMS V3 giới thiệu một bước tiến lớn: **Tự khởi đ
 
 Mỗi khi máy chủ KBMS khởi động lần đầu tiên trên một thư mục dữ liệu mới, `SystemKbBootstrapper.cs` sẽ được gọi để thực thi tiến trình "Khai thiên lập địa":
 
-![server_boot_flow.png](../assets/diagrams/server_boot_flow.png)
+![Luồng khởi động Server và đăng ký các Manager](../assets/diagrams/server_boot_flow.png)
 *Hình: Các bước khởi tạo hạ tầng từ Config đến Socket*
 
 1.  **Khởi tạo `system` KB**: Hệ thống tự động lệnh `CreateKnowledgeBase("system")`.

@@ -1,0 +1,20 @@
+graph LR
+    KDL["KDL Family"]
+    
+    subgraph KB_Nodes ["Cấu trúc Dữ liệu"]
+        KDL --- KB["KB: Create/Drop/Use/Alter"]
+        KDL --- Concept["Concept: Create/Drop/Alter/Variable"]
+    end
+    
+    subgraph Logic_Nodes ["Đối tượng Logic"]
+        KDL --- Rel["Relation / Operator / Function"]
+        KDL --- Rule["Rule: Create/Drop"]
+    end
+    
+    subgraph Adv_Nodes ["Hạ tầng & Phản ứng"]
+        KDL --- H["Hierarchy / Computation"]
+        KDL --- T["Trigger / Index"]
+    end
+    
+    style KDL fill:#dfd,stroke:#333,stroke-width:4px
+    style KB_Nodes,Logic_Nodes,Adv_Nodes fill:#f9fff9,stroke:#9c9,stroke-dasharray: 5 5

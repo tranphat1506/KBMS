@@ -6,6 +6,7 @@
 
 Tầng Parser được kiểm soát bởi tệp **`ParserTests.cs`** với hơn 21,000 dòng kịch bản kiểm thử, bao phủ mọi trường hợp từ câu lệnh đơn giản đến phức tạp nhất.
 
+*Bảng 6.5: Phân bổ kịch bản kiểm thử theo nhóm ngôn ngữ*
 | Nhóm Kiểm thử | Mô tả | Trạng thái |
 | :--- | :--- | :--- |
 | **KDL Validation** | Kiểm tra định nghĩa Concept, Hierarchy, Relation. | **Passed** |
@@ -17,14 +18,14 @@ Tầng Parser được kiểm soát bởi tệp **`ParserTests.cs`** với hơn 
 
 Kết quả chạy bộ kiểm thử `ParserTests`:
 
-![Placeholder: Ảnh chụp màn hình kết quả chạy 'dotnet test --filter ParserTests' hiển thị hàng ngàn test case màu xanh (Passed)](../assets/diagrams/placeholder_parser_test_log.png)
+![Kết quả chạy bộ kiểm thử ParserTests](../assets/diagrams/placeholder_parser_test_log.png)
 *Hình 6.1: Kết quả kiểm thử bộ phân tích cú pháp (Parser) với hơn 21,000 kịch bản.*
 
 ## 3. Nhật ký Lexer (Lexing Proof)
 
 Trước khi phân tích cú pháp, Lexer thực hiện tách từ tố (Tokenization). Tệp `LexerTests.cs` đảm bảo mọi ký tự đặc biệt và từ khóa đều được nhận diện đúng.
 
-![Placeholder: Ảnh chụp nhật ký Token Stream của một câu lệnh SELECT phức tạp, cho thấy các phân đoạn IDENTIFIER, KEYWORD, OPERATOR](../assets/diagrams/placeholder_lexer_token_stream.png)
+![Nhật ký Token Stream của câu lệnh SELECT phức tạp](../assets/diagrams/placeholder_lexer_token_stream.png)
 *Hình 6.2: Luồng Token được phân tách bởi Lexer trước khi đưa vào Parser.*
 
 ---

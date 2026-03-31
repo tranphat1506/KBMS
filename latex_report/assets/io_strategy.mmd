@@ -1,0 +1,5 @@
+graph LR
+    User[User/Reasoning] -- Write Fact --> BP[Buffer Pool: RAM]
+    BP -- Log Record --> WAL[WAL: Sequential Log]
+    BP -- Async Flush --> Disk[Data File: Random Access]
+    WAL -- Integrity Check --> Disk

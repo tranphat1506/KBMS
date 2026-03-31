@@ -1,0 +1,18 @@
+graph TD
+    Start([Bắt đầu bảo trì]) --> Select{Chọn hành động}
+    
+    Select -- "Import Data" --> Read[Đọc tệp CSV/JSON]
+    Read --> Bulk[Gửi MessageType.BULK_INSERT]
+    Bulk --> WAL[Ghi vào Nhật ký WAL]
+    WAL --> BTree[Cập nhật Index B+ Tree]
+    
+    Select -- "Reindex" --> Scan[Quét toàn bộ Page dữ liệu]
+    Scan --> Build[Xây dựng lại cây Index mới]
+    Build --> Optimize[Giải phóng bộ nhớ thừa]
+    
+    BTree & Optimize --> UpdateUI[Cập nhật Dashboard RAM/Disk]
+    UpdateUI --> End([Kết thúc])
+
+    style Start fill:#f6ffed,stroke:#389e0d
+    style End fill:#f6ffed,stroke:#389e0d
+    style Select fill:#fff7e6,stroke:#d46b08

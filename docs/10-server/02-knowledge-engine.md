@@ -53,5 +53,5 @@ Khác với các hệ thống đơn giản, bộ điều phối của bạn hỗ
 > **Sự kết hợp hoàn hảo**
 > Toàn bộ logic tri thức được đóng gói trong `KnowledgeManager.cs`. Đây là nơi điều phối việc tạo cơ sở tri thức, nạp/xả Concept vào Buffer Pool và kích hoạt Reasoning Engine.
 
-![knowledge_manager_v3.png](../assets/diagrams/knowledge_manager_v3.png)
+![Sơ đồ tương tác giữa Knowledge Manager và các phân hệ cấp thấp](../assets/diagrams/knowledge_manager_v3.png)
 *Hình 10.2: Sơ đồ tương tác giữa Knowledge Manager và các phân hệ cấp thấp.*

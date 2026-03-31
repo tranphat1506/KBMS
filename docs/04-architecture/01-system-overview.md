@@ -6,7 +6,7 @@ Hệ thống KBMS (phiên bản V3) được thiết kế dựa trên mô hình 
 
 Cấu trúc phân tầng của KBMS bao gồm:
 
-![kbms_4_tier_architecture.png](../assets/diagrams/kbms_4_tier_architecture.png)
+![kbms_4_tier_architecture.png | width=0.2](../assets/diagrams/kbms_4_tier_architecture.png)
 *Hình 4.1: Kiến trúc 4 tầng chuẩn hóa của hệ thống KBMS V3.*
 
 1.  **Application Layer**: Giao diện người dùng (Studio/CLI), chịu trách nhiệm thu thập yêu cầu và hiển thị kết quả.
@@ -18,18 +18,19 @@ Cấu trúc phân tầng của KBMS bao gồm:
 
 Mọi yêu cầu từ người dùng đều đi xuyên suốt qua 4 tầng này để đạt được kết quả cuối cùng:
 
-![kbms_request_flow_v3.png](../assets/diagrams/kbms_request_flow_v3.png)
+![kbms_request_flow_v3.png | width=0.9](../assets/diagrams/kbms_request_flow_v3.png)
 *Hình 4.2: Luồng xử lý yêu cầu đi xuyên suốt 4 tầng kiến trúc.*
 
 ## 3. Bảo mật & Chẩn đoán Hệ thống
 
 Bên cạnh luồng dữ liệu chính, KBMS duy trì một "mạch quản trị" song song để đảm bảo tính an toàn và minh bạch:
 
-![kbms_security_diagnostics_flow.png](../assets/diagrams/kbms_security_diagnostics_flow.png)
+![kbms_security_diagnostics_flow.png | width=0.9](../assets/diagrams/kbms_security_diagnostics_flow.png)
 *Hình 4.3: Sơ đồ luồng bảo mật và chẩn đoán hệ thống song song.*
 
 ## 4. Công nghệ Sử dụng (Technology Stack)
 
+*Bảng 4.1: Mô tả chức năng 4 tầng kiến trúc KBMS*
 | Tầng | Thành phần chính | Công nghệ & Thư viện |
 | :--- | :--- | :--- |
 | **Application** | Studio IDE | React, Electron, Monaco Editor, Tailwind CSS |

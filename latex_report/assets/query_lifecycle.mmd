@@ -1,0 +1,21 @@
+sequenceDiagram
+    participant C as Client (Studio/CLI)
+    participant N as KBMS.Network
+    participant S as KBMS.Server
+    participant P as KBMS.Parser
+    participant R as KBMS.Reasoning
+    participant ST as KBMS.Storage
+
+    C->>N: Gửi TCP Packet (MessageType.QUERY)
+    N->>S: Deserialize Message
+    S->>P: Gọi ParseAll(content)
+    P-->>S: Trả về Danh sách AST Nodes
+    loop Với mỗi AST Node
+        S->>S: Kiểm tra quyền (Authentication)
+        S->>ST: Thực thi lệnh (Execute)
+        ST-->>S: Trả về kết quả thô
+        S->>S: Đóng gói Metadata & Rows
+        S->>N: Gửi MessageType.ROW / RESULT
+    end
+    S->>N: Gửi MessageType.FETCH_DONE
+    N-->>C: Hiển thị kết quả trên UI

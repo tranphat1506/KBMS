@@ -1,0 +1,241 @@
+\chapter{Architecture}
+\section{Tổng quan Kiến trúc (System Overview)}
+
+Hệ thống KBMS (phiên bản V3) được thiết kế dựa trên mô hình kiến trúc 4 tầng (4-Tier Architecture) hiện đại [1]. Cấu trúc này giúp tách biệt rõ ràng trách nhiệm giữa việc tương tác người dùng, truyền dẫn mạng, xử lý logic và lưu trữ vật lý [3].
+
+\subsection{Mô hình Kiến trúc 4 Tầng}
+
+Cấu trúc phân tầng của KBMS bao gồm:
+
+\begin{figure}[ht!]
+\centering
+\includegraphics[width=0.8\textwidth]{assets/kbms\_4\_tier\_architecture.png}
+\caption{Kiến trúc 4 tầng chuẩn hóa của hệ thống KBMS V3.}
+\label{fig:4_1}
+\end{figure}
+
+1.  \textbf{Application Layer}: Giao diện người dùng (Studio/CLI), chịu trách nhiệm thu thập yêu cầu và hiển thị kết quả.
+2.  \textbf{Network Layer}: Giao thức truyền dẫn nhị phân, đảm bảo kết nối ổn định và hiệu năng cao.
+3.  \textbf{Server Layer}: "Bộ não" của hệ thống, thực hiện biên dịch ngôn ngữ KBQL và suy diễn tri thức.
+4.  \textbf{Storage Layer}: Quản lý dữ liệu bền vững trên đĩa cứng thông qua các thuật toán B+ Tree và WAL.
+
+\subsection{Luồng Yêu cầu Tổng quát}
+
+Mọi yêu cầu từ người dùng đều đi xuyên suốt qua 4 tầng này để đạt được kết quả cuối cùng:
+
+\begin{figure}[ht!]
+\centering
+\includegraphics[width=0.8\textwidth]{assets/kbms\_request\_flow\_v3.png}
+\caption{Luồng xử lý yêu cầu đi xuyên suốt 4 tầng kiến trúc.}
+\label{fig:4_2}
+\end{figure}
+
+\subsection{Bảo mật & Chẩn đoán Hệ thống}
+
+Bên cạnh luồng dữ liệu chính, KBMS duy trì một "mạch quản trị" song song để đảm bảo tính an toàn và minh bạch:
+
+\begin{figure}[ht!]
+\centering
+\includegraphics[width=0.8\textwidth]{assets/kbms\_security\_diagnostics\_flow.png}
+\caption{Sơ đồ luồng bảo mật và chẩn đoán hệ thống song song.}
+\label{fig:4_3}
+\end{figure}
+
+\subsection{Công nghệ Sử dụng (Technology Stack)}
+
+| Tầng | Thành phần chính | Công nghệ \& Thư viện |
+| :--- | :--- | :--- |
+| \textbf{Application} | Studio IDE | React, Electron, Monaco Editor, Tailwind CSS |
+| \textbf{Network} | Binary Protocol | TCP Sockets, UTF-8 Encoding, Little-Endian |
+| \textbf{Server} | Core Engine | .NET Core 8, C\#, F-Closure Algorithm |
+| \textbf{Storage} | Physical Layer | B+ Tree, WAL, Slotted Page, AES-256 Encryption |
+
+---
+
+> [!TIP]
+> \textbf{Khả năng mở rộng}: Với kiến trúc 4 tầng chuẩn hóa, KBMS dễ dàng hỗ trợ các ứng dụng bên thứ ba tích hợp thông qua Giao thức Mạng mà không cần can thiệp vào mã nguồn Server.
+
+\section{Tầng Ứng dụng (Application Layer)}
+
+Tầng Ứng dụng là điểm chạm đầu tiên giữa người dùng và hệ thống KBMS. Nó bao gồm hai thành phần chính phục vụ các mục đích khác nhau.
+
+\subsection{KBMS Studio (IDE Chuyên nghiệp)}
+
+KBMS Studio được xây dựng trên nền tảng React và Electron, đóng vai trò là một môi trường phát triển tri thức toàn diện (Knowledge IDE).
+
+*   \textbf{Chức năng chính}:
+    *   \textbf{Monaco Engine}: Soạn thảo mã nguồn KBQL với tính năng IntelliSense và báo lỗi trực tiếp.
+    *   \textbf{Visual Knowledge Designer}: Cho phép thiết kế mô hình tri thức bằng đồ thị kéo thả.
+    *   \textbf{Management Dashboard}: Giám sát hiệu năng Server, quản lý User và xem Audit Logs.
+*   \textbf{Công nghệ}: React, TypeScript, Monaco Editor, Tailwind CSS.
+
+\subsection{KBMS CLI (Command Line Interface)}
+
+KBMS CLI là công cụ dòng lệnh mạnh mẽ dành cho các nhà quản trị và nhà phát triển hệ thống.
+
+*   \textbf{Chức năng chính}:
+    *   \textbf{REPL (Read-Eval-Print Loop)}: Môi trường tương tác dòng lệnh trực tiếp với Server.
+    *   \textbf{Batch Processing}: Thực thi các kịch bản tri thức (.kbql) quy mô lớn thông qua lệnh `SOURCE`.
+    *   \textbf{Advanced Formatting}: Hỗ trợ hiển thị kết quả dưới dạng bảng hoặc hàng dọc (`\G`).
+*   \textbf{Công nghệ}: .NET Core, C\#, `LineEditor` custom library.
+
+---
+
+> [!TIP]
+> \textbf{Lựa chọn công cụ}: Studio phù hợp cho công tác nghiên cứu và thiết kế mô hình; CLI phù hợp cho công tác bảo trì và tự động hóa hệ thống.
+
+\section{Tầng Mạng (Network Layer)}
+
+Tầng Mạng đóng vai trò là "mạch máu" truyền dẫn thông tin giữa các thành phần Application Layer và Server Layer.
+
+\subsection{Giao thức Nhị phân (Custom Binary Protocol)}
+
+Để tối ưu hóa hiệu năng và giảm thiểu băng thông, KBMS không sử dụng JSON/XML để giao tiếp mà sử dụng một giao thức nhị phân tùy chỉnh trên nền TCP.
+
+*   \textbf{Cấu trúc Gói tin}: Gồm 1 byte `MessageType` và 4 byte `PayloadLength`, sau đó là `Payload` dữ liệu thực tế.
+*   \textbf{12+ Message Types}: 
+    *   `LOGIN`: Xác thực người dùng.
+    *   `QUERY`: Gửi yêu cầu KBQL.
+    *   `LOGS\_STREAM`: Yêu cầu streaming log thời gian thực.
+    *   `MANAGEMENT\_CMD`: Lệnh quản trị hệ thống (Dành cho ROOT).
+*   \textbf{Encoding}: Sử dụng chuẩn UTF-8 cho chuỗi văn bản và định dạng nhị phân Little-Endian cho các số nguyên/thực.
+
+\subsection{Quản lý Kết nối (Connection Manager)}
+
+*   \textbf{Asynchronous Socket I/O}: Server sử dụng mô hình lập trình bất đối xứng để phục vụ hàng trăm kết nối đồng thời với độ trễ tối thiểu.
+*   \textbf{Session Isolation}: Mỗi kết nối được gán một `SessionId` duy nhất, giúp tách biệt dữ liệu tạm thời và ngữ cảnh làm việc (Context) giữa các người dùng.
+*   \textbf{Heartbeat \& Timeout}: Đảm bảo giải phóng tài nguyên hệ thống (RAM/Socket) ngay khi kết nối bị ngắt đột ngột sau 30 giây.
+
+---
+
+> [!IMPORTANT]
+> \textbf{Hiệu năng truyền tin}: So với giao thức REST/JSON truyền thống, Giao thức Nhị phân của KBMS giúp giảm tới 60\% kích thước gói tin và 40\% thời gian xử lý tuần tự hóa (Serialization).
+
+\section{Tầng Máy chủ (Server Layer)}
+
+Tầng Máy chủ (Server Layer) là thành phần phức tạp nhất của KBMS, chịu trách nhiệm cho toàn bộ quá trình biên dịch ngôn ngữ và suy diễn tự động.
+
+\subsection{Knowledge Manager (Orchestrator)}
+
+Knowledge Manager là bộ điều phối trung tâm của Server. Nó chịu trách nhiệm:
+*   \textbf{KB Isolation}: Sử dụng `StoragePool` để đảm bảo mỗi người dùng có thể làm việc trên một Cơ sở tri thức độc lập mà không gây xung đột tài nguyên.
+*   \textbf{Thread-safe Operations}: Quản lý các lệnh nạp/hủy KB thông qua cơ chế khóa (Mutual Exclusion) để duy trì tính toàn vẹn của danh lục hệ thống.
+*   \textbf{Execution Routing}: Điều phối luồng làm việc giữa Parser (Biên dịch) và Inference Engine (Suy diễn).
+
+\subsection{KBQL Parser & Compiler}
+
+*   \textbf{Phân tích Cú pháp}: Sử dụng thuật toán đệ quy xuống (Recursive Descent) để biên dịch câu lệnh KBQL thành cấu trúc AST (Abstract Syntax Tree).
+*   \textbf{Hỗ trợ}: Biên dịch các tập lệnh KDL (Định nghĩa), KQL (Truy vấn), KCL (Bảo mật), KML (Bảo trì) và TCL (Giao dịch).
+
+\subsection{Reasoning Engine (Bộ máy Suy diễn)}
+
+*   \textbf{Forward Chaining}: Thuật toán suy diễn tiến dựa trên điểm đóng \textbf{F-Closure}.
+*   \textbf{Mô hình COKB}: Thực hiện suy diễn trên các đối tượng tính toán phức tạp, giải quyết các bài toán về Quan hệ (IS-A, PART-OF) và Phương trình toán học.
+
+\subsection{Dịch vụ Bảo mật & Xác thực (Security & Auth)}
+
+Hệ thống bảo vệ tri thức thông qua cơ chế xác thực đa tầng và phân quyền dựa trên vai trò (RBAC):
+*   \textbf{Authentication}: Đối soát thông tin đăng nhập với `UserCatalog` lưu trong System KB. Mật khẩu được mã hóa an toàn.
+*   \textbf{Authorization (RBAC)}: Phân chia 3 cấp độ truy cập:
+    *   \textbf{ROOT}: Quyền cao nhất, quản lý toàn bộ hệ thống, user và cấu hình.
+    *   \textbf{ADMIN}: Quản lý các Cơ sở tri thức (KB) và Concept.
+    *   \textbf{RESEARCHER}: Quyền đọc và thực thi suy diễn (Read-only / Solve).
+
+\subsection{Hệ thống Nhật ký & Chẩn đoán (Native Logging)}
+
+KBMS V3 sở hữu cơ chế nhật ký độc đáo, biến log thành một dạng tri thức có thể truy vấn:
+*   \textbf{System Logs}: Lưu trữ các sự kiện vận hành, lỗi hệ thống và hiệu năng RAM/CPU.
+*   \textbf{Audit Logs}: Ghi lại mọi câu lệnh KBQL của người dùng, thời gian thực hiện và trạng thái thành công/thất bại.
+*   \textbf{Persistence}: Mọi log đều được `SystemLogger` chèn trực tiếp vào các concept `system\_logs` và `audit\_logs` bên trong \textbf{System KB}.
+*   \textbf{Real-time Streaming}: Hỗ trợ đẩy log trực tiếp tới Studio thông qua WebSockets/TCP phục vụ giám sát thời gian thực.
+
+---
+
+> [!NOTE]
+> Server Layer được thiết kế theo hướng \textbf{Thread-safe}, cho phép nhiều người dùng cùng truy cập và thực thi suy diễn đồng thời trên các vùng tri thức khác nhau.
+
+\section{Tầng Lưu trữ (Storage Layer)}
+
+Tầng Lưu trữ chịu trách nhiệm đảm bảo tính bền vững (Durability), an toàn (Security) và điều phối truy cập đồng thời cho tri thức.
+
+\subsection{Ánh xạ Thành phần Hệ thống}
+
+Hệ thống quản lý việc lưu trữ qua một phân cấp các Manager chuyên biệt:
+
+\textbf{[Missing Image: storage_layer_map.png]}\\ \textit{Hình 4.4: Bản đồ giải phẫu thành phần tầng lưu trữ vật lý.}
+
+*   \textbf{StoragePool (Singleton)}: Quản lý danh sách các KBs đang nạp và đảm bảo Thread-safety khi truy cập đa luồng.
+*   \textbf{BufferPoolManager (LRU Cache)}: Điều phối bộ nhớ đệm RAM theo từng trang (Page).
+*   \textbf{DiskManager (Physical Handler)}: Giao tiếp trực tiếp với hệ điều hành để đọc/ghi tệp nạp theo khối (16KB).
+*   \textbf{WalManager (Transaction Logger)}: Quản lý tệp nhật ký `.log` để đảm bảo ACID.
+
+\subsection{Quản lý Trang (Physical Paging)}
+
+*   \textbf{Slotted Page Layout}: Sử dụng cấu trúc trang 16KB với \textbf{24 Bytes Header} (PageId, LSN, Prev, Next, FreePtr, Count).
+*   \textbf{Hệ thống Slot}: Cho phép quản lý các bản ghi có độ dài thay đổi cực kỳ hiệu quả mà không làm phân mảnh đĩa.
+
+\subsection{Cấu trúc Chỉ mục (B+ Tree Indexing)}
+
+*   \textbf{Hiệu năng}: Tìm kiếm và truy xuất bản ghi với độ phức tạp $O(\log n)$.
+*   \textbf{Clustered Index}: Tích hợp dữ liệu trực tiếp vào các nút lá (Leaf Nodes) của cây B+ Tree để tối thiểu hóa số lần đọc đĩa.
+
+\subsection{Điều phối Truy cập Đồng thời (Latching & Pinning)}
+
+Hệ thống hỗ trợ đa người dùng thao tác cùng lúc thông qua cơ chế Page Latching:
+*   \textbf{Page Pinning}: Khi một Query cần dữ liệu, Bpm sẽ cung cấp một Frame trong RAM và tăng `PinCount`. Trang có `PinCount > 0` sẽ bị khóa vĩnh viễn trong RAM (Pinned), thuật toán LRU không thể loại bỏ nó cho tới khi được `Unpin`.
+*   \textbf{LRU Eviction}: Khi Cache đầy, các trang có `PinCount = 0` và ít được sử dụng nhất sẽ bị trục xuất (Evicted) sau khi đã được đẩy (Flush) xuống đĩa nếu là trang bẩn (Dirty).
+*   \textbf{Write-Ahead Logging (WAL)}: Mọi thay đổi dữ liệu đều được ghi nhật ký trước khi thực hiện trên RAM, đảm bảo khả năng phục hồi (Recovery) bất chấp mọi sự cố nguồn điện.
+
+\subsection{Bảo mật Dữ liệu (Encryption)}
+
+*   \textbf{AES-256}: Mã hóa toàn diện dữ liệu tĩnh (At-rest). Tệp dữ liệu thô trên đĩa hoàn toàn không thể đọc được nếu không có Master Key của hệ thống.
+
+---
+
+> [!IMPORTANT]
+> \textbf{Dữ liệu \& Tri thức}: Tầng lưu trữ tách biệt tệp dữ liệu thực thể (.dat) và tệp định nghĩa tri thức (.kbf) để tối ưu hóa quá trình nạp và truy vấn.
+
+\section{Đối soát Yêu cầu Kỹ thuật (Requirements Spec)}
+
+Tài liệu này tổng hợp toàn bộ các yêu cầu Chức năng (Functional) và Phi chức năng (Non-functional) dựa trên kiến trúc 4 tầng của KBMS.
+
+\subsection{Yêu cầu Chức năng (Functional Requirements)}
+
+Hệ thống cung cấp đầy đủ các nhóm chức năng từ mức ứng dụng đến mức lưu trữ:
+
+| Tầng Kiến trúc | Nhóm Chức năng | Hành động cụ thể |
+| :--- | :--- | :--- |
+| \textbf{Application} | Thiết kế \& Giám sát | IDE Monaco, Kéo thả đồ thị, Dashboad thông số, REPL nâng cao. |
+| \textbf{Network} | Kết nối \& Truyền dẫn | Handshake nhị phân, Heartbeat, Giải mã Streaming Result Set. |
+| \textbf{Server} | Xử lý \& Suy diễn | Biên dịch KBQL, Suy diễn F-Closure, Giải phương trình, RBAC. |
+| \textbf{Storage} | Lưu trữ \& Phục hồi | B+ Tree Search, WAL Recovery, Checkpoint, AES Encryption. |
+
+\subsection{Yêu cầu Phi chức năng (Non-functional Requirements)}
+
+Đảm bảo hệ thống đạt được các tiêu chuẩn kỹ thuật chuyên nghiệp:
+
+\subsubsection{Độ bền vững & Nhất quán (ACID Compliance)}
+*   \textbf{Atomicity}: Mọi thay đổi dữ liệu là nguyên tố thông qua nhật ký WAL.
+*   \textbf{Consistency}: Sau mọi lệnh KDL/KQL, tri thức phải ở trạng thái nhất quán về mặt logic.
+*   \textbf{Durability}: Dữ liệu đã cam kết (Commit) không bị mất mát sau sự cố.
+
+\subsubsection{Hiệu năng & Khả năng đáp ứng (Performance)}
+*   \textbf{Độ trễ}: Thời gian phản hồi trung bình < 10ms trên mạng LAN.
+*   \textbf{Tải}: Hỗ trợ đồng thời 256+ kết nối mà không làm giảm hiệu suất suy diễn.
+*   \textbf{Truy xuất}: Tìm kiếm bản ghi $O(\log n)$ trên đĩa cứng quy mô TB.
+
+\subsubsection{Bảo mật (Security)}
+*   \textbf{Xác thực}: Cơ chế LOGIN nhị phân với mật khẩu băm (Hashed).
+*   \textbf{Phân quyền}: RBAC đa tầng (Role-Based Access Control) đến từng Cơ sở tri thức.
+*   \textbf{Mã hóa}: AES-256 cho dữ liệu tĩnh trên đĩa cứng.
+
+\subsubsection{Khả năng Giám sát (Observability)}
+*   \textbf{Logging}: Tự động ghi nhật ký mọi hành vi (Audit) và lỗi hệ thống (System Log).
+*   \textbf{Real-time}: Stream log từ Server về Studio với độ trễ < 1s.
+*   \textbf{Queryable Logs}: Cho phép dùng KBQL để truy vấn ngược lại lịch sử vận hành.
+
+---
+
+> [!IMPORTANT]
+> Toàn bộ các yêu cầu trên được thiết kế để KBMS có thể vận hành như một hệ quản trị tri thức cấp doanh nghiệp ổn định và tin cậy.
+

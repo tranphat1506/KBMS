@@ -27,7 +27,7 @@ public List<AstNode> ParseAll() {
 
 KBMS sử dụng ngữ pháp **LL(k)**, cho phép Parser "nhìn trước" $k$ Token để quyết định nhánh thực thi mà không cần quay lui (Backtracking).
 
-![ast_tree_layout_v2.png](../assets/diagrams/ast_tree_layout_v2.png)
+![Cấu trúc cây phân tích cú pháp (AST) của KBQL](../assets/diagrams/ast_tree_layout_v2.png)
 *Hình: Ví dụ cấu trúc cây AST sau khi phân tích (dàn ngang)*
 
 *   **`Peek()`**: Xem Token hiện tại mà không tiêu thụ.

@@ -1,0 +1,26 @@
+sequenceDiagram
+    participant S as KBMS.Server
+    participant IE as InferenceEngine
+    participant MS as MathSolver
+    participant KC as KnowledgeCatalog
+
+    S->>IE: Gọi FindClosure(concept, initialFacts, targets)
+    IE->>KC: Resolve Hierarchy (IS-A) & Parts
+    KC-->>IE: Trả về Effective Concept (Đã làm phẳng)
+    
+    loop Lặp đến khi không có sự thật mới (Max 50)
+        IE->>IE: Propagation (SameVariables)
+        IE->>MS: Evaluate Formulas (ComputationRelations)
+        IE->>IE: Kiểm tra tập Luật (ConceptRules)
+        alt Nếu có luật thỏa mãn
+            IE->>IE: Thêm sự thật mới vào GT
+        end
+        IE->>MS: Giải phương trình (Equations/Constraints)
+        MS-->>IE: Trả về nghiệm (Newton-Raphson/Brent)
+        
+        alt Nếu đạt mục tiêu (Targets met)
+            IE->>IE: Break loop
+        end
+    end
+    
+    IE-->>S: Trả về ReasoningResult (DerivedFacts + Traces)

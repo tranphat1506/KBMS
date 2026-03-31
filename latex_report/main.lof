@@ -1,0 +1,31 @@
+\babel@toc {vietnamese}{}\relax 
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {3.1}{\ignorespaces Sơ đồ Use Case tổng quát sự tương tác giữa người dùng và các dịch vụ lõi.}}{9}{figure.3.1}%
+\contentsline {figure}{\numberline {3.2}{\ignorespaces Sơ đồ Sequence mô tả luồng sinh mệnh của một yêu cầu trong hệ thống.}}{9}{figure.3.2}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {4.1}{\ignorespaces Kiến trúc 4 tầng chuẩn hóa của hệ thống KBMS V3.}}{16}{figure.4.1}%
+\contentsline {figure}{\numberline {4.2}{\ignorespaces Luồng xử lý yêu cầu đi xuyên suốt 4 tầng kiến trúc.}}{17}{figure.4.2}%
+\contentsline {figure}{\numberline {4.3}{\ignorespaces Sơ đồ luồng bảo mật và chẩn đoán hệ thống song song.}}{17}{figure.4.3}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {7.1}{\ignorespaces Sơ đồ chiến lược luồng I/O đa tầng của KBMS.}}{34}{figure.7.1}%
+\contentsline {figure}{\numberline {7.2}{\ignorespaces Cơ chế ghi nhật ký trước (WAL) để đảm bảo tính bền vững ACID.}}{35}{figure.7.2}%
+\contentsline {figure}{\numberline {7.3}{\ignorespaces Sơ đồ cấu trúc đa tầng của cây B+ Tree trong việc quản lý Fact.}}{37}{figure.7.3}%
+\contentsline {figure}{\numberline {7.4}{\ignorespaces Cơ chế tách nút (Split) khi trang dữ liệu (Page) bị đầy (Overflow).}}{37}{figure.7.4}%
+\contentsline {figure}{\numberline {7.5}{\ignorespaces Giải phẫu cấu trúc trang nhị phân Slotted-Page của KBMS.}}{38}{figure.7.5}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {8.1}{\ignorespaces Sơ đồ điều phối giữa Engine suy diễn và các phân hệ ngoại vi.}}{43}{figure.8.1}%
+\contentsline {figure}{\numberline {8.2}{\ignorespaces So sánh chiến lược Suy diễn tiến (Forward) và Suy diễn lùi (Backward).}}{44}{figure.8.2}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {10.1}{\ignorespaces Mô hình xử lý bất đồng bộ (Asynchronous) sử dụng ThreadPool của .NET.}}{53}{figure.10.1}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {13.1}{\ignorespaces Luồng xử lý một yêu cầu tri thức xuyên suốt 4 tầng từ Studio UI.}}{67}{figure.13.1}%
+\contentsline {figure}{\numberline {13.2}{\ignorespaces Cơ chế Server Push cho các thông báo hệ thống thời gian thực.}}{68}{figure.13.2}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }

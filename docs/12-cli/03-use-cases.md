@@ -7,7 +7,7 @@ KBMS CLI là công cụ tối thượng cho các quản trị viên hệ thống
 *   **Mục tiêu**: Xem chi tiết định nghĩa của một Concept phức tạp với hàng chục biến.
 *   **Sơ đồ Hoạt động**:
 
-![uc_cli_vertical_mode.png](../assets/diagrams/uc_cli_vertical_mode.png)
+![Chế độ hiển thị dọc (Vertical Mode) trong CLI](../assets/diagrams/uc_cli_vertical_mode.png)
 
 *   **Quy trình chi tiết**:
     1.  **Gửi lệnh**: Người dùng gõ `DESCRIBE <ConceptName>;`.

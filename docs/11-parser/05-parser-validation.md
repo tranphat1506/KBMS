@@ -10,11 +10,11 @@ Tầng Parser được bảo vệ bởi **21,000+ kịch bản test** trong `Par
 *   **Negative Cases**: Kiểm tra khả năng từ chối các câu lệnh thiếu dấu chấm phẩy, sai kiểu dữ liệu hoặc sai tên Concept.
 
 ### Minh chứng Mã nguồn (Parser):
-![code_test_parser.png](../assets/diagrams/code_test_parser.png)
+![Minh chứng mã nguồn kiểm thử độ bao phủ của bộ phân tích](../assets/diagrams/code_test_parser.png)
 *Hình 11.1: Minh chứng mã nguồn kiểm thử độ bao phủ của bộ phân tích (Parser).*
 
 ### Minh chứng Kết quả (21k Tests):
-![result_test_parser.png](../assets/diagrams/result_test_parser.png)
+![Kết quả vượt qua toàn bộ 21000+ kịch bản kiểm thử cú pháp](../assets/diagrams/result_test_parser.png)
 *Hình 11.2: Kết quả vượt qua toàn bộ 21,000+ kịch bản kiểm thử cú pháp.*
 
 ## 2. Đặc tả Lỗi Cú pháp (Syntax Error Proof)
@@ -28,7 +28,7 @@ CREATE CONCEPT X ( VARIABLES ( id: INT );
 ```
 
 ### Minh chứng Lỗi (Studio Editor):
-![terminal_test_parser_nested.png](../assets/diagrams/terminal_test_parser_nested.png)
+![Chứng minh Parser xử lý thành công các biểu thức lồng nhau phức tạp](../assets/diagrams/terminal_test_parser_nested.png)
 *Hình 11.3: Chứng minh Parser xử lý thành công các biểu thức lồng nhau phức tạp.*
 
 ---

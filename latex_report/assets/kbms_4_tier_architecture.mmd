@@ -1,0 +1,34 @@
+graph TD
+    subgraph AL [Application Layer]
+        Studio[KBMS Studio IDE]
+        CLI[KBMS CLI Tool]
+    end
+
+    subgraph NL [Network Layer]
+        BP[Binary Protocol - TCP]
+        CM[Connection Manager]
+    end
+
+    subgraph SL [Server Layer]
+        KM[Knowledge Manager - Orchestrator]
+        RE[Reasoning Engine - F-Closure]
+        Parser[KBQL Parser/Compiler]
+        SysKB[System KB - Master]
+    end
+
+    subgraph ST [Storage Layer]
+        Bplus[B+ Tree Indexing]
+        WAL[Write-Ahead Logging]
+        SP[Slotted Page Management]
+        Enc[AES-256 Encryption]
+    end
+
+    AL <-->|Binary Packets| NL
+    NL <-->|Decoded Requests| SL
+    SL <-->|Page I/O| ST
+    ST <-->|Physical File| Disk[(Disk .dat/.kbf/.log)]
+
+    style AL fill:#e1f5fe,stroke:#01579b
+    style NL fill:#fff3e0,stroke:#e65100
+    style SL fill:#f3e5f5,stroke:#4a148c
+    style ST fill:#e8f5e9,stroke:#1b5e20

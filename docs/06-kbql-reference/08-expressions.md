@@ -24,6 +24,7 @@ Biểu thức là thành phần cốt lõi xuất hiện trong các mệnh đề
 
 KBMS tích hợp sẵn các hàm toán học sau đây để phục vụ tính toán tri thức:
 
+*Bảng 6.4: Danh mục Hàm tích hợp (Built-in Functions) trong KBQL*
 | Hàm | Giải thích | Ví dụ |
 | :--- | :--- | :--- |
 | `Abs(x)` | Giá trị tuyệt đối | `Abs(-10)` $\rightarrow$ 10 |

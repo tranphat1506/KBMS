@@ -7,7 +7,8 @@ KBMS Studio không chỉ là một trình soạn thảo, mà còn là một bộ
 *   **Mục tiêu**: Định nghĩa các Concept như `Diem`, `DoanThang`, `TamGiac` và các `Rule` tính toán diện tích.
 *   **Sơ đồ Hoạt động**:
 
-![uc_kdl_design_flow.png](../assets/diagrams/uc_kdl_design_flow.png)
+![Sơ đồ Hoạt động Thiết kế Bản đồ Tri thức KDL. | width=0.7](../assets/diagrams/uc_kdl_design_flow.png)
+*Hình 13.3: Luồng quy trình thiết kế và kiểm tra tri thức trong Studio.*
 
 *   **Quy trình chi tiết trong Studio**:
     1.  **Nhập liệu**: Người dùng sử dụng **Monaco Editor** với tính năng Auto-complete để gõ nhanh `CREATE CONCEPT`.
@@ -20,7 +21,8 @@ KBMS Studio không chỉ là một trình soạn thảo, mà còn là một bộ
 *   **Mục tiêu**: Tìm lời giải cho bài toán: "Cho tam giác ABC vuông tại A, tính BC khi biết AB, AC".
 *   **Sơ đồ Hoạt động**:
 
-![uc_reasoning_solve_flow.png](../assets/diagrams/uc_reasoning_solve_flow.png)
+![Sơ đồ Hoạt động Giải toán Tự động. | width=0.7](../assets/diagrams/uc_reasoning_solve_flow.png)
+*Hình 13.4: Quy trình các bước từ gửi yêu cầu đến truy vết suy diễn.*
 
 *   **Quy trình chi tiết trong Studio**:
     1.  **Gửi yêu cầu**: Nhập lệnh `SOLVE ON TamGiac GIVEN AB=3, AC=4 FIND BC;`.
@@ -33,7 +35,8 @@ KBMS Studio không chỉ là một trình soạn thảo, mà còn là một bộ
 *   **Mục tiêu**: Theo dõi hiệu năng và bảo trì dữ liệu khi hệ thống chứa hàng triệu đối tượng.
 *   **Sơ đồ Hoạt động**:
 
-![uc_system_maint_flow.png](../assets/diagrams/uc_system_maint_flow.png)
+![Sơ đồ Hoạt động Quản trị Hệ thống. | width=0.7](../assets/diagrams/uc_system_maint_flow.png)
+*Hình 13.5: Các bước thao tác nạp dữ liệu lớn và bảo trì B+ Tree.*
 
 *   **Quy trình chi tiết trong Studio**:
     1.  **Nạp dữ liệu**: Dùng giao diện Import để đẩy các tệp CSV chứa hàng triệu Objects thông qua lệnh **Bulk Insert**.
@@ -46,7 +49,8 @@ KBMS Studio không chỉ là một trình soạn thảo, mà còn là một bộ
 *   **Mục tiêu**: Admin kiểm soát các truy cập vào hệ thống và ngăn chặn các phiên làm việc đáng ngờ.
 *   **Sơ đồ Hoạt động**:
 
-![uc_security_session_mgt.png](../assets/diagrams/uc_security_session_mgt.png)
+![Sơ đồ Giám sát An ninh và Phiên làm việc. | width=0.7](../assets/diagrams/uc_security_session_mgt.png)
+*Hình 13.6: Quy trình phát hiện và ngắt kết nối các phiên làm việc bất thường.*
 
 *   **Quy trình chi tiết trong Studio**:
     1.  **Tra cứu**: Admin mở tab **Active Sessions** để xem danh sách IP và User đang kết nối.
@@ -59,7 +63,8 @@ KBMS Studio không chỉ là một trình soạn thảo, mà còn là một bộ
 *   **Mục tiêu**: Truy tìm nguyên nhân gốc rễ của các lỗi logic hoặc lỗi IO thấp cấp.
 *   **Sơ đồ Hoạt động**:
 
-![uc_deep_log_analysis.png](../assets/diagrams/uc_deep_log_analysis.png)
+![Sơ đồ Phân tích Nhật ký Chuyên sâu. | width=0.7](../assets/diagrams/uc_deep_log_analysis.png)
+*Hình 13.7: Luồng phân tích lỗi hệ thống thông qua Log Analyzer.*
 
 *   **Quy trình chi tiết trong Studio**:
     1.  **Lọc dữ liệu**: Sử dụng **Log Analyzer** để lọc các lỗi ở cấp độ `CRITICAL`.
