@@ -171,14 +171,9 @@ public class ConceptCatalog
 
     // ===================== SERIALIZATION =====================
 
-    private byte[] SerializeConcept(Concept concept)
-        => Encoding.UTF8.GetBytes(JsonSerializer.Serialize(concept));
+    private byte[] SerializeConcept(Concept concept) => ModelBinaryUtility.SerializeConcept(concept);
 
-    private Concept? DeserializeConcept(byte[] data)
-    {
-        try { return JsonSerializer.Deserialize<Concept>(Encoding.UTF8.GetString(data)); }
-        catch { return null; }
-    }
+    private Concept? DeserializeConcept(byte[] data) => ModelBinaryUtility.DeserializeConcept(data);
 
     // ===================== HELPERS =====================
 

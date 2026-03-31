@@ -105,6 +105,7 @@ public class Tuple
     // ================= TYPE HELPERS FOR INSERTION =================
 
     public void AddInt(int value) => Fields.Add(BitConverter.GetBytes(value));
+    public void AddLong(long value) => Fields.Add(BitConverter.GetBytes(value));
     public void AddBool(bool value) => Fields.Add(BitConverter.GetBytes(value));
     public void AddFloat(float value) => Fields.Add(BitConverter.GetBytes(value));
     public void AddGuid(Guid value) => Fields.Add(value.ToByteArray());
@@ -118,6 +119,7 @@ public class Tuple
     // ================= TYPE HELPERS FOR RETRIEVAL =================
 
     public int GetInt(int index) => BitConverter.ToInt32(Fields[index], 0);
+    public long GetLong(int index) => BitConverter.ToInt64(Fields[index], 0);
     public bool GetBool(int index) => BitConverter.ToBoolean(Fields[index], 0);
     public float GetFloat(int index) => BitConverter.ToSingle(Fields[index], 0);
     public Guid GetGuid(int index) => new Guid(Fields[index]);

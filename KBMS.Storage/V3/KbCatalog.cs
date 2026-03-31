@@ -213,14 +213,9 @@ public class KbCatalog
 
     // ===================== SERIALIZATION =====================
 
-    private byte[] SerializeKb(KnowledgeBase kb)
-        => Encoding.UTF8.GetBytes(JsonSerializer.Serialize(kb));
+    private byte[] SerializeKb(KnowledgeBase kb) => ModelBinaryUtility.SerializeKb(kb);
 
-    private KnowledgeBase? DeserializeKb(byte[] data)
-    {
-        try { return JsonSerializer.Deserialize<KnowledgeBase>(Encoding.UTF8.GetString(data)); }
-        catch { return null; }
-    }
+    private KnowledgeBase? DeserializeKb(byte[] data) => ModelBinaryUtility.DeserializeKb(data);
 
     // ===================== PERSISTENCE =====================
 
