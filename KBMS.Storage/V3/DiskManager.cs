@@ -116,7 +116,12 @@ public class DiskManager : IDisposable
 
     public void Dispose()
     {
-        _dbFile?.Flush();
-        _dbFile?.Dispose();
+        if (_dbFile != null)
+        {
+            try { _dbFile.Flush(true); } catch {}
+            try { _dbFile.Close(); } catch {}
+            try { _dbFile.Dispose(); } catch {}
+            _dbFile = null;
+        }
     }
 }

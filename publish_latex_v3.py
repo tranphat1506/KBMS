@@ -10,21 +10,53 @@ OUTPUT_TEX = os.path.join(LATEX_DIR, 'report_final.tex')
 
 # --- Chapter Vietnamese Mapping ---
 CHAPTER_NAMES = {
-    '01-introduction': 'Giới thiệu và Đặt vấn đề', 
-    '02-theory': 'Cơ sở Lý thuyết COKB', 
-    '03-analysis-and-design': 'Phân tích và Thiết kế Hệ thống', 
-    '04-architecture': 'Kiến trúc Hệ thống và các Tầng xử lý',
-    '05-models': 'Định nghĩa Mô hình và Khái niệm', 
-    '06-kbql-reference': 'Ngôn ngữ Truy vấn Tri thức KBQL',
-    '07-storage': 'Cơ chế Lưu trữ và Quản lý Dữ liệu nhị phân', 
-    '08-reasoning': 'Bộ máy Suy diễn và Thuật toán Bao đóng',
-    '09-network': 'Giao thức Mạng và Truyền tải Dữ liệu', 
-    '10-server': 'Hệ thống Máy chủ và Quản trị Tài nguyên',
-    '11-parser': 'Bộ Phân tích Cú pháp và Trình biên dịch', 
-    '12-cli': 'Giao diện Dòng lệnh (CLI)',
-    '13-kbms-studio': 'Môi trường Phát triển KBMS Studio', 
-    '14-installation-and-testing': 'Cài đặt, Kiểm thử và Đánh giá Hiệu năng',
-    '15-references': 'Tài liệu Tham khảo'
+    '01-introduction': 'GIỚI THIỆU VÀ ĐẶT VẤN ĐỀ', 
+    '02-theory': 'CƠ SỞ LÝ THUYẾT COKB', 
+    '03-analysis-and-design': 'PHÂN TÍCH VÀ THIẾT KẾ HỆ THỐNG', 
+    '04-architecture': 'KIẾN TRÚC HỆ THỐNG VÀ CÁC TẦNG XỬ LÝ',
+    '05-models': 'ĐỊNH NGHĨA MÔ HÌNH VÀ KHÁI NIỆM', 
+    '06-kbql-reference': 'NGÔN NGỮ TRUY VẤN TRI THỨC KBQL',
+    '07-storage': 'CƠ CHẾ LƯU TRỮ VÀ QUẢN LÝ DỮ LIỆU NHỊ PHÂN', 
+    '08-reasoning': 'BỘ MÁY SUY DIỄN VÀ THUẬT TOÁN BAO ĐÓNG',
+    '09-network': 'GIAO THỨC MẠNG VÀ TRUYỀN TẢI DỮ LIỆU', 
+    '10-server': 'HỆ THỐNG MÁY CHỦ VÀ QUẢN TRỊ TÀI NGUYÊN',
+    '11-parser': 'BỘ PHÂN TÍCH CÚ PHÁP VÀ TRÌNH BIÊN DỊCH', 
+    '12-cli': 'GIAO DIỆN DÒNG LỆNH (CLI)',
+    '13-kbms-studio': 'MÔI TRƯỜNG PHÁT TRIỂN KBMS STUDIO', 
+    '14-installation-and-testing': 'CÀI ĐẶT, KIỂM THỬ VÀ ĐÁNH GIÁ HIỆU NĂNG',
+    '15-references': 'TÀI LIỆU THAM KHẢO'
+}
+
+GLOSSARY_MAP = {} # slug -> ID
+
+def slugify(s):
+    s = s.lower().strip()
+    s = re.sub(r'[^\w\s-]', '', s)
+    s = re.sub(r'[-\s]+', '-', s)
+    return s
+
+# Pre-parse glossary to build the map
+glossary_path = os.path.join(DOCS_DIR, '00-glossary', '01-glossary.md')
+if os.path.exists(glossary_path):
+    with open(glossary_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            if '|' in line and '[' in line and ']' in line:
+                parts = [p.strip() for p in line.split('|')]
+                if len(parts) >= 3:
+                    gid = parts[1].strip(' *[]')
+                    term = parts[2].strip(' *[]')
+                    if gid and term:
+                        GLOSSARY_MAP[slugify(term)] = gid
+
+CITATION_MAP = {
+    '[1]': 'DoVanNhon1',
+    '[2]': 'HIUJS_Article',
+    '[3]': 'Dvn_Somet',
+    '[4]': 'Dvn_Ijcsi',
+    '[5]': 'DatabaseSystems',
+    '[6]': 'RussellNorvig',
+    '[7]': 'Musen_Protege',
+    '[8]': 'PrologBook'
 }
 
 def escape_latex(text):
@@ -38,18 +70,39 @@ def escape_latex(text):
     return regex.sub(lambda mo: mapping[mo.group()], text)
 
 def process_inline_formatting(text):
+    # Bold: **text**
     text = re.sub(r'\*\*(.*?)\*\*', r'\\textbf{\1}', text)
     text = re.sub(r'\*(.*?)\*', r'\\textit{\1}', text)
-    text = re.sub(r'\[(.*?)\]\((.*?)\)', r'\\href{\2}{\1}', text)
+    
+    def link_repl(m):
+        label, url = m.groups()
+        if url.startswith('http'):
+            return f'\\href{{{url}}}{{\\url{{{url}}}}}'
+        if '01-glossary.md' in url:
+            anchor = url.split('#')[-1] if '#' in url else slugify(label)
+            gid = GLOSSARY_MAP.get(anchor, '')
+            if gid:
+                # Use glos: prefix to match the hypertarget in the glossary table
+                return f'\\texorpdfstring{{{label}~[\\protect\\hyperlink{{glos:{anchor}}}{{{gid}}}]}}{{{label} [{gid}]}}'
+            return f'\\protect\\hyperlink{{glos:{anchor}}}{{{label}}}'
+        return f'\\href{{{url}}}{{{label}}}'
+    
+    text = re.sub(r'\[([^\]]+)\]\(([^\)]+)\)', link_repl, text)
+    
+    # Citations: [1], [2], ... [8] -> \cite{key}
+    for marker, key in CITATION_MAP.items():
+        text = text.replace(marker, f'\\cite{{{key}}}')
+
+    # Also handle straight quotes
+    text = text.replace('"', "''")
     text = text.replace('‘', "'").replace('’', "'").replace('“', "``").replace('”', "''")
     return text
 
-def md_block_to_latex(block, af_id, at_id):
+def md_block_to_latex(block, af_id, at_id, prev_block=''):
     block = block.strip()
     if not block: return "", af_id, at_id
 
     # 1. Skip non-content blocks
-    if block.startswith('> [!') or block.startswith('[!') or (block.startswith('> ') and '[!' in block): return "", af_id, at_id
     if block == '![' or block == '---': return "", af_id, at_id
 
     # 1b. Split mixed blocks (text followed by bullet list)
@@ -109,6 +162,9 @@ def md_block_to_latex(block, af_id, at_id):
     # 3. Tables (Strict capture)
     if '|' in block and '-' in block and '\n' in block:
         cap_match = re.search(r'[\*_]*Bảng\s+([\d\.]+):?\s*(.*?)(?:[\*_]*\n|$|\*)', block, re.IGNORECASE)
+        if not cap_match and prev_block:
+            # Fall back: caption may be in the immediately preceding block (separated by blank line)
+            cap_match = re.search(r'[\*_]*Bảng\s+([\d\.]+):?\s*(.*?)(?:[\*_]*\n|$|\*)', prev_block, re.IGNORECASE)
 
         raw_caption = cap_match.group(2).strip() if cap_match else f"Bảng {at_id}"
         caption = process_inline_formatting(escape_latex(raw_caption))
@@ -118,19 +174,53 @@ def md_block_to_latex(block, af_id, at_id):
         if len(lines) >= 3:
             hdr_line = [h.strip() for h in lines[0].strip('|').split('|')]
             cols = len(hdr_line)
-            # Use tabularx for auto-width: first col is l, rest are X
-            if cols <= 2:
-                col_spec = '|l|X|'
+            # Use longtable for tables that might span multiple pages (like the glossary)
+            is_glossary = "Tham chiếu" in hdr_line or "Thuật ngữ" in hdr_line
+            
+            if is_glossary:
+                col_spec = 'p{2cm} p{3.5cm} X'
+                tbl = '\\begin{small}\n\\begin{xltabular}{\\textwidth}{|%s|}\n  \\hline\n' % col_spec.replace(' ', '|')
+                tbl += ' \\textbf{' + '} & \\textbf{'.join([process_inline_formatting(escape_latex(h)) for h in hdr_line]) + '} \\\\ \\hline\n'
+                tbl += ' \\endfirsthead\n'
+                tbl += ' \\hline \\multicolumn{%d}{|c|}{\\textit{Tiếp theo trang trước}} \\\\ \\hline\n' % cols
+                tbl += ' \\textbf{' + '} & \\textbf{'.join([process_inline_formatting(escape_latex(h)) for h in hdr_line]) + '} \\\\ \\hline\n'
+                tbl += ' \\endhead\n'
+                tbl += ' \\hline \\multicolumn{%d}{|r|}{\\textit{Xem tiếp trang sau}} \\\\ \\hline\n' % cols
+                tbl += ' \\endfoot\n'
+                tbl += ' \\hline\n'
+                tbl += ' \\endlastfoot\n'
             else:
-                col_spec = '|l|' + 'X|' * (cols - 1)
-            tbl = '\\begin{table}[H]\n  \\centering\n  \\begin{tabularx}{\\textwidth}{%s}\n  \\hline\n' % col_spec
-            tbl += ' & '.join([process_inline_formatting(escape_latex(h)) for h in hdr_line]) + ' \\\\ \\hline\n'
+                if cols <= 3:
+                    col_spec = '|l|' + 'X|' * (cols - 1)
+                else:
+                    col_spec = '|c|' + 'X|' * (cols - 1)
+                tbl = '\\begin{table}[H]\n  \\centering\\fontsize{11pt}{13pt}\\selectfont\n  \\begin{tabularx}{\\textwidth}{%s}\n  \\hline\n' % col_spec
+                tbl += ' & '.join([process_inline_formatting(escape_latex(h)) for h in hdr_line]) + ' \\\\ \\hline\n'
+
             for l in lines[2:]:
                 if re.search(r'[\*_]*Bảng\s*[\d\.]*', l, re.IGNORECASE): continue
                 cells = [c.strip() for c in l.strip('|').split('|')]
                 if len(cells) < cols: cells += [''] * (cols - len(cells))
-                tbl += ' & '.join([process_inline_formatting(escape_latex(c[:200])) for c in cells[:cols]]) + ' \\\\ \\hline\n'
-            tbl += '  \\end{tabularx}\n  \\caption{%s}\\label{tbl:%s}\n\\end{table}\n\n' % (caption, tid)
+                
+                processed_cells = []
+                for i, c in enumerate(cells[:cols]):
+                    esc_c = escape_latex(c.strip())
+                    if i == 1 and is_glossary: # Term column
+                        slug = slugify(c.strip(' *[]'))
+                        # Add a prefix to glossary targets to avoid collision with section labels
+                        processed_cells.append('\\hypertarget{glos:%s}{%s}' % (slug, process_inline_formatting(esc_c)))
+                    else:
+                        processed_cells.append(process_inline_formatting(esc_c))
+
+                tbl += ' & '.join(processed_cells) + ' \\\\ \\hline\n'
+            
+            if is_glossary:
+                tbl += '  \\end{xltabular}\n\\end{small}\n\n'
+            else:
+                caption_str = '\\caption{' + caption + '}\\label{tbl:' + tid + '}'
+                tbl = tbl.replace('\\begin{table}[H]\n  \\centering\\fontsize{11pt}{13pt}\\selectfont', 
+                                  '\\begin{table}[H]\n  \\centering\\fontsize{11pt}{13pt}\\selectfont\n  ' + caption_str)
+                tbl += '  \\end{tabularx}\n\\end{table}\n\n'
             return tbl, af_id, at_id + 1
 
 
@@ -168,13 +258,30 @@ def md_block_to_latex(block, af_id, at_id):
             m = re.match(r'^\s*(?:\*(?!\*)|\d+\.|\-|•)\s+(.*)', line)
             if m:
                 env = 'enumerate' if re.match(r'^\s*\d+\.', line) else 'itemize'
-                if not stack or indent > stack[-1][0] or env != stack[-1][1]:
-                    res += '\\begin{%s}\n' % env
+                if not stack or indent > stack[-1][0]:
+                    if env == 'enumerate' and any(s[1] == 'enumerate' and s[0] == indent for s in stack[:-1]):
+                        res += '\\begin{enumerate}[resume]\n'
+                    else:
+                        res += '\\begin{%s}\n' % env
                     stack.append((indent, env))
                 elif indent < stack[-1][0]:
                     while stack and indent < stack[-1][0]:
                         res += '\\end{%s}\n' % stack[-1][1]
                         stack.pop()
+                    if stack and stack[-1][0] == indent and stack[-1][1] != env:
+                        res += '\\end{%s}\n' % stack[-1][1]
+                        if env == 'enumerate':
+                            res += '\\begin{enumerate}[resume]\n'
+                        else:
+                            res += '\\begin{itemize}\n'
+                        stack[-1] = (indent, env)
+                elif stack[-1][1] != env:
+                    res += '\\end{%s}\n' % stack[-1][1]
+                    if env == 'enumerate':
+                        res += '\\begin{enumerate}[resume]\n'
+                    else:
+                        res += '\\begin{itemize}\n'
+                    stack[-1] = (indent, env)
                 res += '  \\item %s\n' % process_inline_formatting(escape_latex(m.group(1).strip()))
             else:
                 res += '    %s\n' % process_inline_formatting(escape_latex(line.strip()))
@@ -182,6 +289,13 @@ def md_block_to_latex(block, af_id, at_id):
             res += '\\end{%s}\n' % stack[-1][1]
             stack.pop()
         return res + "\n\n", af_id, at_id
+
+    # 5b. Blockquotes
+    if block.startswith('>'):
+        lines = [l.lstrip('> ').strip() for l in block.split('\n')]
+        content = "\\par\n".join([process_inline_formatting(escape_latex(l)) for l in lines if l])
+        res = "\\begin{quote}\\itshape\\small\n%s\n\\end{quote}\n\n" % content
+        return res, af_id, at_id
 
     # 6. Default Paragraph
     lines = block.split('\n')
@@ -195,7 +309,8 @@ def main():
     
     # Discovery
     all_refs = []
-    folders = sorted([f for f in os.listdir(DOCS_DIR) if re.match(r'^\d{2}-', f)])
+    # Skip glossary and and manual references folder (now handled via BibTeX)
+    folders = sorted([f for f in os.listdir(DOCS_DIR) if re.match(r'^\d{2}-', f) and f not in ['00-glossary', '15-references']])
     for folder in folders:
         fp = os.path.join(DOCS_DIR, folder)
         for f in os.listdir(fp):
@@ -213,7 +328,7 @@ def main():
     report_content = []
     af_id, at_id = 1, 1
     for folder in folders:
-        chapter_title = CHAPTER_NAMES.get(folder, folder.split("-")[-1].replace("_", " ").title())
+        chapter_title = CHAPTER_NAMES.get(folder, folder.split("-")[-1].replace("_", " ").upper())
         report_content.append('\\chapter{%s}\n' % chapter_title)
         folder_path = os.path.join(DOCS_DIR, folder)
         files = sorted([f for f in os.listdir(folder_path) if f.endswith('.md')])
@@ -240,65 +355,143 @@ def main():
 
                 blocks = md_text.split('\n\n')
 
+                prev_b = ''
                 for b in blocks:
-                    tex_b, af_id, at_id = md_block_to_latex(b, af_id, at_id)
+                    tex_b, af_id, at_id = md_block_to_latex(b, af_id, at_id, prev_block=prev_b)
                     # Restoration
                     for i, m in enumerate(math_blocks):
                         ph = "PHMATHX%dX" % i
-                        if m.startswith('$$'): tex_b = tex_b.replace(ph, '\\begin{equation}\n%s\n\\end{equation}' % m.strip('$'))
-                        else: tex_b = tex_b.replace(ph, m)
+                        if m.startswith('$$'): 
+                            content = m.strip('$').strip()
+                            tex_b = tex_b.replace(ph, '\\begin{equation}\n%s\n\\end{equation}' % content)
+                        else: 
+                            tex_b = tex_b.replace(ph, m)
                     for i, c in enumerate(code_blocks):
-                        tex_b = tex_b.replace("PHCODEX%dX" % i, '\\begin{verbatim}\n%s\n\\end{verbatim}' % c)
+                        tex_b = tex_b.replace("PHCODEX%dX" % i, '\\begin{lstlisting}\n%s\n\\end{lstlisting}' % c.strip())
                     report_content.append(tex_b)
+                    prev_b = b  # track previous block for caption fallback
         report_content.append('\\clearpage\n')
+
+    # --- Special: Glossary Synthesis (Unnumbered, in Front Matter) ---
+    glossary_content = []
+    glossary_path = os.path.join(DOCS_DIR, '00-glossary', '01-glossary.md')
+    if os.path.exists(glossary_path):
+        glossary_content.append('\\chapter*{THUẬT NGỮ VÀ TỪ VIẾT TẮT}\n')
+        glossary_content.append('\\addcontentsline{toc}{chapter}{THUẬT NGỮ VÀ TỪ VIẾT TẮT}\n')
+        with open(glossary_path, 'r', encoding='utf-8') as f_in:
+            md_text = f_in.read()
+            blocks = md_text.split('\n\n')
+            for b in blocks:
+                if b.startswith('# '): continue
+                tex_b, af_id, at_id = md_block_to_latex(b, af_id, at_id)
+                glossary_content.append(tex_b)
+        glossary_content.append('\\clearpage\n')
 
     main_tex = r'''\documentclass[13pt,a4paper,oneside]{extreport}
 \usepackage{fontspec}
 \usepackage[vietnamese]{babel}
-\usepackage{graphicx}
 \usepackage{amsmath}
-\usepackage{hyperref}
-\usepackage{geometry}
-\usepackage{titlesec}
-\usepackage{cite}
-\usepackage[most]{tcolorbox}
-\usepackage{booktabs}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{enumitem}
 \usepackage{tabularx}
-\usepackage{xcolor}
-\usepackage{indentfirst}
+\usepackage{geometry}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{xltabular}
+\usepackage{caption}
+\usepackage{setspace}
 \usepackage{float}
+\usepackage{titlesec}
+\usepackage[table]{xcolor}
+\usepackage{listings}
 
+\definecolor{mydarkblue}{RGB}{0, 51, 102}
+\definecolor{myred}{RGB}{204, 0, 0}
+
+\usepackage[colorlinks=true, linkcolor=black, citecolor=black, urlcolor=mydarkblue]{hyperref}
+\usepackage{url}
+\usepackage[titles]{tocloft}
+
+% Compact TOC / LOF / LOT: remove extra vertical space between entries
+\setlength{\cftbeforechapskip}{0pt}
+\setlength{\cftbeforesecskip}{0pt}
+\setlength{\cftbeforesubsecskip}{0pt}
+\setlength{\cftbeforesubsubsecskip}{0pt}
+\setlength{\cftbeforefigskip}{0pt}
+\setlength{\cftbeforetabskip}{0pt}
+\renewcommand{\cftchapleader}{\cftdotfill{\cftdotsep}}
+% Show "CHƯƠNG X" prefix in TOC chapter entries
+\renewcommand{\cftchappresnum}{CHƯƠNG }
+\renewcommand{\cftchapaftersnum}{: }
+\setlength{\cftchapnumwidth}{6.5em}
+\setlength{\cftsecindent}{1.5em}
+\setlength{\cftsecnumwidth}{2.3em}
+\setlength{\cftsubsecindent}{3.8em}
+\setlength{\cftsubsecnumwidth}{3.2em}
+\setlength{\cftbeforetoctitleskip}{0pt}
+\setlength{\cftaftertoctitleskip}{1em}
+\setlength{\cftbeforeloftitleskip}{0pt}
+\setlength{\cftafterloftitleskip}{1em}
+\setlength{\cftbeforelottitleskip}{0pt}
+\setlength{\cftafterlottitleskip}{1em} 
+
+% Listings configuration for code blocks
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  backgroundcolor=\color{gray!5},
+  showstringspaces=false,
+  commentstyle=\color{green!40!black},
+  keywordstyle=\color{blue},
+  stringstyle=\color{red!60!black},
+  columns=fullflexible,
+  keepspaces=true,
+  extendedchars=true,
+  literate={á}{á}1 {à}{à}1 {ả}{ả}1 {ã}{ã}1 {ạ}{ạ}1 {ă}{ă}1 {ắ}{ắ}1 {ằ}{ằ}1 {ẳ}{ẳ}1 {ẵ}{ẵ}1 {ặ}{ặ}1 {â}{â}1 {ấ}{ấ}1 {ầ}{ầ}1 {ẩ}{ẩ}1 {ẫ}{ẫ}1 {ậ}{ậ}1 {đ}{đ}1 {é}{é}1 {è}{è}1 {ẻ}{ẻ}1 {ẽ}{ẽ}1 {ẹ}{ẹ}1 {ê}{ê}1 {ế}{ế}1 {ề}{ề}1 {ể}{ể}1 {ễ}{ễ}1 {ệ}{ệ}1 {í}{í}1 {ì}{ì}1 {ỉ}{ỉ}1 {ĩ}{ĩ}1 {ị}{ị}1 {ó}{ó}1 {ò}{ò}1 {ỏ}{ỏ}1 {õ}{õ}1 {ọ}{ọ}1 {ô}{ô}1 {ố}{ố}1 {ồ}{ồ}1 {ổ}{ổ}1 {ỗ}{ỗ}1 {ộ}{ộ}1 {ơ}{ơ}1 {ớ}{ớ}1 {ờ}{ờ}1 {ở}{ở}1 {ỡ}{ỡ}1 {ợ}{ợ}1 {ú}{ú}1 {ù}{ù}1 {ủ}{ủ}1 {ũ}{ũ}1 {ụ}{ụ}1 {ư}{ư}1 {ứ}{ứ}1 {ừ}{ừ}1 {ử}{ử}1 {ữ}{ữ}1 {ự}{ự}1 {ý}{ý}1 {ỳ}{ỳ}1 {ỷ}{ỷ}1 {ỹ}{ỹ}1 {ỵ}{ỵ}1 {Á}{Á}1 {À}{À}1 {Ả}{Ả}1 {Ã}{Ã}1 {Ạ}{Ạ}1 {Ă}{Ă}1 {Ắ}{Ắ}1 {Ằ}{Ằ}1 {Ẳ}{Ẳ}1 {Ẵ}{Ẵ}1 {Ặ}{Ặ}1 {Â}{Â}1 {Ấ}{Ấ}1 {Ầ}{Ầ}1 {Ẩ}{Ẩ}1 {Ẫ}{Ẫ}1 {Ậ}{Ậ}1 {Đ}{Đ}1 {É}{É}1 {È}{È}1 {Ẻ}{Ẻ}1 {Ẽ}{Ẽ}1 {Ẹ}{Ẹ}1 {Ê}{Ê}1 {Ế}{Ế}1 {Ề}{Ề}1 {ể}{ể}1 {ễ}{ễ}1 {ệ}{ệ}1 {Í}{Í}1 {Ì}{Ì}1 {Ỉ}{Ỉ}1 {Ĩ}{Ĩ}1 {Ị}{Ị}1 {Ó}{Ó}1 {Ò}{Ò}1 {Ỏ}{Ỏ}1 {Õ}{Õ}1 {Ọ}{Ọ}1 {Ô}{Ô}1 {Ố}{Ố}1 {Ồ}{Ồ}1 {Ổ}{Ổ}1 {Ỗ}{Ỗ}1 {Ộ}{Ộ}1 {Ơ}{Ơ}1 {Ớ}{Ớ}1 {Ờ}{Ờ}1 {Ở}{Ở}1 {Ỡ}{Ỡ}1 {Ợ}{Ợ}1 {Ú}{Ú}1 {Ù}{Ù}1 {Ủ}{Ủ}1 {Ũ}{Ũ}1 {Ụ}{Ụ}1 {Ư}{Ư}1 {Ứ}{Ứ}1 {Ừ}{Ừ}1 {Ử}{Ử}1 {Ữ}{Ữ}1 {Ự}{Ự}1 {Ý}{Ý}1 {Ỳ}{Ỳ}1 {Ỷ}{Ỷ}1 {Ỹ}{Ỹ}1 {Ỵ}{Ỵ}1
+}
+
+\captionsetup[table]{position=above, skip=10pt, justification=centering, font=bf}
+\captionsetup[figure]{position=below, skip=10pt, justification=centering, font=bf}
+\setstretch{1.2} % Better line spacing for entire document
+
+% Font configuration
 \setmainfont{Times New Roman}
-\geometry{left=1.2in, right=0.8in, top=0.8in, bottom=0.8in}
-\setlength{\parindent}{2.5em}
+\setmonofont{Courier New}
 
-\definecolor{mydarkblue}{rgb}{0,0,0.5}
+
+
+\geometry{left=1.2in, right=0.8in, top=0.8in, bottom=0.8in}
+\setlength{\parindent}{2em}
 
 % Center-align and rename non-numbered sections (TOC, LOF, LOT, Bib)
 \AtBeginDocument{
   \renewcommand{\contentsname}{MỤC LỤC}
   \renewcommand{\listfigurename}{DANH MỤC HÌNH ẢNH}
+  \renewcommand{\listfigurename}{DANH MỤC HÌNH ẢNH}
   \renewcommand{\listtablename}{DANH MỤC BẢNG}
   \renewcommand{\bibname}{TÀI LIỆU THAM KHẢO}
+  \setlength{\headheight}{15pt}
 }
 
 \titleformat{\section}
   {\normalfont\fontsize{14pt}{17pt}\selectfont\bfseries\color{mydarkblue}}{\thesection}{1em}{}
 \titleformat{\subsection}
-  {\normalfont\fontsize{13pt}{16pt}\selectfont\bfseries\color{mydarkblue}}{\thesubsection}{1em}{}
+  {\normalfont\fontsize{14pt}{17pt}\selectfont\bfseries\color{mydarkblue}}{\thesubsection}{1em}{}
 \titleformat{\subsubsection}
-  {\normalfont\fontsize{13pt}{16pt}\selectfont\bfseries\color{black}}{\hspace{2em}\thesubsubsection}{1em}{}
+  {\normalfont\fontsize{13pt}{16pt}\selectfont\bfseries\color{black}}{\thesubsubsection}{1em}{}
 
-% Numbered Chapters: "CHƯƠNG X: TITLE" (Same line, Left-aligned, Red, UPPERCASE)
+% Numbered Chapters: "CHƯƠNG X: TITLE" (Same line, Centered, Red)
 \titleformat{\chapter}[block]
-  {\normalfont\huge\bfseries\raggedright\color{red}\MakeUppercase}
+  {\normalfont\huge\bfseries\filcenter\color{red}}
   {CHƯƠNG \thechapter: }
   {0.5em}
   {}
 
-% Unnumbered Chapters (TOC, LOF, LOT, Bib): "TITLE" (Centered, Red, UPPERCASE)
+% Unnumbered Chapters (TOC, LOF, LOT, Bib): "TITLE" (Centered, Red, UPPERCASE style)
 \titleformat{name=\chapter,numberless}[block]
-  {\normalfont\huge\bfseries\filcenter\color{red}\MakeUppercase}
+  {\normalfont\huge\bfseries\filcenter\color{red}}
   {}
   {0pt}
   {}
@@ -333,12 +526,64 @@ def main():
     \vfill
     {\large TP. Hồ Chí Minh, 2026\par}
 \end{titlepage}
+
+% --- LỜI CẢM ƠN ---
+\chapter*{LỜI CẢM ƠN}
+\addcontentsline{toc}{chapter}{LỜI CẢM ƠN}
+\thispagestyle{plain}
+
+Trước tiên, với lòng biết ơn sâu sắc và chân thành nhất, em xin gửi lời cảm ơn đến quý Thầy Cô và Nhà trường Đại học Quốc tế Hồng Bàng đã tạo điều kiện thuận lợi, hỗ trợ em trong suốt quá trình học tập và nghiên cứu đề tài này.
+
+\noindent Trong khoảng thời gian học tập tại trường, em đã nhận được sự quan tâm, chỉ dạy tận tình từ quý Thầy Cô cùng sự động viên và giúp đỡ nhiệt thành của bạn bè. Nhờ đó, em có thêm kiến thức và động lực để hoàn thành đề tài một cách tốt nhất.
+
+\noindent Hơn hết, em xin bày tỏ lòng biết ơn chân thành đến \textbf{Gs. Đỗ Văn Nhơn} và \textbf{Ths. Mai Trung Thành} -- những người đã trực tiếp hướng dẫn, định hướng và hỗ trợ em trong suốt quá trình thực hiện đề tài. Những lời chỉ dạy và kiến thức quý báu của Thầy đã giúp em không ngừng hoàn thiện bản thân và nâng cao chất lượng nghiên cứu.
+
+\noindent Tuy vậy, đề tài được thực hiện trong khoảng thời gian có giới hạn. Không tránh khỏi những thiếu sót, em rất mong nhận được những ý kiến đóng góp quý báu từ quý Thầy Cô để nghiên cứu được hoàn thiện hơn trong tương lai.
+
+\noindent Em xin chân thành cảm ơn!
+
+\vspace{2cm}
+\begin{flushright}
+    \textit{TP. Hồ Chí Minh, ngày 1 tháng 4 năm 2026}\\[0.5cm]
+    \textit{Người thực hiện}\\[1.5cm]
+    \textbf{LÊ CHÂU TRẦN PHÁT}
+\end{flushright}
+\clearpage
+
+% --- TRANG CAM KẾT ---
+\chapter*{TRANG CAM KẾT}
+\addcontentsline{toc}{chapter}{TRANG CAM KẾT}
+\thispagestyle{plain}
+
+Em xin cam kết rằng báo cáo khóa luận tốt nghiệp này được hoàn thành dựa trên kết quả nghiên cứu của bản thân em, dưới sự hướng dẫn của quý Thầy Cô.
+
+\noindent Các kết quả trình bày trong báo cáo là trung thực và chưa được công bố trong bất kỳ công trình nào khác ở cùng cấp.
+
+\noindent Các tài liệu tham khảo, trích dẫn và số liệu sử dụng trong báo cáo đều được ghi chú rõ ràng, đầy đủ và trung thực theo đúng quy định.
+
+\vspace{3cm}
+\begin{flushright}
+    \textit{TP. Hồ Chí Minh, ngày 1 tháng 4 năm 2026}\\[0.5cm]
+    \textit{Sinh viên thực hiện}\\[1.5cm]
+    \textbf{LÊ CHÂU TRẦN PHÁT}
+\end{flushright}
+\clearpage
+
 \tableofcontents
+\addcontentsline{toc}{chapter}{MỤC LỤC}
+\clearpage
 \listoffigures
+\addcontentsline{toc}{chapter}{DANH MỤC HÌNH ẢNH}
+\clearpage
 \listoftables
+\addcontentsline{toc}{chapter}{DANH MỤC BẢNG}
+\clearpage
 '''
+    main_tex += "".join(glossary_content)
     main_tex += "\n".join(report_content)
     main_tex += r'''
+\clearpage
+\addcontentsline{toc}{chapter}{TÀI LIỆU THAM KHẢO}
 \bibliographystyle{IEEEtran}
 \bibliography{references}
 \end{document}

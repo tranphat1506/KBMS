@@ -739,7 +739,7 @@ public class KnowledgeManager
         return ast.ToString();
     }
 
-    private void ApplyForwardChaining(string kbName, string conceptName, Dictionary<string, object> values)
+    private KBMS.Reasoning.InferenceEngine.ReasoningResult ApplyForwardChaining(string kbName, string conceptName, Dictionary<string, object> values)
     {
         try
         {
@@ -751,7 +751,7 @@ public class KnowledgeManager
             
             if (concept == null) {
                 System.IO.File.AppendAllText(logPath, $"[DIAGNOSTIC] Concept {conceptName} not found via resolver\n");
-                return;
+                return new KBMS.Reasoning.InferenceEngine.ReasoningResult { Success = false, ErrorMessage = "Concept not found" };
             }
 
             System.IO.File.AppendAllText(logPath, $"[DIAGNOSTIC] Engine for {conceptName} has {concept.ConceptRules.Count} rules attached\n");
@@ -765,10 +765,13 @@ public class KnowledgeManager
                     values[fact.Key] = fact.Value;
                 }
             }
+            return result;
         }
         catch (Exception ex)
         {
-            System.IO.File.AppendAllText("/tmp/kbms_diag.log", $"[DIAGNOSTIC] Forward chaining error: {ex.Message}\n");
+            var errMsg = $"Forward chaining error: {ex.Message}";
+            System.IO.File.AppendAllText("/tmp/kbms_diag.log", $"[DIAGNOSTIC] {errMsg}\n");
+            return new KBMS.Reasoning.InferenceEngine.ReasoningResult { Success = false, ErrorMessage = errMsg };
         }
     }
 
@@ -1029,8 +1032,8 @@ public class KnowledgeManager
             {
                 if (_v3Router != null)
                 {
-                    // ✅ V3 Route: stream from binary SlottedPages
-                    objects = _v3Router.SelectObjects(kbName, entityName, concept: conceptMetadata);
+                    // ✅ V3 Route: Uses the Optimizer and Execution Pipeline (Pushdown + Joins)
+                    objects = _v3Router.ExecuteSelect(kbName, node, conceptMetadata);
                 }
                 
                 // Merge transaction buffer (shadow visibility)
@@ -1062,17 +1065,21 @@ public class KnowledgeManager
                 }
             }
 
-            // 2. Apply WHERE conditions
-            if (node.Conditions.Count > 0)
+            // 2. Apply WHERE conditions (only if not already handled by V3 Optimizer)
+            if (node.Conditions.Count > 0 && _v3Router == null)
             {
                 objects = FilterObjects(objects: objects, conditions: node.Conditions, kbName: kbName, alias: node.Alias, conceptName: entityName);
             }
 
-            // 3. Apply JOINs
-            foreach (var join in node.Joins)
+            // 3. Apply JOINs (only if not already handled by V3 Optimizer)
+            if (node.Joins.Count > 0 && _v3Router == null)
             {
-                objects = ApplyJoin(objects, node.Alias, entityName, join, kbName);
+                foreach (var join in node.Joins)
+                {
+                    objects = ApplyJoin(objects, node.Alias, entityName, join, kbName);
+                }
             }
+
 
             // 4. Apply GROUP BY + Aggregation
             if (node.GroupBy.Count > 0)
@@ -1607,7 +1614,11 @@ public class KnowledgeManager
         };
 
         // Apply Forward Chaining (Phase 5)
-        ApplyForwardChaining(kbName, node.ConceptName, obj.Values);
+        var reasoningResult = ApplyForwardChaining(kbName, node.ConceptName, obj.Values);
+        if (!reasoningResult.Success)
+        {
+            return ErrorResponse.ExecutionErrorResponse($"Reasoning failure: {reasoningResult.ErrorMessage}");
+        }
 
         // V3 engine write (buffered if in transaction)
         if (_inTransaction)
@@ -1674,11 +1685,17 @@ public class KnowledgeManager
             };
 
             // Apply Forward Chaining (Phase 5)
-            ApplyForwardChaining(kbName, node.ConceptName, obj.Values);
+            var reasoningResult = ApplyForwardChaining(kbName, node.ConceptName, obj.Values);
+            if (!reasoningResult.Success)
+            {
+                failed++;
+                errors.Add($"Row {inserted + failed + 1}: {reasoningResult.ErrorMessage}");
+                continue;
+            }
 
             bool ok = _v3Router.InsertObject(kbName, obj);
             if (ok) inserted++;
-            else { failed++; errors.Add($"Row {inserted + failed}: failed"); }
+            else { failed++; errors.Add($"Row {inserted + failed + 1}: failed"); }
         }
 
         return new
@@ -2257,43 +2274,60 @@ public class KnowledgeManager
                         break;
                 }
             }
-            _conceptCatalog.UpdateConcept(kbName, concept);
+            // _conceptCatalog.UpdateConcept(kbName, concept); // Moved below validation loop
             
-            // ✅ V3 Data Migration: Migrate existing objects to the new schema
+            // ✅ V3 Data Migration & Validation: Ensure all existing objects comply with the new schema/constraints
             var existingObjects = _v3Router.SelectObjects(kbName, cName);
+            var migratedObjects = new List<(Guid Id, Dictionary<string, object> Values)>();
+
             foreach (var obj in existingObjects)
             {
-                bool modified = false;
+                var newValues = new Dictionary<string, object>(obj.Values);
+                bool schemaModified = false;
+                
                 foreach (var action in node.Actions)
                 {
                     switch (action.ActionType)
                     {
                         case AlterActionType.RenameVariable:
-                            if (obj.Values.TryGetValue(action.OldName!, out var val))
+                            if (newValues.TryGetValue(action.OldName!, out var val))
                             {
-                                obj.Values.Remove(action.OldName!);
-                                obj.Values[action.NewName!] = val;
-                                modified = true;
+                                newValues.Remove(action.OldName!);
+                                newValues[action.NewName!] = val;
+                                schemaModified = true;
                             }
                             break;
                         case AlterActionType.DropVariable:
-                            if (obj.Values.Remove(action.TargetName!)) modified = true;
+                            if (newValues.Remove(action.TargetName!)) schemaModified = true;
                             break;
                         case AlterActionType.AddVariable:
-                            if (!obj.Values.ContainsKey(action.Variable!.Name))
+                            if (!newValues.ContainsKey(action.Variable!.Name))
                             {
-                                obj.Values[action.Variable.Name] = null!; // Or a default value
-                                modified = true;
+                                newValues[action.Variable.Name] = null!; 
+                                schemaModified = true;
                             }
                             break;
                     }
                 }
-                if (modified)
+
+                // Run reasoning to validate new constraints and propagate new rules/equations
+                var reasonerResult = ApplyForwardChaining(kbName, concept.Name, newValues);
+                if (!reasonerResult.Success)
                 {
-                    _v3Router.UpdateObject(kbName, cName, obj.Id, obj.Values, concept);
+                    return ErrorResponse.ExecutionErrorResponse($"Alteration rejected: existing object (ID: {obj.Id}) violates updated constraints. Error: {reasonerResult.ErrorMessage}");
                 }
+
+                migratedObjects.Add((obj.Id, newValues));
             }
-            Console.WriteLine($"[V3] Persisted altered concept '{cName}' and migrated {existingObjects.Count} objects.");
+
+            // If we get here, all data is valid. Commit the concept and update objects.
+            _conceptCatalog.UpdateConcept(kbName, concept);
+            foreach (var migration in migratedObjects)
+            {
+                _v3Router.UpdateObject(kbName, cName, migration.Id, migration.Values, concept);
+            }
+            
+            Console.WriteLine($"[V3] Persisted altered concept '{cName}' and migrated/validated {existingObjects.Count} objects.");
         }
 
         return new { success = true, alteredCount = conceptsToAlter.Count };

@@ -1,12 +1,17 @@
 sequenceDiagram
-    participant DB as KBMS Engine
-    participant WAL as transactions.klf
-    participant DATA as objects.kdf
+    participant DB as KBMS Storage Engine
+    participant WAL as {kbName}.wal (Binary)
+    participant DATA as {kbName}.kdb (Slotted Pages)
 
-    DB->>WAL: Open()
-    DB->>WAL: Read from Last Checkpoint
-    loop Với mỗi LogRecord hợp lệ
-        DB->>DATA: Replay(LSN, Operation)
+    DB->>WAL: Phân tích toàn bộ tệp nhật ký (.wal)
+    loop Quét từ đầu đến cuối tệp
+        WAL-->>DB: Trả về LogRecord (TxnId, PageId, BeforeImage, Committed)
+        alt Committed == false (Giao dịch bị ngắt quãng)
+            DB->>DATA: Khôi phục trạng thái cũ (Undo bằng BeforeImage)
+            Note over DB, DATA: Đảm bảo tính nguyên tử (Atomicity)
+        else Committed == true (Giao dịch thành công)
+            DB->>DB: Bỏ qua (Dữ liệu đã được đảm bảo an toàn)
+        end
     end
-    DB->>DATA: Sync & Checksum
-    DB->>DB: System Ready
+    DB->>DATA: Xác nhận ghi xuống đĩa (Flush)
+    DB->>DB: Hệ thống sẵn sàng phục vụ

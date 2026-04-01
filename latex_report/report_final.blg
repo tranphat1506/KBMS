@@ -2,7 +2,6 @@ This is BibTeX, Version 0.99e (TeX Live 2026)
 Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: report_final.aux
 The style file: IEEEtran.bst
-I found no \citation commands---while reading file report_final.aux
 Reallocated singl_function (elt_size=4) to 100 items from 50.
 Reallocated singl_function (elt_size=4) to 100 items from 50.
 Reallocated singl_function (elt_size=4) to 100 items from 50.
@@ -14,45 +13,44 @@ Database file #1: references.bib
 -- See the "IEEEtran_bst_HOWTO.pdf" manual for usage information.
 
 Done.
-You've used 0 entries,
+You've used 8 entries,
             4087 wiz_defined-function locations,
-            821 strings with 7303 characters,
-and the built_in function-call counts, 104 in all, are:
-= -- 0
-> -- 0
-< -- 0
-+ -- 0
-- -- 0
-* -- 19
-:= -- 27
-add.period$ -- 0
-call.type$ -- 0
-change.case$ -- 0
-chr.to.int$ -- 0
-cite$ -- 0
-duplicate$ -- 0
-empty$ -- 1
-format.name$ -- 0
-if$ -- 3
+            887 strings with 9727 characters,
+and the built_in function-call counts, 4349 in all, are:
+= -- 364
+> -- 67
+< -- 16
++ -- 29
+- -- 13
+* -- 225
+:= -- 802
+add.period$ -- 16
+call.type$ -- 8
+change.case$ -- 13
+chr.to.int$ -- 33
+cite$ -- 8
+duplicate$ -- 330
+empty$ -- 392
+format.name$ -- 17
+if$ -- 969
 int.to.chr$ -- 0
-int.to.str$ -- 0
-missing$ -- 0
-newline$ -- 23
-num.names$ -- 0
-pop$ -- 0
+int.to.str$ -- 8
+missing$ -- 59
+newline$ -- 61
+num.names$ -- 8
+pop$ -- 136
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 2
-skip$ -- 1
+skip$ -- 338
 stack$ -- 0
-substring$ -- 0
-swap$ -- 0
-text.length$ -- 0
+substring$ -- 70
+swap$ -- 208
+text.length$ -- 5
 text.prefix$ -- 0
 top$ -- 5
-type$ -- 0
+type$ -- 8
 warning$ -- 0
-while$ -- 0
-width$ -- 0
-write$ -- 22
-(There was 1 error message)
+while$ -- 14
+width$ -- 9
+write$ -- 115

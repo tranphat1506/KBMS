@@ -95,8 +95,8 @@ public class CliServerIntegrationTestsV2 : IAsyncLifetime
         var res1 = await _cli.ExecuteCommandAsync(createQuery);
         Assert.Equal(MessageType.RESULT, res1!.Type);
 
-        // 3. KML: Insert using ATTRIBUTE with colon syntax
-        var insertQuery = "INSERT INTO Rectangle ATTRIBUTE ( width:5.0, height:10.0 );";
+        // 3. KML: Insert using ATTRIBUTE with colon syntax (must respect constraints now!)
+        var insertQuery = "INSERT INTO Rectangle ATTRIBUTE ( width:5.0, height:10.0, area:50.0, perimeter:30.0 );";
         var res2 = await _cli.ExecuteCommandAsync(insertQuery);
         Assert.Equal(MessageType.RESULT, res2!.Type);
 
@@ -167,8 +167,8 @@ public class CliServerIntegrationTestsV2 : IAsyncLifetime
         await _cli.ExecuteCommandAsync(createCircle);
         await _cli.ExecuteCommandAsync("ADD HIERARCHY Circle IS_A Shape;");
 
-        // 4. Insert
-        await _cli.ExecuteCommandAsync("INSERT INTO Circle ATTRIBUTE (radius:2.0);");
+        // 4. Insert (must respect constraints now!)
+        await _cli.ExecuteCommandAsync("INSERT INTO Circle ATTRIBUTE (radius:2.0, area:12.56636);");
 
         // 5. SOLVE
         var res = await _cli.ExecuteCommandAsync("SOLVE ON CONCEPT Circle GIVEN radius:3.0 FIND area SAVE;");

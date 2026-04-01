@@ -176,6 +176,8 @@ public class KbmsServer
         finally
         {
             _listener.Stop();
+            _storagePool.Dispose();
+            _sysLogger.Info("System", "KBMS Server storage pool disposed (flushed to disk)");
         }
     }
 
@@ -202,6 +204,7 @@ public class KbmsServer
         _cts.Cancel();
         _listener?.Stop();
         _connectionManager.CloseAll();
+        _storagePool.Dispose();
     }
 
     private async Task HandleClientAsync(TcpClient client)
@@ -336,6 +339,7 @@ public class KbmsServer
 
         try
         {
+            _connectionManager.UpdateActivity(clientId);
             var user = _connectionManager.GetCurrentUser(clientId);
             if (user == null)
             {
@@ -475,7 +479,7 @@ public class KbmsServer
             { 
                 Type = MessageType.ERROR, 
                 RequestId = requestId,
-                Content = ToJson(ErrorResponse.ParserErrorResponse(ex.Message, message.Content, ex.Line, ex.Column)) 
+                Content = ToJson(ex.Response) 
             });
         }
         catch (Exception ex)

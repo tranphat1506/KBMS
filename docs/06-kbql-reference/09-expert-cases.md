@@ -1,12 +1,12 @@
-# 06.9. Các trường hợp Chuyên gia (Expert Cases)
+# 06.9. Các trường hợp Chuyên gia
 
-Tài liệu này trình bày các tình huống sử dụng KBQL ở mức độ nâng cao, khai thác tối đa sức mạnh của bộ máy suy diễn và giải toán của KBMS.
+Tài liệu này trình bày các tình huống sử dụng [KBQL](../00-glossary/01-glossary.md#kbql) ở mức độ nâng cao, khai thác tối đa sức mạnh của bộ máy suy diễn và giải toán của [KBMS](../00-glossary/01-glossary.md#kbms).
 
 ---
 
-## 1. Giải ngược Phương trình (Inverse Problem Solving)
+## 1. Giải ngược Phương trình
 
-Hệ thống KBMS không chỉ tính toán một chiều mà còn có khả năng giải ngược các tham số đầu vào khi biết kết quả đầu ra thông qua các thuật toán **Newton-Raphson** và **Brent**.
+Hệ thống [KBMS](../00-glossary/01-glossary.md#kbms) không chỉ tính toán một chiều mà còn có khả năng giải ngược các tham số đầu vào khi biết kết quả đầu ra thông qua các thuật toán **[Newton-Raphson](../00-glossary/01-glossary.md#newton-raphson)** và **Brent**.
 
 ### Kịch bản: Tính toán mạch điện
 Chúng ta biết luật Ohm `U = I * R`. Nếu biết `U` và `I`, hệ thống phải tự tìm `R`.
@@ -26,26 +26,26 @@ SOLVE ON CONCEPT Resistor GIVEN u = 220, i = 2 FIND r; -- Kết quả: r = 110
 
 ---
 
-## 2. Suy diễn Chùm (Chained Inference)
+## 2. Suy diễn Chùm
 
-Thể hiện khả năng lan truyền tri thức qua nhiều lớp luật (Forward Chaining).
+Thể hiện khả năng lan truyền tri thức qua nhiều lớp luật ([Forward Chaining](../00-glossary/01-glossary.md#forward-chaining)).
 
 ### Kịch bản: Hệ thống Cảnh báo sớm
 ```kbql
 CREATE RULE R1 SCOPE Sensor IF temp > 100 THEN SET status = 'Overheat';
 CREATE RULE R2 SCOPE Sensor IF status = 'Overheat' AND pressure > 50 THEN SET alert = 'Critical';
-CREATE RULE R3 SCOPE Sensor IF alert = 'Critical' THEN DO (PRINT 'EMERGENCY SHUTDOWN');
+CREATE RULE R3 SCOPE Sensor IF alert = 'Critical' THEN SET system_action = 'EMERGENCY_SHUTDOWN';
 
 -- Khi chèn dữ liệu thỏa mãn chuỗi:
 INSERT INTO Sensor ATTRIBUTE (110, 60);
--- Kết quả: R1 kích hoạt -> status='Overheat' -> R2 kích hoạt -> alert='Critical' -> R3 kích hoạt -> In ra thông báo.
+-- Kết quả: R1 kích hoạt -> status='Overheat' -> R2 kích hoạt -> alert='Critical' -> R3 kích hoạt -> system_action='EMERGENCY_SHUTDOWN'.
 ```
 
 ---
 
-## 3. Phân cấp Kế thừa Đa tầng (Recursive Property Propagation)
+## 3. Phân cấp Kế thừa Đa tầng
 
-Khi định nghĩa Hierarchy, các luật ở Concept cha sẽ tự động "chảy" xuống toàn bộ các con, cháu.
+Khi định nghĩa Hierarchy, các luật ở [Concept](../00-glossary/01-glossary.md#concept) cha sẽ tự động "chảy" xuống toàn bộ các con, cháu.
 
 ### Kịch bản: Phân loại Hình học
 ```kbql
@@ -65,28 +65,28 @@ INSERT INTO Triangle ATTRIBUTE ('Red', ...);
 
 ---
 
-## 4. Ràng buộc nội bộ phức tạp (Internal Constraints)
+## 4. Ràng buộc nội bộ phức tạp
 
-Sử dụng khối `CONSTRAINTS` để bảo vệ dữ liệu ở mức tri thức, không cho phép các Fact mâu thuẫn tồn tại.
+Sử dụng khối `CONSTRAINTS` để bảo vệ dữ liệu ở mức tri thức, không cho phép các [Fact](../00-glossary/01-glossary.md#fact) mâu thuẫn tồn tại.
 
 ### Kịch bản: Quản lý nhân sự
 ```kbql
 CREATE CONCEPT Employee (
     VARIABLES (age: INT, experience: INT),
     CONSTRAINTS (
-        IF age < experience + 18 THEN DO (ERROR 'Tuổi không hợp lệ so với kinh nghiệm')
+        age >= experience + 18
     )
 );
 
--- Lệnh này sẽ bị Parser/Engine chặn lại:
-INSERT INTO Employee ATTRIBUTE (20, 5); -- (20 < 5 + 18) => Lỗi.
+-- Lệnh này sẽ bị Parser/Engine chặn lại vì vi phạm biểu thức logic:
+INSERT INTO Employee ATTRIBUTE (20, 5); -- (20 >= 5 + 18) => FALSE => Lỗi.
 ```
 
 ---
 
 ## 5. Giải hệ phương trình 2 ẩn (Newton-Raphson 2D)
 
-KBMS hỗ trợ giải đồng thời các hệ thức toán học.
+[KBMS](../00-glossary/01-glossary.md#kbms) hỗ trợ giải đồng thời các hệ thức toán học.
 
 ### Kịch bản: Tìm giao điểm đường thẳng
 ```kbql
@@ -106,7 +106,7 @@ SOLVE ON CONCEPT Intersection FIND x, y;
 
 ## 6. Kết hợp Trigger và Rule (The Chain Reaction)
 
-Dùng Trigger để kích hoạt một luồng suy diễn ở một Concept hoàn toàn khác.
+Dùng [Trigger](../00-glossary/01-glossary.md#trigger) để kích hoạt một luồng suy diễn ở một [Concept](../00-glossary/01-glossary.md#concept) hoàn toàn khác.
 
 ### Kịch bản: Đồng bộ kho và đơn hàng
 ```kbql

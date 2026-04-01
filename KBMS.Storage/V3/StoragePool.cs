@@ -91,8 +91,9 @@ public class StoragePool : IDisposable
         {
             foreach (var managers in _pools.Values)
             {
-                managers.Bpm.Dispose();
-                managers.Disk.Dispose();
+                try { managers.Bpm.Dispose(); } catch {}
+                try { managers.Disk.Dispose(); } catch {}
+                try { managers.Wal.Dispose(); } catch {}
             }
             _pools.Clear();
         }

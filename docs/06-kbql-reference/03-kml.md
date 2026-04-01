@@ -1,12 +1,12 @@
-# 06.3. Thao tác tri thức (KML)
+# 06.3. Thao tác tri thức
 
-KML là tập hợp các lệnh dùng để chèn, cập nhật, xóa các Sự kiện (Facts) và chuyển đổi dữ liệu trong Cơ sở tri thức.
+[KML](../00-glossary/01-glossary.md#kml) là tập hợp các lệnh dùng để chèn, cập nhật, xóa các Sự kiện (Facts) và chuyển đổi dữ liệu trong Cơ sở tri thức.
 
 ---
 
-## 1. Chèn Sự kiện (INSERT)
+## 1. Chèn Sự kiện
 
-Lệnh chèn một hoặc nhiều Fact vào một Concept.
+Lệnh chèn một hoặc nhiều [Fact](../00-glossary/01-glossary.md#fact) vào một [Concept](../00-glossary/01-glossary.md#concept).
 
 ### Chèn một dòng đơn
 ```kbql
@@ -25,9 +25,9 @@ INSERT BULK INTO <concept_name> ATTRIBUTE (
 
 ---
 
-## 2. Cập nhật Sự kiện (UPDATE)
+## 2. Cập nhật Sự kiện
 
-Sửa đổi giá trị các biến của các Fact hiện có dựa trên điều kiện lọc.
+Sửa đổi giá trị các biến của các [Fact](../00-glossary/01-glossary.md#fact) hiện có dựa trên điều kiện lọc.
 
 ### Cú pháp
 ```kbql
@@ -39,9 +39,9 @@ WHERE <conditions>;
 
 ---
 
-## 3. Xóa Sự kiện (DELETE)
+## 3. Xóa Sự kiện
 
-Loại bỏ các Fact khỏi Concept.
+Loại bỏ các [Fact](../00-glossary/01-glossary.md#fact) khỏi [Concept](../00-glossary/01-glossary.md#concept).
 
 ### Cú pháp
 ```kbql
@@ -50,11 +50,11 @@ DELETE FROM <concept_name> WHERE <conditions>;
 
 ---
 
-## 4. Chuyển đổi Dữ liệu (IMPORT / EXPORT)
+## 4. Chuyển đổi Dữ liệu
 
 Công cụ sao lưu và phục hồi tri thức từ các tệp tin bên ngoài.
 
-### Xuất dữ liệu (EXPORT)
+### Xuất dữ liệu
 ```kbql
 EXPORT (
     CONCEPT: <name>, 
@@ -63,7 +63,7 @@ EXPORT (
 );
 ```
 
-### Nhập dữ liệu (IMPORT)
+### Nhập dữ liệu
 ```kbql
 IMPORT (
     CONCEPT: <name>, 
@@ -74,9 +74,9 @@ IMPORT (
 
 ---
 
-## 5. Đặc điểm của KML trong KBMS
+## 5. Đặc điểm của KML trong hệ thống KBMS
 
-Khác với các hệ quản trị CSDL thông thường, mọi thao tác KML trong KBMS đều có thể kích hoạt:
+Khác với các hệ quản trị CSDL thông thường, mọi thao tác [KML](../00-glossary/01-glossary.md#kml) trong [KBMS](../00-glossary/01-glossary.md#kbms) đều có thể kích hoạt:
 1.  **Reasoning Engine:** Các luật suy diễn tiến sẽ được kích hoạt ngay lập tức sau khi `INSERT` hoặc `UPDATE`.
-2.  **Trigger Engine:** Các sự kiện tự động (`Trigger`) sẽ được thực thi nếu có định nghĩa cho sự kiện tương ứng.
-3.  **Validation:** Dữ liệu được kiểm tra kiểu dữ liệu và các ràng buộc (Constraints) ngay tại tầng Parser và Storage.
+2.  **[Trigger](../00-glossary/01-glossary.md#trigger) Engine:** Các sự kiện tự động (`Trigger`) sẽ được thực thi nếu có định nghĩa cho sự kiện tương ứng.
+3.  **Validation:** Dữ liệu được kiểm tra kiểu dữ liệu và các ràng buộc (Constraints) ngay tại tầng [Parser](../00-glossary/01-glossary.md#parser) và Storage.

@@ -1,14 +1,14 @@
 # 14.1. Hướng dẫn Cài đặt & Triển khai
 
-Hệ thống KBMS được thiết kế để chạy đa nền tảng nhờ sức mạnh của .NET 8 và Electron. Dưới đây là hướng dẫn chi tiết để thiết lập môi trường trên 3 hệ điều hành phổ biến.
+Hệ thống [KBMS](../00-glossary/01-glossary.md#kbms) được thiết kế để chạy đa nền tảng nhờ sức mạnh của .NET 8 và [Electron](../00-glossary/01-glossary.md#electron). Dưới đây là hướng dẫn chi tiết để thiết lập môi trường trên 3 hệ điều hành phổ biến.
 
 ---
 
-## 1. Yêu cầu Tiên quyết (Prerequisites)
+## 1. Yêu cầu Tiên quyết
 
 Dù ở hệ điều hành nào, bạn cũng cần cài đặt các thành phần cốt lõi sau:
-1.  **.NET 8 SDK**: Để chạy Server và CLI.
-2.  **Node.js (v18+)**: Để chạy và phát triển Studio IDE.
+1.  **.NET 8 SDK**: Để chạy Server và [CLI](../00-glossary/01-glossary.md#cli).
+2.  **Node.js (v18+)**: Để chạy và phát triển Studio [IDE](../00-glossary/01-glossary.md#ide).
 3.  **Git**: Để quản lý mã nguồn.
 
 ---
@@ -17,7 +17,7 @@ Dù ở hệ điều hành nào, bạn cũng cần cài đặt các thành phầ
 
 ### Bước 1: Cài đặt .NET 8 & Node.js
 *   **Cách 1 (Thủ công)**: Tải Installer từ [dotnet.microsoft.com](https://dotnet.microsoft.com/en-us/download/dotnet/8.0) và [nodejs.org](https://nodejs.org/).
-*   **Cách 2 (Dùng lệnh - PowerShell/Chocolatey)**:
+*   **Cách 2 (Dùng lệnh - PowerShell/[Chocolatey](../00-glossary/01-glossary.md#chocolatey))**:
     ```powershell
     choco install dotnet-sdk-8.0 nodejs git -y
     ```
@@ -37,9 +37,9 @@ Dù ở hệ điều hành nào, bạn cũng cần cài đặt các thành phầ
 
 ---
 
-## 3. Cài đặt trên macOS (Intel/M-Series)
+## 3. Cài đặt trên macOS
 
-### Bước 1: Cài đặt qua Homebrew
+### Bước 1: Cài đặt qua [Homebrew]
 Mở Terminal và thực hiện:
 ```zsh
 # Cài đặt Homebrew nếu chưa có
@@ -51,7 +51,7 @@ brew install node git
 ```
 
 ### Bước 2: Cấp quyền thực thi
-Đối với CLI, bạn cần cấp quyền cho tệp thực thi:
+Đối với [CLI](../00-glossary/01-glossary.md#cli), bạn cần cấp quyền cho tệp thực thi:
 ```zsh
 chmod +x ./kbms-cli
 ```
@@ -60,7 +60,7 @@ chmod +x ./kbms-cli
 
 ---
 
-## 4. Cài đặt trên Linux (Ubuntu/Debian)
+## 4. Cài đặt trên Linux
 
 ### Bước 1: Cấu hình Repository
 Thực hiện các lệnh sau để cài đặt .NET 8:
@@ -73,7 +73,7 @@ rm packages-microsoft-prod.deb
 sudo apt-get update && sudo apt-get install -y dotnet-sdk-8.0 nodejs npm git
 ```
 
-### Bước 2: Cài đặt Electron (nếu chạy Studio)
+### Bước 2: Cài đặt Electron
 ```bash
 cd kbms-studio
 npm install
@@ -85,7 +85,7 @@ npm run electron:dev
 
 ---
 
-## 5. Xác thực Cài đặt (Health Check)
+## 5. Xác thực Cài đặt
 
 Sau khi cài đặt, hãy chạy lệnh sau để đảm bảo mọi thứ đã sẵn sàng:
 
@@ -98,5 +98,3 @@ Sau khi cài đặt, hãy chạy lệnh sau để đảm bảo mọi thứ đã 
 
 ---
 
-> [!IMPORTANT]
-> **Tường lửa (Firewall)**: Đảm bảo bạn đã mở cổng **3307** (hoặc cổng bạn cấu hình trong `kbms.ini`) để CLI và Studio có thể kết nối tới Server từ xa.

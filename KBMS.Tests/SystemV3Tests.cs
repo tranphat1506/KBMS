@@ -47,8 +47,8 @@ public class SystemV3Tests
             }
         };
 
-        var cbo = new QueryOptimizer(null!); // null BPM is fine because Explain doesn't touch disk
-        var plan = cbo.ExplainSelect(ast);
+        var cbo = new QueryOptimizer(null!, (kb, concept) => new List<int> { 1, 2, 3 }); // Mock resolver
+        var plan = cbo.ExplainSelect(ast, "TestKB");
 
         // The Optimizer should have chosen Hash Join as the best physical path
         Assert.NotNull(plan);

@@ -1,12 +1,14 @@
 graph TD
-    DataDir[data/] --> System[system/]
-    DataDir --> UserKB1[knowledge_base_A/]
-    DataDir --> UserKB2[knowledge_base_B/]
+    DataDir[data/] --> System[system.kdb]
+    DataDir --> SystemWAL[system.wal]
+    DataDir --> UserKDB1[knowledge_base_A.kdb]
+    DataDir --> UserWAL1[knowledge_base_A.wal]
+    DataDir --> UserKDB2[knowledge_base_B.kdb]
+    DataDir --> UserWAL2[knowledge_base_B.wal]
     
-    System --> SysConf[system.config]
-    System --> SysLogs[logs.kdb]
-    
-    UserKB1 --> Meta[metadata.kmf]
-    UserKB1 --> Concepts[concepts.kmf]
-    UserKB1 --> Objects[objects.kdf]
-    UserKB1 --> WAL[transactions.klf]
+    subgraph "Nội tại file .kdb (V3 Slotted Pages)"
+        System --> P0[Page 0: Header/Meta]
+        System --> P1[Page 1: Concept Catalog]
+        System --> P2[Page 2: B+ Tree Root]
+        System --> PN[Page N: Data Slotted Page]
+    end

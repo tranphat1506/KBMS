@@ -113,28 +113,26 @@ public static class ModelBinaryUtility
 
     public static byte[] SerializeHierarchy(Hierarchy h)
     {
-        using var ms = new MemoryStream();
-        using var bw = new BinaryWriter(ms, Encoding.UTF8, true);
-        bw.Write(h.Id.ToByteArray());
-        bw.Write(h.KbId.ToByteArray());
-        bw.Write(h.ParentConcept ?? string.Empty);
-        bw.Write(h.ChildConcept ?? string.Empty);
-        bw.Write((int)h.HierarchyType);
-        return ms.ToArray();
+        var tuple = new Tuple();
+        tuple.AddGuid(h.Id);
+        tuple.AddGuid(h.KbId);
+        tuple.AddString(h.ParentConcept);
+        tuple.AddString(h.ChildConcept);
+        tuple.AddInt((int)h.HierarchyType);
+        return tuple.Serialize();
     }
 
     public static Hierarchy? DeserializeHierarchy(byte[] data)
     {
         if (data == null || data.Length == 0) return null;
         try {
-            using var ms = new MemoryStream(data);
-            using var br = new BinaryReader(ms, Encoding.UTF8, true);
+            var tuple = Tuple.Deserialize(data);
             return new Hierarchy {
-                Id = new Guid(br.ReadBytes(16)),
-                KbId = new Guid(br.ReadBytes(16)),
-                ParentConcept = br.ReadString(),
-                ChildConcept = br.ReadString(),
-                HierarchyType = (HierarchyType)br.ReadInt32()
+                Id = tuple.GetGuid(0),
+                KbId = tuple.GetGuid(1),
+                ParentConcept = tuple.GetString(2),
+                ChildConcept = tuple.GetString(3),
+                HierarchyType = (HierarchyType)tuple.GetInt(4)
             };
         } catch { return null; }
     }

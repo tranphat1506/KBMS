@@ -277,14 +277,17 @@ public class InferenceEngine
                         var root = Solve1DEquation(constraint.Expression, targetVar, knownFacts);
                         if (!double.IsNaN(root))
                         {
-                            knownFacts[targetVar] = root;
-                            result.DerivedFacts[targetVar] = root;
-                            result.Steps.Add($"Step {stepCount++}: From Constraint '{constraint.Expression}' solved for {targetVar} => {root.ToString("F4", System.Globalization.CultureInfo.InvariantCulture)}");
+                            var variable = effectiveConcept.Variables.FirstOrDefault(v => v.Name.Equals(targetVar, StringComparison.OrdinalIgnoreCase));
+                            var castedVal = CastToVariableType(root, variable);
+
+                            knownFacts[targetVar] = castedVal;
+                            result.DerivedFacts[targetVar] = castedVal;
+                            result.Steps.Add($"Step {stepCount++}: From Constraint '{constraint.Expression}' solved for {targetVar} => {castedVal}");
                             
                             result.Traces.Add(new DerivationTrace
                             {
                                 TargetVariable = targetVar,
-                                Value = root,
+                                Value = castedVal,
                                 Mechanism = "Constraint (Equation)",
                                 Source = constraint.Expression,
                                 Inputs = eqVars.Where(v => v != targetVar && knownFacts.ContainsKey(v))
@@ -314,15 +317,18 @@ public class InferenceEngine
                         var root = Solve1DEquation(eq.Expression, targetVar, knownFacts, (msg) => result.Steps.Add(msg));
                         if (!double.IsNaN(root))
                         {
-                            knownFacts[targetVar] = root;
-                            result.DerivedFacts[targetVar] = root;
-                            result.Steps.Add($"Step {stepCount++}: From Equation '{eq.Expression}' solved for {targetVar} => {root.ToString("F4", System.Globalization.CultureInfo.InvariantCulture)}");
+                            var variable = effectiveConcept.Variables.FirstOrDefault(v => v.Name.Equals(targetVar, StringComparison.OrdinalIgnoreCase));
+                            var castedVal = CastToVariableType(root, variable);
+
+                            knownFacts[targetVar] = castedVal;
+                            result.DerivedFacts[targetVar] = castedVal;
+                            result.Steps.Add($"Step {stepCount++}: From Equation '{eq.Expression}' solved for {targetVar} => {castedVal}");
                             
                             // (Phase 17) Trace
                             result.Traces.Add(new DerivationTrace
                             {
                                 TargetVariable = targetVar,
-                                Value = root,
+                                Value = castedVal,
                                 Mechanism = "Equation",
                                 Source = eq.Expression,
                                 Inputs = eqVars.Where(v => v != targetVar && knownFacts.ContainsKey(v))
@@ -744,10 +750,27 @@ public class InferenceEngine
             }
             if (type is "DECIMAL" or "MONEY" or "NUMBER")
             {
-                var dec = Convert.ToDecimal(val);
+                // Use rounding to clean up floating point noise from 'double' calculations
+                // If scale is specified, use it. Otherwise use 10 as a sensible default.
+                decimal dec;
+                if (val is double d)
+                {
+                    // Round to 12 digits first to eliminate noise like .99999999999
+                    dec = Convert.ToDecimal(Math.Round(d, 12));
+                }
+                else
+                {
+                    dec = Convert.ToDecimal(val);
+                }
+
                 if (variable.Scale.HasValue)
                 {
                     dec = Math.Round(dec, variable.Scale.Value);
+                }
+                else
+                {
+                    // Default cleaning of decimal noise
+                    dec = Math.Round(dec, 10);
                 }
                 return dec;
             }
@@ -1080,11 +1103,14 @@ public class InferenceEngine
                     var root = Solve1DEquation(eq, goalVar, knownFacts);
                     if (!double.IsNaN(root))
                     {
-                        knownFacts[goalVar] = root;
-                        result.DerivedFacts[goalVar] = root;
-                        result.Steps.Add($"Equation resolved {goalVar} = {root}");
+                        var variable = concept.Variables.FirstOrDefault(v => v.Name.Equals(goalVar, StringComparison.OrdinalIgnoreCase));
+                        var castedVal = CastToVariableType(root, variable);
+
+                        knownFacts[goalVar] = castedVal;
+                        result.DerivedFacts[goalVar] = castedVal;
+                        result.Steps.Add($"Equation resolved {goalVar} = {castedVal}");
                         activeGoals.Remove(goalVar);
-                        return root;
+                        return castedVal;
                     }
                 }
                 catch { }

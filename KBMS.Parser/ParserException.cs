@@ -1,3 +1,5 @@
+using KBMS.Models;
+
 namespace KBMS.Parser;
 
 /// <summary>
@@ -6,19 +8,28 @@ namespace KBMS.Parser;
 public class ParserException : Exception
 {
     /// <summary>
+    /// Structured error response
+    /// </summary>
+    public ErrorResponse Response { get; }
+
+    /// <summary>
     /// Line number where error occurred
     /// </summary>
-    public int Line { get; }
+    public int Line => Response.Line ?? 0;
 
     /// <summary>
     /// Column number where error occurred
     /// </summary>
-    public int Column { get; }
+    public int Column => Response.Column ?? 0;
 
-    public ParserException(string message, int line = 0, int column = 0) : base(message)
+    public ParserException(ErrorResponse response) : base(response.Message)
     {
-        Line = line;
-        Column = column;
+        Response = response;
+    }
+
+    public ParserException(string message, int line = 0, int column = 0) 
+        : this(new ErrorResponse { Type = "ParserError", Message = message, Line = line, Column = column })
+    {
     }
 
     public override string ToString()

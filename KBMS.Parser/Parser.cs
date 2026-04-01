@@ -8,6 +8,7 @@ using KBMS.Parser.Ast.Kql;
 using KBMS.Parser.Ast.Kcl;
 using KBMS.Parser.Ast.Tcl;
 using KBMS.Parser.Ast.Expressions;
+using KBMS.Models;
 
 namespace KBMS.Parser;
 
@@ -117,7 +118,7 @@ public class Parser
             TokenType.BEGIN => ParseBeginTransaction(),
             TokenType.COMMIT => ParseCommit(),
             TokenType.ROLLBACK => ParseRollback(),
-            _ => throw Error("Unexpected token: {token.Lexeme}", token)
+            _ => throw Error($"Unexpected token: {token.Lexeme}", token)
         };
     }
 
@@ -143,7 +144,7 @@ public class Parser
             TokenType.INDEX => ParseCreateIndex(),
             TokenType.TRIGGER => ParseCreateTrigger(),
             TokenType.HIERARCHY => ParseCreateHierarchy(),
-            _ => throw Error("Unexpected token after CREATE: {token.Lexeme}", token)
+            _ => throw Error($"Unexpected token after CREATE: {token.Lexeme}", token)
         };
     }
 
@@ -163,7 +164,7 @@ public class Parser
             TokenType.CONCEPT => ParseAlterConcept(),
             TokenType.KNOWLEDGE => ParseAlterKnowledgeBase(),
             TokenType.USER => ParseAlterUser(),
-            _ => throw Error("Unexpected token after ALTER: {token.Lexeme}", token)
+            _ => throw Error($"Unexpected token after ALTER: {token.Lexeme}", token)
         };
     }
 
@@ -352,7 +353,7 @@ public class Parser
                 Advance();
                 break;
             default:
-                throw Error("Expected type, got {typeToken.Lexeme}", typeToken);
+                throw Error($"Expected type, got {typeToken.Lexeme}", typeToken);
         }
 
         // Parse length for VARCHAR, CHAR, DECIMAL
@@ -481,7 +482,7 @@ public class Parser
         }
         else
         {
-            throw Error("Expected operator symbol, got {symbolToken.Lexeme}", symbolToken);
+            throw Error($"Expected operator symbol, got {symbolToken.Lexeme}", symbolToken);
         }
 
         var node = new CreateOperatorNode
@@ -1041,7 +1042,7 @@ public class Parser
             TokenType.INSERT => KBMS.Parser.Ast.Kdl.TriggerEvent.Insert,
             TokenType.UPDATE => KBMS.Parser.Ast.Kdl.TriggerEvent.Update,
             TokenType.DELETE => KBMS.Parser.Ast.Kdl.TriggerEvent.Delete,
-            _ => throw Error("Unknown trigger event: {eventToken.Lexeme}", eventToken)
+            _ => throw Error($"Unknown trigger event: {eventToken.Lexeme}", eventToken)
         };
         if (Consume(TokenType.OF) == null) throw Error("Expected 'OF' after trigger event");
         // Concept name might be an identifier; use Advance() so keywords like a concept named after a keyword aren't rejected
@@ -1119,7 +1120,7 @@ public class Parser
             }
             else
             {
-                throw Error("Unexpected maintenance action: {actionToken.Lexeme}");
+                throw Error($"Unexpected maintenance action: {actionToken.Lexeme}");
             }
 
             if (Check(TokenType.COMMA)) Consume(TokenType.COMMA);
@@ -1273,7 +1274,7 @@ public class Parser
             TokenType.FUNCTION => ParseDropFunction(),
             TokenType.RULE => ParseDropRule(),
             TokenType.USER => ParseDropUser(),
-            _ => throw Error("Unexpected token after DROP: {token.Lexeme}", token)
+            _ => throw Error($"Unexpected token after DROP: {token.Lexeme}", token)
         };
     }
 
@@ -1349,7 +1350,7 @@ public class Parser
         }
         else
         {
-            throw Error("Expected operator symbol, got {symbolToken.Lexeme}", symbolToken);
+            throw Error($"Expected operator symbol, got {symbolToken.Lexeme}", symbolToken);
         }
 
         return new DropOperatorNode
@@ -1434,7 +1435,7 @@ public class Parser
             TokenType.VARIABLE => ParseAddVariable(),
             TokenType.HIERARCHY => ParseAddHierarchy(),
             TokenType.COMPUTATION => ParseAddComputation(),
-            _ => throw Error("Unexpected token after ADD: {token.Lexeme}", token)
+            _ => throw Error($"Unexpected token after ADD: {token.Lexeme}", token)
         };
     }
 
@@ -1491,19 +1492,19 @@ public class Parser
         var firstConceptToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected concept name");
 
         var typeToken = Peek() ?? throw Error("Expected hierarchy type");
-        HierarchyType hierarchyType;
+        KBMS.Parser.Ast.Kdl.HierarchyType hierarchyType;
 
         if (typeToken.Type == TokenType.IS_A || typeToken.Type == TokenType.ISA)
         {
-            hierarchyType = HierarchyType.IS_A;
+            hierarchyType = KBMS.Parser.Ast.Kdl.HierarchyType.IS_A;
         }
         else if (typeToken.Type == TokenType.PART_OF)
         {
-            hierarchyType = HierarchyType.PART_OF;
+            hierarchyType = KBMS.Parser.Ast.Kdl.HierarchyType.PART_OF;
         }
         else
         {
-            throw Error("Expected IS_A, ISA, or PART_OF, got {typeToken.Lexeme}", typeToken);
+            throw Error($"Expected IS_A, ISA, or PART_OF, got {typeToken.Lexeme}", typeToken);
         }
         Advance();
 
@@ -1587,7 +1588,7 @@ public class Parser
         {
             TokenType.HIERARCHY => ParseRemoveHierarchy(),
             TokenType.COMPUTATION => ParseRemoveComputation(),
-            _ => throw Error("Unexpected token after REMOVE: {token.Lexeme}", token)
+            _ => throw Error($"Unexpected token after REMOVE: {token.Lexeme}", token)
         };
     }
 
@@ -1603,15 +1604,15 @@ public class Parser
 
         if (typeToken.Type == TokenType.IS_A || typeToken.Type == TokenType.ISA)
         {
-            hierarchyType = HierarchyType.IS_A;
+            hierarchyType = KBMS.Parser.Ast.Kdl.HierarchyType.IS_A;
         }
         else if (typeToken.Type == TokenType.PART_OF)
         {
-            hierarchyType = HierarchyType.PART_OF;
+            hierarchyType = KBMS.Parser.Ast.Kdl.HierarchyType.PART_OF;
         }
         else
         {
-            throw Error("Expected IS_A, ISA, or PART_OF, got {typeToken.Lexeme}", typeToken);
+            throw Error($"Expected IS_A, ISA, or PART_OF, got {typeToken.Lexeme}", typeToken);
         }
         Advance();
 
@@ -2194,7 +2195,7 @@ public class Parser
                 Advance();
                 break;
             default:
-                throw Error("Unexpected value type: {token.Lexeme}", token);
+                throw Error($"Unexpected value type: {token.Lexeme}", token);
         }
 
         return valueNode;
@@ -2297,7 +2298,17 @@ public class Parser
             while (!Check(TokenType.FIND) && !Check(TokenType.SEMICOLON) && !IsAtEnd())
             {
                 var keyToken = ConsumeIdentifier() ?? throw Error("Expected variable name");
-                Consume(TokenType.COLON);
+                
+                // Support both ':' and '=' for GIVEN clause
+                if (Check(TokenType.COLON) || Check(TokenType.EQUALS))
+                {
+                    Advance();
+                }
+                else
+                {
+                    throw Error("Expected ':' or '=' after variable name");
+                }
+
                 var valueToken = Peek() ?? throw Error("Expected value");
                 string value;
 
@@ -2317,7 +2328,7 @@ public class Parser
                         value = valueToken.Lexeme;
                         break;
                     default:
-                        throw Error("Unexpected value type: {valueToken.Lexeme}", valueToken);
+                        throw Error($"Unexpected value type: {valueToken.Lexeme}", valueToken);
                 }
                 Advance();
                 node.GivenFacts[keyToken.Lexeme] = value;
@@ -2515,7 +2526,7 @@ public class Parser
         else
         {
             var errorToken = Peek();
-            throw Error("Unexpected show type: {errorToken?.Lexeme}", errorToken);
+            throw Error($"Unexpected show type: {errorToken?.Lexeme}", errorToken);
         }
 
         return node;
@@ -3063,9 +3074,14 @@ public class Parser
                 break;
 
             var startToken = Peek() ?? throw Error("Expected equation");
+            var expression = ParseExpressionString();
+            if (string.IsNullOrEmpty(expression))
+            {
+                throw Error($"Empty equation or unexpected token '{Peek()?.Lexeme}' inside EQUATIONS block", Peek());
+            }
             list.Add(new EquationDef 
             { 
-                Expression = ParseExpressionString(),
+                Expression = expression,
                 Line = startToken.Line,
                 Column = startToken.Column
             });
@@ -3116,6 +3132,10 @@ public class Parser
             }
 
             var expression = ParseExpressionString();
+            if (string.IsNullOrEmpty(expression))
+            {
+                throw Error($"Empty constraint or unexpected token '{Peek()?.Lexeme}' inside CONSTRAINTS block. Note: IF statements are not allowed in CONSTRAINTS, use RULES instead.", Peek());
+            }
             list.Add(new ConstraintDef
             {
                 Name = name,
@@ -3479,6 +3499,7 @@ public class Parser
     private ParserException Error(string message, Token? token = null)
     {
         var t = token ?? Peek() ?? (_tokens.Count > 0 ? _tokens[^1] : null);
-        return new ParserException(message, t?.Line ?? 0, t?.Column ?? 0);
+        var response = ErrorResponse.ParserErrorResponse(message, _originalQuery, t?.Line ?? 0, t?.Column ?? 0);
+        return new ParserException(response);
     }
 }

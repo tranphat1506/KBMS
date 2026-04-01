@@ -15,26 +15,31 @@ namespace KBMS.Knowledge.V3.Optimizer;
 public class QueryOptimizer
 {
     private readonly BufferPoolManager _bpm;
+    private readonly Func<string, string, List<int>> _pageIdResolver;
 
-    public QueryOptimizer(BufferPoolManager bpm)
+    public QueryOptimizer(BufferPoolManager bpm, Func<string, string, List<int>> pageIdResolver)
     {
         _bpm = bpm;
+        _pageIdResolver = pageIdResolver;
     }
+
 
     /// <summary>
     /// Generates a physical evaluation network tree to be displayed by the EXPLAIN command.
     /// This represents the dry-run path of the query without actually pulling tuples.
     /// </summary>
-    public PlanNode ExplainSelect(SelectNode ast)
+    public PlanNode ExplainSelect(SelectNode ast, string kbName)
     {
         // 1. Base Scan Node
+        var pageIds = _pageIdResolver(kbName, ast.ConceptName);
         var scanNode = new ScanPlanNode 
         { 
             Operation = "Sequential Scan", 
             Detail = $"Concept: {ast.ConceptName}",
-            EstimatedCost = 100.0, // Usually calculated from System KB Catalog statistics
-            EstimatedRows = 1000   
+            EstimatedCost = pageIds.Count * 1.0, 
+            EstimatedRows = pageIds.Count * 10 // Assumption: 10 tuples per page
         };
+
         PlanNode currentRoot = scanNode;
 
         // 2. Resolve Joins
@@ -86,10 +91,10 @@ public class QueryOptimizer
     /// Builds and returns the actual Volcano Execution interface pipeline from the AST.
     /// Ready for .Init() and .Next() loop.
     /// </summary>
-    public IExecutionOperator BuildExecutionPlan(SelectNode ast)
+    public IExecutionOperator BuildExecutionPlan(SelectNode ast, string kbName)
     {
-        // MOCKUP for wiring. In real integration, we query the System Catalog for physical page IDs.
-        var conceptPageIds = new List<int> { 0, 1, 2 }; 
+        // Physical binding: resolve real concept page IDs from the catalog
+        var conceptPageIds = _pageIdResolver(kbName, ast.ConceptName); 
         
         IExecutionOperator currentOp = new SequentialScanOperator(_bpm, conceptPageIds);
 
@@ -97,7 +102,8 @@ public class QueryOptimizer
         {
             foreach (var join in ast.Joins)
             {
-                var buildOp = new SequentialScanOperator(_bpm, conceptPageIds);
+                var buildPageIds = _pageIdResolver(kbName, join.Target);
+                var buildOp = new SequentialScanOperator(_bpm, buildPageIds);
                 
                 // Construct HashJoin operator logic
                 currentOp = new HashJoinOperator(
@@ -111,8 +117,9 @@ public class QueryOptimizer
         if (ast.Conditions != null && ast.Conditions.Count > 0)
         {
             // The Predicate execution runs on physical tuples
-            currentOp = new FilterOperator(currentOp, tuple => true); // Placeholder logic
+            currentOp = new FilterOperator(currentOp, PredicateCompiler.Compile(ast.Conditions)); 
         }
+
 
         return currentOp;
     }

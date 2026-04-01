@@ -1,441 +1,453 @@
 \babel@toc {vietnamese}{}\relax 
-\contentsline {chapter}{\numberline {1}Giới thiệu và Đặt vấn đề}{10}{chapter.1}%
-\contentsline {section}{\numberline {1.1}Giới thiệu đề tài và Đặt vấn đề}{10}{section.1.1}%
-\contentsline {subsection}{\numberline {1.1.1}Lý do chọn đề tài (Motivation)}{10}{subsection.1.1.1}%
-\contentsline {subsection}{\numberline {1.1.2}Mục tiêu nghiên cứu (Research Objectives)}{10}{subsection.1.1.2}%
-\contentsline {subsection}{\numberline {1.1.3}Đối tượng và Phạm vi nghiên cứu}{10}{subsection.1.1.3}%
-\contentsline {subsection}{\numberline {1.1.4}Ý nghĩa khoa học và thực tiễn}{10}{subsection.1.1.4}%
-\contentsline {chapter}{\numberline {2}Cơ sở Lý thuyết COKB}{11}{chapter.2}%
-\contentsline {section}{\numberline {2.1}Mô hình Đối tượng Tính toán COKB}{11}{section.2.1}%
-\contentsline {subsection}{\numberline {2.1.1}Thành phần Hệ thống tri thức COKB}{11}{subsection.2.1.1}%
-\contentsline {subsection}{\numberline {2.1.2}Mô hình Đối tượng Tính toán (Computational Object)}{11}{subsection.2.1.2}%
-\contentsline {subsection}{\numberline {2.1.3}Phân cấp Khái niệm (Concept Levels)}{11}{subsection.2.1.3}%
-\contentsline {section}{\numberline {2.2}Cơ chế Suy luận và Giải quyết vấn đề}{12}{section.2.2}%
-\contentsline {subsection}{\numberline {2.2.1}Các Quy tắc Suy luận (Inference Rules)}{12}{subsection.2.2.1}%
-\contentsline {subsection}{\numberline {2.2.2}Thuật toán Tìm bao đóng (F-Closure Algorithm)}{12}{subsection.2.2.2}%
-\contentsline {subsection}{\numberline {2.2.3}Chiến lược Giải bài toán: Heuristics}{12}{subsection.2.2.3}%
-\contentsline {chapter}{\numberline {3}Phân tích và Thiết kế Hệ thống}{13}{chapter.3}%
-\contentsline {section}{\numberline {3.1}Khảo sát Hiện trạng \& Mục tiêu (Survey \& Objectives)}{13}{section.3.1}%
-\contentsline {subsection}{\numberline {3.1.1}Khảo sát Hiện trạng (Current State Survey)}{13}{subsection.3.1.1}%
-\contentsline {subsubsection}{Bảng so sánh Tính năng Chi tiết}{13}{subsection.3.1.1}%
-\contentsline {subsubsection}{Ưu thế vượt trội của KBMS}{13}{table.3.1}%
-\contentsline {subsection}{\numberline {3.1.2}Mục tiêu Nghiên cứu (Research Objectives)}{14}{subsection.3.1.2}%
-\contentsline {section}{\numberline {3.2}Tác nhân \& Vai trò Hệ thống (Actors \& Roles)}{14}{section.3.2}%
-\contentsline {subsection}{\numberline {3.2.1}Phân loại Người dùng}{14}{subsection.3.2.1}%
-\contentsline {subsubsection}{a. Học viên / Nghiên cứu sinh (Researchers)}{14}{subsection.3.2.1}%
-\contentsline {subsubsection}{b. Quản trị viên (System Administrators)}{14}{subsection.3.2.1}%
-\contentsline {subsubsection}{c. Nhà phát triển (Developers)}{14}{subsection.3.2.1}%
-\contentsline {subsection}{\numberline {3.2.2}Mô hình Phân quyền (RBAC)}{14}{subsection.3.2.2}%
-\contentsline {section}{\numberline {3.3}Sơ đồ Hoạt động Tổng quát (Visual Overview)}{14}{section.3.3}%
-\contentsline {subsection}{\numberline {3.3.1}Sơ đồ Use Case Tổng quát}{15}{subsection.3.3.1}%
-\contentsline {subsection}{\numberline {3.3.2}Sơ đồ Sequence Hệ thống}{15}{subsection.3.3.2}%
-\contentsline {subsubsection}{Các giai đoạn chính:}{15}{figure.3.2}%
-\contentsline {section}{\numberline {3.4}Đặc tả Yêu cầu Hệ thống Master (Master Requirements)}{16}{section.3.4}%
-\contentsline {subsection}{\numberline {3.4.1}Yêu cầu Chức năng (Functional Requirements)}{16}{subsection.3.4.1}%
-\contentsline {subsection}{\numberline {3.4.2}Yêu cầu Chức năng theo Tầng Kiến trúc (4 Tiers)}{16}{subsection.3.4.2}%
-\contentsline {subsubsection}{a. Tầng Ứng dụng (App Layer)}{16}{subsection.3.4.2}%
-\contentsline {subsubsection}{b. Tầng Mạng (Network Layer - Binary Protocol)}{16}{subsection.3.4.2}%
-\contentsline {subsubsection}{c. Tầng Máy chủ (Server Layer - Core \& Reasoning)}{16}{subsection.3.4.2}%
-\contentsline {subsubsection}{d. Tầng Lưu trữ (Storage Layer - Physical Engine)}{17}{subsection.3.4.2}%
-\contentsline {subsection}{\numberline {3.4.3}Bản đồ Chức năng KBQL (Detailed Registry)}{17}{subsection.3.4.3}%
-\contentsline {subsubsection}{Quản lý Kiểm soát (KCL - Security)}{17}{subsection.3.4.3}%
-\contentsline {subsubsection}{Định nghĩa Tri thức (KDL - Design)}{17}{subsection.3.4.3}%
-\contentsline {subsubsection}{Truy cập \& Suy diễn (KQL/RE - Solve)}{17}{subsection.3.4.3}%
-\contentsline {subsubsection}{Bảo trì \& Hệ thống (KML - Maintenance)}{17}{subsection.3.4.3}%
-\contentsline {subsubsection}{Quản lý Giao dịch (TCL - Transaction)}{17}{subsection.3.4.3}%
-\contentsline {subsection}{\numberline {3.4.4}Yêu cầu Phi chức năng (Non-functional)}{18}{subsection.3.4.4}%
-\contentsline {chapter}{\numberline {4}Kiến trúc Hệ thống và các Tầng xử lý}{19}{chapter.4}%
-\contentsline {section}{\numberline {4.1}Tổng quan Kiến trúc (System Overview)}{19}{section.4.1}%
-\contentsline {subsection}{\numberline {4.1.1}Mô hình Kiến trúc 4 Tầng}{19}{subsection.4.1.1}%
-\contentsline {subsection}{\numberline {4.1.2}Luồng Yêu cầu Tổng quát}{20}{subsection.4.1.2}%
-\contentsline {subsection}{\numberline {4.1.3}Bảo mật \& Chẩn đoán Hệ thống}{21}{subsection.4.1.3}%
-\contentsline {subsection}{\numberline {4.1.4}Công nghệ Sử dụng (Technology Stack)}{21}{subsection.4.1.4}%
-\contentsline {section}{\numberline {4.2}Tầng Ứng dụng (Application Layer)}{22}{section.4.2}%
-\contentsline {subsection}{\numberline {4.2.1}KBMS Studio (IDE Chuyên nghiệp)}{22}{subsection.4.2.1}%
-\contentsline {subsection}{\numberline {4.2.2}KBMS CLI (Command Line Interface)}{22}{subsection.4.2.2}%
-\contentsline {section}{\numberline {4.3}Tầng Mạng (Network Layer)}{22}{section.4.3}%
-\contentsline {subsection}{\numberline {4.3.1}Giao thức Nhị phân (Custom Binary Protocol)}{22}{subsection.4.3.1}%
-\contentsline {subsection}{\numberline {4.3.2}Quản lý Kết nối (Connection Manager)}{22}{subsection.4.3.2}%
-\contentsline {section}{\numberline {4.4}Tầng Máy chủ (Server Layer)}{23}{section.4.4}%
-\contentsline {subsection}{\numberline {4.4.1}Knowledge Manager (Orchestrator)}{23}{subsection.4.4.1}%
-\contentsline {subsection}{\numberline {4.4.2}KBQL Parser \& Compiler}{23}{subsection.4.4.2}%
-\contentsline {subsection}{\numberline {4.4.3}Reasoning Engine (Bộ máy Suy diễn)}{23}{subsection.4.4.3}%
-\contentsline {subsection}{\numberline {4.4.4}Dịch vụ Bảo mật \& Xác thực (Security \& Auth)}{23}{subsection.4.4.4}%
-\contentsline {subsection}{\numberline {4.4.5}Hệ thống Nhật ký \& Chẩn đoán (Native Logging)}{23}{subsection.4.4.5}%
-\contentsline {section}{\numberline {4.5}Tầng Lưu trữ (Storage Layer)}{24}{section.4.5}%
-\contentsline {subsection}{\numberline {4.5.1}Ánh xạ Thành phần Hệ thống}{24}{subsection.4.5.1}%
-\contentsline {subsection}{\numberline {4.5.2}Quản lý Trang (Physical Paging)}{24}{subsection.4.5.2}%
-\contentsline {subsection}{\numberline {4.5.3}Cấu trúc Chỉ mục (B+ Tree Indexing)}{24}{subsection.4.5.3}%
-\contentsline {subsection}{\numberline {4.5.4}Điều phối Truy cập Đồng thời (Latching \& Pinning)}{25}{subsection.4.5.4}%
-\contentsline {subsection}{\numberline {4.5.5}Bảo mật Dữ liệu (Encryption)}{25}{subsection.4.5.5}%
-\contentsline {section}{\numberline {4.6}Đối soát Yêu cầu Kỹ thuật (Requirements Spec)}{25}{section.4.6}%
-\contentsline {subsection}{\numberline {4.6.1}Yêu cầu Chức năng (Functional Requirements)}{25}{subsection.4.6.1}%
-\contentsline {subsection}{\numberline {4.6.2}Yêu cầu Phi chức năng (Non-functional Requirements)}{25}{subsection.4.6.2}%
-\contentsline {subsubsection}{Độ bền vững \& Nhất quán (ACID Compliance)}{25}{subsection.4.6.2}%
-\contentsline {subsubsection}{Hiệu năng \& Khả năng đáp ứng (Performance)}{25}{subsection.4.6.2}%
-\contentsline {subsubsection}{Bảo mật (Security)}{26}{subsection.4.6.2}%
-\contentsline {subsubsection}{Khả năng Giám sát (Observability)}{26}{subsection.4.6.2}%
-\contentsline {chapter}{\numberline {5}Định nghĩa Mô hình và Khái niệm}{27}{chapter.5}%
-\contentsline {section}{\numberline {5.1}Định nghĩa Mô hình tri thức dạng COKB}{27}{section.5.1}%
-\contentsline {subsection}{\numberline {5.1.1}Thành phần C (Concepts - Tập các khái niệm)}{28}{subsection.5.1.1}%
-\contentsline {subsection}{\numberline {5.1.2}Thành phần H (Hierarchy - Phân cấp tri thức)}{28}{subsection.5.1.2}%
-\contentsline {subsection}{\numberline {5.1.3}Thành phần R (Relations - Quan hệ ngữ nghĩa)}{29}{subsection.5.1.3}%
-\contentsline {subsection}{\numberline {5.1.4}Thành phần Rules \& Logic (Bộ máy suy diễn)}{31}{subsection.5.1.4}%
-\contentsline {subsection}{\numberline {5.1.5}Thành phần Ops \& Funcs (Bộ máy thực thi)}{31}{subsection.5.1.5}%
-\contentsline {subsection}{\numberline {5.1.6}Thực thể Đối tượng (ObjectInstance)}{32}{subsection.5.1.6}%
-\contentsline {subsection}{\numberline {5.1.7}Ví dụ minh họa thực tế cho mô hình COKB}{32}{subsection.5.1.7}%
-\contentsline {subsubsection}{Ví dụ về Concept (Khái niệm)}{33}{subsection.5.1.7}%
-\contentsline {subsubsection}{Ví dụ về Hierarchy (Phân cấp)}{33}{subsection.5.1.7}%
-\contentsline {subsubsection}{Ví dụ về Relation (Quan hệ)}{33}{subsection.5.1.7}%
-\contentsline {subsubsection}{Ví dụ về Rule \& Logic (Luật dẫn)}{33}{subsection.5.1.7}%
-\contentsline {subsubsection}{Ví dụ về Ops \& Funcs (Thực thi)}{33}{subsection.5.1.7}%
-\contentsline {subsubsection}{Ví dụ về ObjectInstance (Thực thể)}{33}{subsection.5.1.7}%
-\contentsline {chapter}{\numberline {6}Ngôn ngữ Truy vấn Tri thức KBQL}{34}{chapter.6}%
-\contentsline {section}{\numberline {6.1}Giới thiệu về Ngôn ngữ Truy vấn KBQL}{34}{section.6.1}%
-\contentsline {subsection}{\numberline {6.1.1}Triết lý Thiết kế}{34}{subsection.6.1.1}%
-\contentsline {subsection}{\numberline {6.1.2}Các Thành phần Chính của KBQL}{34}{subsection.6.1.2}%
-\contentsline {subsection}{\numberline {6.1.3}Hỗ trợ Chỉnh sửa (ALTER Support)}{34}{subsection.6.1.3}%
-\contentsline {subsection}{\numberline {6.1.4}Kiểu Dữ liệu Hỗ trợ (Data Types)}{35}{subsection.6.1.4}%
-\contentsline {subsection}{\numberline {6.1.5}Khái niệm Cốt lõi}{35}{subsection.6.1.5}%
-\contentsline {subsubsection}{Concept (Khái niệm)}{35}{subsection.6.1.5}%
-\contentsline {subsubsection}{Fact (Sự kiện)}{35}{subsection.6.1.5}%
-\contentsline {subsubsection}{Rule (Luật)}{35}{subsection.6.1.5}%
-\contentsline {section}{\numberline {6.2}Định nghĩa Tri thức (KDL)}{35}{section.6.2}%
-\contentsline {subsection}{\numberline {6.2.1}Quản lý Cơ sở Tri thức (Knowledge Base)}{35}{subsection.6.2.1}%
-\contentsline {subsection}{\numberline {6.2.2}Định nghĩa Khái niệm (Concept)}{36}{subsection.6.2.2}%
-\contentsline {subsubsection}{Tạo Concept (CREATE CONCEPT)}{36}{subsection.6.2.2}%
-\contentsline {subsubsection}{Chỉnh sửa Concept (ALTER CONCEPT)}{36}{subsection.6.2.2}%
-\contentsline {subsection}{\numberline {6.2.3}Quản lý Phân cấp (Hierarchy)}{37}{subsection.6.2.3}%
-\contentsline {subsubsection}{Cú pháp}{37}{subsection.6.2.3}%
-\contentsline {subsection}{\numberline {6.2.4}Định nghĩa Quan hệ (Relation)}{37}{subsection.6.2.4}%
-\contentsline {subsubsection}{Cú pháp}{37}{subsection.6.2.4}%
-\contentsline {subsection}{\numberline {6.2.5}Định nghĩa Luật (Rule)}{37}{subsection.6.2.5}%
-\contentsline {subsubsection}{Cú pháp}{37}{subsection.6.2.5}%
-\contentsline {subsection}{\numberline {6.2.6}Toán tử \& Hàm Tùy biến (Operator \& Function)}{37}{subsection.6.2.6}%
-\contentsline {subsubsection}{Cú pháp chung}{37}{subsection.6.2.6}%
-\contentsline {subsection}{\numberline {6.2.7}Công thức tự động (Computation)}{37}{subsection.6.2.7}%
-\contentsline {subsubsection}{Cú pháp}{37}{subsection.6.2.7}%
-\contentsline {subsection}{\numberline {6.2.8}Chỉ mục (Index)}{38}{subsection.6.2.8}%
-\contentsline {subsubsection}{Cú pháp}{38}{subsection.6.2.8}%
-\contentsline {subsection}{\numberline {6.2.9}Sự kiện tự động (Trigger)}{38}{subsection.6.2.9}%
-\contentsline {subsubsection}{Cú pháp}{38}{subsection.6.2.9}%
-\contentsline {section}{\numberline {6.3}Thao tác tri thức (KML)}{38}{section.6.3}%
-\contentsline {subsection}{\numberline {6.3.1}Chèn Sự kiện (INSERT)}{38}{subsection.6.3.1}%
-\contentsline {subsubsection}{Chèn một dòng đơn}{38}{subsection.6.3.1}%
-\contentsline {subsubsection}{Chèn hàng loạt (Bulk Insert)}{38}{subsection.6.3.1}%
-\contentsline {subsection}{\numberline {6.3.2}Cập nhật Sự kiện (UPDATE)}{38}{subsection.6.3.2}%
-\contentsline {subsubsection}{Cú pháp}{38}{subsection.6.3.2}%
-\contentsline {subsection}{\numberline {6.3.3}Xóa Sự kiện (DELETE)}{38}{subsection.6.3.3}%
-\contentsline {subsubsection}{Cú pháp}{39}{subsection.6.3.3}%
-\contentsline {subsection}{\numberline {6.3.4}Chuyển đổi Dữ liệu (IMPORT / EXPORT)}{39}{subsection.6.3.4}%
-\contentsline {subsubsection}{Xuất dữ liệu (EXPORT)}{39}{subsection.6.3.4}%
-\contentsline {subsubsection}{Nhập dữ liệu (IMPORT)}{39}{subsection.6.3.4}%
-\contentsline {subsection}{\numberline {6.3.5}Đặc điểm của KML trong KBMS}{39}{subsection.6.3.5}%
-\contentsline {section}{\numberline {6.4}Truy vấn và Suy diễn (KQL)}{39}{section.6.4}%
-\contentsline {subsection}{\numberline {6.4.1}Truy vấn Dữ liệu (SELECT)}{39}{subsection.6.4.1}%
-\contentsline {subsubsection}{Cú pháp đầy đủ}{39}{subsection.6.4.1}%
-\contentsline {subsubsection}{Các tính năng đặc biệt}{40}{subsection.6.4.1}%
-\contentsline {subsection}{\numberline {6.4.2}Giải quyết Tri thức (SOLVE)}{40}{subsection.6.4.2}%
-\contentsline {subsubsection}{Cú pháp}{40}{subsection.6.4.2}%
-\contentsline {subsubsection}{Cách hoạt động}{40}{subsection.6.4.2}%
-\contentsline {subsection}{\numberline {6.4.3}Kiểm tra Hệ thống (SHOW)}{40}{subsection.6.4.3}%
-\contentsline {subsection}{\numberline {6.4.4}Phân tích \& Mô tả (DESCRIBE / EXPLAIN)}{40}{subsection.6.4.4}%
-\contentsline {subsection}{\numberline {6.4.5}Truy vấn Metadata (Hệ thống)}{40}{subsection.6.4.5}%
-\contentsline {section}{\numberline {6.5}Kiểm soát truy cập (KCL)}{41}{section.6.5}%
-\contentsline {subsection}{\numberline {6.5.1}Quản lý Người dùng (USER Management)}{41}{subsection.6.5.1}%
-\contentsline {subsubsection}{Tạo Người dùng mới (CREATE USER)}{41}{subsection.6.5.1}%
-\contentsline {subsubsection}{Chỉnh sửa Người dùng (ALTER USER)}{41}{subsection.6.5.1}%
-\contentsline {subsubsection}{Xóa Người dùng (DROP USER)}{41}{subsection.6.5.1}%
-\contentsline {subsection}{\numberline {6.5.2}Quản trị Quyền hạn (GRANT / REVOKE)}{41}{subsection.6.5.2}%
-\contentsline {subsubsection}{Cấp quyền (GRANT)}{41}{subsection.6.5.2}%
-\contentsline {subsubsection}{Thu hồi quyền (REVOKE)}{41}{subsection.6.5.2}%
-\contentsline {subsection}{\numberline {6.5.3}Các thực thể Quản trị đặc biệt (System Admin)}{41}{subsection.6.5.3}%
-\contentsline {section}{\numberline {6.6}TCL: Ngôn ngữ Kiểm soát Giao dịch (Transaction Control Language)}{41}{section.6.6}%
-\contentsline {subsection}{\numberline {6.6.1}Một Giao dịch là gì? (Transaction)}{41}{subsection.6.6.1}%
-\contentsline {subsection}{\numberline {6.6.2}Các lệnh Giao dịch}{42}{subsection.6.6.2}%
-\contentsline {subsection}{\numberline {6.6.3}Các lệnh Giao dịch}{42}{subsection.6.6.3}%
-\contentsline {subsubsection}{Bắt đầu Giao dịch (BEGIN TRANSACTION)}{42}{subsection.6.6.3}%
-\contentsline {subsubsection}{Xác nhận Giao dịch (COMMIT)}{42}{subsection.6.6.3}%
-\contentsline {subsubsection}{Hủy bỏ Giao dịch (ROLLBACK)}{42}{subsection.6.6.3}%
-\contentsline {subsection}{\numberline {6.6.4}Vai trò của Giao dịch trong KBMS}{42}{subsection.6.6.4}%
-\contentsline {section}{\numberline {6.7}Bảo trì Hệ thống (Maintenance)}{42}{section.6.7}%
-\contentsline {subsection}{\numberline {6.7.1}Lệnh Bảo trì (MAINTENANCE)}{42}{subsection.6.7.1}%
-\contentsline {subsubsection}{Cú pháp}{42}{subsection.6.7.1}%
-\contentsline {subsection}{\numberline {6.7.2}Các hành động cụ thể}{42}{subsection.6.7.2}%
-\contentsline {subsubsection}{Thu gọn Bộ nhớ (VACUUM)}{42}{subsection.6.7.2}%
-\contentsline {subsubsection}{Đánh lại Chỉ mục (REINDEX)}{43}{subsection.6.7.2}%
-\contentsline {subsubsection}{Kiểm tra Tính nhất quán (CHECK CONSISTENCY)}{43}{subsection.6.7.2}%
-\contentsline {subsection}{\numberline {6.7.3}Tần suất thực hiện bản khuyến nghị}{43}{subsection.6.7.3}%
-\contentsline {section}{\numberline {6.8}Biểu thức và Hàm số (Expressions)}{43}{section.6.8}%
-\contentsline {subsection}{\numberline {6.8.1}Toán tử Cơ bản (Operators)}{43}{subsection.6.8.1}%
-\contentsline {subsubsection}{Toán tử Số học}{43}{subsection.6.8.1}%
-\contentsline {subsubsection}{Toán tử So sánh}{43}{subsection.6.8.1}%
-\contentsline {subsubsection}{Toán tử Logic}{43}{subsection.6.8.1}%
-\contentsline {subsection}{\numberline {6.8.2}Hàm Tích hợp (Built-in Functions)}{43}{subsection.6.8.2}%
-\contentsline {subsection}{\numberline {6.8.3}Cách sử dụng trong CALC()}{44}{subsection.6.8.3}%
-\contentsline {subsection}{\numberline {6.8.4}Tương tác với Biến (Variables)}{44}{subsection.6.8.4}%
-\contentsline {subsection}{\numberline {6.8.5}Lưu ý về Hiệu năng}{44}{subsection.6.8.5}%
-\contentsline {section}{\numberline {6.9}Các trường hợp Chuyên gia (Expert Cases)}{44}{section.6.9}%
-\contentsline {subsection}{\numberline {6.9.1}Giải ngược Phương trình (Inverse Problem Solving)}{44}{subsection.6.9.1}%
-\contentsline {subsubsection}{Kịch bản: Tính toán mạch điện}{44}{subsection.6.9.1}%
-\contentsline {subsection}{\numberline {6.9.2}Suy diễn Chùm (Chained Inference)}{44}{subsection.6.9.2}%
-\contentsline {subsubsection}{Kịch bản: Hệ thống Cảnh báo sớm}{44}{subsection.6.9.2}%
-\contentsline {subsection}{\numberline {6.9.3}Phân cấp Kế thừa Đa tầng (Recursive Property Propagation)}{44}{subsection.6.9.3}%
-\contentsline {subsubsection}{Kịch bản: Phân loại Hình học}{45}{subsection.6.9.3}%
-\contentsline {subsection}{\numberline {6.9.4}Ràng buộc nội bộ phức tạp (Internal Constraints)}{45}{subsection.6.9.4}%
-\contentsline {subsubsection}{Kịch bản: Quản lý nhân sự}{45}{subsection.6.9.4}%
-\contentsline {subsection}{\numberline {6.9.5}Giải hệ phương trình 2 ẩn (Newton-Raphson 2D)}{45}{subsection.6.9.5}%
-\contentsline {subsubsection}{Kịch bản: Tìm giao điểm đường thẳng}{45}{subsection.6.9.5}%
-\contentsline {subsection}{\numberline {6.9.6}Kết hợp Trigger và Rule (The Chain Reaction)}{45}{subsection.6.9.6}%
-\contentsline {subsubsection}{Kịch bản: Đồng bộ kho và đơn hàng}{45}{subsection.6.9.6}%
-\contentsline {section}{\numberline {6.10}Xác thực Ngôn ngữ (Language Validation)}{46}{section.6.10}%
-\contentsline {subsection}{\numberline {6.10.1}Kiểm thử Cú pháp (Parsing Test)}{46}{subsection.6.10.1}%
-\contentsline {subsection}{\numberline {6.10.2}Bằng chứng Thực nghiệm (Evidence)}{46}{subsection.6.10.2}%
-\contentsline {subsection}{\numberline {6.10.3}Nhật ký Lexer (Lexing Proof)}{46}{subsection.6.10.3}%
-\contentsline {chapter}{\numberline {7}Cơ chế Lưu trữ và Quản lý Dữ liệu nhị phân}{47}{chapter.7}%
-\contentsline {section}{\numberline {7.1}Tham chiếu Thuật ngữ Kỹ thuật (Technical Glossary)}{47}{section.7.1}%
-\contentsline {subsection}{\numberline {7.1.1}Đơn vị lưu trữ và Cấu trúc dữ liệu}{47}{subsection.7.1.1}%
-\contentsline {subsection}{\numberline {7.1.2}Quản lý Bộ nhớ và I/O}{47}{subsection.7.1.2}%
-\contentsline {subsection}{\numberline {7.1.3}Độ bền và An toàn dữ liệu}{47}{subsection.7.1.3}%
-\contentsline {subsection}{\numberline {7.1.4}Cơ chế chuyển đổi dữ liệu}{48}{subsection.7.1.4}%
-\contentsline {section}{\numberline {7.2}Tổng quan về Kiến trúc Lưu trữ (Storage Architecture)}{48}{section.7.2}%
-\contentsline {subsection}{\numberline {7.2.1}Hệ thống Phân tầng I/O (Multi-layered I/O)}{48}{subsection.7.2.1}%
-\contentsline {subsection}{\numberline {7.2.2}Sơ đồ Kiến trúc Thành phần (Component Architecture)}{48}{subsection.7.2.2}%
-\contentsline {subsection}{\numberline {7.2.3}Quản lý Bộ đệm (Buffer Pool Manager)}{48}{subsection.7.2.3}%
-\contentsline {subsubsection}{Thuật toán thay thế LRU (Least Recently Used)}{49}{subsection.7.2.3}%
-\contentsline {subsection}{\numberline {7.2.4}Hạn mức Kỹ thuật của Kiến trúc V3}{49}{subsection.7.2.4}%
-\contentsline {subsection}{\numberline {7.2.5}Lộ trình Triển khai Kỹ thuật}{49}{subsection.7.2.5}%
-\contentsline {section}{\numberline {7.3}Giải phẫu Trang vật lý (Page Anatomy)}{49}{section.7.3}%
-\contentsline {subsection}{\numberline {7.3.1}Cấu trúc nội tại của Trang (Internal Structure)}{49}{subsection.7.3.1}%
-\contentsline {subsection}{\numberline {7.3.2}Đặc tả Header (24-Byte Layout)}{50}{subsection.7.3.2}%
-\contentsline {subsection}{\numberline {7.3.3}Quản lý bản ghi biến thiên (Slotted Page Logic)}{50}{subsection.7.3.3}%
-\contentsline {subsection}{\numberline {7.3.4}Lợi ích của kiến trúc 16KB}{50}{subsection.7.3.4}%
-\contentsline {section}{\numberline {7.4}Chỉ mục Cây B+ Tree (Indexing Structure)}{50}{section.7.4}%
-\contentsline {subsection}{\numberline {7.4.1}Cấu trúc Đa tầng (Tiered Structure)}{51}{subsection.7.4.1}%
-\contentsline {subsection}{\numberline {7.4.2}Các Thuật toán Vận hành Cốt lõi}{51}{subsection.7.4.2}%
-\contentsline {subsubsection}{Tìm kiếm (Search) - $O(\log _b n)$}{51}{subsection.7.4.2}%
-\contentsline {subsubsection}{Chèn và Tách trang (Insert \& Split)}{51}{subsection.7.4.2}%
-\contentsline {subsubsection}{Xóa và Gộp trang (Delete \& Merge)}{52}{Item.59}%
-\contentsline {subsection}{\numberline {7.4.3}Clustered Index trong KBMS}{52}{subsection.7.4.3}%
-\contentsline {section}{\numberline {7.5}Ánh xạ Mô hình sang Dữ liệu nhị phân (Model Serialization)}{52}{section.7.5}%
-\contentsline {subsection}{\numberline {7.5.1}Chiến lược Nhất quán và Linh hoạt}{52}{subsection.7.5.1}%
-\contentsline {subsection}{\numberline {7.5.2}Đặc tả Kỹ thuật của `ObjectInstance` Tuple}{52}{subsection.7.5.2}%
-\contentsline {subsubsection}{Ánh xạ Logic trường dữ liệu}{53}{table.7.3}%
-\contentsline {subsection}{\numberline {7.5.3}Tuần tự hóa Siêu dữ liệu (Metadata Serialization)}{53}{subsection.7.5.3}%
-\contentsline {subsubsection}{Quy trình lưu trữ Concept \& KnowledgeBase}{53}{subsection.7.5.3}%
-\contentsline {subsection}{\numberline {7.5.4}Cơ chế Phục hồi Kiểu dữ liệu (Hydration \& Casting)}{53}{subsection.7.5.4}%
-\contentsline {section}{\numberline {7.6}Độ bền \& Nhật ký ghi trước (Durability \& WAL)}{53}{section.7.6}%
-\contentsline {subsection}{\numberline {7.6.1}Giao thức Write-Ahead Logging (WAL)}{54}{subsection.7.6.1}%
-\contentsline {subsection}{\numberline {7.6.2}Số tuần tự nhật ký (LSN - Log Sequence Number)}{54}{subsection.7.6.2}%
-\contentsline {subsection}{\numberline {7.6.3}Quy trình Phục hồi sau sự cố (Recovery)}{54}{subsection.7.6.3}%
-\contentsline {subsection}{\numberline {7.6.4}Cơ chế Checkpoint}{55}{subsection.7.6.4}%
-\contentsline {section}{\numberline {7.7}Quản lý Vật lý \& Mã hóa (Physical Disk Manager)}{55}{section.7.7}%
-\contentsline {subsection}{\numberline {7.7.1}Ánh xạ Trang vật lý (Physical Block Mapping)}{55}{subsection.7.7.1}%
-\contentsline {subsection}{\numberline {7.7.2}Mã hóa dữ liệu tĩnh (AES-256 Encryption)}{55}{subsection.7.7.2}%
-\contentsline {subsection}{\numberline {7.7.3}Quản lý tệp tin và Cấp phát (Allocation)}{55}{subsection.7.7.3}%
-\contentsline {section}{\numberline {7.8}Thực tế hóa: Từ Mô hình đối tượng sang Chuỗi nhi phân}{56}{section.7.8}%
-\contentsline {subsection}{\numberline {7.8.1}Đối tượng đầu vào (C\# Layer)}{56}{subsection.7.8.1}%
-\contentsline {subsection}{\numberline {7.8.2}Tuần tự hóa thành Tuple (Serialization)}{56}{subsection.7.8.2}%
-\contentsline {subsection}{\numberline {7.8.3}Bản đồ vị trí trong Trang (Slotted Page Mapping)}{56}{subsection.7.8.3}%
-\contentsline {subsection}{\numberline {7.8.4}Biểu diễn dưới dạng mã Hex (Hex Dump Trace)}{57}{subsection.7.8.4}%
-\contentsline {chapter}{\numberline {8}Bộ máy Suy diễn và Thuật toán Bao đóng}{58}{chapter.8}%
-\contentsline {subsection}{\numberline {8.0.1}Kiến trúc Điều phối Reasoning}{58}{subsection.8.0.1}%
-\contentsline {subsection}{\numberline {8.0.2}Nguyên lý Đóng kín Tri thức (Knowledge Closure)}{59}{subsection.8.0.2}%
-\contentsline {subsection}{\numberline {8.0.3}Biểu diễn Tri thức (Knowledge Representation)}{59}{subsection.8.0.3}%
-\contentsline {subsubsection}{Các thành phần của một Concept}{59}{subsection.8.0.3}%
-\contentsline {subsection}{\numberline {8.0.4}Quy trình Suy diễn (Reasoning Lifecycle)}{60}{subsection.8.0.4}%
-\contentsline {subsection}{\numberline {8.0.5}Chiến lược Suy diễn: Forward vs. Backward Chaining}{60}{subsection.8.0.5}%
-\contentsline {subsubsection}{Tại sao KBMS V3 chọn Forward Chaining?}{60}{subsection.8.0.5}%
-\contentsline {subsubsection}{Giới hạn An toàn (Safety Limit)}{60}{Item.88}%
-\contentsline {subsubsection}{IS-A (Kế thừa)}{60}{Item.88}%
-\contentsline {subsubsection}{PART-OF (Thành phần)}{60}{Item.88}%
-\contentsline {subsubsection}{CONSTRUCT\_RELATIONS (Quy tắc quan hệ)}{61}{Item.88}%
-\contentsline {subsection}{\numberline {8.0.6}Giải trình và Truy vết (Traceability)}{61}{subsection.8.0.6}%
-\contentsline {subsection}{\numberline {8.0.7}Kế hoạch Triển khai Mã nguồn Engine (Implementation Strategy)}{61}{subsection.8.0.7}%
-\contentsline {subsubsection}{Giai đoạn 1: Tiền xử lý \& Xây dựng Cấu trúc Tri thức (Preprocessing)}{61}{subsection.8.0.7}%
-\contentsline {subsubsection}{Giai đoạn 2: Lõi Suy diễn Lan truyền (Deductive Core \& Propagation)}{61}{subsection.8.0.7}%
-\contentsline {subsubsection}{Giai đoạn 3: Tích hợp Lõi giải Toán học (Mathematical Solvers)}{61}{subsection.8.0.7}%
-\contentsline {subsubsection}{Giai đoạn 4: Bảo vệ Hệ thống \& Truy vết (Safety Constraints \& Traceability)}{61}{subsection.8.0.7}%
-\contentsline {subsection}{\numberline {8.0.8}Các Thuật toán Suy diễn Cốt lõi (Forward Chaining - FClosure)}{61}{subsection.8.0.8}%
-\contentsline {subsubsection}{Các Giai đoạn Thực thi (Phases)}{62}{subsection.8.0.8}%
-\contentsline {subsubsection}{Ví dụ Chạy khô (FClosure Dry Run)}{62}{Item.93}%
-\contentsline {subsubsection}{Sơ đồ Luồng FClosure (Chi tiết Server-side)}{62}{Item.93}%
-\contentsline {subsection}{\numberline {8.0.9}Giải phương trình 1D (Brent's Method - RC5)}{63}{subsection.8.0.9}%
-\contentsline {subsubsection}{Độ hội tụ (Convergence)}{63}{subsection.8.0.9}%
-\contentsline {subsection}{\numberline {8.0.10}Giải hệ phương trình 2D (Newton-Raphson - RC5)}{63}{subsection.8.0.10}%
-\contentsline {subsubsection}{Ma trận Jacobian \& Công thức cập nhật}{63}{subsection.8.0.10}%
-\contentsline {subsection}{\numberline {8.0.11}Phân tích Độ phức tạp (Complexity Analysis)}{63}{subsection.8.0.11}%
-\contentsline {subsection}{\numberline {8.0.12}Nhật ký Suy diễn (Reasoning Trace Example)}{63}{subsection.8.0.12}%
-\contentsline {section}{\numberline {8.1}Xác thực Suy diễn (Reasoning Validation)}{64}{section.8.1}%
-\contentsline {subsection}{\numberline {8.1.1}Kiểm thử Thuật toán F-Closure}{64}{subsection.8.1.1}%
-\contentsline {subsubsection}{Minh chứng Mã nguồn (F-Closure):}{64}{table.8.2}%
-\contentsline {subsubsection}{Minh chứng Kết quả (Log Trace):}{64}{figure.8.4}%
-\contentsline {subsection}{\numberline {8.1.2}Kiểm thử Logic Toán học (Solver Testing)}{64}{subsection.8.1.2}%
-\contentsline {chapter}{\numberline {9}Giao thức Mạng và Truyền tải Dữ liệu}{65}{chapter.9}%
-\contentsline {section}{\numberline {9.1}Giao thức Mạng (Network Protocol)}{65}{section.9.1}%
-\contentsline {section}{\numberline {9.2}Giao thức Truyền dẫn Nhị phân (Binary Protocol)}{65}{section.9.2}%
-\contentsline {subsection}{\numberline {9.2.1}Cấu trúc Gói tin (Packet Structure)}{65}{subsection.9.2.1}%
-\contentsline {subsection}{\numberline {9.2.2}Các loại Thông điệp (Message Types)}{65}{subsection.9.2.2}%
-\contentsline {subsection}{\numberline {9.2.3}Thuật toán Xử lý Luồng tin (Streaming Algorithm)}{66}{subsection.9.2.3}%
-\contentsline {subsection}{\numberline {9.2.4}Bảo mật và Kết nối}{66}{subsection.9.2.4}%
-\contentsline {subsection}{\numberline {9.2.5}Kiến trúc Xử lý Chịu tải (Concurrency Threading)}{66}{subsection.9.2.5}%
-\contentsline {subsection}{\numberline {9.2.6}Vòng đời của một Truy vấn (Query Lifecycle)}{67}{subsection.9.2.6}%
-\contentsline {subsection}{\numberline {9.2.7}Luồng xử lý Packet (Packet Processing Flow)}{67}{subsection.9.2.7}%
-\contentsline {subsection}{\numberline {9.2.8}Phân tích Từ vựng (Lexer)}{69}{subsection.9.2.8}%
-\contentsline {subsection}{\numberline {9.2.9}Phân tích Cú pháp (Parser \& AST)}{69}{subsection.9.2.9}%
-\contentsline {subsection}{\numberline {9.2.10}Thực thi và Cấp phát (Executor \& Router)}{69}{subsection.9.2.10}%
-\contentsline {subsection}{\numberline {9.2.11}Lập kế hoạch Thực thi (Query Execution Plan)}{69}{subsection.9.2.11}%
-\contentsline {subsection}{\numberline {9.2.12}Ví dụ luồng xử lý thực tế}{69}{subsection.9.2.12}%
-\contentsline {subsection}{\numberline {9.2.13}Kế hoạch Triển khai Mã Nguồn Backend (Implementation Strategy)}{70}{subsection.9.2.13}%
-\contentsline {subsubsection}{Giai đoạn 1: Quản trị Kết nối (TCP Listener \& Async Handle)}{70}{subsection.9.2.13}%
-\contentsline {subsubsection}{Giai đoạn 2: Mã hóa Giao thức Nhị phân (Packet Binary Protocol)}{70}{subsection.9.2.13}%
-\contentsline {subsubsection}{Giai đoạn 3: Phân tích Cú Pháp Đệ Quy (Lexer \& AST Parser)}{70}{subsection.9.2.13}%
-\contentsline {subsubsection}{Giai đoạn 4: Bảo mật \& Phiên Giao dịch (Session \& Security)}{70}{subsection.9.2.13}%
-\contentsline {section}{\numberline {9.3}Xác thực Giao thức (Protocol Validation)}{70}{section.9.3}%
-\contentsline {subsection}{\numberline {9.3.1}Kiểm thử Gói tin Nhị phân (Binary Packet Testing)}{70}{subsection.9.3.1}%
-\contentsline {subsubsection}{Minh chứng Mã nguồn (Handshake):}{70}{subsection.9.3.1}%
-\contentsline {subsubsection}{Minh chứng Luồng dữ liệu (Gói tin):}{70}{figure.9.3}%
-\contentsline {subsection}{\numberline {9.3.2}Kiểm thử Tải Kết nối (Concurrency Proof)}{70}{subsection.9.3.2}%
-\contentsline {subsubsection}{Minh chứng Kết quả (Concurrency):}{71}{subsection.9.3.2}%
-\contentsline {chapter}{\numberline {10}Hệ thống Máy chủ và Quản trị Tài nguyên}{72}{chapter.10}%
-\contentsline {section}{\numberline {10.1}Điều phối Mạng \& Luồng Hoạt động}{72}{section.10.1}%
-\contentsline {subsection}{\numberline {10.1.1}Mô hình Xử lý Luồng (Async Threading Model)}{72}{subsection.10.1.1}%
-\contentsline {subsection}{\numberline {10.1.2}Quản lý Phiên (Session Management)}{73}{subsection.10.1.2}%
-\contentsline {subsection}{\numberline {10.1.3}Vòng đời của một Giao dịch (Lifecycle)}{73}{subsection.10.1.3}%
-\contentsline {section}{\numberline {10.2}Kiến trúc Bộ não Điều phối (Knowledge Engine)}{73}{section.10.2}%
-\contentsline {subsection}{\numberline {10.2.1}Cơ chế Bộ hạ lệnh (The Dispatcher)}{73}{subsection.10.2.1}%
-\contentsline {subsubsection}{Chức năng chính:}{73}{subsection.10.2.1}%
-\contentsline {subsection}{\numberline {10.2.2}Các Công nghệ Liên kết Tri thức (Knowledge Binding)}{74}{subsection.10.2.2}%
-\contentsline {subsubsection}{Auto-expand Variables (Tự nở rộng biến)}{74}{subsection.10.2.2}%
-\contentsline {subsubsection}{Triggers Registry}{74}{subsection.10.2.2}%
-\contentsline {subsubsection}{V3 Data Router}{74}{subsection.10.2.2}%
-\contentsline {subsection}{\numberline {10.2.3}Quản lý Giao dịch (Transaction Control)}{74}{subsection.10.2.3}%
-\contentsline {section}{\numberline {10.3}Hạ tầng V3 (Infrastructure)}{74}{section.10.3}%
-\contentsline {subsection}{\numberline {10.3.1}Cơ chế Tự nạp Hệ thống (System Bootstrapper)}{74}{subsection.10.3.1}%
-\contentsline {subsection}{\numberline {10.3.2}Các Danh mục Chuyên biệt (Catalogs)}{75}{subsection.10.3.2}%
-\contentsline {subsection}{\numberline {10.3.3}Hệ thống Cập nhật \& Di trú (Updater \& Migrator)}{75}{subsection.10.3.3}%
-\contentsline {subsubsection}{`SystemUpdater.cs`}{75}{subsection.10.3.3}%
-\contentsline {subsubsection}{`V2ToV3Converter.cs`}{75}{subsection.10.3.3}%
-\contentsline {section}{\numberline {10.4}Quản trị \& Đo lường từ xa (Telemetry)}{75}{section.10.4}%
-\contentsline {subsection}{\numberline {10.4.1}Giám sát Hệ thống (Stats \& Sessions)}{76}{subsection.10.4.1}%
-\contentsline {subsection}{\numberline {10.4.2}Hệ thống Nhật ký Luồng (Live Log Streaming)}{76}{subsection.10.4.2}%
-\contentsline {subsubsection}{`SystemLogger.cs`}{76}{subsection.10.4.2}%
-\contentsline {subsubsection}{`LOGS\_STREAM` Protocol}{76}{Item.120}%
-\contentsline {subsection}{\numberline {10.4.3}Lệnh Quản trị Tối cao (Management Command)}{76}{subsection.10.4.3}%
-\contentsline {section}{\numberline {10.5}Xác thực Máy chủ (Server Validation)}{76}{section.10.5}%
-\contentsline {subsection}{\numberline {10.5.1}Kiểm thử Khởi động (Startup Proof)}{76}{subsection.10.5.1}%
-\contentsline {subsection}{\numberline {10.5.2}Kiểm thử Tích hợp Đa luồng (Multi-threading Proof)}{77}{subsection.10.5.2}%
-\contentsline {subsubsection}{Minh chứng Mã nguồn (Integration):}{77}{table.10.1}%
-\contentsline {subsubsection}{Minh chứng Kết quả (111 Tests):}{77}{figure.10.5}%
-\contentsline {subsection}{\numberline {10.5.3}Xác thực Bảo mật (Security \& RBAC)}{77}{subsection.10.5.3}%
-\contentsline {subsubsection}{Minh chứng Mã nguồn (Security):}{77}{subsection.10.5.3}%
-\contentsline {subsubsection}{Minh chứng Kết quả (Access Denied):}{77}{figure.10.7}%
-\contentsline {chapter}{\numberline {11}Bộ Phân tích Cú pháp và Trình biên dịch}{78}{chapter.11}%
-\contentsline {section}{\numberline {11.1}Lexing: Phân tích Từ vựng chuyên sâu (Lexer)}{78}{section.11.1}%
-\contentsline {subsection}{\numberline {11.1.1}Cơ chế Quét (Scanning Mechanism)}{78}{subsection.11.1.1}%
-\contentsline {subsubsection}{Quy trình xử lý (`ScanToken`):}{78}{figure.11.1}%
-\contentsline {subsection}{\numberline {11.1.2}Xử lý các Hằng số (Literals)}{78}{subsection.11.1.2}%
-\contentsline {subsubsection}{Hằng số Số (`NumberLiteral`)}{78}{subsection.11.1.2}%
-\contentsline {subsubsection}{Hằng số Chuỗi (`StringLiteral`)}{79}{subsection.11.1.2}%
-\contentsline {subsection}{\numberline {11.1.3}Quản lý Từ khóa (Keyword Dictionary)}{79}{subsection.11.1.3}%
-\contentsline {section}{\numberline {11.2}Tầng Parser: Cơ chế Đệ quy Đi xuống (Recursive Descent)}{79}{section.11.2}%
-\contentsline {subsection}{\numberline {11.2.1}Cơ chế Điều hướng (Sentence Dispatching)}{79}{subsection.11.2.1}%
-\contentsline {subsubsection}{Hàm `ParseStatement()`}{79}{subsection.11.2.1}%
-\contentsline {subsection}{\numberline {11.2.2}Kỹ thuật Dự đoán \& Tiêu thụ (Look-ahead)}{80}{subsection.11.2.2}%
-\contentsline {subsection}{\numberline {11.2.3}Phân tích Khối Lệnh phức tạp (Complex Parsing)}{80}{subsection.11.2.3}%
-\contentsline {section}{\numberline {11.3}Hệ thống Cây cú pháp Trừu tượng (AST Nodes)}{80}{section.11.3}%
-\contentsline {subsection}{\numberline {11.3.1}Hệ phả KDL (Knowledge Definition Language)}{81}{subsection.11.3.1}%
-\contentsline {subsection}{\numberline {11.3.2}Hệ phả KQL \& KML (Query \& Maintenance)}{82}{subsection.11.3.2}%
-\contentsline {subsubsection}{Nhóm KQL (Knowledge Query Language)}{83}{figure.11.5}%
-\contentsline {subsubsection}{Nhóm KML (Knowledge Maintenance Language)}{83}{figure.11.5}%
-\contentsline {subsection}{\numberline {11.3.3}Hệ phả KCL \& TCL (Control \& Transaction)}{83}{subsection.11.3.3}%
-\contentsline {subsection}{\numberline {11.3.4}Đặc điểm chung của mọi Node}{84}{subsection.11.3.4}%
-\contentsline {section}{\numberline {11.4}Bộ máy Đánh giá Biểu thức (Expression Engine)}{84}{section.11.4}%
-\contentsline {subsection}{\numberline {11.4.1}Phân tích Biểu thức Nhị phân (Binary Expressions)}{84}{subsection.11.4.1}%
-\contentsline {subsubsection}{Thứ tự ưu tiên (Precedence)}{84}{subsection.11.4.1}%
-\contentsline {subsection}{\numberline {11.4.2}Các Đơn vị Biểu thức Cốt lõi (Core Expression Units)}{85}{subsection.11.4.2}%
-\contentsline {subsubsection}{`VariableNode` (Biến tri thức)}{85}{subsection.11.4.2}%
-\contentsline {subsubsection}{`LiteralNode` (Hằng số)}{85}{subsection.11.4.2}%
-\contentsline {subsubsection}{`FunctionCallNode` (Hàm gọi)}{85}{subsection.11.4.2}%
-\contentsline {subsection}{\numberline {11.4.3}Xử lý Biểu thức Đơn phân (Unary Expressions)}{85}{subsection.11.4.3}%
-\contentsline {section}{\numberline {11.5}Xác thực Bộ biên dịch (Parser Validation)}{85}{section.11.5}%
-\contentsline {subsection}{\numberline {11.5.1}Thống kê Độ bao phủ Testing}{85}{subsection.11.5.1}%
-\contentsline {subsubsection}{Minh chứng Mã nguồn (Parser):}{85}{subsection.11.5.1}%
-\contentsline {subsubsection}{Minh chứng Kết quả (21k Tests):}{86}{figure.11.7}%
-\contentsline {subsection}{\numberline {11.5.2}Đặc tả Lỗi Cú pháp (Syntax Error Proof)}{86}{subsection.11.5.2}%
-\contentsline {subsubsection}{Minh chứng Lỗi (Studio Editor):}{86}{subsection.11.5.2}%
-\contentsline {chapter}{\numberline {12}Giao diện Dòng lệnh (CLI)}{87}{chapter.12}%
-\contentsline {section}{\numberline {12.1}Tổng quan Giao diện Dòng lệnh (CLI)}{87}{section.12.1}%
-\contentsline {subsection}{\numberline {12.1.1}Các Tính năng Chính}{87}{subsection.12.1.1}%
-\contentsline {subsection}{\numberline {12.1.2}Các Lệnh Hệ thống Đặc biệt}{87}{subsection.12.1.2}%
-\contentsline {subsection}{\numberline {12.1.3}Trải nghiệm người dùng (UX)}{87}{subsection.12.1.3}%
-\contentsline {section}{\numberline {12.2}Luồng Xử lý Dữ liệu CLI}{88}{section.12.2}%
-\contentsline {subsection}{\numberline {12.2.1}Luồng Gửi lệnh (Command Execution Flow)}{88}{subsection.12.2.1}%
-\contentsline {subsection}{\numberline {12.2.2}Bộ máy Phân tích Phản hồi (`ResponseParser`)}{88}{subsection.12.2.2}%
-\contentsline {subsubsection}{Quy trình hiển thị:}{88}{subsection.12.2.2}%
-\contentsline {subsection}{\numberline {12.2.3}Chế độ Chạy Script (Batch Source)}{88}{subsection.12.2.3}%
-\contentsline {subsection}{\numberline {12.2.4}Đa luồng \& Kết nối (Multi-threading)}{89}{subsection.12.2.4}%
-\contentsline {section}{\numberline {12.3}Các Trường hợp Sử dụng CLI}{90}{section.12.3}%
-\contentsline {subsection}{\numberline {12.3.1}Kịch bản 1: Phân tích Cấu trúc (Structure Analysis)}{90}{subsection.12.3.1}%
-\contentsline {subsection}{\numberline {12.3.2}Kịch bản 2: Tự động hóa Nạp Tri thức (Batch Loading)}{90}{subsection.12.3.2}%
-\contentsline {subsection}{\numberline {12.3.3}Kịch bản 3: Kiểm tra Kết nối \& An ninh (Security Check)}{90}{subsection.12.3.3}%
-\contentsline {section}{\numberline {12.4}Xác thực CLI (CLI Validation)}{91}{section.12.4}%
-\contentsline {subsection}{\numberline {12.4.1}Kiểm thử Phiên làm việc (Session Logs)}{91}{subsection.12.4.1}%
-\contentsline {subsubsection}{Minh chứng Mã nguồn (CLI System):}{91}{subsection.12.4.1}%
-\contentsline {subsubsection}{Minh chứng Kết quả (Session Log):}{91}{figure.12.4}%
-\contentsline {subsection}{\numberline {12.4.2}Kiểm thử Định dạng Kết quả}{91}{subsection.12.4.2}%
-\contentsline {chapter}{\numberline {13}Môi trường Phát triển KBMS Studio}{92}{chapter.13}%
-\contentsline {section}{\numberline {13.1}Tổng quan \& Tính năng KBMS Studio là một môi trường phát triển tích hợp (IDE) hiện đại, được xây dựng trên nền tảng \textbf {Electron} và \textbf {React}, cung cấp trải nghiệm trực quan hóa tri thức thay vì chỉ thao tác dòng lệnh thuần túy.}{92}{section.13.1}%
-\contentsline {subsection}{\numberline {13.1.1}Các Phân hệ Cốt lõi}{92}{subsection.13.1.1}%
-\contentsline {subsubsection}{a. Knowledge Designer (Trình thiết kế trực quan)}{92}{subsection.13.1.1}%
-\contentsline {subsubsection}{b. Query Console (Cửa sổ truy vấn Monaco)}{92}{subsection.13.1.1}%
-\contentsline {subsubsection}{c. Management Dashboard (Bảng điều khiển quản diện)}{92}{subsection.13.1.1}%
-\contentsline {subsubsection}{d. Real-time Notification System}{92}{subsection.13.1.1}%
-\contentsline {subsubsection}{e. Advanced Settings \& Multi-server}{92}{subsection.13.1.1}%
-\contentsline {subsection}{\numberline {13.1.2}Tiêu chuẩn Giao diện (Aesthetics)}{93}{subsection.13.1.2}%
-\contentsline {section}{\numberline {13.2}Kiến trúc 4 Tầng \& Luồng Xử lý Chi tiết}{93}{section.13.2}%
-\contentsline {subsection}{\numberline {13.2.1}Sơ đồ Luồng xử lý 4 Tầng (4-Tier Flow)}{93}{subsection.13.2.1}%
-\contentsline {subsection}{\numberline {13.2.2}Đặc tả các Tầng}{93}{subsection.13.2.2}%
-\contentsline {subsubsection}{Tầng 1: Application UI (React/Electron)}{93}{subsection.13.2.2}%
-\contentsline {subsubsection}{Tầng 2: Network \& Protocol (Socket)}{93}{subsection.13.2.2}%
-\contentsline {subsubsection}{Tầng 3: Knowledge Engine (Server)}{94}{subsection.13.2.2}%
-\contentsline {subsubsection}{Tầng 4: Storage Layer (Binary Data)}{94}{subsection.13.2.2}%
-\contentsline {subsection}{\numberline {13.2.3}Luồng Thông báo Thời gian thực (Notification Flow)}{94}{subsection.13.2.3}%
-\contentsline {subsection}{\numberline {13.2.4}Quy trình Đăng nhập (Authentication Flow)}{94}{subsection.13.2.4}%
-\contentsline {section}{\numberline {13.3}Các Trường hợp Sử dụng Studio}{94}{section.13.3}%
-\contentsline {subsection}{\numberline {13.3.1}Kịch bản 1: Thiết kế Bản đồ Tri thức Hình học (KDL Design)}{95}{subsection.13.3.1}%
-\contentsline {subsection}{\numberline {13.3.2}Kịch bản 2: Giải toán Tự động (Reasoning \& Solving)}{95}{subsection.13.3.2}%
-\contentsline {subsection}{\numberline {13.3.3}Kịch bản 3: Quản trị Hệ thống (Advanced Management)}{96}{subsection.13.3.3}%
-\contentsline {subsection}{\numberline {13.3.4}Kịch bản 4: Giám sát An ninh \& Phiên làm việc (Security \& Session Management)}{97}{subsection.13.3.4}%
-\contentsline {subsection}{\numberline {13.3.5}Kịch bản 5: Phân tích Nhật ký Chuyên sâu (Deep Log Analysis)}{97}{subsection.13.3.5}%
-\contentsline {subsection}{\numberline {13.3.6}Tổng kết Giá trị}{98}{subsection.13.3.6}%
-\contentsline {section}{\numberline {13.4}Xác thực Studio (Studio Validation)}{98}{section.13.4}%
-\contentsline {subsection}{\numberline {13.4.1}Kiểm thử IntelliSense \& Đồ họa}{98}{subsection.13.4.1}%
-\contentsline {subsubsection}{Minh chứng Mã nguồn (Dashboard API):}{99}{subsection.13.4.1}%
-\contentsline {subsubsection}{Minh chứng Giao diện (Studio IDE):}{99}{figure.13.8}%
-\contentsline {subsection}{\numberline {13.4.2}Kiểm thử Giám sát \& Quản lý (Management Proof)}{99}{subsection.13.4.2}%
-\contentsline {subsubsection}{Minh chứng Kết quả (Live Logs):}{99}{subsection.13.4.2}%
-\contentsline {chapter}{\numberline {14}Cài đặt, Kiểm thử và Đánh giá Hiệu năng}{100}{chapter.14}%
-\contentsline {section}{\numberline {14.1}Hướng dẫn Cài đặt \& Triển khai}{100}{section.14.1}%
-\contentsline {subsection}{\numberline {14.1.1}Yêu cầu Tiên quyết (Prerequisites)}{100}{subsection.14.1.1}%
-\contentsline {subsection}{\numberline {14.1.2}Cài đặt trên Windows 10/11}{100}{subsection.14.1.2}%
-\contentsline {subsubsection}{Bước 1: Cài đặt .NET 8 \& Node.js}{100}{subsection.14.1.2}%
-\contentsline {section}{\numberline {14.2}Cài đặt dependencies}{101}{section.14.2}%
-\contentsline {subsection}{\numberline {14.2.1}Xác thực Cài đặt (Health Check)}{101}{subsection.14.2.1}%
-\contentsline {section}{\numberline {14.3}Kịch bản Kiểm thử Hệ thống}{101}{section.14.3}%
-\contentsline {subsection}{\numberline {14.3.1}Môi trường Cấu hình}{101}{subsection.14.3.1}%
-\contentsline {subsection}{\numberline {14.3.2}Kết quả 12 Kịch bản tiêu chuẩn}{102}{subsection.14.3.2}%
-\contentsline {subsection}{\numberline {14.3.3}Tổng hợp Kết quả Kiểm thử Toàn hệ thống}{102}{subsection.14.3.3}%
-\contentsline {section}{\numberline {14.4}Đánh giá Hiệu năng (Performance Benchmarks)}{102}{section.14.4}%
-\contentsline {subsection}{\numberline {14.4.1}Hiệu năng theo Tầng Kiến trúc}{102}{subsection.14.4.1}%
-\contentsline {subsection}{\numberline {14.4.2}Hiệu năng Truy vấn Khối lượng (Scale Testing)}{102}{subsection.14.4.2}%
-\contentsline {subsection}{\numberline {14.4.3}Nhật ký Xác thực Hiệu năng}{103}{subsection.14.4.3}%
-\contentsline {section}{\numberline {14.5}Các Bộ Dữ liệu Kiểm thử (Test Data Sets)}{103}{section.14.5}%
-\contentsline {subsection}{\numberline {14.5.1}Danh sách Datasets Chuẩn}{103}{subsection.14.5.1}%
-\contentsline {subsection}{\numberline {14.5.2}Chi tiết Bộ dữ liệu trọng tâm: "Charlie" (Suy diễn Đệ quy)}{103}{subsection.14.5.2}%
-\contentsline {subsubsection}{Logic Luật áp dụng:}{103}{table.14.6}%
-\contentsline {subsection}{\numberline {14.5.3}Nhật ký Logic suy diễn (Log Trace)}{103}{subsection.14.5.3}%
-\contentsline {chapter}{\numberline {15}Tài liệu Tham khảo}{105}{chapter.15}%
-\contentsline {section}{\numberline {15.1}Danh mục Tài liệu tham khảo (References)}{105}{section.15.1}%
-\contentsline {subsection}{\numberline {15.1.1}Tài liệu Tiếng Việt}{105}{subsection.15.1.1}%
-\contentsline {subsection}{\numberline {15.1.2}Tài liệu Tiếng Anh}{105}{subsection.15.1.2}%
+\contentsline {chapter}{LỜI CẢM ƠN}{1}{chapter*.1}%
+\contentsline {chapter}{TRANG CAM KẾT}{2}{chapter*.2}%
+\contentsline {chapter}{MỤC LỤC}{9}{chapter*.3}%
+\contentsline {chapter}{DANH MỤC HÌNH ẢNH}{11}{chapter*.4}%
+\contentsline {chapter}{DANH MỤC BẢNG}{12}{chapter*.5}%
+\contentsline {chapter}{THUẬT NGỮ VÀ TỪ VIẾT TẮT}{13}{chapter*.6}%
+\contentsline {chapter}{\numberline {1}GIỚI THIỆU VÀ ĐẶT VẤN ĐỀ}{22}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Giới thiệu đề tài và Đặt vấn đề}{22}{section.1.1}%
+\contentsline {subsection}{\numberline {1.1.1}Lý do chọn đề tài}{22}{subsection.1.1.1}%
+\contentsline {subsection}{\numberline {1.1.2}Mục tiêu nghiên cứu}{22}{subsection.1.1.2}%
+\contentsline {subsection}{\numberline {1.1.3}Đối tượng và Phạm vi nghiên cứu}{22}{subsection.1.1.3}%
+\contentsline {subsection}{\numberline {1.1.4}Ý nghĩa khoa học và thực tiễn}{23}{subsection.1.1.4}%
+\contentsline {subsection}{\numberline {1.1.5}Bố cục đề tài}{23}{subsection.1.1.5}%
+\contentsline {chapter}{\numberline {2}CƠ SỞ LÝ THUYẾT COKB}{24}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Mô hình Đối tượng Tính toán}{24}{section.2.1}%
+\contentsline {subsection}{\numberline {2.1.1}Thành phần Hệ thống tri thức}{24}{subsection.2.1.1}%
+\contentsline {subsection}{\numberline {2.1.2}Mô hình Đối tượng Tính toán}{24}{subsection.2.1.2}%
+\contentsline {subsection}{\numberline {2.1.3}Phân cấp Khái niệm (Concept Levels)}{24}{subsection.2.1.3}%
+\contentsline {section}{\numberline {2.2}Cơ chế Suy luận và Giải quyết vấn đề}{25}{section.2.2}%
+\contentsline {subsection}{\numberline {2.2.1}Các Quy tắc Suy luận}{25}{subsection.2.2.1}%
+\contentsline {subsection}{\numberline {2.2.2}Thuật toán Tìm bao đóng (F-Closure Algorithm)}{25}{subsection.2.2.2}%
+\contentsline {subsection}{\numberline {2.2.3}Chiến lược Giải bài toán:}{25}{subsection.2.2.3}%
+\contentsline {chapter}{\numberline {3}PHÂN TÍCH VÀ THIẾT KẾ HỆ THỐNG}{27}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Khảo sát Hiện trạng \& Mục tiêu}{27}{section.3.1}%
+\contentsline {subsection}{\numberline {3.1.1}Khảo sát Hiện trạng}{27}{subsection.3.1.1}%
+\contentsline {subsubsection}{Bảng so sánh Tính năng Chi tiết}{27}{subsubsection*.7}%
+\contentsline {subsubsection}{Ưu thế vượt trội của [KBMS]}{28}{subsubsection*.9}%
+\contentsline {subsection}{\numberline {3.1.2}Mục tiêu Nghiên cứu}{28}{subsection.3.1.2}%
+\contentsline {section}{\numberline {3.2}Tác nhân \& Vai trò Hệ thống}{28}{section.3.2}%
+\contentsline {subsection}{\numberline {3.2.1}Phân loại Người dùng}{28}{subsection.3.2.1}%
+\contentsline {subsubsection}{a. Học viên / Nghiên cứu sinh}{28}{subsubsection*.10}%
+\contentsline {subsubsection}{b. Quản trị viên}{28}{subsubsection*.11}%
+\contentsline {subsubsection}{c. Nhà phát triển}{29}{subsubsection*.12}%
+\contentsline {subsection}{\numberline {3.2.2}Mô hình Phân quyền}{29}{subsection.3.2.2}%
+\contentsline {section}{\numberline {3.3}Sơ đồ Hoạt động Tổng quát}{29}{section.3.3}%
+\contentsline {subsection}{\numberline {3.3.1}Sơ đồ Use Case Tổng quát}{29}{subsection.3.3.1}%
+\contentsline {subsection}{\numberline {3.3.2}Sơ đồ Sequence Hệ thống}{30}{subsection.3.3.2}%
+\contentsline {subsubsection}{Các giai đoạn chính:}{30}{subsubsection*.15}%
+\contentsline {section}{\numberline {3.4}Đặc tả Yêu cầu Hệ thống KBMS}{30}{section.3.4}%
+\contentsline {subsection}{\numberline {3.4.1}Yêu cầu Chức năng}{31}{subsection.3.4.1}%
+\contentsline {subsection}{\numberline {3.4.2}Yêu cầu Chức năng theo Tầng Kiến trúc}{31}{subsection.3.4.2}%
+\contentsline {subsubsection}{a. Tầng Ứng dụng}{31}{subsubsection*.17}%
+\contentsline {subsubsection}{b. Tầng Mạng (Network Layer - Binary Protocol)}{31}{subsubsection*.18}%
+\contentsline {subsubsection}{c. Tầng Máy chủ}{32}{subsubsection*.19}%
+\contentsline {subsubsection}{d. Tầng Lưu trữ}{32}{subsubsection*.20}%
+\contentsline {subsection}{\numberline {3.4.3}Bản đồ Chức năng [KBQL]}{32}{subsection.3.4.3}%
+\contentsline {subsubsection}{Quản lý Kiểm soát (KCL - Security)}{32}{subsubsection*.21}%
+\contentsline {subsubsection}{Định nghĩa Tri thức (KDL - Design)}{32}{subsubsection*.22}%
+\contentsline {subsubsection}{Truy cập \& Suy diễn (KQL/RE - Solve)}{33}{subsubsection*.23}%
+\contentsline {subsubsection}{Bảo trì \& Hệ thống (KML - Maintenance)}{33}{subsubsection*.24}%
+\contentsline {subsubsection}{Quản lý Giao dịch (TCL - Transaction)}{33}{subsubsection*.25}%
+\contentsline {subsection}{\numberline {3.4.4}Yêu cầu Phi chức năng}{33}{subsection.3.4.4}%
+\contentsline {chapter}{\numberline {4}KIẾN TRÚC HỆ THỐNG VÀ CÁC TẦNG XỬ LÝ}{34}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Tổng quan Kiến trúc}{34}{section.4.1}%
+\contentsline {subsection}{\numberline {4.1.1}Mô hình Kiến trúc 4 Tầng}{34}{subsection.4.1.1}%
+\contentsline {subsection}{\numberline {4.1.2}Luồng Yêu cầu Tổng quát}{35}{subsection.4.1.2}%
+\contentsline {subsection}{\numberline {4.1.3}Bảo mật \& Chẩn đoán Hệ thống}{36}{subsection.4.1.3}%
+\contentsline {subsection}{\numberline {4.1.4}Công nghệ Sử dụng}{37}{subsection.4.1.4}%
+\contentsline {section}{\numberline {4.2}Tầng Ứng dụng}{37}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}KBMS Studio (IDE Chuyên nghiệp)}{37}{subsection.4.2.1}%
+\contentsline {subsection}{\numberline {4.2.2}KBMS [CLI]}{37}{subsection.4.2.2}%
+\contentsline {section}{\numberline {4.3}Tầng Mạng}{38}{section.4.3}%
+\contentsline {subsection}{\numberline {4.3.1}Giao thức Nhị phân (Custom Binary Protocol)}{38}{subsection.4.3.1}%
+\contentsline {subsection}{\numberline {4.3.2}Quản lý Kết nối}{38}{subsection.4.3.2}%
+\contentsline {section}{\numberline {4.4}Tầng Máy chủ}{38}{section.4.4}%
+\contentsline {subsection}{\numberline {4.4.1}[Knowledge Manager]}{38}{subsection.4.4.1}%
+\contentsline {subsection}{\numberline {4.4.2}KBQL Parser \& Compiler}{39}{subsection.4.4.2}%
+\contentsline {subsection}{\numberline {4.4.3}Reasoning Engine}{39}{subsection.4.4.3}%
+\contentsline {subsection}{\numberline {4.4.4}Dịch vụ Bảo mật \& Xác thực}{39}{subsection.4.4.4}%
+\contentsline {subsection}{\numberline {4.4.5}Hệ thống Nhật ký \& Chẩn đoán}{39}{subsection.4.4.5}%
+\contentsline {section}{\numberline {4.5}Tầng Lưu trữ}{39}{section.4.5}%
+\contentsline {subsection}{\numberline {4.5.1}Ánh xạ Thành phần Hệ thống}{40}{subsection.4.5.1}%
+\contentsline {subsection}{\numberline {4.5.2}Quản lý Trang}{40}{subsection.4.5.2}%
+\contentsline {subsection}{\numberline {4.5.3}Cấu trúc Chỉ mục (B+ Tree Indexing)}{40}{subsection.4.5.3}%
+\contentsline {subsection}{\numberline {4.5.4}Điều phối Truy cập Đồng thời (Latching \& Pinning)}{41}{subsection.4.5.4}%
+\contentsline {subsection}{\numberline {4.5.5}Bảo mật Dữ liệu}{41}{subsection.4.5.5}%
+\contentsline {section}{\numberline {4.6}Đối soát Yêu cầu Kỹ thuật}{41}{section.4.6}%
+\contentsline {subsection}{\numberline {4.6.1}Yêu cầu Chức năng}{41}{subsection.4.6.1}%
+\contentsline {subsection}{\numberline {4.6.2}Yêu cầu Phi chức năng}{41}{subsection.4.6.2}%
+\contentsline {subsubsection}{Độ bền vững \& Nhất quán (ACID Compliance)}{42}{subsubsection*.32}%
+\contentsline {subsubsection}{Hiệu năng \& Khả năng đáp ứng}{42}{subsubsection*.33}%
+\contentsline {subsubsection}{Bảo mật}{42}{subsubsection*.34}%
+\contentsline {subsubsection}{Khả năng Giám sát}{42}{subsubsection*.35}%
+\contentsline {chapter}{\numberline {5}ĐỊNH NGHĨA MÔ HÌNH VÀ KHÁI NIỆM}{43}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Định nghĩa Mô hình tri thức dạng}{43}{section.5.1}%
+\contentsline {subsection}{\numberline {5.1.1}Thành phần C}{44}{subsection.5.1.1}%
+\contentsline {subsection}{\numberline {5.1.2}Thành phần H}{44}{subsection.5.1.2}%
+\contentsline {subsection}{\numberline {5.1.3}Thành phần R}{45}{subsection.5.1.3}%
+\contentsline {subsection}{\numberline {5.1.4}Thành phần Rules \& Logic}{47}{subsection.5.1.4}%
+\contentsline {subsection}{\numberline {5.1.5}Thành phần Ops \& Funcs}{48}{subsection.5.1.5}%
+\contentsline {subsection}{\numberline {5.1.6}Thực thể Đối tượng}{48}{subsection.5.1.6}%
+\contentsline {subsection}{\numberline {5.1.7}Ví dụ minh họa thực tế cho mô hình}{49}{subsection.5.1.7}%
+\contentsline {subsubsection}{Ví dụ về Concept}{49}{subsubsection*.43}%
+\contentsline {subsubsection}{Ví dụ về Hierarchy}{49}{subsubsection*.44}%
+\contentsline {subsubsection}{Ví dụ về Relation}{49}{subsubsection*.45}%
+\contentsline {subsubsection}{Ví dụ về Rule \& Logic}{49}{subsubsection*.46}%
+\contentsline {subsubsection}{Ví dụ về Ops \& Funcs}{49}{subsubsection*.47}%
+\contentsline {subsubsection}{Ví dụ về ObjectInstance}{49}{subsubsection*.48}%
+\contentsline {chapter}{\numberline {6}NGÔN NGỮ TRUY VẤN TRI THỨC KBQL}{50}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Giới thiệu về Ngôn ngữ Truy vấn}{50}{section.6.1}%
+\contentsline {subsection}{\numberline {6.1.1}Triết lý Thiết kế}{50}{subsection.6.1.1}%
+\contentsline {subsection}{\numberline {6.1.2}Các Thành phần Chính của}{51}{subsection.6.1.2}%
+\contentsline {subsection}{\numberline {6.1.3}Hỗ trợ Chỉnh sửa}{51}{subsection.6.1.3}%
+\contentsline {subsection}{\numberline {6.1.4}Kiểu Dữ liệu Hỗ trợ}{52}{subsection.6.1.4}%
+\contentsline {subsection}{\numberline {6.1.5}Khái niệm Cốt lõi}{52}{subsection.6.1.5}%
+\contentsline {subsubsection}{Concept}{52}{subsubsection*.52}%
+\contentsline {subsubsection}{Fact}{52}{subsubsection*.53}%
+\contentsline {subsubsection}{Rule}{52}{subsubsection*.54}%
+\contentsline {section}{\numberline {6.2}Định nghĩa Tri thức}{53}{section.6.2}%
+\contentsline {subsection}{\numberline {6.2.1}Quản lý Cơ sở Tri thức}{53}{subsection.6.2.1}%
+\contentsline {subsection}{\numberline {6.2.2}Định nghĩa Khái niệm}{53}{subsection.6.2.2}%
+\contentsline {subsubsection}{Tạo Concept (CREATE CONCEPT)}{53}{subsubsection*.55}%
+\contentsline {subsubsection}{Chỉnh sửa Concept (ALTER CONCEPT)}{54}{subsubsection*.56}%
+\contentsline {subsection}{\numberline {6.2.3}Quản lý Phân cấp}{54}{subsection.6.2.3}%
+\contentsline {subsubsection}{Cú pháp}{54}{subsubsection*.57}%
+\contentsline {subsection}{\numberline {6.2.4}Định nghĩa Quan hệ}{54}{subsection.6.2.4}%
+\contentsline {subsubsection}{Cú pháp}{54}{subsubsection*.58}%
+\contentsline {subsection}{\numberline {6.2.5}Định nghĩa Luật}{54}{subsection.6.2.5}%
+\contentsline {subsubsection}{Cú pháp}{55}{subsubsection*.59}%
+\contentsline {subsection}{\numberline {6.2.6}Toán tử \& Hàm Tùy biến}{55}{subsection.6.2.6}%
+\contentsline {subsubsection}{Cú pháp chung}{55}{subsubsection*.60}%
+\contentsline {subsection}{\numberline {6.2.7}Công thức tự động}{55}{subsection.6.2.7}%
+\contentsline {subsubsection}{Cú pháp}{55}{subsubsection*.61}%
+\contentsline {subsection}{\numberline {6.2.8}Chỉ mục}{55}{subsection.6.2.8}%
+\contentsline {subsubsection}{Cú pháp}{55}{subsubsection*.62}%
+\contentsline {subsection}{\numberline {6.2.9}Sự kiện tự động}{55}{subsection.6.2.9}%
+\contentsline {subsubsection}{Cú pháp}{56}{subsubsection*.63}%
+\contentsline {section}{\numberline {6.3}Thao tác tri thức}{56}{section.6.3}%
+\contentsline {subsection}{\numberline {6.3.1}Chèn Sự kiện}{56}{subsection.6.3.1}%
+\contentsline {subsubsection}{Chèn một dòng đơn}{56}{subsubsection*.64}%
+\contentsline {subsubsection}{Chèn hàng loạt (Bulk Insert)}{56}{subsubsection*.65}%
+\contentsline {subsection}{\numberline {6.3.2}Cập nhật Sự kiện}{56}{subsection.6.3.2}%
+\contentsline {subsubsection}{Cú pháp}{56}{subsubsection*.66}%
+\contentsline {subsection}{\numberline {6.3.3}Xóa Sự kiện}{56}{subsection.6.3.3}%
+\contentsline {subsubsection}{Cú pháp}{56}{subsubsection*.67}%
+\contentsline {subsection}{\numberline {6.3.4}Chuyển đổi Dữ liệu}{57}{subsection.6.3.4}%
+\contentsline {subsubsection}{Xuất dữ liệu}{57}{subsubsection*.68}%
+\contentsline {subsubsection}{Nhập dữ liệu}{57}{subsubsection*.69}%
+\contentsline {subsection}{\numberline {6.3.5}Đặc điểm của KML trong hệ thống KBMS}{57}{subsection.6.3.5}%
+\contentsline {section}{\numberline {6.4}Truy vấn và Suy diễn}{57}{section.6.4}%
+\contentsline {subsection}{\numberline {6.4.1}Truy vấn Dữ liệu}{57}{subsection.6.4.1}%
+\contentsline {subsubsection}{Cú pháp đầy đủ}{57}{subsubsection*.70}%
+\contentsline {subsubsection}{Các tính năng đặc biệt}{58}{subsubsection*.71}%
+\contentsline {subsection}{\numberline {6.4.2}Giải quyết Tri thức}{58}{subsection.6.4.2}%
+\contentsline {subsubsection}{Cú pháp}{58}{subsubsection*.72}%
+\contentsline {subsubsection}{Cách hoạt động}{58}{subsubsection*.73}%
+\contentsline {subsection}{\numberline {6.4.3}Kiểm tra Hệ thống}{58}{subsection.6.4.3}%
+\contentsline {subsection}{\numberline {6.4.4}Phân tích \& Mô tả}{58}{subsection.6.4.4}%
+\contentsline {subsection}{\numberline {6.4.5}Truy vấn Metadata}{59}{subsection.6.4.5}%
+\contentsline {section}{\numberline {6.5}Kiểm soát truy cập}{59}{section.6.5}%
+\contentsline {subsection}{\numberline {6.5.1}Quản lý Người dùng}{59}{subsection.6.5.1}%
+\contentsline {subsubsection}{Tạo Người dùng mới}{59}{subsubsection*.74}%
+\contentsline {subsubsection}{Chỉnh sửa Người dùng}{59}{subsubsection*.75}%
+\contentsline {subsubsection}{Xóa Người dùng}{59}{subsubsection*.76}%
+\contentsline {subsection}{\numberline {6.5.2}Quản trị Quyền hạn}{59}{subsection.6.5.2}%
+\contentsline {subsubsection}{Cấp quyền}{59}{subsubsection*.77}%
+\contentsline {subsubsection}{Thu hồi quyền}{59}{subsubsection*.78}%
+\contentsline {subsection}{\numberline {6.5.3}Các thực thể Quản trị đặc biệt}{60}{subsection.6.5.3}%
+\contentsline {section}{\numberline {6.6}TCL: Ngôn ngữ Kiểm soát Giao dịch}{60}{section.6.6}%
+\contentsline {subsection}{\numberline {6.6.1}Một Giao dịch là gì?}{60}{subsection.6.6.1}%
+\contentsline {subsection}{\numberline {6.6.2}Các lệnh Giao dịch}{60}{subsection.6.6.2}%
+\contentsline {subsubsection}{Bắt đầu Giao dịch}{60}{subsubsection*.79}%
+\contentsline {subsubsection}{Xác nhận Giao dịch}{60}{subsubsection*.80}%
+\contentsline {subsubsection}{Hủy bỏ Giao dịch}{60}{subsubsection*.81}%
+\contentsline {subsection}{\numberline {6.6.3}Vai trò của Giao dịch trong}{60}{subsection.6.6.3}%
+\contentsline {section}{\numberline {6.7}Bảo trì Hệ thống}{61}{section.6.7}%
+\contentsline {subsection}{\numberline {6.7.1}Lệnh Bảo trì}{61}{subsection.6.7.1}%
+\contentsline {subsubsection}{Cú pháp}{61}{subsubsection*.82}%
+\contentsline {subsection}{\numberline {6.7.2}Các hành động cụ thể}{61}{subsection.6.7.2}%
+\contentsline {subsubsection}{Thu gọn Bộ nhớ (VACUUM)}{61}{subsubsection*.83}%
+\contentsline {subsubsection}{Đánh lại Chỉ mục}{61}{subsubsection*.84}%
+\contentsline {subsubsection}{Kiểm tra Tính nhất quán}{61}{subsubsection*.85}%
+\contentsline {subsection}{\numberline {6.7.3}Tần suất thực hiện bản khuyến nghị}{61}{subsection.6.7.3}%
+\contentsline {section}{\numberline {6.8}Biểu thức và Hàm số}{61}{section.6.8}%
+\contentsline {subsection}{\numberline {6.8.1}Toán tử Cơ bản}{62}{subsection.6.8.1}%
+\contentsline {subsubsection}{Toán tử Số học}{62}{subsubsection*.86}%
+\contentsline {subsubsection}{Toán tử So sánh}{62}{subsubsection*.87}%
+\contentsline {subsubsection}{Toán tử Logic}{62}{subsubsection*.88}%
+\contentsline {subsection}{\numberline {6.8.2}Hàm Tích hợp}{62}{subsection.6.8.2}%
+\contentsline {subsection}{\numberline {6.8.3}Cách sử dụng trong CALC()}{62}{subsection.6.8.3}%
+\contentsline {subsection}{\numberline {6.8.4}Tương tác với Biến}{62}{subsection.6.8.4}%
+\contentsline {subsection}{\numberline {6.8.5}Lưu ý về Hiệu năng}{62}{subsection.6.8.5}%
+\contentsline {section}{\numberline {6.9}Các trường hợp Chuyên gia}{63}{section.6.9}%
+\contentsline {subsection}{\numberline {6.9.1}Giải ngược Phương trình}{63}{subsection.6.9.1}%
+\contentsline {subsubsection}{Kịch bản: Tính toán mạch điện}{63}{subsubsection*.90}%
+\contentsline {subsection}{\numberline {6.9.2}Suy diễn Chùm}{63}{subsection.6.9.2}%
+\contentsline {subsubsection}{Kịch bản: Hệ thống Cảnh báo sớm}{63}{subsubsection*.91}%
+\contentsline {subsection}{\numberline {6.9.3}Phân cấp Kế thừa Đa tầng}{63}{subsection.6.9.3}%
+\contentsline {subsubsection}{Kịch bản: Phân loại Hình học}{63}{subsubsection*.92}%
+\contentsline {subsection}{\numberline {6.9.4}Ràng buộc nội bộ phức tạp}{64}{subsection.6.9.4}%
+\contentsline {subsubsection}{Kịch bản: Quản lý nhân sự}{64}{subsubsection*.93}%
+\contentsline {subsection}{\numberline {6.9.5}Giải hệ phương trình 2 ẩn (Newton-Raphson 2D)}{64}{subsection.6.9.5}%
+\contentsline {subsubsection}{Kịch bản: Tìm giao điểm đường thẳng}{64}{subsubsection*.94}%
+\contentsline {subsection}{\numberline {6.9.6}Kết hợp Trigger và Rule (The Chain Reaction)}{64}{subsection.6.9.6}%
+\contentsline {subsubsection}{Kịch bản: Đồng bộ kho và đơn hàng}{65}{subsubsection*.95}%
+\contentsline {section}{\numberline {6.10}Xác thực Ngôn ngữ}{65}{section.6.10}%
+\contentsline {subsection}{\numberline {6.10.1}Kiểm thử Cú pháp}{65}{subsection.6.10.1}%
+\contentsline {subsection}{\numberline {6.10.2}Bằng chứng Thực nghiệm}{65}{subsection.6.10.2}%
+\contentsline {subsection}{\numberline {6.10.3}Nhật ký [Lexer]}{65}{subsection.6.10.3}%
+\contentsline {chapter}{\numberline {7}CƠ CHẾ LƯU TRỮ VÀ QUẢN LÝ DỮ LIỆU NHỊ PHÂN}{66}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Tổng quan về Kiến trúc Lưu trữ}{66}{section.7.1}%
+\contentsline {subsection}{\numberline {7.1.1}Hệ thống Phân tầng I/O}{66}{subsection.7.1.1}%
+\contentsline {subsection}{\numberline {7.1.2}Quản lý Đa Cơ sở tri thức}{66}{subsection.7.1.2}%
+\contentsline {subsubsection}{Vai trò của StoragePool:}{66}{subsubsection*.100}%
+\contentsline {subsection}{\numberline {7.1.3}Thành phần thực thi}{66}{subsection.7.1.3}%
+\contentsline {subsection}{\numberline {7.1.4}Đặc tả Định lượng của Storage Engine}{67}{subsection.7.1.4}%
+\contentsline {subsection}{\numberline {7.1.5}Các tệp tin lưu trữ vật lý}{67}{subsection.7.1.5}%
+\contentsline {subsubsection}{Tệp dữ liệu chính (`.kdb`)}{67}{subsubsection*.102}%
+\contentsline {subsubsection}{Tệp Nhật ký ghi trước (`.wal`)}{67}{subsubsection*.103}%
+\contentsline {subsection}{\numberline {7.1.6}Phân tích Định lượng Hiệu năng Thực thi}{68}{subsection.7.1.6}%
+\contentsline {subsubsection}{Thông lượng và Độ trễ (Throughput \& Latency)}{68}{subsubsection*.104}%
+\contentsline {subsubsection}{Lý giải Mô hình Ước lượng Chi phí (Cost Model)}{68}{subsubsection*.106}%
+\contentsline {section}{\numberline {7.2}Giải phẫu Trang vật lý (Page Anatomy)}{68}{section.7.2}%
+\contentsline {subsection}{\numberline {7.2.1}Cấu trúc nội tại của Trang}{68}{subsection.7.2.1}%
+\contentsline {subsection}{\numberline {7.2.2}Đặc tả Header}{69}{subsection.7.2.2}%
+\contentsline {subsection}{\numberline {7.2.3}Quản lý bản ghi (Slotted Page Logic)}{69}{subsection.7.2.3}%
+\contentsline {subsection}{\numberline {7.2.4}Lợi ích kỹ thuật của KBMS V3}{70}{subsection.7.2.4}%
+\contentsline {section}{\numberline {7.3}Chỉ mục Cây [B+ Tree]}{70}{section.7.3}%
+\contentsline {subsection}{\numberline {7.3.1}Cấu trúc Đa tầng}{70}{subsection.7.3.1}%
+\contentsline {subsection}{\numberline {7.3.2}Các Thuật toán Vận hành Cốt lõi}{71}{subsection.7.3.2}%
+\contentsline {subsubsection}{Tìm kiếm (Search) - $O(\log _b n)$}{71}{subsubsection*.110}%
+\contentsline {subsubsection}{Chèn và Tách trang}{71}{subsubsection*.111}%
+\contentsline {subsubsection}{Xóa và Gộp trang}{71}{subsubsection*.112}%
+\contentsline {subsection}{\numberline {7.3.3}Clustered Index trong}{71}{subsection.7.3.3}%
+\contentsline {section}{\numberline {7.4}Ánh xạ Mô hình sang Dữ liệu nhị phân (Model Serialization)}{72}{section.7.4}%
+\contentsline {subsection}{\numberline {7.4.1}Chiến lược Tuần tự hóa Nhị phân Thuần túy}{72}{subsection.7.4.1}%
+\contentsline {subsection}{\numberline {7.4.2}Đặc tả Cấu trúc Tuple cho các lớp dữ liệu}{72}{subsection.7.4.2}%
+\contentsline {subsubsection}{A. Layout cho ObjectInstance}{72}{subsubsection*.115}%
+\contentsline {subsubsection}{B. Layout cho KnowledgeBase}{72}{subsubsection*.117}%
+\contentsline {subsubsection}{C. Layout cho [Concept]}{73}{subsubsection*.119}%
+\contentsline {subsection}{\numberline {7.4.3}Cấu trúc Sub-blob đệ quy}{73}{subsection.7.4.3}%
+\contentsline {subsection}{\numberline {7.4.4}Cơ chế Phục hồi Kiểu dữ liệu (Hydration \& Casting)}{73}{subsection.7.4.4}%
+\contentsline {section}{\numberline {7.5}Độ bền \& Nhật ký ghi trước}{74}{section.7.5}%
+\contentsline {subsection}{\numberline {7.5.1}Giao thức Write-Ahead Logging}{74}{subsection.7.5.1}%
+\contentsline {subsection}{\numberline {7.5.2}Số tuần tự nhật ký (LSN - Log Sequence Number)}{74}{subsection.7.5.2}%
+\contentsline {subsection}{\numberline {7.5.3}Quy trình Phục hồi sau sự cố}{75}{subsection.7.5.3}%
+\contentsline {subsection}{\numberline {7.5.4}Đặc tả nhị phân của [LogRecord]}{75}{subsection.7.5.4}%
+\contentsline {subsection}{\numberline {7.5.5}Minh họa Hex Dump: Một bản ghi nhật ký (LogRecord)}{76}{subsection.7.5.5}%
+\contentsline {section}{\numberline {7.6}Quản lý Vật lý \& Mã hóa}{76}{section.7.6}%
+\contentsline {subsection}{\numberline {7.6.1}Ánh xạ Trang vật lý}{77}{subsection.7.6.1}%
+\contentsline {subsection}{\numberline {7.6.2}Mã hóa dữ liệu tĩnh (AES-256 Encryption)}{77}{subsection.7.6.2}%
+\contentsline {subsection}{\numberline {7.6.3}Quản lý tệp tin và Cấp phát}{77}{subsection.7.6.3}%
+\contentsline {subsection}{\numberline {7.6.4}So sánh Dữ liệu: Trước và Sau khi Giải mã}{77}{subsection.7.6.4}%
+\contentsline {subsubsection}{A. Dữ liệu trên Đĩa}{78}{subsubsection*.125}%
+\contentsline {subsubsection}{B. Dữ liệu trong RAM (Decrypted Page Buffer - 16,384B)}{78}{subsubsection*.126}%
+\contentsline {section}{\numberline {7.7}Thực tế hóa: Từ Mô hình đối tượng sang Chuỗi nhi phân}{78}{section.7.7}%
+\contentsline {subsection}{\numberline {7.7.1}Đối tượng đầu vào}{78}{subsection.7.7.1}%
+\contentsline {subsection}{\numberline {7.7.2}Tuần tự hóa thành [Tuple]}{78}{subsection.7.7.2}%
+\contentsline {subsection}{\numberline {7.7.3}Bản đồ vị trí trong Trang (Slotted Page Mapping)}{79}{subsection.7.7.3}%
+\contentsline {subsection}{\numberline {7.7.4}Biểu diễn dưới dạng mã Hex}{80}{subsection.7.7.4}%
+\contentsline {subsection}{\numberline {7.7.5}Ví dụ Nhị phân: Tuần tự hóa Siêu dữ liệu}{81}{subsection.7.7.5}%
+\contentsline {subsubsection}{Phân tích từng Field trong Tuple nhị phân}{81}{subsubsection*.129}%
+\contentsline {subsubsection}{Cấu trúc Sub-blob của danh sách `Variables`}{81}{subsubsection*.131}%
+\contentsline {subsection}{\numberline {7.7.6}Minh họa Hex Dump: Metadata Concept}{82}{subsection.7.7.6}%
+\contentsline {chapter}{\numberline {8}BỘ MÁY SUY DIỄN VÀ THUẬT TOÁN BAO ĐÓNG}{83}{chapter.8}%
+\contentsline {section}{\numberline {8.1}Kiến trúc Hệ thống Suy diễn (Reasoning Architecture)}{83}{section.8.1}%
+\contentsline {subsection}{\numberline {8.1.1}Nguyên lý Thiết kế}{83}{subsection.8.1.1}%
+\contentsline {subsubsection}{Chiến lược Suy diễn: Goal-Directed Forward Chaining}{83}{subsubsection*.132}%
+\contentsline {subsection}{\numberline {8.1.2}Sơ đồ Điều phối Suy diễn}{83}{subsection.8.1.2}%
+\contentsline {subsection}{\numberline {8.1.3}Mối liên hệ với Bộ tối ưu hóa Truy vấn (System Synergy)}{83}{subsection.8.1.3}%
+\contentsline {subsection}{\numberline {8.1.4}Biểu diễn Tri thức (Knowledge Representation)}{84}{subsection.8.1.4}%
+\contentsline {section}{\numberline {8.2}Thuật toán Suy diễn và Bao đóng (Inference Algorithms)}{84}{section.8.2}%
+\contentsline {subsection}{\numberline {8.2.1}Thuật toán F-Closure (Knowledge Closure)}{84}{subsection.8.2.1}%
+\contentsline {subsubsection}{Các bước thực thi chính:}{84}{subsubsection*.134}%
+\contentsline {subsection}{\numberline {8.2.2}Đặc tả Cài đặt (InferenceEngine.cs)}{84}{subsection.8.2.2}%
+\contentsline {subsection}{\numberline {8.2.3}Các Cơ chế Thúc đẩy Hiệu năng (Optimization Mechanisms)}{85}{subsection.8.2.3}%
+\contentsline {section}{\numberline {8.3}Giải thuật Tính toán và Hệ Phương trình (Numerical Solvers)}{85}{section.8.3}%
+\contentsline {subsection}{\numberline {8.3.1}Giải phương trình Một ẩn (1D Root Finding)}{85}{subsection.8.3.1}%
+\contentsline {subsubsection}{Đặc tính Kỹ thuật:}{85}{subsubsection*.135}%
+\contentsline {subsection}{\numberline {8.3.2}Giải Hệ phương trình Phi tuyến (2D Equation Systems)}{85}{subsection.8.3.2}%
+\contentsline {subsubsection}{Quy trình Giải số:}{86}{subsubsection*.136}%
+\contentsline {subsection}{\numberline {8.3.3}Tích hợp trong Chu trình Suy diễn (Inference Integration)}{86}{subsection.8.3.3}%
+\contentsline {section}{\numberline {8.4}Kiểm chứng Ràng buộc và Truy vết Suy diễn (Validation \& Traces)}{86}{section.8.4}%
+\contentsline {subsection}{\numberline {8.4.1}Kiểm chứng Ràng buộc Toàn vẹn (Integrity Constraints)}{86}{subsection.8.4.1}%
+\contentsline {subsection}{\numberline {8.4.2}Truy vết Suy diễn (Derivation Traceability)}{86}{subsection.8.4.2}%
+\contentsline {subsubsection}{Cấu trúc Vết dẫn xuất (Trace Object)}{86}{subsubsection*.137}%
+\contentsline {subsubsection}{Trực quan hóa Giải trình}{87}{subsubsection*.138}%
+\contentsline {subsection}{\numberline {8.4.3}Quản lý Ngữ cảnh và Phân cấp (Contextual Hierarchy)}{87}{subsection.8.4.3}%
+\contentsline {chapter}{\numberline {9}GIAO THỨC MẠNG VÀ TRUYỀN TẢI DỮ LIỆU}{88}{chapter.9}%
+\contentsline {section}{\numberline {9.1}Giao thức Truyền tải Dữ liệu nhị phân}{88}{section.9.1}%
+\contentsline {subsection}{\numberline {9.1.1}Cấu trúc Gói tin}{88}{subsection.9.1.1}%
+\contentsline {subsubsection}{Đặc tả Header nhị phân:}{88}{subsubsection*.139}%
+\contentsline {subsection}{\numberline {9.1.2}Danh mục Loại thông điệp}{89}{subsection.9.1.2}%
+\contentsline {subsection}{\numberline {9.1.3}Quy trình Trao đổi (Handshake \& Query Flow)}{89}{subsection.9.1.3}%
+\contentsline {subsection}{\numberline {9.1.4}Bảo mật tại tầng Truyền tải}{89}{subsection.9.1.4}%
+\contentsline {subsection}{\numberline {9.1.5}Vòng đời của một Truy vấn}{90}{subsection.9.1.5}%
+\contentsline {subsection}{\numberline {9.1.6}Luồng xử lý Packet}{90}{subsection.9.1.6}%
+\contentsline {subsection}{\numberline {9.1.7}Phân tích Từ vựng}{92}{subsection.9.1.7}%
+\contentsline {subsection}{\numberline {9.1.8}Phân tích Cú pháp (Parser \& AST)}{92}{subsection.9.1.8}%
+\contentsline {subsection}{\numberline {9.1.9}Thực thi và Cấp phát}{92}{subsection.9.1.9}%
+\contentsline {subsection}{\numberline {9.1.10}Lập kế hoạch Thực thi (Query Execution Plan)}{92}{subsection.9.1.10}%
+\contentsline {subsection}{\numberline {9.1.11}Ví dụ luồng xử lý thực tế}{92}{subsection.9.1.11}%
+\contentsline {subsection}{\numberline {9.1.12}Kế hoạch Triển khai Mã Nguồn Backend}{93}{subsection.9.1.12}%
+\contentsline {subsubsection}{Giai đoạn 1: Quản trị Kết nối}{93}{subsubsection*.144}%
+\contentsline {subsubsection}{Giai đoạn 2: Mã hóa Giao thức Nhị phân (Packet Binary Protocol)}{93}{subsubsection*.145}%
+\contentsline {subsubsection}{Giai đoạn 3: Phân tích Cú Pháp Đệ Quy (Lexer \& AST Parser)}{93}{subsubsection*.146}%
+\contentsline {subsubsection}{Giai đoạn 4: Bảo mật \& Phiên Giao dịch}{93}{subsubsection*.147}%
+\contentsline {section}{\numberline {9.2}Xác thực Giao thức}{93}{section.9.2}%
+\contentsline {subsection}{\numberline {9.2.1}Kiểm thử Gói tin Nhị phân}{93}{subsection.9.2.1}%
+\contentsline {subsubsection}{Minh chứng Mã nguồn (Handshake):}{94}{subsubsection*.148}%
+\contentsline {subsubsection}{Minh chứng Luồng dữ liệu (Gói tin):}{94}{subsubsection*.150}%
+\contentsline {subsection}{\numberline {9.2.2}Kiểm thử Tải Kết nối (Concurrency Proof)}{94}{subsection.9.2.2}%
+\contentsline {subsubsection}{Minh chứng Kết quả (Concurrency):}{94}{subsubsection*.152}%
+\contentsline {chapter}{\numberline {10}HỆ THỐNG MÁY CHỦ VÀ QUẢN TRỊ TÀI NGUYÊN}{95}{chapter.10}%
+\contentsline {section}{\numberline {10.1}Kiến trúc Điều phối và Quản trị Hệ thống (Orchestration \& Management)}{95}{section.10.1}%
+\contentsline {subsection}{\numberline {10.1.1}Mô hình Xử lý Luồng Bất đồng bộ (TAP Pattern)}{95}{subsection.10.1.1}%
+\contentsline {subsection}{\numberline {10.1.2}Quản lý Phiên và Kết nối (Session Management)}{95}{subsection.10.1.2}%
+\contentsline {subsection}{\numberline {10.1.3}Quản trị Hệ thống bằng Tri thức (System KB)}{95}{subsection.10.1.3}%
+\contentsline {subsubsection}{Nhật ký Kiểm toán (Audit Logs)}{95}{subsubsection*.154}%
+\contentsline {subsubsection}{Quản lý Người dùng (RBAC)}{96}{subsubsection*.155}%
+\contentsline {subsection}{\numberline {10.1.4}Phân tích Hệ thống thông qua KBQL}{96}{subsection.10.1.4}%
+\contentsline {section}{\numberline {10.2}Kiến trúc Bộ não Điều phối}{96}{section.10.2}%
+\contentsline {subsection}{\numberline {10.2.1}Cơ chế Bộ hạ lệnh (The Dispatcher)}{96}{subsection.10.2.1}%
+\contentsline {subsubsection}{Chức năng chính:}{96}{subsubsection*.156}%
+\contentsline {subsection}{\numberline {10.2.2}Các Công nghệ Liên kết Tri thức}{97}{subsection.10.2.2}%
+\contentsline {subsubsection}{Auto-expand Variables}{97}{subsubsection*.157}%
+\contentsline {subsubsection}{Triggers Registry}{97}{subsubsection*.158}%
+\contentsline {subsubsection}{V3 [Data Router]}{97}{subsubsection*.159}%
+\contentsline {subsection}{\numberline {10.2.3}Quản lý Giao dịch}{97}{subsection.10.2.3}%
+\contentsline {section}{\numberline {10.3}Bộ tối ưu hóa Truy vấn dựa trên Chi phí (Query Optimizer)}{97}{section.10.3}%
+\contentsline {subsection}{\numberline {10.3.1}Vai trò trong Kiến trúc Server}{97}{subsection.10.3.1}%
+\contentsline {subsection}{\numberline {10.3.2}Mô hình Ước lượng Chi phí (Cost-Based Model)}{98}{subsection.10.3.2}%
+\contentsline {subsubsection}{Đơn vị Chi phí Cơ bản (Baseline)}{98}{subsubsection*.161}%
+\contentsline {subsubsection}{Hệ số Trọng số CPU (CPU Penalty)}{98}{subsubsection*.162}%
+\contentsline {subsection}{\numberline {10.3.3}Khung thực thi Volcano (Execution Pipeline)}{98}{subsection.10.3.3}%
+\contentsline {subsection}{\numberline {10.3.4}Hiệu năng Định lượng}{98}{subsection.10.3.4}%
+\contentsline {section}{\numberline {10.4}Hạ tầng V3}{98}{section.10.4}%
+\contentsline {subsection}{\numberline {10.4.1}Cơ chế Tự nạp Hệ thống (System Bootstrapper)}{99}{subsection.10.4.1}%
+\contentsline {subsection}{\numberline {10.4.2}Các Danh mục Chuyên biệt}{99}{subsection.10.4.2}%
+\contentsline {subsection}{\numberline {10.4.3}Hệ thống Cập nhật \& Di trú}{99}{subsection.10.4.3}%
+\contentsline {subsubsection}{`SystemUpdater.cs`}{99}{subsubsection*.165}%
+\contentsline {subsubsection}{`V2ToV3Converter.cs`}{100}{subsubsection*.166}%
+\contentsline {section}{\numberline {10.5}Quản trị \& Đo lường từ xa}{100}{section.10.5}%
+\contentsline {subsection}{\numberline {10.5.1}Giám sát Hệ thống}{100}{subsection.10.5.1}%
+\contentsline {subsection}{\numberline {10.5.2}Hệ thống Nhật ký Luồng (Live Log Streaming)}{100}{subsection.10.5.2}%
+\contentsline {subsubsection}{`SystemLogger.cs`}{100}{subsubsection*.167}%
+\contentsline {subsubsection}{`LOGS\_STREAM` Protocol}{100}{subsubsection*.168}%
+\contentsline {subsection}{\numberline {10.5.3}Lệnh Quản trị Tối cao}{100}{subsection.10.5.3}%
+\contentsline {section}{\numberline {10.6}Xác thực Máy chủ}{101}{section.10.6}%
+\contentsline {subsection}{\numberline {10.6.1}Kiểm thử Khởi động}{101}{subsection.10.6.1}%
+\contentsline {subsection}{\numberline {10.6.2}Kiểm thử Tích hợp Đa luồng}{101}{subsection.10.6.2}%
+\contentsline {subsubsection}{Minh chứng Mã nguồn (Integration):}{101}{subsubsection*.171}%
+\contentsline {subsubsection}{Minh chứng Kết quả (111 Tests):}{101}{subsubsection*.173}%
+\contentsline {subsection}{\numberline {10.6.3}Xác thực Bảo mật (Security \& RBAC)}{101}{subsection.10.6.3}%
+\contentsline {subsubsection}{Minh chứng Mã nguồn (Security):}{102}{subsubsection*.175}%
+\contentsline {subsubsection}{Minh chứng Kết quả (Access Denied):}{102}{subsubsection*.177}%
+\contentsline {chapter}{\numberline {11}BỘ PHÂN TÍCH CÚ PHÁP VÀ TRÌNH BIÊN DỊCH}{103}{chapter.11}%
+\contentsline {section}{\numberline {11.1}Lexing: Phân tích Từ vựng chuyên sâu}{103}{section.11.1}%
+\contentsline {subsection}{\numberline {11.1.1}Cơ chế Quét}{103}{subsection.11.1.1}%
+\contentsline {subsubsection}{Quy trình xử lý (`ScanToken`):}{103}{subsubsection*.180}%
+\contentsline {subsection}{\numberline {11.1.2}Xử lý các Hằng số}{103}{subsection.11.1.2}%
+\contentsline {subsubsection}{Hằng số Số}{104}{subsubsection*.181}%
+\contentsline {subsubsection}{Hằng số Chuỗi}{104}{subsubsection*.182}%
+\contentsline {subsection}{\numberline {11.1.3}Quản lý Từ khóa}{104}{subsection.11.1.3}%
+\contentsline {section}{\numberline {11.2}Tầng Parser: Cơ chế Đệ quy Đi xuống}{104}{section.11.2}%
+\contentsline {subsection}{\numberline {11.2.1}Cơ chế Điều hướng}{104}{subsection.11.2.1}%
+\contentsline {subsubsection}{Hàm `ParseStatement()`}{105}{subsubsection*.184}%
+\contentsline {subsection}{\numberline {11.2.2}Kỹ thuật Dự đoán \& Tiêu thụ}{105}{subsection.11.2.2}%
+\contentsline {subsection}{\numberline {11.2.3}Phân tích Khối Lệnh phức tạp}{105}{subsection.11.2.3}%
+\contentsline {section}{\numberline {11.3}Hệ thống Cây cú pháp Trừu tượng (AST~[\hyperlink {glos:ast}{A05}] Nodes)}{105}{section.11.3}%
+\contentsline {subsection}{\numberline {11.3.1}Hệ phả [KDL~[\hyperlink {glos:kdl}{K04}]]}{106}{subsection.11.3.1}%
+\contentsline {subsection}{\numberline {11.3.2}Hệ phả KQL~[\hyperlink {glos:kql}{K06}] \& [KML~[\hyperlink {glos:kml}{K05}]]}{107}{subsection.11.3.2}%
+\contentsline {subsubsection}{Nhóm KQL~[\hyperlink {glos:kql}{K06}]}{108}{subsubsection*.188}%
+\contentsline {subsubsection}{Nhóm KML~[\hyperlink {glos:kml}{K05}]}{108}{subsubsection*.189}%
+\contentsline {subsection}{\numberline {11.3.3}Hệ phả KCL~[\hyperlink {glos:kcl}{K02}] \& [TCL~[\hyperlink {glos:tcl}{T02}]]}{108}{subsection.11.3.3}%
+\contentsline {subsection}{\numberline {11.3.4}Đặc điểm chung của mọi Node}{109}{subsection.11.3.4}%
+\contentsline {section}{\numberline {11.4}Bộ máy Đánh giá Biểu thức}{109}{section.11.4}%
+\contentsline {subsection}{\numberline {11.4.1}Phân tích Biểu thức Nhị phân}{109}{subsection.11.4.1}%
+\contentsline {subsubsection}{Thứ tự ưu tiên (Operator Precedence)}{110}{subsubsection*.191}%
+\contentsline {subsection}{\numberline {11.4.2}Các Đơn vị Biểu thức Cốt lõi}{110}{subsection.11.4.2}%
+\contentsline {subsubsection}{`VariableNode`}{110}{subsubsection*.192}%
+\contentsline {subsubsection}{`LiteralNode`}{110}{subsubsection*.193}%
+\contentsline {subsubsection}{`FunctionCallNode`}{110}{subsubsection*.194}%
+\contentsline {subsection}{\numberline {11.4.3}Xử lý Biểu thức Đơn phân}{110}{subsection.11.4.3}%
+\contentsline {section}{\numberline {11.5}Xác thực Bộ biên dịch (Parser Validation)}{110}{section.11.5}%
+\contentsline {subsection}{\numberline {11.5.1}Thống kê Độ bao phủ Testing}{111}{subsection.11.5.1}%
+\contentsline {subsubsection}{Minh chứng Mã nguồn (Parser):}{111}{subsubsection*.195}%
+\contentsline {subsubsection}{Minh chứng Kết quả (300+ Test Cases):}{111}{subsubsection*.197}%
+\contentsline {subsection}{\numberline {11.5.2}Đặc tả Lỗi Cú pháp}{111}{subsection.11.5.2}%
+\contentsline {subsubsection}{Minh chứng Lỗi (Studio Editor):}{111}{subsubsection*.199}%
+\contentsline {chapter}{\numberline {12}GIAO DIỆN DÒNG LỆNH (CLI)}{112}{chapter.12}%
+\contentsline {section}{\numberline {12.1}Tổng quan Giao diện Dòng lệnh}{112}{section.12.1}%
+\contentsline {subsection}{\numberline {12.1.1}Các Tính năng Chính}{112}{subsection.12.1.1}%
+\contentsline {subsection}{\numberline {12.1.2}Các Lệnh Hệ thống Đặc biệt}{113}{subsection.12.1.2}%
+\contentsline {subsection}{\numberline {12.1.3}Trải nghiệm người dùng}{113}{subsection.12.1.3}%
+\contentsline {section}{\numberline {12.2}Luồng Xử lý Dữ liệu}{113}{section.12.2}%
+\contentsline {subsection}{\numberline {12.2.1}Luồng Gửi lệnh}{113}{subsection.12.2.1}%
+\contentsline {subsection}{\numberline {12.2.2}Bộ máy Phân tích Phản hồi}{113}{subsection.12.2.2}%
+\contentsline {subsubsection}{Quy trình hiển thị:}{114}{subsubsection*.203}%
+\contentsline {subsection}{\numberline {12.2.3}Chế độ Chạy Script (Batch Source)}{114}{subsection.12.2.3}%
+\contentsline {subsection}{\numberline {12.2.4}Đa luồng \& Kết nối}{115}{subsection.12.2.4}%
+\contentsline {section}{\numberline {12.3}Các Trường hợp Sử dụng}{116}{section.12.3}%
+\contentsline {subsection}{\numberline {12.3.1}Kịch bản 1: Phân tích Cấu trúc}{116}{subsection.12.3.1}%
+\contentsline {subsection}{\numberline {12.3.2}Kịch bản 2: Tự động hóa Nạp Tri thức}{116}{subsection.12.3.2}%
+\contentsline {subsection}{\numberline {12.3.3}Kịch bản 3: Kiểm tra Kết nối \& An ninh}{117}{subsection.12.3.3}%
+\contentsline {section}{\numberline {12.4}Xác thực CLI (CLI Validation)}{117}{section.12.4}%
+\contentsline {subsection}{\numberline {12.4.1}Kiểm thử Phiên làm việc}{117}{subsection.12.4.1}%
+\contentsline {subsubsection}{Minh chứng Mã nguồn (CLI System):}{117}{subsubsection*.206}%
+\contentsline {subsubsection}{Minh chứng Kết quả (Session Log):}{117}{subsubsection*.208}%
+\contentsline {subsection}{\numberline {12.4.2}Kiểm thử Định dạng Kết quả}{117}{subsection.12.4.2}%
+\contentsline {chapter}{\numberline {13}MÔI TRƯỜNG PHÁT TRIỂN KBMS STUDIO}{118}{chapter.13}%
+\contentsline {section}{\numberline {13.1}Tổng quan \& Tính năng KBMS}{118}{section.13.1}%
+\contentsline {subsection}{\numberline {13.1.1}Các Phân hệ Cốt lõi}{118}{subsection.13.1.1}%
+\contentsline {subsubsection}{a. Knowledge Designer}{118}{subsubsection*.212}%
+\contentsline {subsubsection}{b. Query Console (Cửa sổ truy vấn Monaco)}{118}{subsubsection*.213}%
+\contentsline {subsubsection}{c. Management Dashboard}{118}{subsubsection*.214}%
+\contentsline {subsubsection}{d. Real-time Notification System}{118}{subsubsection*.215}%
+\contentsline {subsubsection}{e. Advanced Settings \& Multi-server}{119}{subsubsection*.216}%
+\contentsline {subsection}{\numberline {13.1.2}Tiêu chuẩn Giao diện}{119}{subsection.13.1.2}%
+\contentsline {section}{\numberline {13.2}Kiến trúc 4 Tầng \& Luồng Xử lý Chi tiết}{119}{section.13.2}%
+\contentsline {subsection}{\numberline {13.2.1}Sơ đồ Luồng xử lý 4 Tầng}{119}{subsection.13.2.1}%
+\contentsline {subsection}{\numberline {13.2.2}Đặc tả các Tầng}{119}{subsection.13.2.2}%
+\contentsline {subsubsection}{Tầng 1: Application UI (React/Electron)}{119}{subsubsection*.218}%
+\contentsline {subsubsection}{Tầng 2: Network \& Protocol}{120}{subsubsection*.219}%
+\contentsline {subsubsection}{Tầng 3: Knowledge Engine}{120}{subsubsection*.220}%
+\contentsline {subsubsection}{Tầng 4: Storage Layer}{120}{subsubsection*.221}%
+\contentsline {subsection}{\numberline {13.2.3}Luồng Thông báo Thời gian thực}{120}{subsection.13.2.3}%
+\contentsline {subsection}{\numberline {13.2.4}Quy trình Đăng nhập}{120}{subsection.13.2.4}%
+\contentsline {section}{\numberline {13.3}Các Trường hợp Sử dụng Studio}{121}{section.13.3}%
+\contentsline {subsection}{\numberline {13.3.1}Kịch bản 1: Thiết kế Bản đồ Tri thức Hình học (KDL Design)}{121}{subsection.13.3.1}%
+\contentsline {subsection}{\numberline {13.3.2}Kịch bản 2: Giải toán Tự động}{121}{subsection.13.3.2}%
+\contentsline {subsection}{\numberline {13.3.3}Kịch bản 3: Quản trị Hệ thống}{122}{subsection.13.3.3}%
+\contentsline {subsection}{\numberline {13.3.4}Kịch bản 4: Giám sát An ninh \& Phiên làm việc}{124}{subsection.13.3.4}%
+\contentsline {subsection}{\numberline {13.3.5}Kịch bản 5: Phân tích Nhật ký Chuyên sâu}{124}{subsection.13.3.5}%
+\contentsline {subsection}{\numberline {13.3.6}Tổng kết Giá trị}{125}{subsection.13.3.6}%
+\contentsline {section}{\numberline {13.4}Xác thực Studio}{125}{section.13.4}%
+\contentsline {subsection}{\numberline {13.4.1}Kiểm thử IntelliSense \& Đồ họa}{125}{subsection.13.4.1}%
+\contentsline {subsubsection}{Minh chứng Mã nguồn (Dashboard API):}{126}{subsubsection*.228}%
+\contentsline {subsubsection}{Minh chứng Giao diện (Studio IDE):}{126}{subsubsection*.230}%
+\contentsline {subsection}{\numberline {13.4.2}Kiểm thử Giám sát \& Quản lý}{126}{subsection.13.4.2}%
+\contentsline {subsubsection}{Minh chứng Kết quả (Live Logs):}{126}{subsubsection*.232}%
+\contentsline {chapter}{\numberline {14}CÀI ĐẶT, KIỂM THỬ VÀ ĐÁNH GIÁ HIỆU NĂNG}{127}{chapter.14}%
+\contentsline {section}{\numberline {14.1}Hướng dẫn Cài đặt \& Triển khai}{127}{section.14.1}%
+\contentsline {subsection}{\numberline {14.1.1}Yêu cầu Tiên quyết}{127}{subsection.14.1.1}%
+\contentsline {subsection}{\numberline {14.1.2}Cài đặt trên Windows 10/11}{127}{subsection.14.1.2}%
+\contentsline {subsubsection}{Bước 1: Cài đặt .NET 8 \& Node.js}{127}{subsubsection*.234}%
+\contentsline {section}{\numberline {14.2}Cài đặt dependencies}{128}{section.14.2}%
+\contentsline {subsection}{\numberline {14.2.1}Xác thực Cài đặt}{128}{subsection.14.2.1}%
+\contentsline {section}{\numberline {14.3}Kịch bản Kiểm thử Hệ thống}{129}{section.14.3}%
+\contentsline {subsection}{\numberline {14.3.1}Môi trường Cấu hình}{129}{subsection.14.3.1}%
+\contentsline {subsection}{\numberline {14.3.2}Kết quả 12 Kịch bản tiêu chuẩn}{129}{subsection.14.3.2}%
+\contentsline {subsection}{\numberline {14.3.3}Tổng hợp Kết quả Kiểm thử Toàn hệ thống}{129}{subsection.14.3.3}%
+\contentsline {section}{\numberline {14.4}Đánh giá Hiệu năng}{129}{section.14.4}%
+\contentsline {subsection}{\numberline {14.4.1}Hiệu năng theo Tầng Kiến trúc}{130}{subsection.14.4.1}%
+\contentsline {subsection}{\numberline {14.4.2}Hiệu năng Truy vấn Khối lượng}{130}{subsection.14.4.2}%
+\contentsline {subsection}{\numberline {14.4.3}Nhật ký Xác thực Hiệu năng}{130}{subsection.14.4.3}%
+\contentsline {section}{\numberline {14.5}Các Bộ Dữ liệu Kiểm thử}{130}{section.14.5}%
+\contentsline {subsection}{\numberline {14.5.1}Danh sách Datasets Chuẩn}{131}{subsection.14.5.1}%
+\contentsline {subsection}{\numberline {14.5.2}Chi tiết Bộ dữ liệu trọng tâm: ''Charlie''}{131}{subsection.14.5.2}%
+\contentsline {subsubsection}{Logic Luật áp dụng:}{131}{subsubsection*.244}%
+\contentsline {subsection}{\numberline {14.5.3}Nhật ký Logic suy diễn}{131}{subsection.14.5.3}%
+\contentsline {chapter}{TÀI LIỆU THAM KHẢO}{133}{figure.caption.245}%

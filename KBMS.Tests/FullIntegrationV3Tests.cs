@@ -162,7 +162,7 @@ public class FullIntegrationV3Tests : IDisposable
     [Fact]
     public void Optimizer_Can_Build_Scan_Plan()
     {
-        var optimizer = new KBMS.Knowledge.V3.Optimizer.QueryOptimizer(_storagePool.GetManagers("University").Bpm);
+        var optimizer = new KBMS.Knowledge.V3.Optimizer.QueryOptimizer(_storagePool.GetManagers("University").Bpm, _data.GetConceptPageIds);
 
         var selectNode = new KBMS.Parser.Ast.Kql.SelectNode
         {
@@ -178,7 +178,7 @@ public class FullIntegrationV3Tests : IDisposable
             }
         };
 
-        var plan = optimizer.ExplainSelect(selectNode);
+        var plan = optimizer.ExplainSelect(selectNode, "University");
         Assert.NotNull(plan);
         
         string formatted = plan!.FormatExplain();

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using KBMS.Models;
+using KBMS.Parser.Ast.Kql;
 using KBMS.Storage.V3;
 using KBMS.Knowledge.V3.Optimizer;
 using Tuple = KBMS.Storage.V3.Tuple;
@@ -34,7 +35,7 @@ public class V3DataRouter
         _storagePool = storagePool;
         // Use system storage for optimizer scratch space (or manage it separately)
         var systemManagers = _storagePool.GetManagers("system");
-        _optimizer = new QueryOptimizer(systemManagers.Bpm);
+        _optimizer = new QueryOptimizer(systemManagers.Bpm, GetConceptPageIds);
     }
 
     // ==================== Insert Path (V1 -> V3) ====================
@@ -57,6 +58,8 @@ public class V3DataRouter
 
             lock (_catalogLock)
             {
+                if (!_pageCatalog.ContainsKey(catalogKey)) LoadCatalog(kbName);
+                
                 var pageId = GetOrAllocateWritablePage(kbName, catalogKey, data.Length);
                 var page = bpm.FetchPage(pageId);
                 if (page == null) return false;
@@ -70,7 +73,9 @@ public class V3DataRouter
                 {
                     bpm.UnpinPage(page.PageId, false);
                     var newPageId = diskManager.AllocatePage();
+                    if (!_pageCatalog.ContainsKey(catalogKey)) _pageCatalog[catalogKey] = new List<int>();
                     _pageCatalog[catalogKey].Add(newPageId);
+                    SaveCatalog(kbName);
 
                     page = bpm.FetchPage(newPageId);
                     if (page == null) return false;
@@ -104,6 +109,7 @@ public class V3DataRouter
         List<int> pageIds;
         lock (_catalogLock)
         {
+            if (!_pageCatalog.ContainsKey(catalogKey)) LoadCatalog(kbName);
             if (!_pageCatalog.TryGetValue(catalogKey, out var ids)) return results;
             pageIds = new List<int>(ids);
         }
@@ -134,6 +140,37 @@ public class V3DataRouter
             }
 
             bpm.UnpinPage(page.PageId, false);
+        }
+
+        return results;
+    }
+    
+    /// <summary>
+    /// Executes a SELECT query using the Query Optimizer and Volcano Execution Pipeline.
+    /// This is the "high-performance" path that supports joins and predicate pushdown.
+    /// </summary>
+    public List<ObjectInstance> ExecuteSelect(string kbName, SelectNode node, Concept? concept = null)
+    {
+        var results = new List<ObjectInstance>();
+        var plan = _optimizer.BuildExecutionPlan(node, kbName);
+
+        try
+        {
+            plan.Init();
+            while (true)
+            {
+                var tuple = plan.Next();
+                if (tuple == null) break;
+
+                // Convert binary tuple back to V1 ObjectInstance for compatibility with UI/CLI
+                var obj = TupleToObject(tuple, node.ConceptName, kbName, concept);
+                results.Add(obj);
+            }
+        }
+        finally
+        {
+            plan.Close();
+            plan.Dispose();
         }
 
         return results;
@@ -346,15 +383,97 @@ public class V3DataRouter
 
         lock (_catalogLock)
         {
+            if (!_pageCatalog.ContainsKey(catalogKey)) LoadCatalog(kbName);
             if (!_pageCatalog.ContainsKey(catalogKey) || _pageCatalog[catalogKey].Count == 0)
             {
                 var newPageId = diskManager.AllocatePage();
                 _pageCatalog[catalogKey] = new List<int> { newPageId };
+                SaveCatalog(kbName);
                 return newPageId;
             }
 
             // Return the last page in the chain (most likely to have space)
             return _pageCatalog[catalogKey].Last();
+        }
+    }
+
+    private void LoadCatalog(string kbName)
+    {
+        var managers = _storagePool.GetManagers(kbName);
+        var bpm = managers.Bpm;
+        var headerPage = bpm.FetchPage(0);
+        if (headerPage == null) return;
+
+        try
+        {
+            int catalogRootPageId = BitConverter.ToInt32(headerPage.Data, 2048);
+            if (catalogRootPageId <= 0) return;
+
+            var catalogPage = bpm.FetchPage(catalogRootPageId);
+            if (catalogPage == null) return;
+
+            string json = Encoding.UTF8.GetString(catalogPage.Data).TrimEnd('\0');
+            var diskCatalog = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, List<int>>>(json);
+            if (diskCatalog != null)
+            {
+                foreach (var kv in diskCatalog)
+                {
+                    _pageCatalog[kv.Key] = kv.Value;
+                }
+            }
+            bpm.UnpinPage(catalogRootPageId, false);
+        }
+        catch { }
+        finally { bpm.UnpinPage(0, false); }
+    }
+
+    private void SaveCatalog(string kbName)
+    {
+        var managers = _storagePool.GetManagers(kbName);
+        var bpm = managers.Bpm;
+        var diskManager = managers.Disk;
+        var headerPage = bpm.FetchPage(0);
+        if (headerPage == null) return;
+
+        try
+        {
+            int catalogRootPageId = BitConverter.ToInt32(headerPage.Data, 2048);
+            if (catalogRootPageId <= 0)
+            {
+                catalogRootPageId = diskManager.AllocatePage();
+                BitConverter.GetBytes(catalogRootPageId).CopyTo(headerPage.Data, 2048);
+                bpm.UnpinPage(0, true);
+                bpm.FlushPage(0);
+            }
+            else
+            {
+                bpm.UnpinPage(0, false);
+            }
+
+            var catalogPage = bpm.FetchPage(catalogRootPageId);
+            if (catalogPage == null) return;
+
+            // Simple snapshot of entries for this KB
+            var snapshot = _pageCatalog.Where(kv => kv.Key.StartsWith(kbName + ":")).ToDictionary(kv => kv.Key, kv => kv.Value);
+            string json = System.Text.Json.JsonSerializer.Serialize(snapshot);
+            byte[] data = Encoding.UTF8.GetBytes(json);
+            
+            Array.Clear(catalogPage.Data, 0, Page.PAGE_SIZE);
+            Array.Copy(data, 0, catalogPage.Data, 0, Math.Min(data.Length, Page.PAGE_SIZE));
+            
+            bpm.UnpinPage(catalogRootPageId, true);
+            bpm.FlushPage(catalogRootPageId);
+        }
+        catch { try { bpm.UnpinPage(0, false); } catch {} }
+    }
+
+    public List<int> GetConceptPageIds(string kbName, string conceptName)
+    {
+        var catalogKey = $"{kbName}:{conceptName}";
+        lock (_catalogLock)
+        {
+            if (!_pageCatalog.ContainsKey(catalogKey)) LoadCatalog(kbName);
+            return _pageCatalog.TryGetValue(catalogKey, out var ids) ? new List<int>(ids) : new List<int>();
         }
     }
 

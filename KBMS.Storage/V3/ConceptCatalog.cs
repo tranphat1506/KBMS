@@ -39,7 +39,11 @@ public class ConceptCatalog
 
         lock (_lock)
         {
+            if (LoadConcept(kbName, concept.Name) != null)
+                return false;
+
             var pageId = GetOrAllocatePage(kbName, key, data.Length);
+
             var page = bpm.FetchPage(pageId);
             if (page == null) return false;
 
@@ -85,6 +89,7 @@ public class ConceptCatalog
         List<int> pageIds;
         lock (_lock)
         {
+            if (!_pageMap.ContainsKey(kbName)) LoadPageIds(kbName);
             if (!_pageMap.TryGetValue(kbName, out var ids)) return results;
             pageIds = new List<int>(ids);
         }
@@ -182,13 +187,66 @@ public class ConceptCatalog
         var managers = _storagePool.GetManagers(kbName);
         var diskManager = managers.Disk;
 
-        if (!_pageMap.ContainsKey(kbName) || _pageMap[kbName].Count == 0)
+        lock (_lock)
         {
-            var newId = diskManager.AllocatePage();
-            _pageMap[kbName] = new List<int> { newId };
-            return newId;
+            if (!_pageMap.ContainsKey(kbName)) LoadPageIds(kbName);
+            if (!_pageMap.ContainsKey(kbName) || _pageMap[kbName].Count == 0)
+            {
+                var newId = diskManager.AllocatePage();
+                _pageMap[kbName] = new List<int> { newId };
+                SavePageIds(kbName);
+                return newId;
+            }
+            return _pageMap[kbName][^1];
         }
-        return _pageMap[kbName][^1];
+    }
+
+    private void LoadPageIds(string kbName)
+    {
+        var managers = _storagePool.GetManagers(kbName);
+        var bpm = managers.Bpm;
+        var page = bpm.FetchPage(0);
+        if (page == null) return;
+
+        try
+        {
+            var ids = new List<int>();
+            int offset = 1024;
+            int count = BitConverter.ToInt32(page.Data, offset);
+            if (count > 0 && count < 1000)
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    int id = BitConverter.ToInt32(page.Data, offset + 4 + (i * 4));
+                    if (id > 0) ids.Add(id);
+                }
+            }
+            _pageMap[kbName] = ids;
+        }
+        catch { }
+        finally { bpm.UnpinPage(0, false); }
+    }
+
+    private void SavePageIds(string kbName)
+    {
+        var managers = _storagePool.GetManagers(kbName);
+        var bpm = managers.Bpm;
+        var page = bpm.FetchPage(0);
+        if (page == null) return;
+
+        try
+        {
+            int offset = 1024;
+            var ids = _pageMap[kbName];
+            BitConverter.GetBytes(ids.Count).CopyTo(page.Data, offset);
+            for (int i = 0; i < ids.Count; i++)
+            {
+                BitConverter.GetBytes(ids[i]).CopyTo(page.Data, offset + 4 + (i * 4));
+            }
+            bpm.UnpinPage(0, true);
+            bpm.FlushPage(0);
+        }
+        catch { bpm.UnpinPage(0, false); }
     }
 
     // In-memory page mapping: kbName -> list of page IDs for concepts
