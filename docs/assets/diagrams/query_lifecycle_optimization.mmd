@@ -1,15 +1,24 @@
 graph TD
-    AST["AST Node tu Module II"] --> Dispatcher[Knowledge Manager]
+    AST[Cây cú pháp trừu tượng - AST] --> KM[KnowledgeManager - Điều phối]
     
-    subgraph Optimization ["Toi uu hoa & Phan ra"]
-        Dispatcher --> Expand["Auto-expand Variables"]
-        Expand --> Opt["Query Optimizer: Heuristic Cost"]
+    KM --> CBO[Bộ tối ưu hóa CBO]
+    
+    subgraph Optimizer [Quy trình Tối ưu hóa Cost-Based]
+        CBO --> Map[Binding Page IDs]
+        Map --> Cost[Ước lượng Chi phí Resources]
+        Cost --> Plan[Lựa chọn Kế hoạch Thực thi]
     end
-    
-    Opt --> Route{Dinh tuyen Thuc thi}
-    Route -->|DML/DQL/SOLVE| Reasoning["Module 4.6: Reasoning Layer"]
-    Route -->|DDL/DCL/TCL| Storage["Chapter 4.3: Storage Layer"]
-    
-    Reasoning --> Res[Ket qua Nhi phan]
-    Storage --> Res
-    Res --> Client([Giao dien Nguoi dung])
+
+    Plan -->|Xác nhận| Volcano[Mô hình thực thi Volcano]
+
+    subgraph Pipeline [Luồng thực thi Pipeline]
+        Volcano --> Scan[Sequential Scan]
+        Scan --> Filter[Predicate Pushdown - Filter]
+        Filter --> Join[Hash Join Operator]
+        Join --> Res[Kết quả ResultSet]
+    end
+
+    Res -->|Trình phản hồi| Socket[Lớp Mạng]
+
+    style Optimizer fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Pipeline fill:#f1f8e9,stroke:#558b2f,stroke-width:2px

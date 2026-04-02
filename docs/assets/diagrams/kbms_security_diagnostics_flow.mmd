@@ -1,20 +1,20 @@
-sequenceDiagram
-    participant App as Studio/CLI
-    participant Net as Network (Socket)
-    participant Auth as Auth Manager
-    participant Log as System Logger
-    participant SysKB as System KB (Master)
+graph LR
+    subgraph Auth [Xác thực & Bảo mật]
+        User[Người dùng] --> Login[Đăng nhập / Authentication]
+        Login --> RBAC{Kiểm soát Quyền - RBAC}
+    end
 
-    Note over App,SysKB: Luồng Xác thực (Authentication)
-    App->>Net: Gửi LOGIN [user] [pass]
-    Net->>Auth: Xác thực credentials
-    Auth->>SysKB: Query: SELECT * FROM users
-    SysKB-->>Auth: Dữ liệu User & Role
-    Auth-->>Net: Đăng nhập thành công (RBAC)
-    Net-->>App: LOGIN_SUCCESS + SessionId
-    
-    Note over App,SysKB: Luồng Chẩn đoán (Diagnostics)
-    Auth->>Log: LogAudit: "User root logged in"
-    Log->>SysKB: INSERT INTO audit_logs IN system
-    Log->>Net: Stream log (If subscribed)
-    Net-->>App: Hiển thị log Real-time (Console/Dashboard)
+    subgraph Logging [Cơ chế Nhật ký Dual-write]
+        RBAC -->|Hành động hợp lệ| Logger[SystemLogger.cs]
+        Logger -->|Lưu trữ vật lý| File[kbms.log - File System]
+        Logger -->|Lưu trữ tri thức| SysKB[Concept 'Log' - System KB]
+    end
+
+    subgraph Stream [Truyền phát thời gian thực]
+        SysKB --> PubSub[Mô hình Publish/Subscribe]
+        PubSub -->|LOGS_STREAM| Client[Dashboard Giám sát]
+    end
+
+    style Auth fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
+    style Logging fill:#ffecb3,stroke:#ffa000,stroke-width:2px
+    style Stream fill:#d1c4e9,stroke:#512da8,stroke-width:2px

@@ -1,39 +1,63 @@
-graph TD
-    Base["AstNode (Base Layer)"]
+classDiagram
+    class AstNode {
+        +String Type
+        +String KbName
+        +int Line
+        +int Column
+    }
+
+    class KclNode {
+        <<Abstract>>
+        +String ConceptName
+    }
+
+    class KdlNode {
+        <<Abstract>>
+        +String TableName
+    }
+
+    class KqlNode {
+        <<Abstract>>
+        +QuerySource Source
+    }
+
+    class SelectNode {
+        +List Projection
+        +FilterNode Where
+    }
+
+    class SolveNode {
+        +String Goal
+        +List Facts
+    }
+
+    class ExpressionNode {
+        <<Abstract>>
+        +Type DataType
+    }
+
+    class BinaryExpressionNode {
+        +AstNode Left
+        +AstNode Right
+        +Operator Op
+    }
+
+    class LiteralNode {
+        +Object Value
+    }
+
+    AstNode <|-- KclNode
+    AstNode <|-- KdlNode
+    AstNode <|-- KqlNode
+    AstNode <|-- ExpressionNode
     
-    Base --- KDL["KDL (Definition)"]
-    Base --- KQL["KQL (Query)"]
-    Base --- KML["KML (Maintenance)"]
-    Base --- KCL["KCL (Control)"]
-    Base --- TCL["TCL (Transaction)"]
-    Base --- EXP["Expressions"]
+    KqlNode <|-- SelectNode
+    KqlNode <|-- SolveNode
     
-    subgraph KDL_Nodes ["Cấu trúc Tri thức"]
-        KDL --- KDL1["Create/Drop/Use/Alter KB"]
-        KDL --- KDL2["Create/Drop/Alter Concept"]
-        KDL --- KDL3["AddVariable/Hierarchy"]
-        KDL --- KDL4["Relation/Operator/Function"]
-        KDL --- KDL5["Rule/Trigger/Index"]
-    end
-    
-    subgraph KQL_Nodes ["Truy vấn & Suy diễn"]
-        KQL --- KQL1["SelectNode (Lọc đối tượng)"]
-        KQL --- KQL2["SolveNode (Giải bài toán)"]
-        KQL --- KQL3["Show/Describe/Explain"]
-    end
-    
-    subgraph KML_Nodes ["Thao tác Dữ liệu"]
-        KML --- KML1["Insert/InsertBulk"]
-        KML --- KML2["Update/Delete"]
-        KML --- KML3["Import/Export/Maintenance"]
-    end
-    
-    subgraph EXP_Nodes ["Biểu thức Logic/Toán học"]
-        EXP --- EXP1["Binary/UnaryExpression"]
-        EXP --- EXP2["LiteralNode (Hằng số)"]
-        EXP --- EXP3["VariableNode (Biến)"]
-        EXP --- EXP4["FunctionCallNode (Hàm)"]
-    end
-    
-    style Base fill:#f9f,stroke:#333,stroke-width:4px
-    style KDL,KQL,KML,KCL,TCL,EXP fill:#dfd,stroke:#333
+    ExpressionNode <|-- BinaryExpressionNode
+    ExpressionNode <|-- LiteralNode
+
+    style AstNode fill:#f9f,stroke:#333,stroke-width:2px
+    style KqlNode fill:#bbf,stroke:#333
+    style KclNode fill:#dfd,stroke:#333
+    style ExpressionNode fill:#fdb,stroke:#333

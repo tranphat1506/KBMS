@@ -1,45 +1,28 @@
 sequenceDiagram
-    autonumber
+    participant C as KBMS Studio/CLI
+    participant N as Lớp Mạng (Protocol)
+    participant S as KnowledgeManager
+    participant R as Inference Engine
+    participant ST as Storage Engine
+
+    C->>N: Gửi truy vấn (Mã nhị phân)
+    N->>N: Giải mã gói tin
+    N->>S: Chuyển giao AST
     
-    box rgb(232, 245, 233) "Application Layer"
-        participant App as Studio / CLI
+    rect rgb(240, 240, 240)
+    Note over S,ST: Quy trình thực thi điều phối
+    S->>S: Thẩm định quyền hạn (RBAC)
+    alt Lệnh Suy luận (SOLVE)
+        S->>R: Nạp sự kiện/luật vào Rete
+        R->>ST: Truy xuất dữ kiện nền
+        ST-->>R: Trả về Facts
+        R->>R: Thực hiện suy diễn tiến
+        R-->>S: Trả về tập sự thật mới
+    else Lệnh Dữ liệu (SELECT/INSERT)
+        S->>ST: Yêu cầu I/O (B+ Tree/BufferPool)
+        ST-->>S: Trả về kết quả vật lý
     end
-    box rgb(225, 245, 254) "Network Layer"
-        participant Net as Custom Binary Protocol
-    end
-    box rgb(255, 243, 224) "Server Layer (Engine)"
-        participant KM as KnowledgeManager
-        participant PE as Compiler & Optimizer
-        participant RE as Volcano Engine (Iterator)
-    end
-    box rgb(252, 228, 236) "Storage Layer"
-        participant BP as BufferPoolManager
-        participant DM as Persistence (WAL/Disk)
     end
 
-    App->>Net: 1. KBQL serialization
-    Net->>KM: 2. Transmission (Socket Handler)
-    
-    rect rgb(255, 255, 255)
-        Note over KM,PE: Computing Stage
-        KM->>PE: 3. Lex/Parse to AST
-        PE->>PE: 4. CBO Optimization
-        PE-->>KM: 5. Execution Plan (DAG)
-    end
-
-    KM->>RE: 6. Execute(Plan)
-    
-    loop Iterator.Next()
-        RE->>BP: 7. Request Logical Page
-        alt Cache Miss
-            BP->>DM: 8. Read Physical Page (AES Decrypted)
-            DM-->>BP: 9. Data Block (HAL)
-        end
-        BP-->>RE: 10. Record Access (Slotted Page)
-        RE->>RE: 11. Volcano Processing (Join/Filter)
-    end
-
-    RE-->>KM: 12. Streaming Results
-    
-    KM->>Net: 13. Tuple Streaming
-    Net-->>App: 14. Response Rendering
+    S-->>N: Đóng gói kết quả (ResultSet)
+    N-->>C: Trả về khung tin (METADATA/ROW/DONE)

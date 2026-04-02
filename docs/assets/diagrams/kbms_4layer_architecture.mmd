@@ -1,57 +1,32 @@
 graph TD
-    %% Global Styling
-    classDef layerBox fill:#f9f9f9,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
-    classDef appNode fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
-    classDef netNode fill:#e1f5fe,stroke:#0277bd,stroke-width:2px;
-    classDef engineNode fill:#fff3e0,stroke:#ef6c00,stroke-width:2px;
-    classDef storageNode fill:#fce4ec,stroke:#c2185b,stroke-width:2px;
-
-    subgraph AppLayer ["Tầng Ứng dụng (Application Layer)"]
-        direction LR
-        Studio["KBMS Studio"]:::appNode
-        CLI["KBMS CLI"]:::appNode
+    subgraph AppLayer [Lớp Ứng dụng]
+        Studio[KBMS Studio - React/Electron]
+        CLI[KBMS CLI - .NET Console]
     end
 
-    subgraph NetLayer ["Tầng Truyền tải (Network Layer)"]
-        direction LR
-        PacketManager["PacketManager<br/>(Binary Protocol)"]:::netNode
-        SocketServer["SocketServer<br/>(Async TCP)"]:::netNode
-        StreamEngine["StreamEngine<br/>(Streaming)"]:::netNode
+    subgraph NetworkLayer [Lớp Mạng]
+        Socket[Asynchronous Sockets - TCP]
+        Protocol[Binary Protocol - Serialization]
     end
 
-    subgraph ServerLayer ["Tầng Xử lý (Server Engine Layer)"]
-        direction TB
-        subgraph Coordinator ["Bộ Điều phối"]
-            KM["KnowledgeManager"]:::engineNode
-            TX["Transaction Lifecycle"]:::engineNode
-        end
-        subgraph Core ["Bộ Nhân Xử lý"]
-            direction LR
-            Compiler["Compiler<br/>(Lex/Parse)"]:::engineNode
-            Optimizer["Optimizer<br/>(CBO)"]:::engineNode
-            Reasoning["Reasoning Engine<br/>(Rete/Closure)"]:::engineNode
-            Volcano["Volcano Engine<br/>(Operators)"]:::engineNode
-        end
+    subgraph ServerLayer [Lớp Xử lý Server]
+        Parser[Bộ phân tích cú pháp - LL(k)]
+        KM[KnowledgeManager - Điều phối]
+        IE[Inference Engine - Mạng Rete]
     end
 
-    subgraph StorageLayer ["Tầng Lưu trữ (Storage Layer)"]
-        direction TB
-        subgraph MemoryM ["Quản lý Bộ nhớ"]
-            BP["BufferPoolManager"]:::storageNode
-        end
-        subgraph DataP ["Lưu trữ Dữ liệu"]
-            direction LR
-            Slotted["SlottedPage<br/>(Layout)"]:::storageNode
-            BPlusTree["B+ Tree<br/>(Index)"]:::storageNode
-            WAL["WalManager<br/>(Durability)"]:::storageNode
-        end
-        Disk["DiskManager (HAL / AES-256)"]:::storageNode
+    subgraph StorageLayer [Lớp Lưu trữ]
+        BP[Buffer Pool Manager]
+        BTree[Chỉ mục B+ Tree]
+        Slotted[Slotted Page Storage]
+        WAL[Write-Ahead Logging - WAL]
     end
 
-    %% Connectors
-    AppLayer <==> NetLayer
-    NetLayer <==> ServerLayer
-    ServerLayer <==> StorageLayer
+    AppLayer <-->|Giao thức Nhị phân| NetworkLayer
+    NetworkLayer <-->|AST/Tiếp nhận| ServerLayer
+    ServerLayer <-->|I/O/Dữ liệu| StorageLayer
 
-    %% Assigning Classes
-    class AppLayer,NetLayer,ServerLayer,StorageLayer layerBox;
+    style AppLayer fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    style NetworkLayer fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style ServerLayer fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style StorageLayer fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px

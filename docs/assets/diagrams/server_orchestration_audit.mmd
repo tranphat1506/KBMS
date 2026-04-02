@@ -1,13 +1,22 @@
 graph TD
-    Req["Yeu cau tu Module I & II"] --> TAP["Mo hinh Khop luong TAP"]
-    
-    subgraph Concurrency ["Dieu phoi Concurrency"]
-        TAP --> Pool["ThreadPool .NET"]
-        Pool --> Sem["SemaphoreSlim Synchronization"]
+    subgraph ClientLayer [Client]
+        App[Studio/CLI]
     end
-    
-    Sem --> AuthCheck{RBAC: CheckPrivilege}
-    AuthCheck -->|Allow| Audit["Ghi Audit Log: system.kdb"]
-    AuthCheck -->|Deny| Err["Tra ve Error Frame"]
-    
-    Audit --> Dispatch["Module IV: Knowledge Dispatching"]
+
+    subgraph ServerCore [Điều phối ServerCore]
+        Socket[TCP Listener] -->|Bất đồng bộ| TAP[Mô hình TAP]
+        TAP -->Pool[Thread Pool]
+        Pool -->Conn[ConnectionManager]
+        Conn -->Auth{Xác thực RBAC}
+    end
+
+    subgraph LogicLayer [Thực thi Logic]
+        Auth -->|Cấp phép| Parser[Parser - AST]
+        Parser -->KM[KnowledgeManager]
+        KM -->Audit[Ghi nhật ký kiểm toán]
+        Audit -->Log[SystemLogger.cs]
+    end
+
+    App <-->|Binary Protocol| Socket
+    style ServerCore fill:#e0f7fa,stroke:#00acc1,stroke-width:2px
+    style LogicLayer fill:#fce4ec,stroke:#d81b60,stroke-width:2px

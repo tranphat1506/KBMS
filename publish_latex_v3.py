@@ -35,17 +35,19 @@ MAP_ACADEMIC = {
     'models': 'Mô hình Hệ quản trị Cơ sở Tri thức',
     'storage': 'Cơ chế Lưu trữ và Quản lý Bộ nhớ',
     'kbql': 'Ngôn ngữ Truy vấn Tri thức (KBQL)',
-    'server-layer': 'Kiến trúc Tầng xử lý Server',
-    'reasoning-layer': 'Kiến trúc Hệ thống Suy luận',
+    'reasoning-layer': 'Kiến trúc Tầng Suy luận',
     'application': 'Tầng Giao diện và Ứng dụng',
     'cli': 'Giao diện Dòng lệnh (CLI)',
     'studio': 'Giao diện Web Quản lý (KBMS STUDIO)',
-    'overview': 'Tổng quan và Mục tiêu',
-    'network': 'Giao thức và Kết nối Mạng',
+    'overview': 'Tổng quan và Mục tiêu Hệ thống',
+    'models': 'Mô hình Hệ quản trị Cơ sở Tri thức',
+    'network-layer': 'Giao thức kết nối và kiến trúc Tầng Mạng',
+    'server-layer': 'Kiến trúc Tầng xử lý Server',
     'parser': 'Bộ phân tích Cú pháp (Parser)',
     'system-core': 'Nhân quản trị Hệ thống (Core)',
     'query-engine': 'Bộ máy Truy vấn và Tối ưu hóa truy vấn (Optimizer)',
     'storage-architecture': 'Kiến trúc Lưu trữ Vật lý',
+    'system-overview': 'Tổng quan Kiến trúc Hệ thống',
 }
 
 GLOSSARY_MAP = {} # slug -> ID
@@ -399,7 +401,7 @@ def process_directory(dir_path, level, af_id, at_id):
         elif item.endswith('.md'):
             # Hierarchical Control (v4.0): Specify which folders should nest their files (e.g., 4.5 -> 4.5.1)
             # Folders not in this list will have files as siblings to the folder title (e.g., 4.2 folder -> 4.3 file H1)
-            HIERARCHICAL_WHITELIST = ['03-storage', '04-kbql', '05-server-layer', '06-reasoning-layer', '07-application', '05-experiments']
+            HIERARCHICAL_WHITELIST = ['02-models', '04-storage', '05-kbql', '06-network-layer', '07-server-layer', '08-reasoning-layer', '09-application', '05-experiments', '01-overview', '03-parser', '04-system-core', '05-query-engine']
             folder_slug = os.path.basename(dir_path)
             is_hierarchical = any(slug in folder_slug for slug in HIERARCHICAL_WHITELIST)
             level_offset = level if is_hierarchical else (level - 1 if level > 0 else 0)
