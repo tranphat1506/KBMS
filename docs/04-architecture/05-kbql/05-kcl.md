@@ -14,6 +14,13 @@ PASSWORD '<password>'
 [ROLE {ADMIN | SERVICE | USER}];
 ```
 
+*Ví dụ:*
+```kbql
+CREATE USER medic_nlp 
+PASSWORD 'securepass123' 
+ROLE SERVICE;
+```
+
 ### 1.2. Hiệu chỉnh Thông tin Tài khoản (ALTER USER)
 
 Lệnh `ALTER USER` hỗ trợ thay đổi mật khẩu hoặc trạng thái quản trị của tài khoản:
@@ -24,10 +31,22 @@ ALTER USER <username> (
 );
 ```
 
+*Ví dụ:*
+```kbql
+ALTER USER medic_nlp (
+    SET (PASSWORD: 'new_pass_456', ADMIN: false)
+);
+```
+
 ### 1.3. Loại bỏ Tài khoản (DROP USER)
 
 ```kbql
 DROP USER <username>;
+```
+
+*Ví dụ:*
+```kbql
+DROP USER old_employee;
 ```
 
 ## 2. Quản trị Quyền hạn và Phân quyền
@@ -42,12 +61,26 @@ ON CONCEPT <concept_name>
 TO <username>;
 ```
 
+*Ví dụ:*
+```kbql
+GRANT SELECT, INSERT 
+ON CONCEPT Patient 
+TO medic_nlp;
+```
+
 ### 2.2. Thu hồi quyền (REVOKE)
 
 ```kbql
 REVOKE {SELECT, INSERT, UPDATE, DELETE, ...} 
 ON CONCEPT <concept_name> 
 FROM <username>;
+```
+
+*Ví dụ:*
+```kbql
+REVOKE DELETE 
+ON CONCEPT Patient 
+FROM medic_nlp;
 ```
 
 ## 3. Hệ thống Vai trò và Quyền hạn Đặc quyền

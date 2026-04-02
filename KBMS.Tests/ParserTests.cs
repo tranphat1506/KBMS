@@ -525,24 +525,6 @@ public class ParserTests
         Assert.Empty(deleteNode.Conditions);
     }
 
-    // ==================== SOLVE Tests ====================
-
-    [Fact]
-    public void Parser_Solve_ShouldParseCorrectly()
-    {
-        var node = ParseStatement("SOLVE ON CONCEPT Triangle GIVEN a: 3, b: 4 FIND area SAVE;");
-
-        Assert.NotNull(node);
-        Assert.IsType<SolveNode>(node);
-
-        var solveNode = (SolveNode)node;
-        Assert.Equal("SOLVE", solveNode.Type);
-        Assert.Equal("Triangle", solveNode.ConceptName);
-        Assert.Equal("area", solveNode.FindVariables[0]);
-        Assert.Equal(2, solveNode.GivenFacts.Count);
-        Assert.True(solveNode.SaveResults);
-    }
-
     // ==================== SHOW Tests ====================
 
     [Fact]

@@ -16,7 +16,7 @@ Ngôn ngữ KBQL được xây dựng dựa trên ba nguyên tắc cốt lõi:
 | :--- | :--- | :--- |
 | **KDL** (Knowledge Definition Language) | Định nghĩa cấu trúc tri thức, luật, phân cấp | `CREATE KB`, `CONCEPT`, `RULE`, `HIERARCHY`, `RELATION` |
 | **KML** (Knowledge Maintenance Language) | Thao tác trên tập các sự kiện (Facts) | `INSERT`, `UPDATE`, `DELETE`, `IMPORT`, `EXPORT` |
-| **KQL** (Knowledge Query Language) | Truy vấn và yêu cầu suy diễn | `SELECT`, `SOLVE`, `SHOW`, `EXPLAIN`, `DESCRIBE` |
+| **KQL** (Knowledge Query Language) | Truy vấn và yêu cầu suy diễn | `SELECT` (với macro `SOLVE()`), `SHOW`, `EXPLAIN`, `DESCRIBE` |
 | **KCL** (Knowledge Control Language) | Quản lý người dùng và quyền truy cập | `GRANT`, `REVOKE`, `CREATE/ALTER/DROP USER` |
 | **TCL** (Transaction Control Language) | Quản lý giao dịch và tính toàn vẹn | `BEGIN`, `COMMIT`, `ROLLBACK` |
 | **Admin** (Maintenance) | Bảo trì và tối ưu hóa hệ thống | `MAINTENANCE (VACUUM, REINDEX, CHECK)` |

@@ -386,7 +386,7 @@ def process_directory(dir_path, level, af_id, at_id):
                     if lang == "mermaid": return ""
                     code_blocks.append(m.group(2))
                     return "PHCODEX%dX" % (len(code_blocks)-1)
-                md_text = re.sub(r'```(\w+)?\n(.*?)\n```', code_ext, md_text, flags=re.DOTALL)
+                md_text = re.sub(r'(?m)^[ \t]*```(\w+)?\n(.*?)\n[ \t]*```', code_ext, md_text, flags=re.DOTALL)
                 md_text = re.sub(r'</?details>|<summary>.*?</summary>', '', md_text)
 
                 # Smart Block Splitting (v3.71): Handle headers mid-block
@@ -559,7 +559,7 @@ def main():
   \renewcommand{\contentsname}{MỤC LỤC}
   \renewcommand{\listfigurename}{DANH MỤC HÌNH ẢNH}
   \renewcommand{\listfigurename}{DANH MỤC HÌNH ẢNH}
-  \renewcommand{\listtablename}{DANH MỤC BẢNG}
+  \renewcommand{\listtablename}{DANH MỤC BIỂU ĐỒ}
   \renewcommand{\bibname}{TÀI LIỆU THAM KHẢO}
   \setlength{\headheight}{15pt}
 }
@@ -603,23 +603,56 @@ def main():
 \fancyfoot[C]{\thepage}
 
 \begin{document}
+\newgeometry{margin=0.8in}
 \begin{titlepage}
+    \begin{tcolorbox}[
+        enhanced,
+        sharp corners,
+        boxrule=1.5pt,
+        colback=white,
+        colframe=black,
+        width=\textwidth,
+        height=\textheight,
+        left=2cm,
+        right=2cm,
+        top=1.5cm,
+        bottom=1cm,
+        borderline={0.5pt}{4pt}{black} % Hiệu ứng viền đôi chuyên nghiệp
+    ]
     \centering
-    {\large \textbf{TRƯỜNG ĐẠI HỌC QUỐC TẾ HỒNG BÀNG}\par}
-    {\large \textbf{BỘ MÔN CÔNG NGHỆ THÔNG TIN}\par}
-    \vspace{4cm}
-    {\Huge \textbf{ĐỒ ÁN TỐT NGHIỆP}\par}
-    \vspace{2cm}
-    {\huge \textbf{ĐỀ TÀI: “THIẾT KẾ HỆ HỖ TRỢ QUẢN TRỊ \\ CƠ SỞ TRI THỨC DẠNG COKB”}\par}
-    \vspace{4cm}
+    {\fontsize{14pt}{18pt}\selectfont \textbf{TRƯỜNG ĐẠI HỌC QUỐC TẾ HỒNG BÀNG}\par}
+    {\fontsize{14pt}{18pt}\selectfont \textbf{BỘ MÔN CÔNG NGHỆ THÔNG TIN}\par}
+    \vspace{0.2cm}
+    {\fontsize{18pt}{18pt}\selectfont \fontspec{Wingdings} \char"F096\char"F026\char"F097 \par}
+    
+    \vspace{1.5cm}
+    \includegraphics[width=10cm]{assets/logo_hiu.jpg}\par
+    \vspace{1.5cm}
+    
+    {\fontsize{22pt}{28pt}\selectfont \textbf{ĐỒ ÁN TỐT NGHIỆP}\par}
+    \vspace{1.5cm}
+    
+    {\fontsize{17pt}{24pt}\selectfont \textbf{\underline{ĐỀ TÀI}: “THIẾT KẾ HỆ HỖ TRỢ QUẢN TRỊ} \\ 
+    \textbf{CƠ SỞ TRI THỨC DẠNG COKB”}\par}
+    
+    \vspace{2.5cm}
+    
     \begin{flushleft}
-        \textbf{GVHD: Gs. Đỗ Văn Nhơn \& Ths. Mai Trung Thành}\\
-        \textbf{SVTH: Lê Châu Trần Phát - 2211110068}\\
-        \textbf{Lớp: TH22DH-CN2}
+        \hspace{4.5cm}
+        \fontsize{14pt}{24pt}\selectfont
+        \begin{tabular}{ll}
+            \textbf{GVHD:} & \textbf{Gs. ĐỖ VĂN NHƠN \& Ths. MAI TRUNG THÀNH} \\
+            \textbf{SVTH:} & \textbf{LÊ CHÂU TRẦN PHÁT} \\
+            \textbf{MSSV:} & \textbf{2211110068} \\
+            \textbf{LỚP:}  & \textbf{TH22DH-CN2}
+        \end{tabular}
     \end{flushleft}
+    
     \vfill
-    {\large TP. Hồ Chí Minh, 2026\par}
+    {\fontsize{14pt}{17pt}\selectfont \textbf{TP. Hồ Chí Minh, 2026}\par}
+    \end{tcolorbox}
 \end{titlepage}
+\restoregeometry
 
 % --- LỜI CẢM ƠN ---
 \chapter*{LỜI CẢM ƠN}
@@ -663,14 +696,22 @@ Em xin cam kết rằng báo cáo khóa luận tốt nghiệp này được hoà
 \end{flushright}
 \clearpage
 
-\tableofcontents
-\addcontentsline{toc}{chapter}{MỤC LỤC}
-\clearpage
-\listoffigures
+\cleardoublepage
+\phantomsection
 \addcontentsline{toc}{chapter}{DANH MỤC HÌNH ẢNH}
+\listoffigures
 \clearpage
+
+\cleardoublepage
+\phantomsection
+\addcontentsline{toc}{chapter}{DANH MỤC BIỂU ĐỒ}
 \listoftables
-\addcontentsline{toc}{chapter}{DANH MỤC BẢNG}
+\clearpage
+
+\cleardoublepage
+\phantomsection
+\addcontentsline{toc}{chapter}{MỤC LỤC}
+\tableofcontents
 \clearpage
 '''
     # main_tex += "".join(glossary_content) # Removed

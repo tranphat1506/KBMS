@@ -106,7 +106,6 @@ public class Parser
             TokenType.INSERT => ParseInsertOrBulk(),
             TokenType.UPDATE => ParseUpdate(),
             TokenType.DELETE => ParseDelete(),
-            TokenType.SOLVE => ParseSolve(),
             TokenType.SHOW => ParseShow(),
             TokenType.ALTER => ParseAlter(),
             TokenType.DESCRIBE => ParseDescribe(),
@@ -2027,6 +2026,7 @@ public class Parser
         return node;
     }
 
+
     private InsertBulkNode ParseInsertBulkBody(Token startToken)
     {
         var bulkNode = new InsertBulkNode
@@ -2273,95 +2273,7 @@ public class Parser
         return node;
     }
 
-    private SolveNode ParseSolve()
-    {
-        var token = Peek() ?? throw Error("Unexpected end of input");
-        Consume(TokenType.SOLVE);
 
-        // Syntax: SOLVE ON CONCEPT <ConceptName>
-        Consume(TokenType.ON);
-        Consume(TokenType.CONCEPT);
-
-        var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected concept name");
-        var node = new SolveNode(token)
-        {
-            Type = "SOLVE",
-            ConceptName = conceptToken.Lexeme,
-            Line = token.Line,
-            Column = token.Column
-        };
-
-        // Parse GIVEN clause (FactSpace GT)
-        if (Check(TokenType.GIVEN))
-        {
-            Consume(TokenType.GIVEN);
-            while (!Check(TokenType.FIND) && !Check(TokenType.SEMICOLON) && !IsAtEnd())
-            {
-                var keyToken = ConsumeIdentifier() ?? throw Error("Expected variable name");
-                
-                // Support both ':' and '=' for GIVEN clause
-                if (Check(TokenType.COLON) || Check(TokenType.EQUALS))
-                {
-                    Advance();
-                }
-                else
-                {
-                    throw Error("Expected ':' or '=' after variable name");
-                }
-
-                var valueToken = Peek() ?? throw Error("Expected value");
-                string value;
-
-                switch (valueToken.Type)
-                {
-                    case TokenType.NUMBER:
-                        // Use original lexeme to store precision properly
-                        value = valueToken.Lexeme;
-                        break;
-                    case TokenType.STRING:
-                        value = valueToken.Literal?.ToString() ?? "";
-                        break;
-                    case TokenType.BOOLEAN:
-                        value = valueToken.Lexeme.ToLower();
-                        break;
-                    case TokenType.IDENTIFIER:
-                        value = valueToken.Lexeme;
-                        break;
-                    default:
-                        throw Error($"Unexpected value type: {valueToken.Lexeme}", valueToken);
-                }
-                Advance();
-                node.GivenFacts[keyToken.Lexeme] = value;
-
-                if (Check(TokenType.COMMA))
-                    Consume(TokenType.COMMA);
-                else
-                    break;
-            }
-        }
-
-        // Parse FIND clause (Goal KL)
-        Consume(TokenType.FIND);
-        while (!Check(TokenType.SAVE) && !Check(TokenType.SEMICOLON) && !IsAtEnd())
-        {
-            var findToken = ConsumeIdentifier() ?? throw Error("Expected variable to find");
-            node.FindVariables.Add(findToken.Lexeme);
-
-            if (Check(TokenType.COMMA))
-                Consume(TokenType.COMMA);
-            else
-                break;
-        }
-
-        // Parse Optional SAVE clause
-        if (Check(TokenType.SAVE))
-        {
-            Consume(TokenType.SAVE);
-            node.SaveResults = true;
-        }
-
-        return node;
-    }
 
     private ShowNode ParseShow()
     {

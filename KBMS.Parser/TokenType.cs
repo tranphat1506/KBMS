@@ -46,7 +46,6 @@ public enum TokenType
     INSERT,         // INSERT
     UPDATE,         // UPDATE
     DELETE,         // DELETE
-    SOLVE,          // SOLVE
     SHOW,           // SHOW
     ATTRIBUTE,      // ATTRIBUTE
     INDEX,          // INDEX

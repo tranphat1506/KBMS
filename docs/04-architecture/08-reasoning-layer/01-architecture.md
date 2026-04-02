@@ -1,22 +1,29 @@
-# Kiến trúc Tầng Suy luận
+# 4.7. Kiến trúc Tầng Suy luận
 
-Tầng Suy luận của KBMS được thiết kế để thực hiện việc so khớp mẫu và nội suy tri thức tự động dựa trên thuật toán Rete [9]. Phân hệ này cho phép hệ thống tự động phát hiện các sự thật mới từ các dữ kiện hiện có thông qua một mạng lưới các nốt xử lý logic [1], [6].
+Tầng Suy luận của hệ quản trị KBMS chịu trách nhiệm thực thi các tiến trình nội suy tri thức, giải hệ thức toán học và lan truyền luật dẫn tự động. Phân hệ này được thiết kế dựa trên sự kết hợp giữa thuật toán **Rete** cổ điển và bộ máy **InferenceEngine** hướng mục tiêu để tối ưu hóa hiệu năng và độ chính xác của tri thức [1], [6].
 
-## 4.7.1. Các thành phần Hạt nhân của Bộ máy Suy luận
+## 4.7.1. Thuật toán Rete và Nguyên lý So khớp Mẫu
 
-Bộ máy suy luận bao gồm 3 thành phần chính hoạt động phối hợp:
+Thuật toán **Rete** (tiếng Latinh có nghĩa là "mạng lưới") là một giải thuật so khớp mẫu hiệu năng cao được sử dụng trong các hệ chuyên gia. Nguyên lý cốt lõi của Rete dựa trên hai kỹ thuật tối ưu hóa sau:
 
-1.  **Bộ máy suy diễn**: Thành phần điều phối trung tâm, tiếp nhận các yêu cầu giải quyết tri thức từ nhân tri thức và quản lý vòng đời của phiên suy luận.
-2.  **Mạng lưới Rete**: Một đồ thị các nốt (Alpha, Beta, P-Node) lưu trữ trạng thái khớp cục bộ và thực hiện lan truyền dữ kiện.
-3.  **Hàng đợi thực thi**: Nơi lưu trữ các luật dẫn đã thỏa mãn điều kiện nhưng chưa được thực hiện hành động kết luận.
+1.  **Lưu trữ Trạng thái (Persistence)**: Các kết quả so sánh cục bộ sẽ được lưu lại (cached) tại các nốt trong mạng lưới. Khi có một dữ kiện (Fact) mới được đưa vào, hệ thống không cần đánh giá lại toàn bộ các luật mà chỉ cần kích hoạt các nhánh bị ảnh hưởng.
+2.  **Chia sẻ Cấu trúc (Sharing)**: Những thành phần điều kiện giống nhau giữa các luật khác nhau sẽ dùng chung các nốt xử lý, giúp tiết kiệm bộ nhớ và giảm số lượng phép toán logic cần lặp lại.
 
-![Sơ đồ Điều phối Tầng Suy luận | width=1.05](../../assets/diagrams/reasoning_orchestration.png)
-*Hình 4.24: Quy trình điều phối suy luận từ bộ phân tích cú pháp đến kết quả cuối.*
+## 4.7.2. Đặc tả các Loại Nốt trong Mạng Rete
 
-## 4.7.2. Đặc điểm của Cơ chế Suy luận Rete
+KBMS triển khai mạng Rete thông qua ba loại nốt chính:
 
-Hệ thống sử dụng mạng nốt Rete để tối ưu hóa hiệu năng dựa trên hai nguyên tắc:
--   **Lưu trữ Trạng thái**: Các kết quả khớp một phần được lưu lại tại các nốt, giúp tránh việc tính toán lại từ đầu khi có dữ kiện mới.
--   **Chia sẻ Cấu trúc**: Các phần điều kiện giống nhau giữa nhiều luật dẫn sẽ được dùng chung các nốt xử lý, giúp tiết kiệm bộ nhớ RAM.
+-   **Alpha Node (Bộ lọc)**: Chịu trách nhiệm thẩm định các điều kiện đơn lẻ trên một thuộc tính (Ví dụ: `Patient.sys > 140`).
+-   **Beta Node (Bộ nối)**: Thực hiện phép nối tri thức (Join) giữa các nhánh khác nhau để kiểm tra sự thỏa mãn của các tổ hợp điều kiện đa biến.
+-   **P-Node (Nút thực thi)**: Đại diện cho các luật dẫn đã được thỏa mãn hoàn toàn, sẵn sàng kích hoạt hành động kết luận hoặc gán dữ liệu.
 
-Kiến trúc này đảm bảo KBMS có thể xử lý các hệ luật phức tạp với hàng ngàn dữ kiện mà vẫn duy trì được tốc độ phản hồi nhanh chóng.
+## 4.7.3. Tổng quan Hệ thống Suy luận KBMS
+
+Bên cạnh mạng Rete, bộ máy suy luận của KBMS tích hợp các thành phần điều phối hạt nhân nhằm mở rộng khả năng giải toán nội suy:
+
+-   **Inference Engine**: Phân hệ trung tâm điều phối toàn bộ chu kỳ sống của một phiên suy luận.
+-   **Fact Memory**: Bộ nhớ lưu trữ các sự kiện tạm thời được sinh ra trong quá trình suy luận, đảm bảo tính cách ly và tốc độ truy xuất nhanh.
+-   **Equation Resolver**: Bộ giải hệ thức sử dụng các phương pháp xấp xỉ số học (như Newton-Raphson) để tính toán các biến số chưa biết trong mô hình toán học.
+
+![Sơ đồ Kiến trúc Tầng Suy luận KBMS](../../assets/diagrams/reasoning_architecture.png)
+*Hình 4.24: Sơ đồ kiến trúc tầng suy luận và quy trình lan truyền tri thức.*

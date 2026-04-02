@@ -13,6 +13,11 @@ MAINTENANCE (
 );
 ```
 
+*Ví dụ:*
+```kbql
+MAINTENANCE (VACUUM ON CONCEPT Patient, CHECK CONSISTENCY);
+```
+
 ## 2. Đặc tả các Hoạt động Quản trị
 
 ### 2.1. Giải phóng và Tối ưu hóa Bộ nhớ (VACUUM)

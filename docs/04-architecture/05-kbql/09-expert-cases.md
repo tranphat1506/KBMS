@@ -17,10 +17,12 @@ CREATE CONCEPT Resistor (
 );
 
 -- Kịch bản 1: Biết I và R, xác định U (Tính toán thuận)
-SOLVE ON CONCEPT Resistor GIVEN i = 2, r = 10 FIND u; -- Kết quả: u = 20
+INSERT INTO Resistor ATTRIBUTE (i: 2, r: 10);
+SELECT SOLVE(u) FROM Resistor; -- Kết quả: u = 20
 
 -- Kịch bản 2: Biết U và I, xác định R (Tính toán nghịch)
-SOLVE ON CONCEPT Resistor GIVEN u = 220, i = 2 FIND r; -- Kết quả: r = 110
+INSERT INTO Resistor ATTRIBUTE (u: 220, i: 2);
+SELECT SOLVE(r) FROM Resistor; -- Kết quả: r = 110
 ```
 
 ## 2. Suy diễn Chùm và Lan truyền Tri thức (Chain Reasoning)
@@ -95,8 +97,9 @@ CREATE CONCEPT Intersection (
     )
 );
 
-SOLVE ON CONCEPT Intersection FIND x, y;
--- Kết quả: x = 1, y = 3 (Hệ thống tự giải hệ phương trình tuyến tính).
+INSERT INTO Intersection ATTRIBUTE ();  -- Cấu trúc trống để bắt đầu quá trình nội suy
+SELECT SOLVE(x), SOLVE(y) FROM Intersection;
+-- Kết quả: x = 1, y = 3 (Hệ thống tự động giải hệ phương trình đa biến).
 ```
 
 ## 6. Phối hợp Trigger và Luật dẫn (The Chain Reaction)

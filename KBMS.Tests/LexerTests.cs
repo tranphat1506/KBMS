@@ -242,7 +242,7 @@ public class LexerTests
     public void Lexer_ShouldTokenizeSOLVE()
     {
         var tokens = Tokenize("SOLVE");
-        Assert.Equal(TokenType.SOLVE, tokens[0].Type);
+        Assert.Equal(TokenType.IDENTIFIER, tokens[0].Type);
     }
 
     [Fact]

@@ -75,8 +75,8 @@ public class FullIntegrationTests : IAsyncLifetime
         await _cli.ExecuteCommandAsync("CREATE RULE HighHonor SCOPE Student IF grade >= 90 THEN SET honor = 'High';");
         await _cli.ExecuteCommandAsync("CREATE RULE HonorToGift SCOPE Student IF honor = 'High' THEN SET gifted = true;");
 
-        // INSERT triggers Forward Chaining
-        await _cli.ExecuteCommandAsync("INSERT INTO Student ATTRIBUTE (1, 'Alice', 95);");
+        // Use SOLVE to infer and save
+        await _cli.ExecuteCommandAsync("SOLVE ON CONCEPT Student GIVEN id: 1, name: 'Alice', grade: 95 FIND honor, gifted SAVE;");
         
         var res = await _cli.ExecuteCommandAsync("SELECT name, honor, gifted FROM Student WHERE name = 'Alice';");
         var resLower = res!.Content.ToLower();

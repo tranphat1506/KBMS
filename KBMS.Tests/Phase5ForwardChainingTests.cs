@@ -76,22 +76,17 @@ namespace KBMS.Tests
             await InitializeAsync();
             var dbName = "db_ins_" + Guid.NewGuid().ToString("N").Substring(0, 6);
             
-            var res = await _cli.ExecuteCommandAsync($"CREATE KNOWLEDGE BASE {dbName};");
-            Assert.True(res?.Type != MessageType.ERROR, $"Failed to create KB: {res?.Content}");
+            await _cli.ExecuteCommandAsync($"CREATE KNOWLEDGE BASE {dbName};");
+            await _cli.ExecuteCommandAsync($"USE {dbName};");
 
-            var useRes = await _cli.ExecuteCommandAsync($"USE {dbName};");
-            Assert.True(useRes?.Type != MessageType.ERROR, $"Failed to USE KB: {useRes?.Content}");
+            await _cli.ExecuteCommandAsync("CREATE CONCEPT Student(name STRING, grade FLOAT, honor STRING);");
+            await _cli.ExecuteCommandAsync("CREATE RULE HighHonor IF Student(grade >= 90) THEN Student(honor = 'High');");
 
-            var conceptRes = await _cli.ExecuteCommandAsync("CREATE CONCEPT Student(name STRING, grade FLOAT, honor STRING);");
-            Assert.True(conceptRes!.Type != MessageType.ERROR, $"Failed to create concept: {conceptRes.Content}");
+            // Insert base facts
+            await _cli.ExecuteCommandAsync("INSERT INTO Student ATTRIBUTE(name: 'Alice', grade: 95);");
 
-            var ruleRes = await _cli.ExecuteCommandAsync("CREATE RULE HighHonor IF Student(grade >= 90) THEN Student(honor = 'High');");
-            Assert.True(ruleRes!.Type != MessageType.ERROR, $"Failed to create rule: {ruleRes.Content}");
-
-            var insRes = await _cli.ExecuteCommandAsync("INSERT INTO Student ATTRIBUTE (name: 'Alice', grade: 95);");
-            Assert.True(insRes!.Type != MessageType.ERROR, $"Failed to insert: {insRes.Content}");
-
-            var selectRes = await _cli.ExecuteCommandAsync("SELECT honor FROM Student WHERE name = 'Alice';");
+            // Reason via SELECT SOLVE(attribute)
+            var selectRes = await _cli.ExecuteCommandAsync("SELECT SOLVE(honor) FROM Student WHERE name = 'Alice';");
             Assert.Contains("High", selectRes!.Content);
         }
 
@@ -108,14 +103,16 @@ namespace KBMS.Tests
             await _cli.ExecuteCommandAsync("CREATE RULE HighHonor IF Student(grade >= 90) THEN Student(honor = 'High');");
             await _cli.ExecuteCommandAsync("CREATE RULE HonorToGift IF Student(honor = 'High') THEN Student(gifted = true);");
 
-            // Measure inference latency
+            // Insert base facts
+            await _cli.ExecuteCommandAsync("INSERT INTO Student ATTRIBUTE(name: 'Charlie', grade: 95);");
+
+            // Measure inference latency via SELECT SOLVE
             var sw = System.Diagnostics.Stopwatch.StartNew();
-            await _cli.ExecuteCommandAsync("INSERT INTO Student ATTRIBUTE (name: 'Charlie', grade: 95);");
+            var selectRes = await _cli.ExecuteCommandAsync("SELECT SOLVE(honor), SOLVE(gifted) FROM Student WHERE name = 'Charlie';");
             sw.Stop();
             
             _output.WriteLine($"[Reasoning] Charlie Multi-step Inference Latency: {sw.ElapsedMilliseconds}ms");
             
-            var selectRes = await _cli.ExecuteCommandAsync("SELECT honor, gifted FROM Student WHERE name = 'Charlie';");
             Assert.Contains("High", selectRes!.Content);
             Assert.Contains("true", selectRes.Content);
         }

@@ -1,0 +1,281 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  KBMS.Models -> /Users/lechautranphat/Desktop/KBMS/KBMS.Models/bin/Debug/net8.0/KBMS.Models.dll
+  KBMS.Storage -> /Users/lechautranphat/Desktop/KBMS/KBMS.Storage/bin/Debug/net8.0/KBMS.Storage.dll
+  KBMS.Parser -> /Users/lechautranphat/Desktop/KBMS/KBMS.Parser/bin/Debug/net8.0/KBMS.Parser.dll
+  KBMS.Reasoning -> /Users/lechautranphat/Desktop/KBMS/KBMS.Reasoning/bin/Debug/net8.0/KBMS.Reasoning.dll
+  KBMS.Network -> /Users/lechautranphat/Desktop/KBMS/KBMS.Network/bin/Debug/net8.0/KBMS.Network.dll
+  KBMS.Knowledge -> /Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/bin/Debug/net8.0/KBMS.Knowledge.dll
+  KBMS.CLI -> /Users/lechautranphat/Desktop/KBMS/KBMS.CLI/bin/Debug/net8.0/KBMS.CLI.dll
+  KBMS.Server -> /Users/lechautranphat/Desktop/KBMS/KBMS.Server/bin/Debug/net8.0/KBMS.Server.dll
+  KBMS.Tests -> /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/bin/Debug/net8.0/KBMS.Tests.dll
+Test run for /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/bin/Debug/net8.0/KBMS.Tests.dll (.NETCoreApp,Version=v8.0)
+VSTest version 17.11.1 (arm64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/bin/Debug/net8.0/KBMS.Tests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.5.3.1+6b60a9e56a (64-bit .NET 8.0.23)
+[xUnit.net 00:00:00.03]   Discovering: KBMS.Tests
+[xUnit.net 00:00:00.07]   Discovered:  KBMS.Tests
+[xUnit.net 00:00:00.07]   Starting:    KBMS.Tests
+[SystemBootstrapper] 'system' Knowledge Base not found. Bootstrapping...
+[SystemBootstrapper] Successfully bootstrapped 'system' KB.
+[2026-04-03 03:46:44.026] [INFO   ] [System] [Kernel] KBMS Server started on 127.0.0.1:8501
+Connected to KBMS Server at 127.0.0.1:8501
+[2026-04-03 03:46:44.041] [INFO   ] [conn_1775162804041_f49c1588] [Kernel] New connection established
+[2026-04-03 03:46:44.043] [INFO   ] [conn_1775162804041_f49c1588] [Kernel] REQUEST: LOGIN
+[2026-04-03 03:46:44.061] [INFO   ] [conn_1775162804041_f49c1588] [Network] RESPONSE: RESULT (Content: LOGIN_SUCCESS:root:ROOT:b61f0f1e3dee324de0b44e9c69574df2)
+[2026-04-03 03:46:44.062] [INFO   ] [conn_1775162804041_f49c1588] [Network] [root] REQUEST: CREATE KNOWLEDGE BASE City_DB;
+[2026-04-03 03:46:44.075] [INFO   ] [conn_1775162804041_f49c1588] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.009}) [Req: cli_1775162804061_bf2b]
+Knowledge base 'City_DB' created successfully (V3 Catalog).
+0 row(s) in set (0,01 sec)
+[2026-04-03 03:46:44.078] [INFO   ] [conn_1775162804041_f49c1588] [Network] [root] REQUEST: USE City_DB;
+Database changed: City_DB;
+[2026-04-03 03:46:44.079] [INFO   ] [conn_1775162804041_f49c1588] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0}) [Req: cli_1775162804078_ac89]
+Database changed: City_DB;
+[2026-04-03 03:46:44.079] [INFO   ] [conn_1775162804041_f49c1588] [Network] [root] REQUEST: CREATE CONCEPT Zone(id: STRING, status: STRING);
+[2026-04-03 03:46:44.092] [INFO   ] [conn_1775162804041_f49c1588] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.013}) [Req: cli_1775162804079_c268]
+Concept 'Zone' created successfully (V3 Catalog).
+0 row(s) in set (0,01 sec)
+[2026-04-03 03:46:44.092] [INFO   ] [conn_1775162804041_f49c1588] [Network] [root] REQUEST: CREATE CONCEPT Sensor(id: STRING, speed: INT, zid: STRING);
+[2026-04-03 03:46:44.097] [INFO   ] [conn_1775162804041_f49c1588] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.004}) [Req: cli_1775162804092_381a]
+Concept 'Sensor' created successfully (V3 Catalog).
+0 row(s) in set (0,00 sec)
+[2026-04-03 03:46:44.097] [INFO   ] [conn_1775162804041_f49c1588] [Network] [root] REQUEST: CREATE RULE R_Jam SCOPE Sensor IF speed < 10 THEN SET id = 'JAMMED';
+[2026-04-03 03:46:44.100] [INFO   ] [conn_1775162804041_f49c1588] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.003}) [Req: cli_1775162804097_7d95]
+Rule 'R_Jam' created successfully (V3 Engine).
+0 row(s) in set (0,00 sec)
+[2026-04-03 03:46:44.101] [INFO   ] [conn_1775162804041_f49c1588] [Network] [root] REQUEST: INSERT INTO Sensor ATTRIBUTE(id: 'S1', speed: 5, zid: 'Z1');
+[2026-04-03 03:46:44.116] [INFO   ] [conn_1775162804041_f49c1588] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.015}) [Req: cli_1775162804100_04ca]
+Object inserted successfully with ID: b9e07683-836e-4b72-b12b-efff4ec2d484
+0 row(s) in set (0,01 sec)
+[2026-04-03 03:46:44.116] [INFO   ] [conn_1775162804041_f49c1588] [Network] [root] REQUEST: SELECT SOLVE(id) FROM Sensor WHERE zid = 'Z1';
+[2026-04-03 03:46:44.175] [INFO   ] [conn_1775162804041_f49c1588] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.058}) [Req: cli_1775162804116_6689]
+| SOLVE(id) |
+|-----------|
+| JAMMED    |
+|-----------|
+1 row(s) in set (0,06 sec)
+[SystemBootstrapper] 'system' Knowledge Base not found. Bootstrapping...
+[SystemBootstrapper] Successfully bootstrapped 'system' KB.
+[2026-04-03 03:46:44.239] [INFO   ] [System] [Kernel] KBMS Server started on 127.0.0.1:8502
+Connected to KBMS Server at 127.0.0.1:8502
+[2026-04-03 03:46:44.246] [INFO   ] [conn_1775162804246_70f99d3f] [Kernel] New connection established
+[2026-04-03 03:46:44.246] [INFO   ] [conn_1775162804246_70f99d3f] [Kernel] REQUEST: LOGIN
+[2026-04-03 03:46:44.252] [INFO   ] [conn_1775162804246_70f99d3f] [Network] RESPONSE: RESULT (Content: LOGIN_SUCCESS:root:ROOT:ac46ed94eaeff21d022fa8b4dbafef52)
+[2026-04-03 03:46:44.253] [INFO   ] [conn_1775162804246_70f99d3f] [Network] [root] REQUEST: CREATE KNOWLEDGE BASE Geometry_DB;
+[2026-04-03 03:46:44.257] [INFO   ] [conn_1775162804246_70f99d3f] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.003}) [Req: cli_1775162804253_0e2e]
+Knowledge base 'Geometry_DB' created successfully (V3 Catalog).
+1 row(s) in set (0,00 sec)
+[2026-04-03 03:46:44.257] [INFO   ] [conn_1775162804246_70f99d3f] [Network] [root] REQUEST: USE Geometry_DB;
+Database changed: Geometry_DB;
+Database changed: Geometry_DB;
+[2026-04-03 03:46:44.257] [INFO   ] [conn_1775162804246_70f99d3f] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0}) [Req: cli_1775162804257_9508]
+[2026-04-03 03:46:44.257] [INFO   ] [conn_1775162804246_70f99d3f] [Network] [root] REQUEST: CREATE CONCEPT Triangle(ta: FLOAT, tb: FLOAT, tc: FLOAT, t_type: STRING);
+[2026-04-03 03:46:44.267] [INFO   ] [conn_1775162804246_70f99d3f] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.01}) [Req: cli_1775162804257_dcfb]
+Concept 'Triangle' created successfully (V3 Catalog).
+1 row(s) in set (0,01 sec)
+[2026-04-03 03:46:44.267] [INFO   ] [conn_1775162804246_70f99d3f] [Network] [root] REQUEST: CREATE RULE R_Right SCOPE Triangle IF (ta*ta + tb*tb) = (tc*tc) THEN SET t_type = 'RightTriangle';
+[2026-04-03 03:46:44.269] [INFO   ] [conn_1775162804246_70f99d3f] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.001}) [Req: cli_1775162804267_9d2a]
+Rule 'R_Right' created successfully (V3 Engine).
+1 row(s) in set (0,00 sec)
+[2026-04-03 03:46:44.269] [INFO   ] [conn_1775162804246_70f99d3f] [Network] [root] REQUEST: INSERT INTO Triangle ATTRIBUTE(ta: 3.0, tb: 4.0, tc: 5.0);
+[2026-04-03 03:46:44.283] [INFO   ] [conn_1775162804246_70f99d3f] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.014}) [Req: cli_1775162804269_82c0]
+Object inserted successfully with ID: 7bf8f02e-e932-4ff2-a400-6d0db243c526
+1 row(s) in set (0,01 sec)
+[2026-04-03 03:46:44.283] [INFO   ] [conn_1775162804246_70f99d3f] [Network] [root] REQUEST: SELECT SOLVE(t_type) FROM Triangle WHERE ta = 3.0;
+[2026-04-03 03:46:44.299] [INFO   ] [conn_1775162804246_70f99d3f] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.015}) [Req: cli_1775162804283_dd27]
+| SOLVE(t_type) |
+|---------------|
+| RightTriangle |
+|---------------|
+1 row(s) in set (0,01 sec)
+[SystemBootstrapper] 'system' Knowledge Base not found. Bootstrapping...
+[SystemBootstrapper] Successfully bootstrapped 'system' KB.
+[2026-04-03 03:46:44.362] [INFO   ] [System] [Kernel] KBMS Server started on 127.0.0.1:8503
+Connected to KBMS Server at 127.0.0.1:8503
+[2026-04-03 03:46:44.368] [INFO   ] [conn_1775162804368_94b06909] [Kernel] New connection established
+[2026-04-03 03:46:44.369] [INFO   ] [conn_1775162804368_94b06909] [Kernel] REQUEST: LOGIN
+[2026-04-03 03:46:44.375] [INFO   ] [conn_1775162804368_94b06909] [Network] RESPONSE: RESULT (Content: LOGIN_SUCCESS:root:ROOT:7e55a119ea2547905d29308683d7352c)
+[2026-04-03 03:46:44.375] [INFO   ] [conn_1775162804368_94b06909] [Network] [root] REQUEST: CREATE KNOWLEDGE BASE Medical_DB;
+Knowledge base 'Medical_DB' created successfully (V3 Catalog).
+1 row(s) in set (0,00 sec)
+[2026-04-03 03:46:44.379] [INFO   ] [conn_1775162804368_94b06909] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.003}) [Req: cli_1775162804375_11da]
+[2026-04-03 03:46:44.379] [INFO   ] [conn_1775162804368_94b06909] [Network] [root] REQUEST: USE Medical_DB;
+Database changed: Medical_DB;
+Database changed: Medical_DB;
+[2026-04-03 03:46:44.381] [INFO   ] [conn_1775162804368_94b06909] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.001}) [Req: cli_1775162804379_c24b]
+[2026-04-03 03:46:44.381] [INFO   ] [conn_1775162804368_94b06909] [Network] [root] REQUEST: CREATE CONCEPT Patient(p_id: STRING, p_age: INT, p_bmi: FLOAT, p_risk: STRING);
+[2026-04-03 03:46:44.383] [ERROR  ] [conn_1775162804246_70f99d3f] [Kernel] Client error: Unable to read data from the transport connection: Connection reset by peer.
+[2026-04-03 03:46:44.383] [INFO   ] [conn_1775162804246_70f99d3f] [Kernel] Connection closed
+[2026-04-03 03:46:44.390] [INFO   ] [conn_1775162804368_94b06909] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.009}) [Req: cli_1775162804381_6ca9]
+Concept 'Patient' created successfully (V3 Catalog).
+1 row(s) in set (0,01 sec)
+[2026-04-03 03:46:44.390] [INFO   ] [conn_1775162804368_94b06909] [Network] [root] REQUEST: CREATE RULE R_CardiacRisk SCOPE Patient IF p_age > 60 AND p_bmi > 30 THEN SET p_risk = 'High';
+Rule 'R_CardiacRisk' created successfully (V3 Engine).
+[2026-04-03 03:46:44.390] [INFO   ] [conn_1775162804368_94b06909] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0}) [Req: cli_1775162804390_af1c]
+1 row(s) in set (0,00 sec)
+[2026-04-03 03:46:44.391] [INFO   ] [conn_1775162804368_94b06909] [Network] [root] REQUEST: INSERT INTO Patient ATTRIBUTE(p_id: 'P1', p_age: 65, p_bmi: 32.5);
+Object inserted successfully with ID: ff17a91a-53db-45a6-8da6-c3fb31e1374e
+1 row(s) in set (0,01 sec)
+[2026-04-03 03:46:44.403] [INFO   ] [conn_1775162804368_94b06909] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.012}) [Req: cli_1775162804391_8cf3]
+[2026-04-03 03:46:44.404] [INFO   ] [conn_1775162804368_94b06909] [Network] [root] REQUEST: SELECT SOLVE(p_risk) FROM Patient WHERE p_id = 'P1';
+| SOLVE(p_risk) |
+[2026-04-03 03:46:44.404] [INFO   ] [conn_1775162804368_94b06909] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0}) [Req: cli_1775162804404_9639]
+|---------------|
+| High          |
+|---------------|
+1 row(s) in set (0,00 sec)
+[SystemBootstrapper] 'system' Knowledge Base not found. Bootstrapping...
+[SystemBootstrapper] Successfully bootstrapped 'system' KB.
+[2026-04-03 03:46:44.466] [INFO   ] [System] [Kernel] KBMS Server started on 127.0.0.1:8504
+Connected to KBMS Server at 127.0.0.1:8504
+[2026-04-03 03:46:44.473] [INFO   ] [conn_1775162804473_49e1498a] [Kernel] New connection established
+[2026-04-03 03:46:44.473] [INFO   ] [conn_1775162804473_49e1498a] [Kernel] REQUEST: LOGIN
+[2026-04-03 03:46:44.480] [INFO   ] [conn_1775162804473_49e1498a] [Network] RESPONSE: RESULT (Content: LOGIN_SUCCESS:root:ROOT:6676c81096b2fe7526ffce874a1182f9)
+[2026-04-03 03:46:44.480] [INFO   ] [conn_1775162804473_49e1498a] [Network] [root] REQUEST: CREATE KNOWLEDGE BASE Education_DB;
+Knowledge base 'Education_DB' created successfully (V3 Catalog).
+[2026-04-03 03:46:44.485] [INFO   ] [conn_1775162804473_49e1498a] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.004}) [Req: cli_1775162804480_1c02]
+1 row(s) in set (0,00 sec)
+[2026-04-03 03:46:44.485] [INFO   ] [conn_1775162804473_49e1498a] [Network] [root] REQUEST: USE Education_DB;
+Database changed: Education_DB;
+Database changed: Education_DB;
+[2026-04-03 03:46:44.485] [INFO   ] [conn_1775162804473_49e1498a] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0}) [Req: cli_1775162804485_9298]
+[2026-04-03 03:46:44.485] [INFO   ] [conn_1775162804473_49e1498a] [Network] [root] REQUEST: CREATE CONCEPT Student(name: STRING, gpa: FLOAT, credits: INT, behavior: INT, status: STRING);
+[2026-04-03 03:46:44.495] [INFO   ] [conn_1775162804473_49e1498a] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.009}) [Req: cli_1775162804485_48ec]
+Concept 'Student' created successfully (V3 Catalog).
+1 row(s) in set (0,01 sec)
+[2026-04-03 03:46:44.495] [INFO   ] [conn_1775162804473_49e1498a] [Network] [root] REQUEST: CREATE RULE R_DeanList SCOPE Student IF gpa >= 3.8 AND behavior >= 90 AND credits >= 15 THEN SET status = 'DeanList';
+Rule 'R_DeanList' created successfully (V3 Engine).
+[2026-04-03 03:46:44.495] [INFO   ] [conn_1775162804473_49e1498a] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0}) [Req: cli_1775162804495_bee1]
+1 row(s) in set (0,00 sec)
+[2026-04-03 03:46:44.496] [INFO   ] [conn_1775162804473_49e1498a] [Network] [root] REQUEST: INSERT INTO Student ATTRIBUTE(name: 'Le Phat', gpa: 3.9, behavior: 95, credits: 18);
+Object inserted successfully with ID: 1cc6a582-3da4-472a-9915-0d0d179de12a
+1 row(s) in set (0,01 sec)
+[2026-04-03 03:46:44.511] [INFO   ] [conn_1775162804473_49e1498a] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.014}) [Req: cli_1775162804496_802e]
+[2026-04-03 03:46:44.511] [INFO   ] [conn_1775162804473_49e1498a] [Network] [root] REQUEST: SELECT SOLVE(status) FROM Student WHERE name = 'Le Phat';
+[2026-04-03 03:46:44.514] [INFO   ] [conn_1775162804473_49e1498a] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.003}) [Req: cli_1775162804511_8af2]
+| SOLVE(status) |
+|---------------|
+| DeanList      |
+|---------------|
+1 row(s) in set (0,00 sec)
+[SystemBootstrapper] 'system' Knowledge Base not found. Bootstrapping...
+[2026-04-03 03:46:44.564] [ERROR  ] [conn_1775162804041_f49c1588] [Kernel] Client error: Unable to read data from the transport connection: Connection reset by peer.
+[2026-04-03 03:46:44.564] [ERROR  ] [conn_1775162804368_94b06909] [Kernel] Client error: Unable to read data from the transport connection: Connection reset by peer.
+[2026-04-03 03:46:44.564] [INFO   ] [conn_1775162804041_f49c1588] [Kernel] Connection closed
+[2026-04-03 03:46:44.564] [INFO   ] [conn_1775162804368_94b06909] [Kernel] Connection closed
+[SystemBootstrapper] Successfully bootstrapped 'system' KB.
+[2026-04-03 03:46:44.575] [INFO   ] [System] [Kernel] KBMS Server started on 127.0.0.1:8401
+Connected to KBMS Server at 127.0.0.1:8401
+[2026-04-03 03:46:44.583] [INFO   ] [conn_1775162804583_84878802] [Kernel] New connection established
+[2026-04-03 03:46:44.583] [INFO   ] [conn_1775162804583_84878802] [Kernel] REQUEST: LOGIN
+[2026-04-03 03:46:44.589] [INFO   ] [conn_1775162804583_84878802] [Network] RESPONSE: RESULT (Content: LOGIN_SUCCESS:root:ROOT:02c2d345258a00487311e297fec9e814)
+[2026-04-03 03:46:44.590] [INFO   ] [conn_1775162804583_84878802] [Network] [root] REQUEST: CREATE KNOWLEDGE BASE db_ins_4dc13d;
+Knowledge base 'db_ins_4dc13d' created successfully (V3 Catalog).
+1 row(s) in set (0,00 sec)
+[2026-04-03 03:46:44.593] [INFO   ] [conn_1775162804583_84878802] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.003}) [Req: cli_1775162804589_e9f8]
+[2026-04-03 03:46:44.593] [INFO   ] [conn_1775162804583_84878802] [Network] [root] REQUEST: USE db_ins_4dc13d;
+Database changed: db_ins_4dc13d;
+Database changed: db_ins_4dc13d;
+[2026-04-03 03:46:44.593] [INFO   ] [conn_1775162804583_84878802] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0}) [Req: cli_1775162804593_83f0]
+[2026-04-03 03:46:44.594] [INFO   ] [conn_1775162804583_84878802] [Network] [root] REQUEST: CREATE CONCEPT Student(name STRING, grade FLOAT, honor STRING);
+Concept 'Student' created successfully (V3 Catalog).
+1 row(s) in set (0,01 sec)
+[2026-04-03 03:46:44.604] [INFO   ] [conn_1775162804583_84878802] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.01}) [Req: cli_1775162804593_6e6a]
+[2026-04-03 03:46:44.605] [INFO   ] [conn_1775162804583_84878802] [Network] [root] REQUEST: CREATE RULE HighHonor IF Student(grade >= 90) THEN Student(honor = 'High');
+Rule 'HighHonor' created successfully (V3 Engine).
+1 row(s) in set (0,00 sec)
+[2026-04-03 03:46:44.605] [INFO   ] [conn_1775162804583_84878802] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0}) [Req: cli_1775162804605_34fe]
+[2026-04-03 03:46:44.605] [INFO   ] [conn_1775162804583_84878802] [Network] [root] REQUEST: INSERT INTO Student ATTRIBUTE(name: 'Alice', grade: 95);
+[2026-04-03 03:46:44.621] [INFO   ] [conn_1775162804583_84878802] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.015}) [Req: cli_1775162804605_377b]
+Object inserted successfully with ID: 6ee08496-e727-426c-8cc1-6cf371c1e09c
+1 row(s) in set (0,01 sec)
+[2026-04-03 03:46:44.621] [INFO   ] [conn_1775162804583_84878802] [Network] [root] REQUEST: SELECT SOLVE(honor) FROM Student WHERE name = 'Alice';
+| SOLVE(honor) |
+|--------------|
+[2026-04-03 03:46:44.621] [INFO   ] [conn_1775162804583_84878802] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0}) [Req: cli_1775162804621_9f70]
+| High         |
+|--------------|
+1 row(s) in set (0,00 sec)
+[SystemBootstrapper] 'system' Knowledge Base not found. Bootstrapping...
+[SystemBootstrapper] Successfully bootstrapped 'system' KB.
+[2026-04-03 03:46:44.684] [INFO   ] [System] [Kernel] KBMS Server started on 127.0.0.1:8402
+Connected to KBMS Server at 127.0.0.1:8402
+[2026-04-03 03:46:44.691] [INFO   ] [conn_1775162804691_b288094f] [Kernel] New connection established
+[2026-04-03 03:46:44.691] [INFO   ] [conn_1775162804691_b288094f] [Kernel] REQUEST: LOGIN
+[2026-04-03 03:46:44.698] [INFO   ] [conn_1775162804691_b288094f] [Network] RESPONSE: RESULT (Content: LOGIN_SUCCESS:root:ROOT:755cfb951e196fc1bc6546567aa85e79)
+[2026-04-03 03:46:44.699] [INFO   ] [conn_1775162804691_b288094f] [Network] [root] REQUEST: CREATE KNOWLEDGE BASE db_rec_98a500;
+Knowledge base 'db_rec_98a500' created successfully (V3 Catalog).
+[2026-04-03 03:46:44.703] [INFO   ] [conn_1775162804691_b288094f] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.004}) [Req: cli_1775162804699_7454]
+1 row(s) in set (0,00 sec)
+[2026-04-03 03:46:44.703] [INFO   ] [conn_1775162804691_b288094f] [Network] [root] REQUEST: USE db_rec_98a500;
+Database changed: db_rec_98a500;
+Database changed: db_rec_98a500;
+[2026-04-03 03:46:44.703] [INFO   ] [conn_1775162804691_b288094f] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0}) [Req: cli_1775162804703_c916]
+[2026-04-03 03:46:44.703] [INFO   ] [conn_1775162804691_b288094f] [Network] [root] REQUEST: CREATE CONCEPT Student(name STRING, grade FLOAT, honor STRING, gifted BOOL);
+Concept 'Student' created successfully (V3 Catalog).
+[2026-04-03 03:46:44.715] [INFO   ] [conn_1775162804691_b288094f] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.011}) [Req: cli_1775162804703_3402]
+1 row(s) in set (0,01 sec)
+[2026-04-03 03:46:44.716] [INFO   ] [conn_1775162804691_b288094f] [Network] [root] REQUEST: CREATE RULE HighHonor IF Student(grade >= 90) THEN Student(honor = 'High');
+Rule 'HighHonor' created successfully (V3 Engine).
+1 row(s) in set (0,00 sec)
+[2026-04-03 03:46:44.716] [INFO   ] [conn_1775162804691_b288094f] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0}) [Req: cli_1775162804716_bf23]
+[2026-04-03 03:46:44.716] [INFO   ] [conn_1775162804691_b288094f] [Network] [root] REQUEST: CREATE RULE HonorToGift IF Student(honor = 'High') THEN Student(gifted = true);
+Rule 'HonorToGift' created successfully (V3 Engine).
+1 row(s) in set (0,00 sec)
+[2026-04-03 03:46:44.716] [INFO   ] [conn_1775162804691_b288094f] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0}) [Req: cli_1775162804716_6282]
+[2026-04-03 03:46:44.717] [INFO   ] [conn_1775162804691_b288094f] [Network] [root] REQUEST: INSERT INTO Student ATTRIBUTE(name: 'Charlie', grade: 95);
+Object inserted successfully with ID: 2cad73b2-ea0a-4bd9-83c9-500c66ac3767
+[2026-04-03 03:46:44.733] [INFO   ] [conn_1775162804691_b288094f] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.016}) [Req: cli_1775162804716_46c1]
+1 row(s) in set (0,02 sec)
+[2026-04-03 03:46:44.733] [ERROR  ] [conn_1775162804583_84878802] [Kernel] Client error: Unable to read data from the transport connection: Connection reset by peer.
+[2026-04-03 03:46:44.733] [INFO   ] [conn_1775162804583_84878802] [Kernel] Connection closed
+[2026-04-03 03:46:44.733] [INFO   ] [conn_1775162804691_b288094f] [Network] [root] REQUEST: SELECT SOLVE(honor), SOLVE(gifted) FROM Student WHERE name = 'Charlie';
+| SOLVE(honor) | SOLVE(gifted) |
+|--------------+---------------|
+| High         | true          |
+|--------------+---------------|
+1 row(s) in set (0,00 sec)
+[2026-04-03 03:46:44.735] [INFO   ] [conn_1775162804691_b288094f] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.002}) [Req: cli_1775162804733_793a]
+[xUnit.net 00:00:00.91]   Finished:    KBMS.Tests
+  Passed KBMS.Tests.ComplexScenarioTests.Test_Scenario_C_SmartCity_Transit [272 ms]
+  Standard Output Messages:
+ [SmartCity] Result: {"ConceptName":"Sensor","Count":1,"Columns":["SOLVE(id)"],"Widths":{"SOLVE(id)":9}}
+ [{"SOLVE(id)":"JAMMED"}]
+ 
+
+
+  Passed KBMS.Tests.ComplexScenarioTests.Test_Scenario_D_Geometry_Pythagoras [116 ms]
+  Standard Output Messages:
+ [Geometry] Result: {"ConceptName":"Triangle","Count":1,"Columns":["SOLVE(t_type)"],"Widths":{"SOLVE(t_type)":13}}
+ [{"SOLVE(t_type)":"RightTriangle"}]
+ 
+
+
+  Passed KBMS.Tests.ComplexScenarioTests.Test_Scenario_B_Medical_Diagnostic [104 ms]
+  Standard Output Messages:
+ [Medical] Result: {"ConceptName":"Patient","Count":1,"Columns":["SOLVE(p_risk)"],"Widths":{"SOLVE(p_risk)":13}}
+ [{"SOLVE(p_risk)":"High"}]
+ 
+
+
+  Passed KBMS.Tests.ComplexScenarioTests.Test_Scenario_A_Education_Inference [109 ms]
+  Standard Output Messages:
+ [Education] Result: {"ConceptName":"Student","Count":1,"Columns":["SOLVE(status)"],"Widths":{"SOLVE(status)":13}}
+ [{"SOLVE(status)":"DeanList"}]
+ 
+
+
+  Passed KBMS.Tests.Phase5ForwardChainingTests.Insert_ShouldTriggerForwardChaining [106 ms]
+  Passed KBMS.Tests.Phase5ForwardChainingTests.RecursiveRules_ShouldTriggerMultipleSteps [113 ms]
+  Standard Output Messages:
+ [Reasoning] Charlie Multi-step Inference Latency: 2ms
+
+
+
+Test Run Successful.
+Total tests: 6
+     Passed: 6
+ Total time: 1,1280 Seconds

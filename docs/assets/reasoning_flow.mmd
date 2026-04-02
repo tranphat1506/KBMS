@@ -1,0 +1,16 @@
+graph TD
+    Start([Bắt đầu ResolveTarget]) --> CheckFact{Đã có trong Fact Memory?}
+    CheckFact -- Có --> Return([Trả về giá trị])
+    CheckFact -- Không --> FindRule{Tìm thấy Luật/Phương trình?}
+    
+    FindRule -- Không --> Hierarchy{Còn Concept cha?}
+    Hierarchy -- Có --> ParentConcept[Chuyển lên Concept cha] --> FindRule
+    Hierarchy -- Không --> Fail([Không thể giải quyết])
+
+    FindRule -- Có: Luật --> EvalIF[Đệ quy ResolveTarget các biến IF]
+    EvalIF --> IS_EVAL{Thỏa mãn IF?}
+    IS_EVAL -- Có --> TriggerRule[Kích hoạt SET hành động] --> UpdateFM[Cập nhật Fact Memory] --> Return
+    IS_EVAL -- Không --> Hierarchy
+
+    FindRule -- Có: Phương trình --> Newton[Kích hoạt Bộ giải EquationResolver]
+    Newton --> UpdateFM --> Return

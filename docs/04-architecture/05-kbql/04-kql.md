@@ -26,26 +26,30 @@ FROM <concept> [AS <alias>]
 *   **Biểu thức Tính toán CALC():** Hỗ trợ thực thi các công thức toán học ngay trong tiến trình truy vấn.
     *Ví dụ:* `SELECT name, CALC(price * 1.1) AS price_tax FROM Product;`
 
-## 2. Quy trình Giải quyết Tri thức (Problem Solving)
+## 2. Macro Giải quyết Tri thức SOLVE()
 
-Lệnh `SOLVE` là đặc trưng của hệ thống KBMS, dùng để kích hoạt bộ máy giải quyết vấn đề (Problem Solver) dựa trên các công thức và luật dẫn đã được định cấu hình.
+Macro `SOLVE()` được tích hợp trực tiếp vào danh sách truy xuất (projection) của lệnh `SELECT`. Nó kích hoạt bộ máy giải quyết vấn đề (Problem Solver) nội suy các biến số chưa biết ngay tại thời điểm truy vấn (on-the-fly) dựa trên cơ sở tri thức hiện hành (các công thức, luật dẫn, phân cấp).
 
 ### 2.1. Cú pháp thực thi
 
 ```kbql
-SOLVE ON CONCEPT <name>
-GIVEN <known_inputs>
-FIND <target_outputs>
-[SAVE]
-[USING <constraints_or_rules_list>];
+SELECT <columns>, SOLVE(<target_variable>) 
+FROM <concept>
+[WHERE <conditions>];
 ```
 
-### 2.2. Cơ chế Vận hành
+### 2.2. Phân tích Hoạt động Suy diễn On-the-Fly
 
-1.  **Dữ liệu đầu vào (Input):** Nạp các giá trị tri thức đã biết vào khối `GIVEN`.
-2.  **Suy diễn (Inference):** Hệ thống áp dụng thuật toán Suy diễn tiến (**Forward Chaining**) và Giải phương trình (**Equation Solving**) để tìm giá trị các biến đích trong khối `FIND`.
-3.  **Lưu trữ (Persistence):** Nếu sử dụng từ khóa `SAVE`, kết quả suy diễn sẽ được lưu trữ trực tiếp thành một Sự kiện (**Fact**) mới.
-4.  **Kết quả (Output):** Trả về kết quả sau khi đã hoàn tất quy trình suy luận logic.
+1.  **Thu thập dữ liệu (Fetch):** KBMS truy xuất các Sự kiện (**Facts**) từ bộ nhớ lưu trữ dựa trên mệnh đề `FROM` và `WHERE`.
+2.  **Kích hoạt Engine (Trigger):** Macro `SOLVE()` sẽ lấy toàn bộ các thuộc tính của dòng hiện tại (row attributes) làm **Sự kiện ban đầu (Initial Facts)**.
+3.  **Suy diễn (Inference):** Hệ thống áp dụng thuật toán Suy diễn tiến (**Forward Chaining**) kết hợp Giải phương trình (**Equation Solving**) trong bộ nhớ tạm mà không làm biến đổi dữ liệu đĩa vật lý.
+4.  **Tích hợp Kết quả (Projection):** Trả về giá trị của biến `<target_variable>` ngay trong bảng kết quả của lệnh `SELECT`.
+
+*Ví dụ:*
+```kbql
+-- Yêu cầu hệ thống chẩn đoán biến 'is_hypertension' dựa trên huyết áp đo được.
+SELECT name, sys, dia, SOLVE(is_hypertension) FROM Patient WHERE age > 60;
+```
 
 ## 3. Quản trị và Giám sát Hệ thống
 

@@ -226,7 +226,6 @@ public class KnowledgeManager
             "INSERT_BULK" => HandleInsertBulk((InsertBulkNode)ast, kbName!),
             "UPDATE" => HandleUpdate((UpdateNode)ast, kbName!),
             "DELETE" => HandleDelete((DeleteNode)ast, kbName!),
-            "SOLVE" => HandleSolve((SolveNode)ast, kbName!),
             "SHOW_KNOWLEDGE_BASES" => HandleShowKnowledgeBases(),
             "SHOW_CONCEPTS" => HandleShowConcepts((ShowNode)ast, kbName!),
             "SHOW_CONCEPT" => HandleShowConcept((ShowNode)ast, kbName!),
@@ -745,41 +744,7 @@ public class KnowledgeManager
         return ast.ToString();
     }
 
-    private KBMS.Reasoning.InferenceEngine.ReasoningResult ApplyForwardChaining(string kbName, string conceptName, Dictionary<string, object> values)
-    {
-        try
-        {
-            var logPath = "/tmp/kbms_diag.log";
-            System.IO.File.AppendAllText(logPath, $"[DIAGNOSTIC] ApplyForwardChaining for {conceptName} in {kbName}\n");
-            
-            var engine = GetConfiguredEngine(kbName);
-            var concept = engine.ConceptResolver(conceptName);
-            
-            if (concept == null) {
-                System.IO.File.AppendAllText(logPath, $"[DIAGNOSTIC] Concept {conceptName} not found via resolver\n");
-                return new KBMS.Reasoning.InferenceEngine.ReasoningResult { Success = false, ErrorMessage = "Concept not found" };
-            }
 
-            System.IO.File.AppendAllText(logPath, $"[DIAGNOSTIC] Engine for {conceptName} has {concept.ConceptRules.Count} rules attached\n");
-            var result = engine.FindClosure(concept, values, new List<string>());
-
-            if (result.Success && result.DerivedFacts.Count > 0)
-            {
-                System.IO.File.AppendAllText(logPath, $"[DIAGNOSTIC] Derived {result.DerivedFacts.Count} facts\n");
-                foreach (var fact in result.DerivedFacts)
-                {
-                    values[fact.Key] = fact.Value;
-                }
-            }
-            return result;
-        }
-        catch (Exception ex)
-        {
-            var errMsg = $"Forward chaining error: {ex.Message}";
-            System.IO.File.AppendAllText("/tmp/kbms_diag.log", $"[DIAGNOSTIC] {errMsg}\n");
-            return new KBMS.Reasoning.InferenceEngine.ReasoningResult { Success = false, ErrorMessage = errMsg };
-        }
-    }
 
     private object HandleDropRule(DropRuleNode node, string kbName)
     {
@@ -1148,12 +1113,32 @@ public class KnowledgeManager
                             }
                             else
                             {
-                                // 2. Try evaluating as expression
-                                try {
-                                    var exprForEval = col.Expression != null ? col.Expression.ToString() : sourceName;
-                                    newValues[outName] = engine.EvaluateFormula(exprForEval, evalParams);
-                                } catch {
+                                if (col.Expression is FunctionCallNode func && func.FunctionName.Equals("SOLVE", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    var targetVar = func.Arguments.FirstOrDefault()?.ToString();
                                     newValues[outName] = null;
+                                    if (!string.IsNullOrEmpty(targetVar))
+                                    {
+                                        var resolvedConcept = engine.ConceptResolver?.Invoke(entityName) ?? conceptMetadata;
+                                        if (resolvedConcept != null)
+                                        {
+                                            var solveResult = engine.FindClosure(resolvedConcept, evalParams, new List<string> { targetVar });
+                                            if (solveResult.Success && solveResult.DerivedFacts.ContainsKey(targetVar))
+                                                newValues[outName] = solveResult.DerivedFacts[targetVar];
+                                            else if (!solveResult.Success && !string.IsNullOrEmpty(solveResult.ErrorMessage))
+                                                newValues[outName] = $"[ERROR] {solveResult.ErrorMessage}";
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    // 2. Try evaluating as NCalc expression (for math/aggregate functions)
+                                    try {
+                                        var exprForEval = col.Expression != null ? col.Expression.ToString() : sourceName;
+                                        newValues[outName] = engine.EvaluateFormula(exprForEval, evalParams);
+                                    } catch {
+                                        newValues[outName] = null;
+                                    }
                                 }
                             }
                         }
@@ -1608,13 +1593,6 @@ public class KnowledgeManager
             Values = values
         };
 
-        // Apply Forward Chaining (Phase 5)
-        var reasoningResult = ApplyForwardChaining(kbName, node.ConceptName, obj.Values);
-        if (!reasoningResult.Success)
-        {
-            return ErrorResponse.ExecutionErrorResponse($"Reasoning failure: {reasoningResult.ErrorMessage}");
-        }
-
         // V3 engine write (buffered if in transaction)
         if (_inTransaction)
         {
@@ -1678,15 +1656,6 @@ public class KnowledgeManager
                 ConceptName = node.ConceptName,
                 Values = values
             };
-
-            // Apply Forward Chaining (Phase 5)
-            var reasoningResult = ApplyForwardChaining(kbName, node.ConceptName, obj.Values);
-            if (!reasoningResult.Success)
-            {
-                failed++;
-                errors.Add($"Row {inserted + failed + 1}: {reasoningResult.ErrorMessage}");
-                continue;
-            }
 
             bool ok = _v3Router.InsertObject(kbName, obj);
             if (ok) inserted++;
@@ -1785,7 +1754,7 @@ public class KnowledgeManager
                 }
             }
 
-            // Update object's values with new set values before forward chaining
+            // Update object's values with new set values
             foreach (var kv in updatedValues)
             {
                 obj.Values[kv.Key] = kv.Value;
@@ -1844,106 +1813,7 @@ public class KnowledgeManager
         };
     }
 
-    private object HandleSolve(SolveNode node, string kbName)
-    {
-        var kb = _kbCatalog.LoadKb(kbName);
-        if (kb == null)
-            return ErrorResponse.ExecutionErrorResponse($"Knowledge base '{kbName}' not found.");
 
-        var concept = _conceptCatalog.LoadConcept(kbName, node.ConceptName);
-        if (concept == null)
-            return ErrorResponse.ExecutionErrorResponse($"Concept '{node.ConceptName}' does not exist.");
-
-        // Convert GivenFacts strings to objects where possible (best effort mapping)
-        var initialFacts = new Dictionary<string, object>();
-        foreach (var kvp in node.GivenFacts)
-        {
-            if (double.TryParse(kvp.Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var d))
-                initialFacts[kvp.Key] = d;
-            else if (bool.TryParse(kvp.Value, out var b))
-                initialFacts[kvp.Key] = b;
-            else
-                initialFacts[kvp.Key] = kvp.Value;
-        }
-
-        // Initialize engine and solve (Backward Chaining / Goal-Driven)
-        var engine = GetConfiguredEngine(kbName);
-        
-        // Ensure concept is loaded via engine's resolver to get linked rules
-        var resolvedConcept = engine.ConceptResolver?.Invoke(node.ConceptName) ?? concept;
-
-        var result = node.FindVariables.Count > 0 
-            ? engine.FindClosure(resolvedConcept, initialFacts, node.FindVariables)
-            : engine.FindClosure(resolvedConcept, initialFacts, new List<string>());
-
-        if (result.Success && node.SaveResults)
-        {
-            var combinedFacts = new Dictionary<string, object>(initialFacts);
-            foreach (var kvp in result.DerivedFacts)
-            {
-                combinedFacts[kvp.Key] = kvp.Value;
-            }
-
-            var obj = new ObjectInstance
-            {
-                Id = Guid.NewGuid(),
-                KbId = kb.Id,
-                ConceptName = node.ConceptName,
-                Values = combinedFacts
-            };
-            
-            _v3Router.InsertObject(kbName, obj);
-            result.Steps.Add($"Saved derived object instance {obj.Id} to database.");
-        }
-
-        // UNIFIED: Convert ReasoningResult to Tabular format
-        var qrs = new QueryResultSet { 
-            ConceptName = "Solve_Steps", 
-            Success = result.Success,
-            Count = result.Steps.Count
-        };
-
-        foreach (var step in result.Steps)
-        {
-            qrs.Objects.Add(new ObjectInstance {
-                Values = new Dictionary<string, object> {
-                    { "Step", step }
-                }
-            });
-        }
-
-        // Add Derived Facts as a separate "ResultSet" within the same object if we had a multi-table protocol,
-        // but for now, we append them as final rows or just keep them in the trace.
-        if (result.DerivedFacts.Count > 0)
-        {
-            foreach (var fact in result.DerivedFacts)
-            {
-                qrs.Objects.Add(new ObjectInstance {
-                    Values = new Dictionary<string, object> {
-                        { "Step", $"[RESULT] Derived Fact: {fact.Key} = {(fact.Value is double d__ ? d__.ToString(System.Globalization.CultureInfo.InvariantCulture) : fact.Value)}" }
-                    }
-                });
-            }
-        }
-
-        if (!result.Success && !string.IsNullOrEmpty(result.ErrorMessage))
-        {
-            qrs.Objects.Add(new ObjectInstance {
-                Values = new Dictionary<string, object> {
-                    { "Step", $"[ERROR] {result.ErrorMessage}" }
-                }
-            });
-        }
-
-        return new QueryResultSet
-        {
-            Success = true,
-            ConceptName = "Solve_Steps",
-            Count = qrs.Objects.Count,
-            Objects = qrs.Objects,
-            Columns = new List<string> { "Step" }
-        };
-    }
 
     // ==================== SHOW Handlers ====================
 
@@ -2300,13 +2170,6 @@ public class KnowledgeManager
                             }
                             break;
                     }
-                }
-
-                // Run reasoning to validate new constraints and propagate new rules/equations
-                var reasonerResult = ApplyForwardChaining(kbName, concept.Name, newValues);
-                if (!reasonerResult.Success)
-                {
-                    return ErrorResponse.ExecutionErrorResponse($"Alteration rejected: existing object (ID: {obj.Id}) violates updated constraints. Error: {reasonerResult.ErrorMessage}");
                 }
 
                 migratedObjects.Add((obj.Id, newValues));
@@ -2839,13 +2702,6 @@ public class KnowledgeManager
                 var matchingRules = allRules
                     .Where(r => r != null && ancestors.Any(a => a.Equals(r.Scope, StringComparison.OrdinalIgnoreCase)))
                     .ToList();
-                
-                var logPath = "/tmp/kbms_diag.log";
-                System.IO.File.AppendAllText(logPath, $"[DIAGNOSTIC] Concept {name} found {matchingRules.Count} matching rules (out of {allRules.Count} total rules in {kbName}). Ancestors: {string.Join(", ", ancestors)}\n");
-                foreach (var r in allRules)
-                {
-                    System.IO.File.AppendAllText(logPath, $"[DIAGNOSTIC]   - Rule: {r.Name}, Scope: '{r.Scope}'\n");
-                }
 
                 c.ConceptRules = matchingRules
                     .Select(r => {

@@ -1,41 +1,51 @@
-# Kiểm chứng thực tế trên bài toán hình học
+# 4.7.6. Kịch bản Thực thi và Ví dụ Chẩn đoán Tri thức
 
-Chương này trình bày kịch bản mô phỏng để đánh giá độ chính xác và hiệu năng của bộ máy suy luận Rete trong hệ quản trị KBMS. Kịch bản được thiết kế dựa trên một bài toán hình học cụ thể, minh họa tiến trình nạp dữ kiện và nội suy tri thức.
+Tài liệu này trình bày hai kịch bản thực thi điển hình minh họa cho khả năng nội suy và suy diễn tự động của hệ quản trị KBMS. Các ví dụ được thiết kế để kiểm chứng sự phối hợp giữa Luật dẫn, Phương trình và Hệ thống Phân cấp [1].
 
-## 4.7.7. Kịch bản Tri thức Hình học
+## 1. Kịch bản: Chẩn đoán Y tế On-the-Fly
 
-Xét một luật tính toán diện tích tam giác:
-*"Nếu có cạnh a, cạnh b và góc gamma, diện tích được tính bằng biểu thức: $S = 0.5 \times a \times b \times \sin(\gamma)$."*
+Mục tiêu là chẩn đoán tình trạng tăng huyết áp (`is_hypertension`) dựa trên các chỉ số huyết áp tâm thu (`sys`) và tâm trương (`dia`).
 
-Trong hệ thống, tri thức này được chuyển thành cấu trúc đồ thị Rete:
--   **Các nốt Alpha**: Lọc dữ kiện về độ dài các cạnh a, b và số đo góc gamma.
--   **Các nốt Beta**: Lần lượt kết nối các dữ kiện a với b, sau đó kết quả đó được nối tiếp với gamma.
--   **Nốt P-Node**: Tính toán biểu thức diện tích và cập nhật kết quả mới vào cơ sở tri thức.
+-   **Mô hình Tri thức**:
+```kbql
+CREATE CONCEPT Patient (VARIABLES (name: STRING, sys: INT, dia: INT, is_hypertension: BOOLEAN));
+CREATE RULE CalcHighBP SCOPE Patient IF sys > 140 OR dia > 90 THEN SET is_hypertension = true;
+```
+-   **Truy vấn nội suy**:
+```kbql
+-- Nạp dữ liệu cơ sở
+INSERT INTO Patient ATTRIBUTE ('John Doe', 150, 95);
 
-## 4.7.8. Nhật ký Suy luận và Kết quả Thử nghiệm
+-- Y cầu nội suy biến 'is_hypertension' trực tiếp trong kết quả
+SELECT name, SOLVE(is_hypertension) FROM Patient;
+```
+-   **Giải thích luồng chạy**:
+    -   Bộ máy kích hoạt `ResolveTarget(is_hypertension)`.
+    -   Tìm thấy luật `CalcHighBP`.
+    -   Thẩm định điều kiện: `sys(150) > 140` $\rightarrow$ Thỏa mãn.
+    -   Kết quả: `is_hypertension` được xác định là `true` và trả về bảng kết quả.
 
-Dưới đây là tiến trình lan truyền dữ kiện thực tế khi người dùng nạp thông tin vào hệ thống. Sơ đồ minh họa luồng kích hoạt các nốt trong mạng Rete cho kịch bản giải tam giác:
+## 2. Kịch bản: Tính toán Lực vật lý (Equation Solve)
 
-![Sơ đồ Luồng Thực thi Suy luận Hình học](../../assets/diagrams/geometry_reasoning_trace.png)
-*Hình 4.27: Luồng kích hoạt nốt và lan truyền dữ kiện trong kịch bản giải diện tích tam giác.*
+Mục tiêu là tính toán lực hấp dẫn giữa hai vật thể dựa trên các khối lượng và khoảng cách.
 
-Bảng nhật ký dưới đây mô tả chi tiết trạng thái của hệ thống qua từng bước nạp dữ kiện (Fact Injection):
+-   **Mô hình Tri thức**:
+```kbql
+CREATE CONCEPT PhysicsBody (VARIABLES (m1: DOUBLE, m2: DOUBLE, r: DOUBLE, f: DOUBLE));
+CREATE FUNCTION Grav(m1, m2, r) RETURNS DOUBLE BODY '(6.67 * m1 * m2) / (r * r)';
+CREATE RULE CalcForce SCOPE PhysicsBody IF m1 > 0 AND m2 > 0 THEN SET f = Grav(m1, m2, r);
+```
+-   **Truy vấn nội suy**:
+```kbql
+-- Nạp dữ liệu (biết f, m1, m2, cần tìm r)
+INSERT INTO PhysicsBody ATTRIBUTE (100.0, 50.0, 0, 0.005);
 
-| Bước | Sự kiện nạp dữ kiện | Nốt mạng kích hoạt | Trạng thái Token | Kết quả / Hành động |
-| :--- | :--- | :--- | :--- | :--- |
-| **1** | Nhập cạnh a = 10 | `Alpha(a)` | `[a:10]` | Lưu vào Alpha Memory(a) |
-| **2** | Nhập cạnh b = 20 | `Alpha(b)`, `Beta(a,b)` | `[a:10, b:20]` | Khớp thành công, lưu vào Beta Memory(ab) |
-| **3** | Nhập góc gamma = 30 | `Alpha(g)`, `Beta(ab,g)` | `[a:10, b:20, g:30]` | Khớp toàn bộ điều kiện giả thuyết |
-| **4** | Kích hoạt luật dẫn | `P-Node (Area)` | `[S = 0.5*10*20*sin(30)]` | Tính toán giá trị S = 50.0 |
-| **5** | Cập nhật tri thức | `Agenda/Storage` | `Fact(S=50.0)` | Ghi sự thật mới vào cơ sở tri thức |
+-- Kích hoạt bộ giải EquationResolver cho biến 'r'
+SELECT SOLVE(r) FROM PhysicsBody;
+```
+-   **Giải thích luồng chạy**:
+    -   `ResolveTarget(r)` phát hiện biến `r` nằm trong biểu thức của hàm `Grav` quy định giá trị cho `f`.
+    -   `EquationResolver` kích hoạt bộ giải để thực hiện xấp xỉ số học.
+    -   Kết quả: Biến `r` được xác định chính xác và trình diễn trên giao diện người dùng.
 
-## 4.7.9. Đánh giá Độ chính xác và Hiệu năng
-
-Hệ thống cho thấy độ chính xác tuyệt đối trong việc thực hiện các phép suy luận đa bước. Việc tích hợp các bộ giải toán chuyên sâu giúp KBMS xử lý các biểu thức toán học phức tạp mà không gặp sai số lớn.
-
-Nhờ việc áp dụng đồ thị nốt Rete, thời gian so khớp đã được tối ưu hóa đáng kể. Hệ thống chỉ mất một khoảng thời gian rất ngắn để thu được kết quả suy luận khi có dữ kiện mới, đáp ứng tốt yêu cầu của các bài toán tri thức thời gian thực:
-
--   **Thời gian nạp dữ kiện**: ~0.05ms mỗi lần Inject.
--   **Thời gian lan truyền Beta**: ~0.12ms (khớp gia tăng).
--   **Thời gian tính toán P-Node**: ~0.25ms (bao gồm giải toán số).
--   **Tổng thời gian phản hồi**: < 1ms cho một chu kỳ suy diễn hoàn chỉnh.
+Các kịch bản trên chứng minh rằng KBMS có thể xử lý các lớp tri thức đa tầng mà người dùng không cần thiết lập các quy trình tính toán thủ công bên ngoài hệ thống.

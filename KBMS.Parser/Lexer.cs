@@ -49,7 +49,6 @@ public class Lexer
         { "INSERT", TokenType.INSERT },
         { "UPDATE", TokenType.UPDATE },
         { "DELETE", TokenType.DELETE },
-        { "SOLVE", TokenType.SOLVE },
         { "SHOW", TokenType.SHOW },
         { "ATTRIBUTE", TokenType.ATTRIBUTE },
         { "INDEX", TokenType.INDEX },

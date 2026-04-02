@@ -2,26 +2,38 @@
   All projects are up-to-date for restore.
   KBMS.Models -> /Users/lechautranphat/Desktop/KBMS/KBMS.Models/bin/Debug/net8.0/KBMS.Models.dll
   KBMS.Storage -> /Users/lechautranphat/Desktop/KBMS/KBMS.Storage/bin/Debug/net8.0/KBMS.Storage.dll
+  KBMS.Reasoning -> /Users/lechautranphat/Desktop/KBMS/KBMS.Reasoning/bin/Debug/net8.0/KBMS.Reasoning.dll
+/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/Ast/Kcl/RevokeNode.cs(18,19): warning CS0108: 'RevokeNode.KbName' hides inherited member 'AstNode.KbName'. Use the new keyword if hiding was intended. [/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/KBMS.Parser.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/Ast/Kcl/GrantNode.cs(18,19): warning CS0108: 'GrantNode.KbName' hides inherited member 'AstNode.KbName'. Use the new keyword if hiding was intended. [/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/KBMS.Parser.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/Ast/Kql/ShowNode.cs(36,20): warning CS0108: 'ShowNode.KbName' hides inherited member 'AstNode.KbName'. Use the new keyword if hiding was intended. [/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/KBMS.Parser.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/Parser.cs(323,20): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/KBMS.Parser.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/Lexer.cs(408,13): warning CS0219: The variable 'type' is assigned but its value is never used [/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/KBMS.Parser.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/Parser.cs(758,27): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/KBMS.Parser.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/Parser.cs(949,47): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/KBMS.Parser.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/Parser.cs(986,17): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/KBMS.Parser.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/Parser.cs(1049,15): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/KBMS.Parser.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/Parser.cs(1107,57): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/KBMS.Parser.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/Parser.cs(1116,57): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/KBMS.Parser.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/Parser.cs(1201,47): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/KBMS.Parser.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/Parser.cs(1234,47): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/KBMS.Parser.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/Parser.cs(1907,20): warning CS8601: Possible null reference assignment. [/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/KBMS.Parser.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/Parser.cs(2694,67): warning CS8604: Possible null reference argument for parameter 'item' in 'void List<object>.Add(object item)'. [/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/KBMS.Parser.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/Parser.cs(2927,33): warning CS8601: Possible null reference assignment. [/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/KBMS.Parser.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/Parser.cs(3039,24): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/KBMS.Parser.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/Parser.cs(3209,53): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Parser/KBMS.Parser.csproj]
   KBMS.Parser -> /Users/lechautranphat/Desktop/KBMS/KBMS.Parser/bin/Debug/net8.0/KBMS.Parser.dll
   KBMS.Network -> /Users/lechautranphat/Desktop/KBMS/KBMS.Network/bin/Debug/net8.0/KBMS.Network.dll
   KBMS.CLI -> /Users/lechautranphat/Desktop/KBMS/KBMS.CLI/bin/Debug/net8.0/KBMS.CLI.dll
-/Users/lechautranphat/Desktop/KBMS/KBMS.Reasoning/InferenceEngine.cs(462,43): warning CS8601: Possible null reference assignment. [/Users/lechautranphat/Desktop/KBMS/KBMS.Reasoning/KBMS.Reasoning.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Reasoning/InferenceEngine.cs(463,43): warning CS8601: Possible null reference assignment. [/Users/lechautranphat/Desktop/KBMS/KBMS.Reasoning/KBMS.Reasoning.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Reasoning/InferenceEngine.cs(478,59): warning CS8601: Possible null reference assignment. [/Users/lechautranphat/Desktop/KBMS/KBMS.Reasoning/KBMS.Reasoning.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Reasoning/InferenceEngine.cs(492,16): warning CS8603: Possible null reference return. [/Users/lechautranphat/Desktop/KBMS/KBMS.Reasoning/KBMS.Reasoning.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Reasoning/InferenceEngine.cs(590,59): warning CS8601: Possible null reference assignment. [/Users/lechautranphat/Desktop/KBMS/KBMS.Reasoning/KBMS.Reasoning.csproj]
-  KBMS.Reasoning -> /Users/lechautranphat/Desktop/KBMS/KBMS.Reasoning/bin/Debug/net8.0/KBMS.Reasoning.dll
-/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KnowledgeManager.cs(745,16): warning CS8603: Possible null reference return. [/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KBMS.Knowledge.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KnowledgeManager.cs(756,27): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KBMS.Knowledge.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KnowledgeManager.cs(899,30): warning CS8619: Nullability of reference types in value of type 'Dictionary<string, object?>' doesn't match target type 'Dictionary<string, object>'. [/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KBMS.Knowledge.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KnowledgeManager.cs(1000,30): warning CS8619: Nullability of reference types in value of type 'Dictionary<string, object?>' doesn't match target type 'Dictionary<string, object>'. [/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KBMS.Knowledge.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KnowledgeManager.cs(1150,100): warning CS8604: Possible null reference argument for parameter 'input' in 'string Regex.Replace(string input, string pattern, string replacement)'. [/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KBMS.Knowledge.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KnowledgeManager.cs(1175,81): warning CS8604: Possible null reference argument for parameter 'formula' in 'object InferenceEngine.EvaluateFormula(string formula, Dictionary<string, object> parameters, Action<string>? log = null)'. [/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KBMS.Knowledge.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KnowledgeManager.cs(1181,106): warning CS8619: Nullability of reference types in value of type 'Dictionary<string, object?>' doesn't match target type 'Dictionary<string, object>'. [/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KBMS.Knowledge.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KnowledgeManager.cs(1472,27): warning CS8601: Possible null reference assignment. [/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KBMS.Knowledge.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KnowledgeManager.cs(1785,54): warning CS8604: Possible null reference argument for parameter 'formula' in 'object InferenceEngine.EvaluateFormula(string formula, Dictionary<string, object> parameters, Action<string>? log = null)'. [/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KBMS.Knowledge.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KnowledgeManager.cs(2011,26): warning CS8601: Possible null reference assignment. [/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KBMS.Knowledge.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KnowledgeManager.cs(2292,22): warning CS0219: The variable 'schemaModified' is assigned but its value is never used [/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KBMS.Knowledge.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KnowledgeManager.cs(744,16): warning CS8603: Possible null reference return. [/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KBMS.Knowledge.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KnowledgeManager.cs(864,30): warning CS8619: Nullability of reference types in value of type 'Dictionary<string, object?>' doesn't match target type 'Dictionary<string, object>'. [/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KBMS.Knowledge.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KnowledgeManager.cs(965,30): warning CS8619: Nullability of reference types in value of type 'Dictionary<string, object?>' doesn't match target type 'Dictionary<string, object>'. [/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KBMS.Knowledge.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KnowledgeManager.cs(1138,85): warning CS8604: Possible null reference argument for parameter 'formula' in 'object InferenceEngine.EvaluateFormula(string formula, Dictionary<string, object> parameters, Action<string>? log = null)'. [/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KBMS.Knowledge.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KnowledgeManager.cs(1145,106): warning CS8619: Nullability of reference types in value of type 'Dictionary<string, object?>' doesn't match target type 'Dictionary<string, object>'. [/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KBMS.Knowledge.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KnowledgeManager.cs(1446,27): warning CS8601: Possible null reference assignment. [/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KBMS.Knowledge.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KnowledgeManager.cs(1743,54): warning CS8604: Possible null reference argument for parameter 'formula' in 'object InferenceEngine.EvaluateFormula(string formula, Dictionary<string, object> parameters, Action<string>? log = null)'. [/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KBMS.Knowledge.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KnowledgeManager.cs(1867,26): warning CS8601: Possible null reference assignment. [/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KBMS.Knowledge.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KnowledgeManager.cs(2148,22): warning CS0219: The variable 'schemaModified' is assigned but its value is never used [/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KBMS.Knowledge.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/V3/Execution/HashJoinOperator.cs(24,18): warning CS0414: The field 'HashJoinOperator._isBuilt' is assigned but its value is never used [/Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/KBMS.Knowledge.csproj]
   KBMS.Knowledge -> /Users/lechautranphat/Desktop/KBMS/KBMS.Knowledge/bin/Debug/net8.0/KBMS.Knowledge.dll
 /Users/lechautranphat/Desktop/KBMS/KBMS.Server/V3/ManagementManager.cs(80,68): warning CS8625: Cannot convert null literal to non-nullable reference type. [/Users/lechautranphat/Desktop/KBMS/KBMS.Server/KBMS.Server.csproj]
 /Users/lechautranphat/Desktop/KBMS/KBMS.Server/V3/ManagementManager.cs(27,24): warning CS8618: Non-nullable property 'Session' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable. [/Users/lechautranphat/Desktop/KBMS/KBMS.Server/KBMS.Server.csproj]
@@ -40,43 +52,59 @@
 /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/MinimalTest.cs(17,30): warning CS7022: The entry point of the program is global code; ignoring 'MinimalTest.Main()' entry point. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
 /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/MinimalTest2.cs(17,30): warning CS7022: The entry point of the program is global code; ignoring 'MinimalTest2.Main()' entry point. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
 /Users/lechautranphat/.nuget/packages/microsoft.net.test.sdk/17.8.0/build/netcoreapp3.1/Microsoft.NET.Test.Sdk.Program.cs(4,41): warning CS7022: The entry point of the program is global code; ignoring 'AutoGeneratedProgram.Main(string[])' entry point. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/EdgeCaseReasoningTests.cs(23,16): warning CS8618: Non-nullable field '_server' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/EdgeCaseReasoningTests.cs(23,16): warning CS8618: Non-nullable field '_cli' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/EdgeCaseReasoningTests.cs(23,16): warning CS8618: Non-nullable field '_dataDir' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
 /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/ComplexScenarioTests.cs(25,16): warning CS8618: Non-nullable field '_server' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
 /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/ComplexScenarioTests.cs(25,16): warning CS8618: Non-nullable field '_cli' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/ComplexScenarioTests.cs(52,17): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/ComplexScenarioTests.cs(87,54): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/ComplexScenarioTests.cs(106,52): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/ComplexScenarioTests.cs(127,53): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/ComplexScenarioTests.cs(150,54): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
 /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/CliServerIntegrationTests.cs(104,23): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/ComplexScenarioTests.cs(52,17): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/EdgeCaseReasoningTests.cs(76,46): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/EdgeCaseReasoningTests.cs(93,46): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/ComplexScenarioTests.cs(91,54): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/EdgeCaseReasoningTests.cs(108,45): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/ComplexScenarioTests.cs(110,52): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/ExhaustiveReasoningTests.cs(84,20): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/ExhaustiveReasoningTests.cs(16,27): warning CS8618: Non-nullable property 'Server' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/ExhaustiveReasoningTests.cs(17,20): warning CS8618: Non-nullable property 'RootCli' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/ExhaustiveReasoningTests.cs(18,24): warning CS8618: Non-nullable field '_dataDir' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/ComplexScenarioTests.cs(131,53): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/EdgeCaseReasoningTests.cs(135,46): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/EdgeCaseReasoningTests.cs(149,46): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/ComplexScenarioTests.cs(154,54): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
 /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/GenHexForDocs.cs(44,34): warning CS8604: Possible null reference argument for parameter 'page' in 'SlottedPage.SlottedPage(Page page)'. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/ExhaustiveReasoningTests.cs(164,46): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/LoadAndStressTests.cs(21,16): warning CS8618: Non-nullable field '_server' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/LoadAndStressTests.cs(35,32): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
 /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KnowledgeUpdateTests.cs(61,22): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
 /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KnowledgeUpdateTests.cs(65,27): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
 /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KnowledgeUpdateTests.cs(66,31): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
 /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KnowledgeUpdateTests.cs(66,25): warning CS8605: Unboxing a possibly null value. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/MinimalTest2.cs(36,44): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/MinimalTest2.cs(39,50): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/MinimalTest2.cs(43,53): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
 /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/MinimalTest.cs(30,43): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
 /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/MinimalTest.cs(32,48): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
 /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/MinimalTest.cs(39,51): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/LoadAndStressTests.cs(21,16): warning CS8618: Non-nullable field '_server' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/LoadAndStressTests.cs(35,32): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/Phase5ForwardChainingTests.cs(27,16): warning CS8618: Non-nullable field '_server' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/Phase5ForwardChainingTests.cs(27,16): warning CS8618: Non-nullable field '_cli' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/MinimalTest2.cs(36,44): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/MinimalTest2.cs(39,50): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/MinimalTest2.cs(43,53): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/StorageV3Tests.cs(106,43): warning CS8604: Possible null reference argument for parameter 'page' in 'SlottedPage.SlottedPage(Page page)'. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/SolveInSelectTests.cs(20,12): warning CS8618: Non-nullable field '_server' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/SolveInSelectTests.cs(20,12): warning CS8618: Non-nullable field '_cli' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/SolveInSelectTests.cs(20,12): warning CS8618: Non-nullable field '_dataDir' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/SimpleDebugTests.cs(21,16): warning CS8618: Non-nullable field '_server' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/SimpleDebugTests.cs(21,16): warning CS8618: Non-nullable field '_cli' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
 /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/Phase19Tests.cs(25,24): warning CS8600: Converting null literal or possible null value to non-nullable type. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
 /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/Phase19Tests.cs(27,29): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
 /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/PerformanceBenchmarkV3.cs(118,46): warning CS8618: Non-nullable field 'Source' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
 /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/PerformanceBenchmarkV3.cs(118,74): warning CS8618: Non-nullable field 'Projections' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
 /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/PerformanceBenchmarkV3.cs(118,101): warning CS8618: Non-nullable field 'Filter' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/Phase4UpdateTests.cs(100,40): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/StorageV3Tests.cs(106,43): warning CS8604: Possible null reference argument for parameter 'page' in 'SlottedPage.SlottedPage(Page page)'. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/SimpleDebugTests.cs(21,16): warning CS8618: Non-nullable field '_server' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
-/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/SimpleDebugTests.cs(21,16): warning CS8618: Non-nullable field '_cli' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
 /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/SimpleDebugTests.cs(54,45): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
 /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/SimpleDebugTests.cs(57,42): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
 /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/SimpleDebugTests.cs(60,50): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
 /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/SimpleDebugTests.cs(63,42): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
 /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/SimpleDebugTests.cs(66,46): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/Phase4UpdateTests.cs(100,40): warning CS8602: Dereference of a possibly null reference. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/Phase5ForwardChainingTests.cs(27,16): warning CS8618: Non-nullable field '_server' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/Phase5ForwardChainingTests.cs(27,16): warning CS8618: Non-nullable field '_cli' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
 /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/ComplexScenarioTests.cs(20,24): warning CS0414: The field 'ComplexScenarioTests._encryptionKey' is assigned but its value is never used [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
 /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/DataOperationsV3Tests.cs(157,14): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
 /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/SchemaV3Tests.cs(72,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Empty instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/KBMS.Tests.csproj]
@@ -86,159 +114,108 @@ VSTest version 17.11.1 (arm64)
 
 Starting test execution, please wait...
 A total of 1 test files matched the specified pattern.
-[xUnit.net 00:00:11.55]     KBMS.Tests.BackwardChainingTests.Solve_BackwardChaining_PartialMatch_ShouldFailGracefully [FAIL]
-[xUnit.net 00:00:11.74]     KBMS.Tests.BackwardChainingTests.Solve_RecursiveBackwardChaining_ShouldWork [FAIL]
-[xUnit.net 00:00:11.93]     KBMS.Tests.BackwardChainingTests.Solve_BackwardChaining_CircularDependency_ShouldNotInfiniteLoop [FAIL]
-[xUnit.net 00:00:11.93]     KBMS.Tests.TrueTypingTests.InferenceEngine_ShouldDowngradeToDouble_WhenFloatingPointIsPresent [FAIL]
-[xUnit.net 00:00:11.98]     KBMS.Tests.TrueTypingTests.InferenceEngine_ShouldPreserveDecimalPrecision [FAIL]
-[xUnit.net 00:00:11.98]     KBMS.Tests.TrueTypingTests.InferenceEngine_ShouldHandleIntPromotionToLong [FAIL]
-  Failed KBMS.Tests.BackwardChainingTests.Solve_BackwardChaining_PartialMatch_ShouldFailGracefully [27 ms]
+/Users/lechautranphat/Desktop/KBMS/KBMS.Tests/bin/Debug/net8.0/KBMS.Tests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.5.3.1+6b60a9e56a (64-bit .NET 8.0.23)
+[xUnit.net 00:00:00.03]   Discovering: KBMS.Tests
+[xUnit.net 00:00:00.06]   Discovered:  KBMS.Tests
+[xUnit.net 00:00:00.06]   Starting:    KBMS.Tests
+[SystemBootstrapper] 'system' Knowledge Base not found. Bootstrapping...
+[SystemBootstrapper] Successfully bootstrapped 'system' KB.
+[2026-04-03 03:40:48.728] [INFO   ] [System] [Kernel] KBMS Server started on 127.0.0.1:8401
+Connected to KBMS Server at 127.0.0.1:8401
+[2026-04-03 03:40:48.742] [INFO   ] [conn_1775162448742_5e84e39f] [Kernel] New connection established
+[2026-04-03 03:40:48.744] [INFO   ] [conn_1775162448742_5e84e39f] [Kernel] REQUEST: LOGIN
+[2026-04-03 03:40:48.760] [INFO   ] [conn_1775162448742_5e84e39f] [Network] RESPONSE: RESULT (Content: LOGIN_SUCCESS:root:ROOT:bc21533a14dca6f47930240683399a4c)
+[2026-04-03 03:40:48.761] [INFO   ] [conn_1775162448742_5e84e39f] [Network] [root] REQUEST: CREATE KNOWLEDGE BASE db_ins_e511f6;
+[2026-04-03 03:40:48.774] [INFO   ] [conn_1775162448742_5e84e39f] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.009}) [Req: cli_1775162448760_2ef5]
+Knowledge base 'db_ins_e511f6' created successfully (V3 Catalog).
+0 row(s) in set (0,01 sec)
+[2026-04-03 03:40:48.777] [INFO   ] [conn_1775162448742_5e84e39f] [Network] [root] REQUEST: USE db_ins_e511f6;
+Database changed: db_ins_e511f6;
+Database changed: db_ins_e511f6;
+[2026-04-03 03:40:48.778] [INFO   ] [conn_1775162448742_5e84e39f] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0}) [Req: cli_1775162448777_4088]
+[2026-04-03 03:40:48.778] [INFO   ] [conn_1775162448742_5e84e39f] [Network] [root] REQUEST: CREATE CONCEPT Student(name STRING, grade FLOAT, honor STRING);
+[2026-04-03 03:40:48.788] [INFO   ] [conn_1775162448742_5e84e39f] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.01}) [Req: cli_1775162448778_540a]
+Concept 'Student' created successfully (V3 Catalog).
+0 row(s) in set (0,01 sec)
+[2026-04-03 03:40:48.788] [INFO   ] [conn_1775162448742_5e84e39f] [Network] [root] REQUEST: CREATE RULE HighHonor IF Student(grade >= 90) THEN Student(honor = 'High');
+[2026-04-03 03:40:48.792] [INFO   ] [conn_1775162448742_5e84e39f] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.003}) [Req: cli_1775162448788_7b35]
+Rule 'HighHonor' created successfully (V3 Engine).
+0 row(s) in set (0,00 sec)
+[2026-04-03 03:40:48.793] [INFO   ] [conn_1775162448742_5e84e39f] [Network] [root] REQUEST: SOLVE ON CONCEPT Student GIVEN name: 'Alice', grade: 95 FIND honor SAVE;
+[2026-04-03 03:40:48.795] [INFO   ] [conn_1775162448742_5e84e39f] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":0,"executionTime":0.002}) [Req: cli_1775162448793_321f]
+ERROR: Unexpected token: SOLVE
+  1 | SOLVE ON CONCEPT Student GIVEN name: 'Alice', grade: 95 FIND honor SAVE;
+      ^
+(Line: 1, Column: 1)
+[xUnit.net 00:00:00.26]       Failed to solve/insert: {"success":false,"Type":"ParserError","Message":"Unexpected token: SOLVE","Query":"SOLVE ON CONCEPT Student GIVEN name: \u0027Alice\u0027, grade: 95 FIND honor SAVE;","Line":1,"Column":1,"Details":null}
+[xUnit.net 00:00:00.26]       Stack Trace:
+[xUnit.net 00:00:00.26]         /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/Phase5ForwardChainingTests.cs(92,0): at KBMS.Tests.Phase5ForwardChainingTests.Insert_ShouldTriggerForwardChaining()
+[xUnit.net 00:00:00.26]         --- End of stack trace from previous location ---
+[SystemBootstrapper] 'system' Knowledge Base not found. Bootstrapping...
+[SystemBootstrapper] Successfully bootstrapped 'system' KB.
+[2026-04-03 03:40:48.858] [INFO   ] [System] [Kernel] KBMS Server started on 127.0.0.1:8402
+Connected to KBMS Server at 127.0.0.1:8402
+[2026-04-03 03:40:48.868] [INFO   ] [conn_1775162448867_9df0043e] [Kernel] New connection established
+[2026-04-03 03:40:48.868] [INFO   ] [conn_1775162448867_9df0043e] [Kernel] REQUEST: LOGIN
+[2026-04-03 03:40:48.876] [INFO   ] [conn_1775162448867_9df0043e] [Network] RESPONSE: RESULT (Content: LOGIN_SUCCESS:root:ROOT:15d1af1c99a14d02cb03f34cba71e246)
+[2026-04-03 03:40:48.876] [INFO   ] [conn_1775162448867_9df0043e] [Network] [root] REQUEST: CREATE KNOWLEDGE BASE db_rec_ea69cc;
+[2026-04-03 03:40:48.881] [INFO   ] [conn_1775162448867_9df0043e] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.004}) [Req: cli_1775162448876_aa7f]
+Knowledge base 'db_rec_ea69cc' created successfully (V3 Catalog).
+0 row(s) in set (0,00 sec)
+[2026-04-03 03:40:48.881] [INFO   ] [conn_1775162448867_9df0043e] [Network] [root] REQUEST: USE db_rec_ea69cc;
+Database changed: db_rec_ea69cc;
+Database changed: db_rec_ea69cc;
+[2026-04-03 03:40:48.881] [INFO   ] [conn_1775162448867_9df0043e] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0}) [Req: cli_1775162448881_b472]
+[2026-04-03 03:40:48.881] [INFO   ] [conn_1775162448867_9df0043e] [Network] [root] REQUEST: CREATE CONCEPT Student(name STRING, grade FLOAT, honor STRING, gifted BOOL);
+Concept 'Student' created successfully (V3 Catalog).
+0 row(s) in set (0,01 sec)
+[2026-04-03 03:40:48.890] [INFO   ] [conn_1775162448867_9df0043e] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.009}) [Req: cli_1775162448881_d155]
+[2026-04-03 03:40:48.890] [INFO   ] [conn_1775162448867_9df0043e] [Network] [root] REQUEST: CREATE RULE HighHonor IF Student(grade >= 90) THEN Student(honor = 'High');
+Rule 'HighHonor' created successfully (V3 Engine).
+0 row(s) in set (0,00 sec)
+[2026-04-03 03:40:48.891] [INFO   ] [conn_1775162448867_9df0043e] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0}) [Req: cli_1775162448890_2a0a]
+[2026-04-03 03:40:48.891] [INFO   ] [conn_1775162448867_9df0043e] [Network] [root] REQUEST: CREATE RULE HonorToGift IF Student(honor = 'High') THEN Student(gifted = true);
+Rule 'HonorToGift' created successfully (V3 Engine).
+0 row(s) in set (0,00 sec)
+[2026-04-03 03:40:48.892] [INFO   ] [conn_1775162448867_9df0043e] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0}) [Req: cli_1775162448891_ca54]
+[2026-04-03 03:40:48.892] [INFO   ] [conn_1775162448867_9df0043e] [Network] [root] REQUEST: SOLVE ON CONCEPT Student GIVEN name: 'Charlie', grade: 95 FIND honor, gifted SAVE;
+[2026-04-03 03:40:48.892] [INFO   ] [conn_1775162448867_9df0043e] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":0,"executionTime":0}) [Req: cli_1775162448892_3fc2]
+ERROR: Unexpected token: SOLVE
+  1 | SOLVE ON CONCEPT Student GIVEN name: 'Charlie', grade: 95 FIND honor, gifted SAVE;
+      ^
+(Line: 1, Column: 1)
+0 row(s) in set (0,00 sec)
+[2026-04-03 03:40:48.893] [INFO   ] [conn_1775162448867_9df0043e] [Network] [root] REQUEST: SELECT honor, gifted FROM Student WHERE name = 'Charlie';
+[xUnit.net 00:00:00.35]       Assert.Contains() Failure: Sub-string not found
+[xUnit.net 00:00:00.35]       String:    "Fetched"
+[xUnit.net 00:00:00.35]       Not found: "High"
+[xUnit.net 00:00:00.35]       Stack Trace:
+[xUnit.net 00:00:00.35]         /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/Phase5ForwardChainingTests.cs(119,0): at KBMS.Tests.Phase5ForwardChainingTests.RecursiveRules_ShouldTriggerMultipleSteps()
+[xUnit.net 00:00:00.35]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:00.35]       Output:
+[xUnit.net 00:00:00.35]         [Reasoning] Charlie Multi-step Inference Latency: 0ms
+[xUnit.net 00:00:00.36]   Finished:    KBMS.Tests
+[2026-04-03 03:40:48.899] [INFO   ] [conn_1775162448867_9df0043e] [Kernel] RESPONSE: FETCH_DONE ({"statementsExecuted":1,"executionTime":0.005}) [Req: cli_1775162448893_5507]
+  Failed KBMS.Tests.Phase5ForwardChainingTests.Insert_ShouldTriggerForwardChaining [184 ms]
   Error Message:
-   Assert.Contains() Failure: Sub-string not found
-String:    "{"ConceptName":"Solve_Steps","Count":3,"C"···
-Not found: "Could not resolve goals: gifted"
+   Failed to solve/insert: {"success":false,"Type":"ParserError","Message":"Unexpected token: SOLVE","Query":"SOLVE ON CONCEPT Student GIVEN name: \u0027Alice\u0027, grade: 95 FIND honor SAVE;","Line":1,"Column":1,"Details":null}
   Stack Trace:
-     at KBMS.Tests.BackwardChainingTests.Solve_BackwardChaining_PartialMatch_ShouldFailGracefully() in /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/BackwardChainingTests.cs:line 102
+     at KBMS.Tests.Phase5ForwardChainingTests.Insert_ShouldTriggerForwardChaining() in /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/Phase5ForwardChainingTests.cs:line 92
 --- End of stack trace from previous location ---
-  Failed KBMS.Tests.BackwardChainingTests.Solve_RecursiveBackwardChaining_ShouldWork [29 ms]
+  Failed KBMS.Tests.Phase5ForwardChainingTests.RecursiveRules_ShouldTriggerMultipleSteps [89 ms]
   Error Message:
    Assert.Contains() Failure: Sub-string not found
-String:    "{"ConceptName":"Solve_Steps","Count":6,"C"···
-Not found: "Rule R1 resolved honor"
+String:    "Fetched"
+Not found: "High"
   Stack Trace:
-     at KBMS.Tests.BackwardChainingTests.Solve_RecursiveBackwardChaining_ShouldWork() in /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/BackwardChainingTests.cs:line 86
---- End of stack trace from previous location ---
-  Failed KBMS.Tests.BackwardChainingTests.Solve_BackwardChaining_CircularDependency_ShouldNotInfiniteLoop [23 ms]
-  Error Message:
-   Assert.Contains() Failure: Sub-string not found
-String:    "{"ConceptName":"Solve_Steps","Count":2,"C"···
-Not found: "Circular dependency: b"
-  Stack Trace:
-     at KBMS.Tests.BackwardChainingTests.Solve_BackwardChaining_CircularDependency_ShouldNotInfiniteLoop() in /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/BackwardChainingTests.cs:line 122
---- End of stack trace from previous location ---
-  Failed KBMS.Tests.TrueTypingTests.InferenceEngine_ShouldDowngradeToDouble_WhenFloatingPointIsPresent [1 ms]
-  Error Message:
-   Assert.True() Failure
-Expected: True
-Actual:   False
-  Stack Trace:
-     at KBMS.Tests.TrueTypingTests.InferenceEngine_ShouldDowngradeToDouble_WhenFloatingPointIsPresent() in /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/TrueTypingTests.cs:line 120
-   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
-   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
-  Failed KBMS.Tests.TrueTypingTests.InferenceEngine_ShouldPreserveDecimalPrecision [< 1 ms]
-  Error Message:
-   Assert.True() Failure
-Expected: True
-Actual:   False
-  Stack Trace:
-     at KBMS.Tests.TrueTypingTests.InferenceEngine_ShouldPreserveDecimalPrecision() in /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/TrueTypingTests.cs:line 45
-   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
-   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
-  Failed KBMS.Tests.TrueTypingTests.InferenceEngine_ShouldHandleIntPromotionToLong [< 1 ms]
-  Error Message:
-   Assert.True() Failure
-Expected: True
-Actual:   False
-  Stack Trace:
-     at KBMS.Tests.TrueTypingTests.InferenceEngine_ShouldHandleIntPromotionToLong() in /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/TrueTypingTests.cs:line 83
-   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
-   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
-[xUnit.net 00:00:11.98]     KBMS.Tests.Phase19Tests.InferenceEngine_ConstraintViolation_ShouldIncludeMetadata [FAIL]
-[xUnit.net 00:00:12.20]     KBMS.Tests.ReproductionTests.TestCalculations_ShouldNotReturnNull [FAIL]
-  Failed KBMS.Tests.Phase19Tests.InferenceEngine_ConstraintViolation_ShouldIncludeMetadata [< 1 ms]
-  Error Message:
-   Assert.Contains() Failure: Sub-string not found
-String:    "Constraint violated: age >= 18"
-Not found: "ValidAge"
-  Stack Trace:
-     at KBMS.Tests.Phase19Tests.InferenceEngine_ConstraintViolation_ShouldIncludeMetadata() in /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/Phase19Tests.cs:line 59
-   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
-   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
-  Failed KBMS.Tests.ReproductionTests.TestCalculations_ShouldNotReturnNull [60 ms]
-  Error Message:
-   Assert.Contains() Failure: Sub-string not found
-String:    "{"ConceptName":"Emp","Count":0,"Columns":"···
-Not found: "Alice"
-  Stack Trace:
-     at KBMS.Tests.ReproductionTests.TestCalculations_ShouldNotReturnNull() in /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/ReproductionTests.cs:line 123
---- End of stack trace from previous location ---
-[xUnit.net 00:00:13.24]     KBMS.Tests.ComplexScenarioTests.Test_Scenario_C_SmartCity_Transit [FAIL]
-  Failed KBMS.Tests.ComplexScenarioTests.Test_Scenario_C_SmartCity_Transit [125 ms]
-  Error Message:
-   Assert.Contains() Failure: Sub-string not found
-String:    "{"ConceptName":"Sensor","Count":1,"Column"···
-Not found: "JAMMED"
-  Stack Trace:
-     at KBMS.Tests.ComplexScenarioTests.Test_Scenario_C_SmartCity_Transit() in /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/ComplexScenarioTests.cs:line 151
+     at KBMS.Tests.Phase5ForwardChainingTests.RecursiveRules_ShouldTriggerMultipleSteps() in /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/Phase5ForwardChainingTests.cs:line 119
 --- End of stack trace from previous location ---
   Standard Output Messages:
- [SmartCity] Result: {"ConceptName":"Sensor","Count":1,"Columns":["id"],"Widths":{"id":2}}
- [{"id":"S1"}]
- 
+ [Reasoning] Charlie Multi-step Inference Latency: 0ms
 
 
-[xUnit.net 00:00:15.70]     KBMS.Tests.Phase5ForwardChainingTests.Update_ShouldTriggerForwardChaining [FAIL]
-  Failed KBMS.Tests.Phase5ForwardChainingTests.Update_ShouldTriggerForwardChaining [117 ms]
-  Error Message:
-   Assert.Contains() Failure: Sub-string not found
-String:    "{"ConceptName":"Student","Count":1,"Colum"···
-Not found: "High"
-  Stack Trace:
-     at KBMS.Tests.Phase5ForwardChainingTests.Update_ShouldTriggerForwardChaining() in /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/Phase5ForwardChainingTests.cs:line 119
---- End of stack trace from previous location ---
-[xUnit.net 00:00:20.66]     KBMS.Tests.SystemV3PersistenceTests.V3_Storage_Persistence_AcrossRestarts_ShouldWork [FAIL]
-  Failed KBMS.Tests.SystemV3PersistenceTests.V3_Storage_Persistence_AcrossRestarts_ShouldWork [3 s]
-  Error Message:
-   System.IO.IOException : The process cannot access the file '/var/folders/_x/qj4_wq2d1mj_c3dmvxs3grdc0000gn/T/kbms_persistence_dfe6b2645b2045b2ba84d47040b7e05e/system.kdb' because it is being used by another process.
-  Stack Trace:
-     at Microsoft.Win32.SafeHandles.SafeFileHandle.Init(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Int64& fileLength, UnixFileMode& filePermissions)
-   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64& fileLength, UnixFileMode& filePermissions, Boolean failForSymlink, Boolean& wasSymlink, Func`4 createOpenException)
-   at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
-   at System.IO.FileStream..ctor(String path, FileMode mode, FileAccess access, FileShare share)
-   at KBMS.Storage.V3.DiskManager.EnsureFileExists() in /Users/lechautranphat/Desktop/KBMS/KBMS.Storage/V3/DiskManager.cs:line 45
-   at KBMS.Storage.V3.DiskManager..ctor(String dbFilePath, String encryptionKey) in /Users/lechautranphat/Desktop/KBMS/KBMS.Storage/V3/DiskManager.cs:line 25
-   at KBMS.Storage.V3.StoragePool.GetManagers(String kbName) in /Users/lechautranphat/Desktop/KBMS/KBMS.Storage/V3/StoragePool.cs:line 48
-   at KBMS.Storage.V3.KbCatalog.LoadPageIds() in /Users/lechautranphat/Desktop/KBMS/KBMS.Storage/V3/KbCatalog.cs:line 224
-   at KBMS.Storage.V3.KbCatalog..ctor(StoragePool storagePool) in /Users/lechautranphat/Desktop/KBMS/KBMS.Storage/V3/KbCatalog.cs:line 28
-   at KBMS.Server.KbmsServer..ctor(String host, Int32 port, String dataDir, String masterKey) in /Users/lechautranphat/Desktop/KBMS/KBMS.Server/KbmsServer.cs:line 97
-   at KBMS.Server.KbmsServer..ctor(String host, Int32 port, String dataDir) in /Users/lechautranphat/Desktop/KBMS/KBMS.Server/KbmsServer.cs:line 84
-   at KBMS.Tests.SystemV3PersistenceTests.V3_Storage_Persistence_AcrossRestarts_ShouldWork() in /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/SystemV3PersistenceTests.cs:line 47
---- End of stack trace from previous location ---
-[xUnit.net 00:00:21.29]     KBMS.Tests.FullIntegrationTests.Section5_TableAliasedWhereClause_ShouldWork [FAIL]
-[xUnit.net 00:00:21.48]     KBMS.Tests.FullIntegrationTests.Section2_BackwardChaining_ShouldWork [FAIL]
-[xUnit.net 00:00:21.69]     KBMS.Tests.FullIntegrationTests.Section3_Update_Triggers_Inference [FAIL]
-[xUnit.net 00:00:22.12]     KBMS.Tests.FullIntegrationTests.Section6_JoinWithAliases_ShouldWork [FAIL]
-  Failed KBMS.Tests.FullIntegrationTests.Section5_TableAliasedWhereClause_ShouldWork [33 ms]
-  Error Message:
-   Assert.Contains() Failure: Sub-string not found
-String:    "{"ConceptName":"Product","Count":0,"Colum"···
-Not found: "[{"id":1}]"
-  Stack Trace:
-     at KBMS.Tests.FullIntegrationTests.Section5_TableAliasedWhereClause_ShouldWork() in /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/FullIntegrationTests.cs:line 162
---- End of stack trace from previous location ---
-  Failed KBMS.Tests.FullIntegrationTests.Section2_BackwardChaining_ShouldWork [28 ms]
-  Error Message:
-   Assert.Contains() Failure: Sub-string not found
-String:    "{"ConceptName":"Solve_Steps","Count":6,"C"···
-Not found: "Rule R1 resolved honor"
-  Stack Trace:
-     at KBMS.Tests.FullIntegrationTests.Section2_BackwardChaining_ShouldWork() in /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/FullIntegrationTests.cs:line 106
---- End of stack trace from previous location ---
-  Failed KBMS.Tests.FullIntegrationTests.Section3_Update_Triggers_Inference [34 ms]
-  Error Message:
-   Assert.Contains() Failure: Sub-string not found
-String:    "{"ConceptName":"Student","Count":1,"Colum"···
-Not found: "High"
-  Stack Trace:
-     at KBMS.Tests.FullIntegrationTests.Section3_Update_Triggers_Inference() in /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/FullIntegrationTests.cs:line 128
---- End of stack trace from previous location ---
-  Failed KBMS.Tests.FullIntegrationTests.Section6_JoinWithAliases_ShouldWork [44 ms]
-  Error Message:
-   Assert.Contains() Failure: Sub-string not found
-String:    "{"ConceptName":"Emp","Count":0,"Columns":"···
-Not found: "Alice"
-  Stack Trace:
-     at KBMS.Tests.FullIntegrationTests.Section6_JoinWithAliases_ShouldWork() in /Users/lechautranphat/Desktop/KBMS/KBMS.Tests/FullIntegrationTests.cs:line 184
---- End of stack trace from previous location ---
 
-Failed!  - Failed:    15, Passed:   263, Skipped:     0, Total:   278, Duration: 55 s - KBMS.Tests.dll (net8.0)
+Total tests: 2
+     Failed: 2
+ Total time: 0,5530 Seconds
