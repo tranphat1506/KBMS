@@ -17,20 +17,64 @@ public class ReteNetwork
     // Map to keep track of AlphaNodes to share them (Optimization)
     private readonly Dictionary<string, AlphaNode> _alphaNodes = new(StringComparer.OrdinalIgnoreCase);
 
+    private readonly Queue<Fact> _pendingFacts = new();
+    private bool _isPropagating = false;
+
     /// <summary>
     /// Asserts a new fact into the network.
     /// </summary>
     public void AssertFact(string name, object value)
     {
         // Avoid duplicate facts if value is same
-        if (WorkingMemory.ToList().Any(f => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase) && f.Value.Equals(value)))
+        if (WorkingMemory.ToList().Any(f => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase) && ValuesEqual(f.Value, value)))
             return;
 
-        Logger?.Invoke($"Asserting Fact: {name} = {value}");
         var fact = new Fact(name, value);
-        WorkingMemory.Add(fact);
-        Root.AssertFact(fact);
+        _pendingFacts.Enqueue(fact);
+
+        if (!_isPropagating)
+        {
+            _isPropagating = true;
+            try
+            {
+                while (_pendingFacts.Count > 0)
+                {
+                    var current = _pendingFacts.Dequeue();
+                    
+                    // Re-check WorkingMemory
+                    var existing = WorkingMemory.FirstOrDefault(f => f.Name.Equals(current.Name, StringComparison.OrdinalIgnoreCase));
+                    if (existing != null) {
+                        if (ValuesEqual(existing.Value, current.Value)) continue;
+                        WorkingMemory.Remove(existing);
+                    }
+
+                    Logger?.Invoke($"Asserting Fact: {current.Name} = {current.Value}");
+                    WorkingMemory.Add(current);
+                    Root.AssertFact(current);
+                }
+            }
+            finally
+            {
+                _isPropagating = false;
+            }
+        }
     }
+
+    private bool ValuesEqual(object? v1, object? v2)
+    {
+        if (v1 == null && v2 == null) return true;
+        if (v1 == null || v2 == null) return false;
+        
+        // Handle numeric equality across types (int, long, double, decimal)
+        if (IsNumeric(v1) && IsNumeric(v2))
+        {
+            return Math.Abs(Convert.ToDouble(v1) - Convert.ToDouble(v2)) < 1e-9;
+        }
+
+        return v1.Equals(v2);
+    }
+
+    private bool IsNumeric(object v) => v is int or long or double or decimal or float;
 
     /// <summary>
     /// Gets or creates an AlphaNode for a specific variable.

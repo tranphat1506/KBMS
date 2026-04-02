@@ -1124,6 +1124,17 @@ public class KnowledgeManager
                     objects = objects.Select(obj =>
                     {
                         var newValues = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+                        
+                        // Prepare evaluation parameters with both raw and aliased names
+                        var evalParams = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                        foreach(var kv in obj.Values) {
+                            if (kv.Value != null) {
+                                evalParams[kv.Key] = kv.Value;
+                                if (!string.IsNullOrEmpty(tableAlias))
+                                    evalParams[$"{tableAlias}.{kv.Key}"] = kv.Value;
+                            }
+                        }
+
                         foreach (var col in colsToInclude)
                         {
                             var sourceName = col.Expression?.ToString() ?? col.Name;
@@ -1138,41 +1149,9 @@ public class KnowledgeManager
                             else
                             {
                                 // 2. Try evaluating as expression
-                                 try {
-                                    // Use the parsed expression if available, otherwise fallback to the raw name
+                                try {
                                     var exprForEval = col.Expression != null ? col.Expression.ToString() : sourceName;
-                                    
-                                    var prefix = node.Alias ?? entityName;
-                                    if (!string.IsNullOrEmpty(prefix) && col.Expression == null)
-                                    {
-                                        // Globally strip TablePrefix from the expression ONLY for legacy raw strings
-                                        // (e.g. "p.price * 1.1" -> "price * 1.1")
-                                        exprForEval = System.Text.RegularExpressions.Regex.Replace(exprForEval, $@"\b{prefix}\.", "");
-                                    }
-
-                                    var parameters = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-                                    foreach (var kv in obj.Values)
-                                    {
-                                        if (kv.Value != null)
-                                        {
-                                            // 1. Add as-is (could be "price" or "p1.price")
-                                            parameters[kv.Key] = kv.Value;
-                                            
-                                            // 2. If qualified (p1.price), add leaf name ("price")
-                                            if (kv.Key.Contains('.'))
-                                            {
-                                                var leaf = kv.Key.Split('.').Last();
-                                                if (!parameters.ContainsKey(leaf)) parameters[leaf] = kv.Value;
-                                            }
-                                            // 3. If unqualified ("price"), add qualified names for current context ("p.price", "Product.price")
-                                            else 
-                                            {
-                                                if (!string.IsNullOrEmpty(node.Alias)) parameters[$"{node.Alias}.{kv.Key}"] = kv.Value;
-                                                if (!string.IsNullOrEmpty(entityName)) parameters[$"{entityName}.{kv.Key}"] = kv.Value;
-                                            }
-                                        }
-                                    }
-                                    newValues[outName] = engine.EvaluateFormula(exprForEval, parameters);
+                                    newValues[outName] = engine.EvaluateFormula(exprForEval, evalParams);
                                 } catch {
                                     newValues[outName] = null;
                                 }
@@ -1331,14 +1310,24 @@ public class KnowledgeManager
         if (a == null) return -1;
         if (b == null) return 1;
 
-        // Try numeric comparison
+        // Try numeric comparison first
         if (TryConvertToDouble(a, out var da) && TryConvertToDouble(b, out var db))
         {
+            if (Math.Abs(da - db) < 1e-9) return 0;
             return da.CompareTo(db);
         }
 
-        // String comparison
-        return string.Compare(a.ToString(), b.ToString(), StringComparison.Ordinal);
+        // Handle case where one is numeric and other is string (common in queries)
+        var sa = a.ToString() ?? "";
+        var sb = b.ToString() ?? "";
+        
+        if (double.TryParse(sa, out var dsa) && double.TryParse(sb, out var dsb))
+        {
+            if (Math.Abs(dsa - dsb) < 1e-9) return 0;
+            return dsa.CompareTo(dsb);
+        }
+
+        return string.Compare(sa, sb, StringComparison.OrdinalIgnoreCase);
     }
 
     private bool TryConvertToDouble(object? value, out double result)
@@ -1801,9 +1790,6 @@ public class KnowledgeManager
             {
                 obj.Values[kv.Key] = kv.Value;
             }
-
-            // Apply Forward Chaining (Phase 5)
-            ApplyForwardChaining(kbName, node.ConceptName, obj.Values);
 
             if (_v3Router.UpdateObject(kbName, node.ConceptName, obj.Id, obj.Values, concept))
             {

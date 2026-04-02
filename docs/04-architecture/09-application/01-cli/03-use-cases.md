@@ -1,36 +1,53 @@
-# Kịch bản Tương tác và Sử dụng CLI
+# Các Kịch bản Sử dụng CLI
 
-Giao diện dòng lệnh (**KBMS CLI**) là công cụ chuyên dụng dành cho quản trị viên hệ thống và chuyên gia tri thức, cung cấp khả năng điều khiển và tự động hóa các tác vụ quản trị tri thức với hiệu năng cao.
+Chương này trình bày các tình huống sử dụng thực tế của phân hệ CLI, minh họa quy trình tương tác giữa người dùng và hệ thống thông qua các sơ đồ luồng dữ liệu.
 
-## 1. Kịch bản Phân tích Cấu trúc Tri thức (Concept Analysis)
+## 1. Kịch bản 1: Đăng nhập và quản lý phiên
 
--   **Mục tiêu**: Thực hiện trích xuất và phân tích định nghĩa của một Khái niệm (**Concept**) phức hợp với số lượng thuộc tính lớn.
--   **Quy trình thực thi**:
-    1.  **Gửi lệnh**: Người dùng thực thi lệnh `DESCRIBE <ConceptName>;`.
-    2.  **Nhận diện Phản hồi**: CLI tiếp nhận gói tin Siêu dữ liệu với thuộc tính định danh bắt đầu bằng giá trị mô tả.
-    3.  **Chuyển đổi Hiển thị**: Lớp `ResponseParser` tự động chuyển sang chế độ hiển thị theo chiều dọc (Vertical Mode) để liệt kê danh sách biến số nhằm tránh hiện tượng tràn khung hình hiển thị (Overflow).
+Đây là bước khởi đầu để thiết lập kết nối an toàn tới máy chủ.
 
-![Chế độ Hiển thị Dọc CLI | width=1.05](../../../assets/diagrams/uc_cli_vertical_mode.png)
-*Hình 4.30: Chế độ hiển thị dọc trong giao diện CLI hỗ trợ phân tích cấu trúc.*
+![Luồng logic: Xác thực hệ thống](../../../assets/diagrams/uc_cli_auth_flow.png)
+*Hình 4.26: Luồng xác thực và thiết lập phiên làm việc trên CLI.*
 
-## 2. Kịch bản Tự động hóa Nạp Tri thức (Batch Knowledge Import)
+-   **Mục tiêu**: Xác thực quyền truy cập của người dùng.
+-   **Quy trình**: Người dùng cung cấp danh tính và mật khẩu; hệ thống thực hiện kiểm tra và cấp mã định danh phiên nếu thông tin hợp lệ.
 
--   **Mục tiêu**: Nạp hàng ngàn thực thể tri thức từ tệp kịch bản tri thức có sẵn vào hệ thống.
--   **Quy trình thực thi**:
-    1.  **Chuẩn bị**: Khởi tạo tệp tin `.kbql` chứa tập hợp các lệnh nạp dữ kiện.
-    2.  **Thực thi lệnh nguồn**: Thực hiện lệnh `SOURCE <filename>.kbql;` tại dấu nhắc của CLI.
-    3.  **Chu trình xử lý**: CLI tự động bóc tách từng khối lệnh (phân tách bởi dấu `;`) và chuyển tải tới máy chủ.
-    4.  **Kiểm soát Lỗi**: Nếu phát hiện sai lệch, CLI sẽ ngắt tiến trình và chỉ báo chính xác tọa độ dòng lỗi trong tệp nguồn để quản trị viên hiệu chỉnh.
+## 2. Kịch bản 2: Thiết kế cấu trúc tri thức
 
-![Thực thi Hàng loạt CLI](../../../assets/diagrams/uc_cli_batch_source.png)
-*Hình 4.31: Kịch bản thực thi hàng loạt thông qua tập lệnh nguồn trong CLI.*
+Sử dụng CLI để định nghĩa các Khái niệm và Luật dẫn trong cơ sở tri thức.
 
-## 3. Kịch bản Đăng nhập và Kiểm tra An ninh (Authentication Trace)
+![Luồng logic: Định nghĩa cấu trúc](../../../assets/diagrams/uc_cli_kdl_flow.png)
+*Hình 4.27: Quy trình xử lý câu lệnh định nghĩa cấu trúc.*
 
--   **Mục tiêu**: Thực hiện đăng nhập bảo mật và xác lập trạng thái phiên làm việc tới máy chủ tri thức.
--   **Quy trình thực thi**:
-    1.  Người dùng thực hiện lệnh `LOGIN <username> <password>`.
-    2.  CLI đóng gói và truyền tải gói tin đăng nhập bảo mật tới máy chủ xác thực.
-    3.  Sau khi nhận thông điệp xác thực thành công, dấu nhắc hệ thống chuyển sang trạng thái sẵn sàng truy vấn tri thức hình thức.
+-   **Mục tiêu**: Xây dựng mô hình tri thức hình thức.
+-   **Quy trình**: Nhập mã nguồn tri thức; CLI thực hiện gửi gói tin tới máy chủ để biên dịch và cập nhật vào bộ nhớ lưu trữ.
 
-Sự linh hoạt trong các kịch bản tương tác khẳng định CLI là một công cụ đắc lực trong việc quản trị và vận hành hệ thống KBMS chuyên sâu.
+## 3. Kịch bản 3: Truy vấn và khai thác dữ liệu
+
+Thực hiện các câu lệnh tìm kiếm dữ kiện và lựa chọn hình thức hiển thị kết quả.
+
+![Luồng logic: Truy vấn dữ liệu](../../../assets/diagrams/uc_cli_kql_flow.png)
+*Hình 4.28: Quy trình truy vấn và điều phối hiển thị.*
+
+-   **Mục tiêu**: Truy xuất các đối tượng tri thức có trong hệ thống.
+-   **Quy trình**: Thực hiện câu lệnh truy vấn; người dùng có thể lựa chọn hiển thị dạng bảng hoặc dạng dọc tùy theo mã lệnh.
+
+## 4. Kịch bản 4: Thực thi và truy vết suy luận
+
+Sử dụng lệnh tìm kiếm lời giải và theo dõi các bước logic đã thực hiện.
+
+![Luồng logic: Truy vết suy luận](../../../assets/diagrams/uc_cli_solve_flow.png)
+*Hình 4.29: Chu trình xử lý suy luận và trích xuất cây truy vết.*
+
+-   **Mục tiêu**: Giải quyết bài toán tri thức dựa trên các luật dẫn có sẵn.
+-   **Quy trình**: Gửi yêu cầu giải quyết mục tiêu; hệ thống trả về kết luận kèm theo danh sách các bước logic đã kích hoạt.
+
+## 5. Kịch bản 5: Xử lý tập lệnh hàng loạt
+
+Thực thi các tệp tin kịch bản chứa tập hợp nhiều câu lệnh tri thức.
+
+![Luồng logic: Xử lý tập lệnh](../../../assets/diagrams/uc_cli_source_flow.png)
+*Hình 4.30: Quy trình thực thi tập lệnh từ tệp tin nguồn.*
+
+-   **Mục tiêu**: Tự động hóa quá trình nạp hoặc cập nhật tri thức quy mô lớn.
+-   **Quy trình**: Chỉ định đường dẫn tới tệp tin nguồn; hệ thống thực hiện tuần tự các khối lệnh và báo cáo tiến độ.

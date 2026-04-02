@@ -243,63 +243,63 @@
 \contentsline {subsection}{\numberline {4.8.1}Giao diện Dòng lệnh (CLI)}{85}{subsection.4.8.1}%
 \contentsline {subsection}{\numberline {4.8.2}Đặc tả Giao diện Dòng lệnh (KBMS CLI)}{85}{subsection.4.8.2}%
 \contentsline {subsubsection}{\numberline {4.8.2.1}Các Tính năng Điều khiển Hạt nhân}{85}{subsubsection.4.8.2.1}%
-\contentsline {subsubsection}{\numberline {4.8.2.2}Các Nhóm Lệnh Hệ thống Đặc biệt}{86}{subsubsection.4.8.2.2}%
-\contentsline {subsubsection}{\numberline {4.8.2.3}Tối ưu hóa Trải nghiệm và Quản trị Chuyên sâu}{86}{subsubsection.4.8.2.3}%
+\contentsline {subsubsection}{\numberline {4.8.2.2}Các Nhóm Lệnh Hệ thống}{86}{subsubsection.4.8.2.2}%
+\contentsline {subsubsection}{\numberline {4.8.2.3}Cơ chế Vận hành và Quản trị}{86}{subsubsection.4.8.2.3}%
 \contentsline {subsection}{\numberline {4.8.3}Luồng Xử lý và Phân tích Phản hồi của CLI}{86}{subsection.4.8.3}%
 \contentsline {subsubsection}{\numberline {4.8.3.1}Chu trình Truyền nhận và Điều phối Lệnh}{86}{subsubsection.4.8.3.1}%
 \contentsline {subsubsection}{\numberline {4.8.3.2}Bộ máy Phân tích và Kết xuất Phản hồi}{87}{subsubsection.4.8.3.2}%
 \contentsline {paragraph}{\numberline {4.8.3.2.1}Quy trình Hiển thị Bảng Dữ liệu Động}{87}{paragraph.4.8.3.2.1}%
 \contentsline {subsubsection}{\numberline {4.8.3.3}Cơ chế Thực thi Hàng loạt và Quản lý Luồng}{87}{subsubsection.4.8.3.3}%
-\contentsline {subsection}{\numberline {4.8.4}Kịch bản Tương tác và Sử dụng CLI}{87}{subsection.4.8.4}%
-\contentsline {subsubsection}{\numberline {4.8.4.1}Kịch bản Phân tích Cấu trúc Tri thức (Concept Analysis)}{88}{subsubsection.4.8.4.1}%
-\contentsline {subsubsection}{\numberline {4.8.4.2}Kịch bản Tự động hóa Nạp Tri thức (Batch Knowledge Import)}{88}{subsubsection.4.8.4.2}%
-\contentsline {subsubsection}{\numberline {4.8.4.3}Kịch bản Đăng nhập và Kiểm tra An ninh (Authentication Trace)}{89}{subsubsection.4.8.4.3}%
-\contentsline {subsection}{\numberline {4.8.5}Kiểm định và Xác thực Giao diện Dòng lệnh}{90}{subsection.4.8.5}%
-\contentsline {subsubsection}{\numberline {4.8.5.1}Kiểm định Chu kỳ Phiên làm việc (Session Validation)}{90}{subsubsection.4.8.5.1}%
-\contentsline {paragraph}{\numberline {4.8.5.1.1}Minh chứng Thực nghiệm}{90}{paragraph.4.8.5.1.1}%
-\contentsline {subsubsection}{\numberline {4.8.5.2}Kiểm định Định dạng Kết xuất Dữ liệu (Format Validation)}{90}{subsubsection.4.8.5.2}%
-\contentsline {subsection}{\numberline {4.8.6}Giao diện Web Quản lý (KBMS STUDIO)}{91}{subsection.4.8.6}%
-\contentsline {subsection}{\numberline {4.8.7}Đặc tả Giao diện Quản trị và Phát triển (KBMS Studio)}{91}{subsection.4.8.7}%
-\contentsline {subsubsection}{\numberline {4.8.7.1}Các Phân hệ Chức năng Cốt lõi}{91}{subsubsection.4.8.7.1}%
-\contentsline {paragraph}{\numberline {4.8.7.1.1}Thiết kế Tri thức Trực quan (Knowledge Designer)}{91}{paragraph.4.8.7.1.1}%
-\contentsline {paragraph}{\numberline {4.8.7.1.2}Cửa sổ Truy vấn Tri thức (Query Console)}{91}{paragraph.4.8.7.1.2}%
-\contentsline {paragraph}{\numberline {4.8.7.1.3}Bảng Điều phối Quản trị (Management Dashboard)}{91}{paragraph.4.8.7.1.3}%
-\contentsline {paragraph}{\numberline {4.8.7.1.4}Hệ thống Thông báo và Giám sát Kiểm toán}{91}{paragraph.4.8.7.1.4}%
-\contentsline {subsubsection}{\numberline {4.8.7.2}Tiêu chuẩn Thiết kế và Trải nghiệm Người dùng}{92}{subsubsection.4.8.7.2}%
-\contentsline {subsection}{\numberline {4.8.8}Kiến trúc Phân lớp và Luồng Điều phối Studio}{92}{subsection.4.8.8}%
-\contentsline {subsubsection}{\numberline {4.8.8.1}Sơ đồ Luồng Xử lý Hợp nhất 4 Tầng}{92}{subsubsection.4.8.8.1}%
-\contentsline {paragraph}{\numberline {4.8.8.1.1}Phân tầng Chiến lược}{92}{paragraph.4.8.8.1.1}%
-\contentsline {subsubsection}{\numberline {4.8.8.2}Cơ chế Thông báo Thời gian thực (Real-time Notification)}{93}{subsubsection.4.8.8.2}%
-\contentsline {subsubsection}{\numberline {4.8.8.3}Quy trình Xác lập Phiên làm việc (Authentication Flow)}{93}{subsubsection.4.8.8.3}%
-\contentsline {subsection}{\numberline {4.8.9}Kịch bản Tương tác và Trường hợp Sử dụng Studio}{93}{subsection.4.8.9}%
-\contentsline {subsubsection}{\numberline {4.8.9.1}Kịch bản Thiết kế Mô hình Tri thức (Schema Design)}{94}{subsubsection.4.8.9.1}%
-\contentsline {subsubsection}{\numberline {4.8.9.2}Kịch bản Giải bài toán Suy diễn Tự động (Reasoning Solve)}{94}{subsubsection.4.8.9.2}%
-\contentsline {subsubsection}{\numberline {4.8.9.3}Kịch bản Quản trị và Bảo trì Dữ liệu (System Administration)}{95}{subsubsection.4.8.9.3}%
-\contentsline {subsubsection}{\numberline {4.8.9.4}Kịch bản Giám sát An ninh và Phân tích Nhật ký}{96}{subsubsection.4.8.9.4}%
-\contentsline {subsection}{\numberline {4.8.10}Kiểm định và Xác thực Giao diện Đồ họa Studio}{97}{subsection.4.8.10}%
-\contentsline {subsubsection}{\numberline {4.8.10.1}Kiểm định Tính năng IntelliSense và Trực quan Đồ thị}{97}{subsubsection.4.8.10.1}%
-\contentsline {paragraph}{\numberline {4.8.10.1.1}Minh chứng Thực nghiệm}{97}{paragraph.4.8.10.1.1}%
-\contentsline {subsubsection}{\numberline {4.8.10.2}Kiểm định Giám sát và Quản trị Hệ thống}{97}{subsubsection.4.8.10.2}%
-\contentsline {paragraph}{\numberline {4.8.10.2.1}Minh chứng Luồng Dữ liệu}{97}{paragraph.4.8.10.2.1}%
-\contentsline {chapter}{\numberline {5}CÀI ĐẶT, THỬ NGHIỆM VÀ ĐÁNH GIÁ HỆ THỐNG}{98}{chapter.5}%
-\contentsline {section}{\numberline {5.1}Quy trình Cài đặt \& Xác thực Hệ thống (macOS)}{98}{section.5.1}%
-\contentsline {subsection}{\numberline {5.1.1}Thành phần Yêu cầu}{98}{subsection.5.1.1}%
-\contentsline {subsection}{\numberline {5.1.2}Các bước Triển khai}{98}{subsection.5.1.2}%
-\contentsline {subsection}{\numberline {5.1.3}Nhật ký Xác thực Cài đặt (Verification Log)}{98}{subsection.5.1.3}%
-\contentsline {subsection}{\numberline {5.1.4}Kịch bản A: Suy diễn Logic Học thuật (DS-S)}{99}{subsection.5.1.4}%
-\contentsline {subsection}{\numberline {5.1.5}Kịch bản B: Chẩn đoán Y tế \& Hiệu năng JOIN (DS-M)}{99}{subsection.5.1.5}%
-\contentsline {subsection}{\numberline {5.1.6}Kịch bản C: Đô thị Thông minh \& Tải cực đại (DS-L)}{99}{subsection.5.1.6}%
-\contentsline {subsection}{\numberline {5.1.7}Để đánh giá toàn diện KBMS V3, các kịch bản kiểm thử được thiết lập dựa trên 3 quy mô dữ liệu đã định nghĩa (DS-S, DS-M, DS-L), tập trung vào 4 khía cạnh hạt nhân:}{99}{subsection.5.1.7}%
-\contentsline {subsection}{\numberline {5.1.8}Kịch bản A: Chức năng \& Logic (Sử dụng DS-S)}{99}{subsection.5.1.8}%
-\contentsline {subsection}{\numberline {5.1.9}Kịch bản B: Hiệu năng \& Chỉ mục (Sử dụng DS-M)}{99}{subsection.5.1.9}%
-\contentsline {subsection}{\numberline {5.1.10}Kịch bản C: Khả năng Mở rộng \& Tải cao (Sử dụng DS-L)}{99}{subsection.5.1.10}%
-\contentsline {subsection}{\numberline {5.1.11}Nhật ký Thực thi Kiểm thử (xUnit Test Logs)}{100}{subsection.5.1.11}%
-\contentsline {section}{\numberline {5.2}Đánh giá Hiệu năng Hệ quản trị tri thức (macOS)}{100}{section.5.2}%
-\contentsline {subsection}{\numberline {5.2.1}Phân tích Hiệu năng Thao tác Đơn lẻ (Latency)}{100}{subsection.5.2.1}%
-\contentsline {subsection}{\numberline {5.2.2}Hiệu năng Thông lượng \& Tài nguyên (Throughput)}{100}{subsection.5.2.2}%
-\contentsline {subsection}{\numberline {5.2.3}Đặc tả Tiêu thụ Tài nguyên Hệ thống}{101}{subsection.5.2.3}%
-\contentsline {subsection}{\numberline {5.2.4}Nhật ký Benchmark Hệ thống (Benchmark Log)}{101}{subsection.5.2.4}%
-\contentsline {subsection}{\numberline {5.2.5}DS-S: Gói Tri thức Hình học (Advanced)}{101}{subsection.5.2.5}%
-\contentsline {subsection}{\numberline {5.2.6}DS-M: Gói Tri thức Y tế (Advanced Features)}{102}{subsection.5.2.6}%
-\contentsline {subsection}{\numberline {5.2.7}DS-L: Gói Tri thức Đô thị Thông minh (Scale context)}{102}{subsection.5.2.7}%
-\contentsline {chapter}{TÀI LIỆU THAM KHẢO}{103}{subsection.5.2.7}%
+\contentsline {subsection}{\numberline {4.8.4}Các Kịch bản Sử dụng CLI}{87}{subsection.4.8.4}%
+\contentsline {subsubsection}{\numberline {4.8.4.1}Kịch bản 1: Đăng nhập và quản lý phiên}{88}{subsubsection.4.8.4.1}%
+\contentsline {subsubsection}{\numberline {4.8.4.2}Kịch bản 2: Thiết kế cấu trúc tri thức}{88}{subsubsection.4.8.4.2}%
+\contentsline {subsubsection}{\numberline {4.8.4.3}Kịch bản 3: Truy vấn và khai thác dữ liệu}{89}{subsubsection.4.8.4.3}%
+\contentsline {subsubsection}{\numberline {4.8.4.4}Kịch bản 4: Thực thi và truy vết suy luận}{89}{subsubsection.4.8.4.4}%
+\contentsline {subsubsection}{\numberline {4.8.4.5}Kịch bản 5: Xử lý tập lệnh hàng loạt}{91}{subsubsection.4.8.4.5}%
+\contentsline {subsection}{\numberline {4.8.5}Giao diện ứng dụng KBMS-CLI}{91}{subsection.4.8.5}%
+\contentsline {subsubsection}{\numberline {4.8.5.1}Giao diện khởi tạo và thiết lập phiên}{91}{subsubsection.4.8.5.1}%
+\contentsline {subsubsection}{\numberline {4.8.5.2}Giao diện soạn thảo cấu trúc tri thức}{91}{subsubsection.4.8.5.2}%
+\contentsline {subsubsection}{\numberline {4.8.5.3}Giao diện truy vấn và kết xuất dữ liệu}{92}{subsubsection.4.8.5.3}%
+\contentsline {subsubsection}{\numberline {4.8.5.4}Giao diện truy vết và giải thuật suy luận}{92}{subsubsection.4.8.5.4}%
+\contentsline {subsection}{\numberline {4.8.6}Giao diện Web Quản lý (KBMS STUDIO)}{92}{subsection.4.8.6}%
+\contentsline {subsection}{\numberline {4.8.7}Đặc tả Giao diện Quản trị (KBMS Studio)}{92}{subsection.4.8.7}%
+\contentsline {subsubsection}{\numberline {4.8.7.1}Bố cục Giao diện Tổng thể}{92}{subsubsection.4.8.7.1}%
+\contentsline {subsubsection}{\numberline {4.8.7.2}Trình Thiết kế Tri thức}{92}{subsubsection.4.8.7.2}%
+\contentsline {subsubsection}{\numberline {4.8.7.3}Phân hệ Truy vấn và Phân tích}{93}{subsubsection.4.8.7.3}%
+\contentsline {subsubsection}{\numberline {4.8.7.4}Đặc điểm Giao diện và Tương tác}{93}{subsubsection.4.8.7.4}%
+\contentsline {subsection}{\numberline {4.8.8}Kiến trúc Phân lớp và Luồng Điều phối Studio}{93}{subsection.4.8.8}%
+\contentsline {subsubsection}{\numberline {4.8.8.1}Sơ đồ Luồng Xử lý Hợp nhất 4 Tầng}{93}{subsubsection.4.8.8.1}%
+\contentsline {paragraph}{\numberline {4.8.8.1.1}Phân tầng Chiến lược}{94}{paragraph.4.8.8.1.1}%
+\contentsline {subsubsection}{\numberline {4.8.8.2}Cơ chế Thông báo Thời gian thực (Real-time Notification)}{94}{subsubsection.4.8.8.2}%
+\contentsline {subsubsection}{\numberline {4.8.8.3}Quy trình Xác lập Phiên làm việc (Authentication Flow)}{95}{subsubsection.4.8.8.3}%
+\contentsline {subsection}{\numberline {4.8.9}Các Kịch bản Sử dụng Studio}{95}{subsection.4.8.9}%
+\contentsline {subsubsection}{\numberline {4.8.9.1}Kịch bản 1: Thiết kế cấu trúc tri thức}{95}{subsubsection.4.8.9.1}%
+\contentsline {subsubsection}{\numberline {4.8.9.2}Kịch bản 2: Giải quyết bài toán và truy vết suy luận}{96}{subsubsection.4.8.9.2}%
+\contentsline {subsubsection}{\numberline {4.8.9.3}Kịch bản 3: Giám sát và bảo trì hệ thống}{97}{subsubsection.4.8.9.3}%
+\contentsline {subsection}{\numberline {4.8.10}Giao diện ứng dụng KBMS Studio}{99}{subsection.4.8.10}%
+\contentsline {subsubsection}{\numberline {4.8.10.1}Giao diện quản lý dự án và phả hệ tri thức}{99}{subsubsection.4.8.10.1}%
+\contentsline {subsubsection}{\numberline {4.8.10.2}Giao diện soạn thảo mã nguồn tích hợp}{99}{subsubsection.4.8.10.2}%
+\contentsline {subsubsection}{\numberline {4.8.10.3}Giao diện giám sát hiệu năng hệ thống}{99}{subsubsection.4.8.10.3}%
+\contentsline {subsubsection}{\numberline {4.8.10.4}Giao diện thực thi và trực quan hóa kết quả}{100}{subsubsection.4.8.10.4}%
+\contentsline {chapter}{\numberline {5}CÀI ĐẶT, THỬ NGHIỆM VÀ ĐÁNH GIÁ HỆ THỐNG}{101}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Quy trình Cài đặt \& Xác thực Hệ thống (macOS)}{101}{section.5.1}%
+\contentsline {subsection}{\numberline {5.1.1}Thành phần Yêu cầu}{101}{subsection.5.1.1}%
+\contentsline {subsection}{\numberline {5.1.2}Các bước Triển khai}{101}{subsection.5.1.2}%
+\contentsline {subsection}{\numberline {5.1.3}Nhật ký Xác thực Cài đặt (Verification Log)}{101}{subsection.5.1.3}%
+\contentsline {subsection}{\numberline {5.1.4}Kịch bản A: Suy diễn Logic Học thuật (DS-S)}{102}{subsection.5.1.4}%
+\contentsline {subsection}{\numberline {5.1.5}Kịch bản B: Chẩn đoán Y tế \& Hiệu năng JOIN (DS-M)}{102}{subsection.5.1.5}%
+\contentsline {subsection}{\numberline {5.1.6}Kịch bản C: Đô thị Thông minh \& Tải cực đại (DS-L)}{102}{subsection.5.1.6}%
+\contentsline {subsection}{\numberline {5.1.7}Để đánh giá toàn diện KBMS V3, các kịch bản kiểm thử được thiết lập dựa trên 3 quy mô dữ liệu đã định nghĩa (DS-S, DS-M, DS-L), tập trung vào 4 khía cạnh hạt nhân:}{102}{subsection.5.1.7}%
+\contentsline {subsection}{\numberline {5.1.8}Kịch bản A: Chức năng \& Logic (Sử dụng DS-S)}{102}{subsection.5.1.8}%
+\contentsline {subsection}{\numberline {5.1.9}Kịch bản B: Hiệu năng \& Chỉ mục (Sử dụng DS-M)}{102}{subsection.5.1.9}%
+\contentsline {subsection}{\numberline {5.1.10}Kịch bản C: Khả năng Mở rộng \& Tải cao (Sử dụng DS-L)}{102}{subsection.5.1.10}%
+\contentsline {subsection}{\numberline {5.1.11}Nhật ký Thực thi Kiểm thử (xUnit Test Logs)}{103}{subsection.5.1.11}%
+\contentsline {section}{\numberline {5.2}Đánh giá Hiệu năng Hệ quản trị tri thức (macOS)}{103}{section.5.2}%
+\contentsline {subsection}{\numberline {5.2.1}Phân tích Hiệu năng Thao tác Đơn lẻ (Latency)}{103}{subsection.5.2.1}%
+\contentsline {subsection}{\numberline {5.2.2}Hiệu năng Thông lượng \& Tài nguyên (Throughput)}{103}{subsection.5.2.2}%
+\contentsline {subsection}{\numberline {5.2.3}Đặc tả Tiêu thụ Tài nguyên Hệ thống}{104}{subsection.5.2.3}%
+\contentsline {subsection}{\numberline {5.2.4}Nhật ký Benchmark Hệ thống (Benchmark Log)}{104}{subsection.5.2.4}%
+\contentsline {subsection}{\numberline {5.2.5}DS-S: Gói Tri thức Hình học (Advanced)}{104}{subsection.5.2.5}%
+\contentsline {subsection}{\numberline {5.2.6}DS-M: Gói Tri thức Y tế (Advanced Features)}{105}{subsection.5.2.6}%
+\contentsline {subsection}{\numberline {5.2.7}DS-L: Gói Tri thức Đô thị Thông minh (Scale context)}{105}{subsection.5.2.7}%
+\contentsline {chapter}{TÀI LIỆU THAM KHẢO}{106}{subsection.5.2.7}%

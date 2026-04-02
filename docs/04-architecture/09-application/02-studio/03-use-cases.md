@@ -1,46 +1,33 @@
-# Kịch bản Tương tác và Trường hợp Sử dụng Studio
+# Các Kịch bản Sử dụng Studio
 
-**KBMS Studio** không chỉ là một trình soạn thảo tri thức đơn thuần, mà còn là một bộ công cụ hỗ trợ giải quyết các bài toán tri thức chuyên sâu một cách trực quan và hiệu quả.
+Chương này trình bày các tình huống sử dụng thực tế của phân hệ Studio, minh họa quy trình tương tác phối hợp giữa các công cụ đồ họa thông qua các sơ đồ luồng dữ liệu.
 
-## 1. Kịch bản Thiết kế Mô hình Tri thức (Schema Design)
+## 1. Kịch bản 1: Thiết kế cấu trúc tri thức
 
--   **Mục tiêu**: Định nghĩa các Khái niệm (**Concept**) hình học và các Luật dẫn (**Rule**) tính toán diện tích trong không gian tri thức phẳng.
--   **Quy trình thực thi**:
-    1.  **Nhập liệu**: Người dùng sử dụng Trình soạn thảo Monaco với tính năng gợi ý thông minh (**Auto-complete**) để kiến tạo câu lệnh `CREATE CONCEPT`.
-    2.  **Kiểm chứng**: Bộ phân tích tại máy chủ thực hiện biên dịch thời gian thực. Nếu phát sinh sai lệch, tính năng **Error Squiggles** sẽ tự động đánh dấu lỗi tại dòng lệnh tương ứng.
-    3.  **Trực quan hóa**: Khi cấu trúc đúng, Studio sẽ tái hiện sơ đồ Concept giúp người dùng xem xét các mối quan hệ và ràng buộc logic một cách trực quan.
+Sử dụng trình thiết kế tri thức để xây dựng cấu trúc các Khái niệm và Luật dẫn.
 
-![Quy trình Thiết kế Tri thức](../../../assets/diagrams/uc_kdl_design_flow.png)
-*Hình 4.36: Luồng quy trình thiết kế và kiểm tra tri thức trong môi trường Studio.*
+![Luồng logic: Thiết kế tri thức](../../../assets/diagrams/uc_studio_designer_flow.png)
+*Hình 4.31: Quy trình soạn thảo và biên dịch tri thức trên giao diện Studio.*
 
-## 2. Kịch bản Giải bài toán Suy diễn Tự động (Reasoning Solve)
+-   **Mục tiêu**: Xây dựng mô hình tri thức hình thức thông qua giao diện đồ họa.
+-   **Quy trình**: Người dùng thực hiện lệnh soạn thảo; hệ thống cung cấp các gợi ý cú pháp và phản hồi lỗi tức thời từ máy chủ.
 
--   **Mục tiêu**: Tìm kiếm lời giải cho bài toán hình học dựa trên các giả thiết đầu vào.
--   **Quy trình thực thi**:
-    1.  **Gửi yêu cầu**: Nhập lệnh `SOLVE ON Triangle GIVEN AB=3, AC=4 FIND BC;`.
-    2.  **Suy diễn**: Máy chủ chuyển yêu cầu tới Bộ máy Suy diễn để thực hiện giải thuật F-Closure.
-    3.  **Hội tụ kết quả**: Giá trị nội suy được kết xuất trực tiếp trên lưới dữ liệu (Data Grid).
-    4.  **Truy vết**: Người dùng truy cập tab **Reasoning Trace** để phân tích cây suy diễn logic đã được hệ thống thực thi.
+## 2. Kịch bản 2: Giải quyết bài toán và truy vết suy luận
 
-![Quy trình Giải bài toán | width=1.05](../../../assets/diagrams/uc_reasoning_solve_flow.png)
-*Hình 4.37: Quy trình các bước thực thi từ gửi yêu cầu tới truy vết suy diễn logic.*
+Tìm kiếm lời giải cho mục tiêu tri thức và theo dõi sơ đồ suy luận.
 
-## 3. Kịch bản Quản trị và Bảo trì Dữ liệu (System Administration)
+![Luồng logic: Giải thuật suy luận](../../../assets/diagrams/uc_studio_trace_flow.png)
+*Hình 4.32: Chu trình thực thi suy luận và hiển thị cây bước logic.*
 
--   **Mục tiêu**: Giám sát hiệu năng và bảo trì cấu trúc dữ liệu khi hệ thống chứa hàng triệu đối tượng tri thức.
--   **Quy trình thực thi**:
-    1.  **Nạp dữ liệu quy mô lớn**: Sử dụng giao diện nạp tập tin để đẩy hàng triệu thực thể thông qua lệnh **Bulk Insert**.
-    2.  **Giám sát thực tế**: Dashboard hiển thị thời gian thực các chỉ số về bộ nhớ vùng đệm (RAM) và không gian lưu trữ vật lý (Disk).
-    3.  **Bảo trì hạ tầng**: Thực thi lệnh `MAINTENANCE REINDEX` trực tiếp từ Studio để tối ưu hóa cấu trúc chỉ mục B+ Tree sau khi nạp dữ liệu lớn.
+-   **Mục tiêu**: Thực hiện các bài toán suy luận và minh bạch hóa quá trình giải quyết.
+-   **Quy trình**: Nhập yêu cầu giải quyết mục tiêu; Studio hiển thị kết quả dưới dạng lưới dữ liệu và sơ đồ truy vết các bước logic đã thực hiện.
 
-![Quy trình Quản trị Hạ tầng](../../../assets/diagrams/uc_system_maint_flow.png)
-*Hình 4.38: Các bước thao tác hỗ trợ nạp dữ liệu quy mô lớn và bảo trì hệ thống.*
+## 3. Kịch bản 3: Giám sát và bảo trì hệ thống
 
-## 4. Kịch bản Giám sát An ninh và Phân tích Nhật ký
+Theo dõi trạng thái vận hành và thực hiện các thao tác bảo trì cơ sở tri thức.
 
-Admin sử dụng Studio để kiểm soát các quyền truy cập và phân tích các nguyên nhân gốc rễ của các lỗi logic hoặc sự cố hạ tầng:
+![Luồng logic: Giám sát hệ thống](../../../assets/diagrams/uc_studio_monitor_flow.png)
+*Hình 4.33: Quy trình thu tập chỉ số và điều phối bảo trì.*
 
--   **Kiểm soát Phiên làm việc**: Xem danh sách các địa chỉ IP và thực thể người dùng đang kết nối, đồng thời thực hiện ngắt các phiên làm việc bất thường.
--   **Phân tích Nhật ký Chuyên sâu**: Sử dụng công cụ **Log Analyzer** để lọc các lỗi ở cấp độ nghiêm trọng, giúp xác định sai lệch phát sinh từ tầng luật dẫn logic hay từ tầng lưu trữ vật lý.
-
-Tính năng kết hợp giữa giao diện đồ họa trực quan và hiệu năng thực thi của bộ máy hạt nhân cho phép người dùng chuyển đổi linh hoạt từ nghiên cứu học thuật sang ứng dụng công nghệ một cách nhất quán.
+-   **Mục tiêu**: Đảm bảo trạng thái ổn định của hệ thống quản trị tri thức.
+-   **Quy trình**: Theo dõi các biểu đồ tài nguyên trên giao diện; thực hiện các lệnh tối ưu hóa hoặc làm sạch dữ liệu khi cần thiết.

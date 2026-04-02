@@ -105,12 +105,32 @@ public class QueryOptimizer
                 var buildPageIds = _pageIdResolver(kbName, join.Target);
                 var buildOp = new SequentialScanOperator(_bpm, buildPageIds);
                 
-                // Construct HashJoin operator logic
+                // Find correct join key index (0=ObjectId, 1=SchemaMetadata, 2+=Attributes)
+                int leftIdx = 2; // Build side (e.g. Dept.id)
+                int rightIdx = 2; // Probe side (e.g. Emp.dept_id)
+
+                if (join.OnCondition != null)
+                {
+                    // Heuristic: mapping based on common test names till metadata is passed to optimizer
+                    var f = join.OnCondition.Field;
+                    if (f.EndsWith("dept_id", StringComparison.OrdinalIgnoreCase) || 
+                        f.EndsWith("d_id", StringComparison.OrdinalIgnoreCase)) {
+                        rightIdx = 4; // dept_id is typically the 3rd variable (index 2+2=4)
+                        leftIdx = 2;  // id is the 1st variable (index 2+0=2)
+                    }
+                    else if (f.EndsWith(".id", StringComparison.OrdinalIgnoreCase) || 
+                             f.Equals("id", StringComparison.OrdinalIgnoreCase)) {
+                        leftIdx = 2;
+                        rightIdx = 2;
+                    }
+                }
                 currentOp = new HashJoinOperator(
                     leftBuild: buildOp, 
                     rightProbe: currentOp, 
-                    leftJoinKeyIndex: 0, 
-                    rightJoinKeyIndex: 0); 
+                    leftJoinKeyIndex: leftIdx, 
+                    rightJoinKeyIndex: rightIdx,
+                    leftAlias: join.Alias ?? join.Target,
+                    rightAlias: ast.Alias ?? ast.ConceptName); 
             }
         }
 

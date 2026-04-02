@@ -19,9 +19,8 @@
 \contentsline {table}{\numberline {4.13}{\ignorespaces Đặc tả hiệu năng điều phối tác vụ tại Tầng Server}}{73}{table.caption.50}%
 \contentsline {table}{\numberline {4.14}{\ignorespaces dưới đây mô tả trình tự thực thi của pipeline sau khi đã được tối ưu:}}{78}{table.caption.53}%
 \contentsline {table}{\numberline {4.15}{\ignorespaces nhật ký dưới đây mô tả chi tiết trạng thái của hệ thống qua từng bước nạp dữ kiện (Fact Injection):}}{84}{table.caption.58}%
-\contentsline {table}{\numberline {4.16}{\ignorespaces Danh mục các lệnh điều khiển đặc quyền trong giao diện CLI}}{86}{table.caption.59}%
-\contentsline {table}{\numberline {4.17}{\ignorespaces Kịch bản kiểm lý định dạng kết xuất dữ liệu trong giao diện CLI}}{90}{table.caption.64}%
+\contentsline {table}{\numberline {4.16}{\ignorespaces Danh mục các lệnh điều khiển trong giao diện CLI}}{86}{table.caption.59}%
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {5.1}{\ignorespaces Đặc tả hiệu năng phản hồi của các thành phần trong hệ thống KBMS}}{100}{table.caption.73}%
-\contentsline {table}{\numberline {5.2}{\ignorespaces Chỉ số thông lượng (Throughput) và khả năng mở rộng (Scalability)}}{100}{table.caption.74}%
-\contentsline {table}{\numberline {5.3}{\ignorespaces Mức độ tiêu thụ tài nguyên phần cứng thực tế (CPU/RAM/IO)}}{101}{table.caption.75}%
+\contentsline {table}{\numberline {5.1}{\ignorespaces Đặc tả hiệu năng phản hồi của các thành phần trong hệ thống KBMS}}{103}{table.caption.79}%
+\contentsline {table}{\numberline {5.2}{\ignorespaces Chỉ số thông lượng (Throughput) và khả năng mở rộng (Scalability)}}{103}{table.caption.80}%
+\contentsline {table}{\numberline {5.3}{\ignorespaces Mức độ tiêu thụ tài nguyên phần cứng thực tế (CPU/RAM/IO)}}{104}{table.caption.81}%

@@ -57,26 +57,7 @@ public class ReteCompiler
 
     private void CompileRule(Concept concept, ConceptRule rule)
     {
-        var terminalAction = new Action<Token>(token => {
-            // This is the action to perform when the rule hypothesis is met
-            foreach (var conclusion in rule.Conclusion)
-            {
-                // We use a simplified context from the token's facts
-                var facts = token.ToDictionary();
-                _engine.ApplyConclusion(conclusion, concept, facts, new InferenceEngine.ReasoningResult(), rule.Kind);
-                
-                // Assert the new facts back into the network for further reasoning
-                foreach (var fact in facts)
-                {
-                    _network.AssertFact(fact.Key, fact.Value);
-                }
-            }
-        });
-
-        var terminalNode = new TerminalNode(rule.Kind ?? "Unnamed Rule", (token) => _network.AddToAgenda(null!, token)); 
-        // Note: TerminalNode adds to agenda. The actual execution happens in FireNext.
-        // We override the activation to use our terminalAction.
-        var customTerminal = new TerminalNode(rule.Kind ?? "Unnamed Rule", terminalAction);
+        // Chain conditions
 
         // Chain conditions
         ReteNode currentParent = _network.Root;
@@ -87,10 +68,10 @@ public class ReteCompiler
         // This is a naive implementation: treating the whole hypothesis list as a sequence of facts
         // In reality, Rete is more complex. For this MVP, let's treat variables as facts.
         
+        // (RC6.1) Identify vars in hypothesis as triggers
         var neededVars = rule.Hypothesis.SelectMany(h => _engine.ExtractVariablesFromExpression(h)).Distinct().ToList();
         
         if (!neededVars.Any()) return;
-
         // Build the chain
         ReteNode? lastNode = null;
 
@@ -125,7 +106,33 @@ public class ReteCompiler
         });
 
         lastNode!.AddChild(filterNode);
-        filterNode.AddChild(customTerminal);
+
+        var ruleName = rule.Kind ?? "R" + (concept.ConceptRules.IndexOf(rule) + 1);
+        var terminalAction = new Action<Token>(token => {
+            // Build fact context for conclusion execution
+            // Start with facts that triggered the rule (from Token)
+            var facts = token.ToDictionary();
+            
+            // Supplement with ANY other facts currently in the network's working memory
+            // This is essential if the conclusion uses variables not present in the hypothesis chain
+            foreach (var f in _network.WorkingMemory)
+            {
+                if (!facts.ContainsKey(f.Name)) facts[f.Name] = f.Value;
+            }
+
+            var res = new InferenceEngine.ReasoningResult();
+            foreach (var concl in rule.Conclusion)
+            {
+                _engine.ApplyConclusion(concl, concept, facts, res, ruleName);
+                foreach (var derived in res.DerivedFacts)
+                {
+                    _network.AssertFact(derived.Key, derived.Value);
+                    _network.Logger?.Invoke($"Rule {ruleName} resolved {derived.Key}");
+                }
+            }
+        });
+        var terminal = new TerminalNode(ruleName, terminalAction);
+        filterNode.AddChild(terminal);
     }
 
     private void CompileEquation(Concept concept, Equation eq)

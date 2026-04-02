@@ -41,15 +41,22 @@
 \contentsline {figure}{\numberline {4.33}{\ignorespaces Vòng đời của một dữ kiện và chu kỳ suy luận trong hệ thống KBMS.}}{82}{figure.caption.56}%
 \contentsline {figure}{\numberline {4.34}{\ignorespaces Luồng kích hoạt nốt và lan truyền dữ kiện trong kịch bản giải diện tích tam giác.}}{84}{figure.caption.57}%
 \contentsline {figure}{\numberline {4.35}{\ignorespaces Sơ đồ tuần tự mô tả luồng xử lý câu lệnh và phản hồi từ Server của CLI.}}{86}{figure.caption.60}%
-\contentsline {figure}{\numberline {4.36}{\ignorespaces Chế độ hiển thị dọc trong giao diện CLI hỗ trợ phân tích cấu trúc.}}{88}{figure.caption.61}%
-\contentsline {figure}{\numberline {4.37}{\ignorespaces Kịch bản thực thi hàng loạt thông qua tập lệnh nguồn trong CLI.}}{89}{figure.caption.62}%
-\contentsline {figure}{\numberline {4.38}{\ignorespaces Giao diện tương tác CLI thực thi câu lệnh truy vấn và xác lập phiên làm việc.}}{90}{figure.caption.63}%
-\contentsline {figure}{\numberline {4.39}{\ignorespaces Kết quả thực thi lệnh DESCRIBE hiển thị định nghĩa cấu trúc tri thức trong CLI.}}{90}{figure.caption.65}%
-\contentsline {figure}{\numberline {4.40}{\ignorespaces Quy trình điều phối yêu cầu tri thức xuyên suốt 4 tầng chức năng từ giao diện Studio.}}{92}{figure.caption.66}%
-\contentsline {figure}{\numberline {4.41}{\ignorespaces Cơ chế Server Push cho các thông báo hệ thống và an ninh thời gian thực.}}{93}{figure.caption.67}%
-\contentsline {figure}{\numberline {4.42}{\ignorespaces Luồng quy trình thiết kế và kiểm tra tri thức trong môi trường Studio.}}{94}{figure.caption.68}%
-\contentsline {figure}{\numberline {4.43}{\ignorespaces Quy trình các bước thực thi từ gửi yêu cầu tới truy vết suy diễn logic.}}{95}{figure.caption.69}%
-\contentsline {figure}{\numberline {4.44}{\ignorespaces Các bước thao tác hỗ trợ nạp dữ liệu quy mô lớn và bảo trì hệ thống.}}{96}{figure.caption.70}%
-\contentsline {figure}{\numberline {4.45}{\ignorespaces Giao diện soạn thảo tri thức trực quan và hỗ trợ cú pháp trong KBMS Studio.}}{97}{figure.caption.71}%
-\contentsline {figure}{\numberline {4.46}{\ignorespaces Minh chứng luồng truyền nhận gói tin nhị phân giữa Studio và tiến trình Electron Main.}}{97}{figure.caption.72}%
+\contentsline {figure}{\numberline {4.36}{\ignorespaces Luồng xác thực và thiết lập phiên làm việc trên CLI.}}{88}{figure.caption.61}%
+\contentsline {figure}{\numberline {4.37}{\ignorespaces Quy trình xử lý câu lệnh định nghĩa cấu trúc.}}{88}{figure.caption.62}%
+\contentsline {figure}{\numberline {4.38}{\ignorespaces Quy trình truy vấn và điều phối hiển thị.}}{89}{figure.caption.63}%
+\contentsline {figure}{\numberline {4.39}{\ignorespaces Chu trình xử lý suy luận và trích xuất cây truy vết.}}{90}{figure.caption.64}%
+\contentsline {figure}{\numberline {4.40}{\ignorespaces Quy trình thực thi tập lệnh từ tệp tin nguồn.}}{91}{figure.caption.65}%
+\contentsline {figure}{\numberline {4.41}{\ignorespaces Giao diện khởi tạo và xác lập phiên làm việc trên console.}}{91}{figure.caption.66}%
+\contentsline {figure}{\numberline {4.42}{\ignorespaces Giao diện soạn thảo và kiểm soát cú pháp tri thức.}}{91}{figure.caption.67}%
+\contentsline {figure}{\numberline {4.43}{\ignorespaces Các chế độ hiển thị kết quả truy vấn tri thức trên console.}}{92}{figure.caption.68}%
+\contentsline {figure}{\numberline {4.44}{\ignorespaces Kết quả thực thi solver và trích xuất tiến trình suy luận.}}{92}{figure.caption.69}%
+\contentsline {figure}{\numberline {4.45}{\ignorespaces Quy trình điều phối yêu cầu tri thức xuyên suốt 4 tầng chức năng từ giao diện Studio.}}{94}{figure.caption.70}%
+\contentsline {figure}{\numberline {4.46}{\ignorespaces Cơ chế Server Push cho các thông báo hệ thống và an ninh thời gian thực.}}{95}{figure.caption.71}%
+\contentsline {figure}{\numberline {4.47}{\ignorespaces Quy trình soạn thảo và biên dịch tri thức trên giao diện Studio.}}{96}{figure.caption.72}%
+\contentsline {figure}{\numberline {4.48}{\ignorespaces Chu trình thực thi suy luận và hiển thị cây bước logic.}}{97}{figure.caption.73}%
+\contentsline {figure}{\numberline {4.49}{\ignorespaces Quy trình thu tập chỉ số và điều phối bảo trì.}}{98}{figure.caption.74}%
+\contentsline {figure}{\numberline {4.50}{\ignorespaces Giao diện quản lý cây phả hệ và điều phối tập tin tri thức.}}{99}{figure.caption.75}%
+\contentsline {figure}{\numberline {4.51}{\ignorespaces Giao diện thiết kế tri thức với hỗ trợ cú pháp và kiểm lỗi.}}{99}{figure.caption.76}%
+\contentsline {figure}{\numberline {4.52}{\ignorespaces Giao diện Dashboard giám sát sức khỏe và hiệu năng máy chủ.}}{99}{figure.caption.77}%
+\contentsline {figure}{\numberline {4.53}{\ignorespaces Giao diện hiển thị kết quả và trực quan hóa tiến trình suy cứu.}}{100}{figure.caption.78}%
 \addvspace {10\p@ }

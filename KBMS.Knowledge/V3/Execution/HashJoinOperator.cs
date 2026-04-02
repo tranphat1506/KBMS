@@ -15,26 +15,27 @@ public class HashJoinOperator : IExecutionOperator
     private readonly IExecutionOperator _rightProbe;
     private readonly int _leftJoinKeyIndex;
     private readonly int _rightJoinKeyIndex;
-
+    private readonly string _leftAlias;
+    private readonly string _rightAlias;
+    
     // In-memory Hash Table mapping the join key (encoded as Base64 string for equality) 
     // to a list of matching tuples from the Left (Build) side.
     private readonly Dictionary<string, List<Tuple>> _hashTable = new();
-
+    private bool _isBuilt = false;
+    
     // State for the Probe phase
     private Tuple? _currentRightTuple = null;
     private List<Tuple>? _currentMatchedLeftTuples = null;
     private int _matchingLeftIndex = 0;
 
-    public HashJoinOperator(
-        IExecutionOperator leftBuild, 
-        IExecutionOperator rightProbe, 
-        int leftJoinKeyIndex, 
-        int rightJoinKeyIndex)
+    public HashJoinOperator(IExecutionOperator leftBuild, IExecutionOperator rightProbe, int leftJoinKeyIndex, int rightJoinKeyIndex, string leftAlias = "L", string rightAlias = "R")
     {
         _leftBuild = leftBuild;
         _rightProbe = rightProbe;
         _leftJoinKeyIndex = leftJoinKeyIndex;
         _rightJoinKeyIndex = rightJoinKeyIndex;
+        _leftAlias = leftAlias;
+        _rightAlias = rightAlias;
     }
 
     public void Init()
@@ -49,6 +50,8 @@ public class HashJoinOperator : IExecutionOperator
         {
             // Encode the matched field parameter into a string for O(1) Dictionary lookups
             string key = Convert.ToBase64String(leftTuple.Fields[_leftJoinKeyIndex]);
+            string rawValue = System.Text.Encoding.UTF8.GetString(leftTuple.Fields[_leftJoinKeyIndex]);
+            System.IO.File.AppendAllText("/tmp/kbms_diag.log", $"[HASHJOIN] Building key: index={_leftJoinKeyIndex}, raw='{rawValue}', base64={key}\n");
             
             if (!_hashTable.ContainsKey(key))
             {
@@ -56,6 +59,7 @@ public class HashJoinOperator : IExecutionOperator
             }
             _hashTable[key].Add(leftTuple);
         }
+        System.IO.File.AppendAllText("/tmp/kbms_diag.log", $"[HASHJOIN] Finish Build phase. Table entries: {_hashTable.Count}\n");
 
         _leftBuild.Close(); // Done with build phase to free resources
         _currentRightTuple = null;
@@ -78,10 +82,14 @@ public class HashJoinOperator : IExecutionOperator
             // Fetch the next tuple from the right side
             _currentRightTuple = _rightProbe.Next();
             if (_currentRightTuple == null) return null; // EOF
-
+            
             string key = Convert.ToBase64String(_currentRightTuple.Fields[_rightJoinKeyIndex]);
+            string rawValue = System.Text.Encoding.UTF8.GetString(_currentRightTuple.Fields[_rightJoinKeyIndex]);
+            System.IO.File.AppendAllText("/tmp/kbms_diag.log", $"[HASHJOIN] Probing key: index={_rightJoinKeyIndex}, raw='{rawValue}', base64={key}\n");
+
             if (_hashTable.TryGetValue(key, out var matchedTuples))
             {
+                System.IO.File.AppendAllText("/tmp/kbms_diag.log", $"[HASHJOIN] Found {matchedTuples.Count} matches for {key}\n");
                 _currentMatchedLeftTuples = matchedTuples;
                 _matchingLeftIndex = 0;
             }
@@ -95,8 +103,28 @@ public class HashJoinOperator : IExecutionOperator
     private Tuple CombineTuples(Tuple left, Tuple right)
     {
         var combined = new Tuple();
-        combined.Fields.AddRange(left.Fields);
-        combined.Fields.AddRange(right.Fields);
+        
+        bool hasV3Metadata = left.Fields.Count >= 2 && left.Fields[0].Length == 16;
+
+        if (hasV3Metadata)
+        {
+            combined.AddGuid(Guid.NewGuid());
+            
+            var leftNames = left.GetString(1).Split('|').Select(n => $"{_leftAlias}.{n}");
+            var rightNames = right.GetString(1).Split('|').Select(n => $"{_rightAlias}.{n}");
+            
+            combined.AddString(string.Join("|", leftNames.Concat(rightNames)));
+            
+            for (int i = 2; i < left.Fields.Count; i++) combined.Fields.Add(left.Fields[i]);
+            for (int i = 2; i < right.Fields.Count; i++) combined.Fields.Add(right.Fields[i]);
+        }
+        else
+        {
+            // Generic Unit Test Tuples (just append everything)
+            combined.Fields.AddRange(left.Fields);
+            combined.Fields.AddRange(right.Fields);
+        }
+        
         return combined;
     }
 

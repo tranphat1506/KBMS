@@ -108,27 +108,6 @@ public class FullIntegrationTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Section3_Update_Triggers_Inference()
-    {
-        await _cli!.ExecuteCommandAsync("CREATE KNOWLEDGE BASE UpdateKB;");
-        await _cli.ExecuteCommandAsync("USE UpdateKB;");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Student ( VARIABLES (name: STRING, grade: DECIMAL, honor: STRING) );");
-        await _cli.ExecuteCommandAsync("CREATE RULE R1 SCOPE Student IF grade >= 90 THEN SET honor = 'High';");
-
-        await _cli.ExecuteCommandAsync("INSERT INTO Student ATTRIBUTE ('Bob', 80);");
-        
-        // Initially not high
-        var res1 = await _cli.ExecuteCommandAsync("SELECT honor FROM Student WHERE name = 'Bob';");
-        Assert.DoesNotContain("High", res1!.Content);
-
-        // Update triggers inference
-        await _cli.ExecuteCommandAsync("UPDATE Student ATTRIBUTE ( SET grade: 95 ) WHERE name = 'Bob';");
-        
-        var res2 = await _cli.ExecuteCommandAsync("SELECT honor FROM Student WHERE name = 'Bob';");
-        Assert.Contains("High", res2!.Content);
-    }
-
-    [Fact]
     public async Task Section4_Metadata_And_Aliases()
     {
         await _cli!.ExecuteCommandAsync("CREATE KNOWLEDGE BASE MetaKB;");

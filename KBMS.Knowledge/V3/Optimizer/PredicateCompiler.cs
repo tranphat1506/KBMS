@@ -51,7 +51,20 @@ public static class PredicateCompiler
 
     private static object? GetFieldValue(string fieldName, Tuple tuple, List<string> fieldNames)
     {
+        // 1. Try exact match
         int idx = fieldNames.FindIndex(n => n.Equals(fieldName, StringComparison.OrdinalIgnoreCase));
+        
+        // 2. Try stripping prefix if it contains a dot (e.g. p.price -> price)
+        if (idx < 0 && fieldName.Contains('.'))
+        {
+            var parts = fieldName.Split('.');
+            if (parts.Length == 2)
+            {
+                var baseName = parts[1];
+                idx = fieldNames.FindIndex(n => n.Equals(baseName, StringComparison.OrdinalIgnoreCase));
+            }
+        }
+
         if (idx >= 0 && (idx + 2) < tuple.Fields.Count)
         {
             return tuple.GetString(idx + 2);

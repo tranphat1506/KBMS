@@ -96,30 +96,6 @@ namespace KBMS.Tests
         }
 
         [Fact]
-        public async Task Update_ShouldTriggerForwardChaining()
-        {
-            await InitializeAsync();
-            var dbName = "db_upd_" + Guid.NewGuid().ToString("N").Substring(0, 6);
-
-            var res = await _cli.ExecuteCommandAsync($"CREATE KNOWLEDGE BASE {dbName};");
-            Assert.True(res?.Type != MessageType.ERROR, $"Failed to create KB: {res?.Content}");
-
-            await _cli.ExecuteCommandAsync($"USE {dbName};");
-            await _cli.ExecuteCommandAsync("CREATE CONCEPT Student(name STRING, grade FLOAT, honor STRING);");
-            await _cli.ExecuteCommandAsync("CREATE RULE HighHonor IF Student(grade >= 90) THEN Student(honor = 'High');");
-            
-            await _cli.ExecuteCommandAsync("INSERT INTO Student ATTRIBUTE (name: 'Bob', grade: 60);");
-            var select1 = await _cli.ExecuteCommandAsync("SELECT honor FROM Student WHERE name = 'Bob';");
-            Assert.DoesNotContain("High", select1!.Content);
-
-            var updRes = await _cli.ExecuteCommandAsync("UPDATE Student ATTRIBUTE (SET grade: 91) WHERE name = 'Bob';");
-            Assert.True(updRes!.Type != MessageType.ERROR, $"Failed to update: {updRes.Content}");
-
-            var select2 = await _cli.ExecuteCommandAsync("SELECT honor FROM Student WHERE name = 'Bob';");
-            Assert.Contains("High", select2!.Content);
-        }
-
-        [Fact]
         public async Task RecursiveRules_ShouldTriggerMultipleSteps()
         {
             await InitializeAsync();

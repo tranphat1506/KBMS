@@ -3392,31 +3392,31 @@ Trong hệ sinh thái ứng dụng của \textbf{KBMS}, phân hệ \textbf{KBMS-
 \subsubsection{Các Tính năng Điều khiển Hạt nhân}
 
 
-Giao diện dòng lệnh được thiết kế với các cơ chế tương tác hiện đại nhằm tối ưu hóa trải nghiệm người dùng trong môi trường console:
+Giao diện dòng lệnh được thiết kế với các cơ chế tương tác nhằm tối ưu hóa hiệu quả làm việc của người dùng trong môi trường console:
 
 
 \begin{itemize}
-  \item \textbf{Chu trình REPL (Read-Eval-Print Loop)}: Hệ thống thực hiện tiếp nhận câu lệnh tri thức, truyền tải tới máy chủ, tiếp nhận phản hồi và kết xuất kết quả tức thời ra màn hình điều khiển.
-  \item \textbf{Cơ chế Hiệu chỉnh Dòng lệnh Nâng cao}: Tích hợp các phím chức năng điều hướng và thao tác nhanh thông qua lớp `LineEditor.cs`:
+  \item \textbf{Chu trình REPL}: Hệ thống thực hiện tiếp nhận câu lệnh tri thức, truyền tải tới máy chủ, tiếp nhận phản hồi và kết xuất kết quả tức thời ra màn hình điều khiển.
+  \item \textbf{Cơ chế Hiệu chỉnh Dòng lệnh}: Tích hợp các phím chức năng điều hướng và thao tác nhanh thông qua lớp `LineEditor.cs`:
 \begin{itemize}
   \item \textbf{Duyệt Lịch sử}: Sử dụng phím mũi tên Lên/Xuống để truy xuất các câu lệnh đã thực thi trước đó.
-  \item \textbf{Điều hướng vị trí}: Các phím Home/End cho phép di chuyển nhanh con trỏ tới đầu hoặc cuối dòng lệnh.
-  \item \textbf{Quản lý Bộ đệm}: Phím Escape (nhấn hai lần) thực hiện xóa sạch bộ đệm nhập liệu hiện hành.
+  \item \textbf{Điều hướng vị trí}: Các phím Home/End để di chuyển nhanh con trỏ tới đầu hoặc cuối dòng lệnh.
+  \item \textbf{Quản lý Bộ đệm}: Phím Escape để xóa bộ đệm nhập liệu hiện hành.
 \end{itemize}
-  \item \textbf{Hỗ trợ Nhập liệu Đa dòng (Multi-line Input)}: CLI cho phép nhập các khối lệnh tri thức dài và phức tạp. Chế độ thụt đầu dòng tự động với ký hiệu `->` giúp người dùng phân biệt rõ giữa dòng khởi tạo và dòng tiếp nối của câu lệnh.
-  \item \textbf{Đa dạng hình thức Hiển thị}: Thông qua `ResponseParser.cs`, CLI cung cấp hai chế độ hiển thị linh hoạt:
+  \item \textbf{Hỗ trợ Nhập liệu Đa dòng}: CLI cho phép nhập các khối lệnh tri thức dài và phức tạp. Chế độ thụt đầu dòng tự động với ký hiệu `->` giúp phân biệt rõ giữa dòng khởi tạo và dòng tiếp nối của câu lệnh.
+  \item \textbf{Các hình thức Hiển thị Dữ liệu}: Thông qua `ResponseParser.cs`, CLI cung cấp hai chế độ hiển thị:
 \begin{itemize}
-  \item \textbf{Chế độ Bảng (Table Mode)}: Kết xuất dữ liệu dưới dạng bảng chuẩn hóa (phong cách MySQL).
-  \item \textbf{Chế độ Dọc (Vertical Mode - \textbackslash{}G)}: Hiển thị dữ liệu theo cặp thuộc tính - giá trị trên từng hàng dọc, tự động kích hoạt cho các lệnh mô tả cấu trúc (`DESCRIBE`, `EXPLAIN`) để tối ưu hóa khả năng đọc các thực thể tri thức phức hợp.
+  \item \textbf{Chế độ Bảng}: Kết xuất dữ liệu dưới dạng bảng chuẩn hóa.
+  \item \textbf{Chế độ Dọc}: Hiển thị dữ liệu theo cặp thuộc tính - giá trị trên từng hàng dọc, tự động kích hoạt cho các lệnh mô tả cấu trúc để tối ưu hóa khả năng đọc các thực thể tri thức phức hợp.
 \end{itemize}
 \end{itemize}
 
 
 
-\subsubsection{Các Nhóm Lệnh Hệ thống Đặc biệt}
+\subsubsection{Các Nhóm Lệnh Hệ thống}
 
 
-Bên cạnh ngôn ngữ truy vấn tri thức, CLI cung cấp tập hợp các lệnh điều phối công cụ:
+Bên cạnh ngôn ngữ truy vấn tri thức, CLI cung cấp tập hợp các lệnh điều phối hệ thống:
 
 
 \begin{table}[H]
@@ -3424,25 +3424,25 @@ Bên cạnh ngôn ngữ truy vấn tri thức, CLI cung cấp tập hợp các l
   \begin{tabularx}{\textwidth}{|l|X|}
   \hline
 Lệnh điều khiển & Đặc tả Chức năng \\ \hline
-\textbf{`LOGIN <user> <pass>`} & Thực hiện đăng nhập bảo mật (mật khẩu được ẩn trong lịch sử lệnh). \\ \hline
-\textbf{`SOURCE <path>`} & Thực thi tệp tin kịch bản tri thức (`.kbql`) từ hệ thống tệp tin cục bộ. \\ \hline
-\textbf{`CONNECT`} & Thiết lập lại kết nối vật lý tới máy chủ KBMS theo cách thủ công. \\ \hline
-\textbf{`CLEAR`} & Giải phóng và làm sạch bộ nhớ hiển thị của màn hình điều khiển. \\ \hline
+\textbf{`LOGIN <user> <pass>`} & Thực hiện đăng nhập bảo mật. \\ \hline
+\textbf{`SOURCE <path>`} & Thực thi tệp tin kịch bản tri thức từ hệ thống tệp tin cục bộ. \\ \hline
+\textbf{`CONNECT`} & Thiết lập lại kết nối vật lý tới máy chủ KBMS. \\ \hline
+\textbf{`CLEAR`} & Xóa sạch màn hình điều khiển. \\ \hline
   \end{tabularx}
-  \caption{Danh mục các lệnh điều khiển đặc quyền trong giao diện CLI}\label{tbl:danh-mục-các-lệnh-điều-khiển-đặc-quyền-trong-giao-}
+  \caption{Danh mục các lệnh điều khiển trong giao diện CLI}\label{tbl:danh-mục-các-lệnh-điều-khiển-trong-giao-diện-cli}
 \end{table}
 
 
-\subsubsection{Tối ưu hóa Trải nghiệm và Quản trị Chuyên sâu}
+\subsubsection{Cơ chế Vận hành và Quản trị}
 
 
-Để đảm bảo tính chuyên nghiệp của một hệ quản trị tri thức, CLI được tích hợp các cơ chế tự động hóa:
+Để đảm bảo hiệu quả vận hành, CLI được tích hợp các cơ chế tự động hóa:
 
 
 \begin{itemize}
-  \item \textbf{Chế độ Thực thi Kịch bản}: Cho phép xử lý các tệp tin chứa hàng ngàn lệnh tri thức một cách tự động, tích hợp khả năng dừng thực thi và báo lỗi chính xác khi phát sinh sự cố tại bất kỳ dòng lệnh nào.
-  \item \textbf{Tự động Tái thiết lập Kết nối (Auto-reconnect)}: CLI duy trì cơ chế giám sát trạng thái kết nối (\textbf{Heartbeat}) và tự động thử lại tiến trình kết nối khi phát hiện sự gián đoạn mạng đột ngột.
-  \item \textbf{Phân tích Phản hồi line-accurate}: Hệ thống bóc tách các gói tin lỗi từ máy chủ để chỉ ra chính xác vị trí dòng và cột phát sinh sai lệch cú pháp trong mã nguồn tri thức.
+  \item \textbf{Chế độ Thực thi Kịch bản}: Xử lý các tệp tin chứa nhiều lệnh tri thức một cách tự động, chỉ báo lỗi chính xác khi phát sinh sự cố tại bất kỳ dòng lệnh nào.
+  \item \textbf{Tái thiết lập Kết nối}: CLI duy trì cơ chế giám sát trạng thái kết nối và tự động thử lại tiến trình kết nối khi phát hiện sự gián đoạn mạng.
+  \item \textbf{Phân tích Phản hồi}: Hệ thống bóc tách các gói tin lỗi từ máy chủ để chỉ ra vị trí dòng và cột phát sinh sai lệch cú pháp trong mã nguồn tri thức.
 \end{itemize}
 
 
@@ -3514,205 +3514,276 @@ CLI hỗ trợ thực thi khối lượng lớn lệnh thông qua tệp tin kị
 -   \textbf{Luồng Giám sát (Heartbeat Thread)}: Duy trì tín hiệu định kỳ tới máy chủ để đảm bảo kết nối không bị ngắt quãng do các chính sách về thời gian chờ (Timeout).
 
 
-\subsection{Kịch bản Tương tác và Sử dụng CLI}
+\subsection{Các Kịch bản Sử dụng CLI}
 
 
-Giao diện dòng lệnh (\textbf{KBMS CLI}) là công cụ chuyên dụng dành cho quản trị viên hệ thống và chuyên gia tri thức, cung cấp khả năng điều khiển và tự động hóa các tác vụ quản trị tri thức với hiệu năng cao.
+Chương này trình bày các tình huống sử dụng thực tế của phân hệ CLI, minh họa quy trình tương tác giữa người dùng và hệ thống thông qua các sơ đồ luồng dữ liệu.
 
 
-\subsubsection{Kịch bản Phân tích Cấu trúc Tri thức (Concept Analysis)}
+\subsubsection{Kịch bản 1: Đăng nhập và quản lý phiên}
 
 
-\begin{itemize}
-  \item \textbf{Mục tiêu}: Thực hiện trích xuất và phân tích định nghĩa của một Khái niệm (\textbf{Concept}) phức hợp với số lượng thuộc tính lớn.
-  \item \textbf{Quy trình thực thi}:
-\begin{enumerate}
-  \item \textbf{Gửi lệnh}: Người dùng thực thi lệnh `DESCRIBE <ConceptName>;`.
-  \item \textbf{Nhận diện Phản hồi}: CLI tiếp nhận gói tin Siêu dữ liệu với thuộc tính định danh bắt đầu bằng giá trị mô tả.
-  \item \textbf{Chuyển đổi Hiển thị}: Lớp `ResponseParser` tự động chuyển sang chế độ hiển thị theo chiều dọc (Vertical Mode) để liệt kê danh sách biến số nhằm tránh hiện tượng tràn khung hình hiển thị (Overflow).
-\end{enumerate}
-\end{itemize}
-
+Đây là bước khởi đầu để thiết lập kết nối an toàn tới máy chủ.
 
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=1.05\textwidth]{assets/uc_cli_vertical_mode.png}
-  \caption{Chế độ hiển thị dọc trong giao diện CLI hỗ trợ phân tích cấu trúc.}\label{fig:chế-độ-hiển-thị-dọc-trong-giao-diện-cli-hỗ-trợ-phâ}
+  \includegraphics[width=0.7\textwidth]{assets/uc_cli_auth_flow.png}
+  \caption{Luồng xác thực và thiết lập phiên làm việc trên CLI.}\label{fig:luồng-xác-thực-và-thiết-lập-phiên-làm-việc-trên-cl}
 \end{figure}
 
 
-\subsubsection{Kịch bản Tự động hóa Nạp Tri thức (Batch Knowledge Import)}
-
-
 \begin{itemize}
-  \item \textbf{Mục tiêu}: Nạp hàng ngàn thực thể tri thức từ tệp kịch bản tri thức có sẵn vào hệ thống.
-  \item \textbf{Quy trình thực thi}:
-\begin{enumerate}
-  \item \textbf{Chuẩn bị}: Khởi tạo tệp tin `.kbql` chứa tập hợp các lệnh nạp dữ kiện.
-  \item \textbf{Thực thi lệnh nguồn}: Thực hiện lệnh `SOURCE <filename>.kbql;` tại dấu nhắc của CLI.
-  \item \textbf{Chu trình xử lý}: CLI tự động bóc tách từng khối lệnh (phân tách bởi dấu `;`) và chuyển tải tới máy chủ.
-  \item \textbf{Kiểm soát Lỗi}: Nếu phát hiện sai lệch, CLI sẽ ngắt tiến trình và chỉ báo chính xác tọa độ dòng lỗi trong tệp nguồn để quản trị viên hiệu chỉnh.
-\end{enumerate}
+  \item \textbf{Mục tiêu}: Xác thực quyền truy cập của người dùng.
+  \item \textbf{Quy trình}: Người dùng cung cấp danh tính và mật khẩu; hệ thống thực hiện kiểm tra và cấp mã định danh phiên nếu thông tin hợp lệ.
 \end{itemize}
 
+
+
+\subsubsection{Kịch bản 2: Thiết kế cấu trúc tri thức}
+
+
+Sử dụng CLI để định nghĩa các Khái niệm và Luật dẫn trong cơ sở tri thức.
 
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.7\textwidth]{assets/uc_cli_batch_source.png}
-  \caption{Kịch bản thực thi hàng loạt thông qua tập lệnh nguồn trong CLI.}\label{fig:kịch-bản-thực-thi-hàng-loạt-thông-qua-tập-lệnh-ngu}
+  \includegraphics[width=0.7\textwidth]{assets/uc_cli_kdl_flow.png}
+  \caption{Quy trình xử lý câu lệnh định nghĩa cấu trúc.}\label{fig:quy-trình-xử-lý-câu-lệnh-định-nghĩa-cấu-trúc}
 \end{figure}
 
 
-\subsubsection{Kịch bản Đăng nhập và Kiểm tra An ninh (Authentication Trace)}
-
-
 \begin{itemize}
-  \item \textbf{Mục tiêu}: Thực hiện đăng nhập bảo mật và xác lập trạng thái phiên làm việc tới máy chủ tri thức.
-  \item \textbf{Quy trình thực thi}:
-\begin{enumerate}
-  \item Người dùng thực hiện lệnh `LOGIN <username> <password>`.
-  \item CLI đóng gói và truyền tải gói tin đăng nhập bảo mật tới máy chủ xác thực.
-  \item Sau khi nhận thông điệp xác thực thành công, dấu nhắc hệ thống chuyển sang trạng thái sẵn sàng truy vấn tri thức hình thức.
-\end{enumerate}
+  \item \textbf{Mục tiêu}: Xây dựng mô hình tri thức hình thức.
+  \item \textbf{Quy trình}: Nhập mã nguồn tri thức; CLI thực hiện gửi gói tin tới máy chủ để biên dịch và cập nhật vào bộ nhớ lưu trữ.
 \end{itemize}
 
 
 
-Sự linh hoạt trong các kịch bản tương tác khẳng định CLI là một công cụ đắc lực trong việc quản trị và vận hành hệ thống KBMS chuyên sâu.
+\subsubsection{Kịch bản 3: Truy vấn và khai thác dữ liệu}
 
 
-\subsection{Kiểm định và Xác thực Giao diện Dòng lệnh}
-
-
-Giao diện dòng lệnh (\textbf{KBMS-CLI}) là công cụ quản trị tri thức mạnh mẽ, hỗ trợ các thao tác tương tác trực tiếp và thực thi các kịch bản tri thức quy mô lớn thông qua giao thức nhị phân.
-
-
-\subsubsection{Kiểm định Chu kỳ Phiên làm việc (Session Validation)}
-
-
-Mọi thao tác tương tác trong giao diện CLI đều được ghi nhận và xác thực thông qua hệ thống nhật ký của máy chủ:
-
-
-\begin{itemize}
-  \item \textbf{Bắt tay Nhị phân (Binary Handshake)}: CLI thực hiện gửi gói tin định danh hạ tầng và tiếp nhận mã hiệu phiên làm việc duy nhất (\textbf{SESSION\_ID}) để xác lập kết nối.
-  \item \textbf{Thực thi Kịch bản Nguồn (Batch Execution)}: Thực hiện lệnh `SOURCE` để xử lý hàng loạt các câu lệnh truy vấn tri thức, đảm bảo tính toàn vẹn và hiệu suất truyền tải.
-\end{itemize}
-
-
-
-\paragraph{Minh chứng Thực nghiệm}
+Thực hiện các câu lệnh tìm kiếm dữ kiện và lựa chọn hình thức hiển thị kết quả.
 
 
 \begin{figure}[H]
   \centering
-  \fbox{Thiếu ảnh: terminal\_test\_cli\_query.png}
-  \caption{Giao diện tương tác CLI thực thi câu lệnh truy vấn và xác lập phiên làm việc.}\label{fig:giao-diện-tương-tác-cli-thực-thi-câu-lệnh-truy-vấn}
+  \includegraphics[width=0.7\textwidth]{assets/uc_cli_kql_flow.png}
+  \caption{Quy trình truy vấn và điều phối hiển thị.}\label{fig:quy-trình-truy-vấn-và-điều-phối-hiển-thị}
 \end{figure}
 
 
-\subsubsection{Kiểm định Định dạng Kết xuất Dữ liệu (Format Validation)}
-
-
-Hệ thống thực hiện xác thực khả năng căn chỉnh bảng dữ liệu động và kết xuất kết quả truy vấn dưới hình thức trực quan:
-
-
 \begin{itemize}
-  \item \textbf{Ánh xạ Siêu dữ liệu}: Giao diện CLI tự động bóc tách thông tin tiêu đề để thiết lập độ rộng cột linh hoạt.
-  \item \textbf{Kết xuất Tập kết quả (ResultSet)}: Thực thi lệnh `SELECT` để xác nhận khả năng hiển thị tập hợp các sự kiện tri thức dưới dạng bảng chuẩn hóa.
+  \item \textbf{Mục tiêu}: Truy xuất các đối tượng tri thức có trong hệ thống.
+  \item \textbf{Quy trình}: Thực hiện câu lệnh truy vấn; người dùng có thể lựa chọn hiển thị dạng bảng hoặc dạng dọc tùy theo mã lệnh.
 \end{itemize}
 
 
 
-\begin{table}[H]
-  \centering\captionsetup{position=below}\small\selectfont
-  \begin{tabularx}{\textwidth}{|l|X|X|}
-  \hline
-Kịch bản Truy vấn & Đặc tả Kết quả & Hình thức Hiển thị \\ \hline
-\textbf{Mô tả Khái niệm (DESCRIBE)} & Bao gồm định nghĩa cấu trúc nội tại. & Chế độ hiển thị dọc mô tả biến và ràng buộc logic. \\ \hline
-  \end{tabularx}
-  \caption{Kịch bản kiểm lý định dạng kết xuất dữ liệu trong giao diện CLI}\label{tbl:kịch-bản-kiểm-lý-định-dạng-kết-xuất-dữ-liệu-trong-}
-\end{table}
+\subsubsection{Kịch bản 4: Thực thi và truy vết suy luận}
+
+
+Sử dụng lệnh tìm kiếm lời giải và theo dõi các bước logic đã thực hiện.
 
 
 \begin{figure}[H]
   \centering
-  \fbox{Thiếu ảnh: placeholder\_cli\_describe\_output.png}
-  \caption{Kết quả thực thi lệnh DESCRIBE hiển thị định nghĩa cấu trúc tri thức trong CLI.}\label{fig:kết-quả-thực-thi-lệnh-describe-hiển-thị-định-nghĩa}
+  \includegraphics[width=0.7\textwidth]{assets/uc_cli_solve_flow.png}
+  \caption{Chu trình xử lý suy luận và trích xuất cây truy vết.}\label{fig:chu-trình-xử-lý-suy-luận-và-trích-xuất-cây-truy-vế}
 \end{figure}
 
 
-Việc kiểm định thành công giao diện CLI khẳng định tính sẵn sàng của công cụ quản trị trong việc điều phối và giám sát hệ thống tri thức \textbf{KBMS} một cách chuyên sâu thông qua ngôn ngữ dòng lệnh.
+\begin{itemize}
+  \item \textbf{Mục tiêu}: Giải quyết bài toán tri thức dựa trên các luật dẫn có sẵn.
+  \item \textbf{Quy trình}: Gửi yêu cầu giải quyết mục tiêu; hệ thống trả về kết luận kèm theo danh sách các bước logic đã kích hoạt.
+\end{itemize}
+
+
+
+\subsubsection{Kịch bản 5: Xử lý tập lệnh hàng loạt}
+
+
+Thực thi các tệp tin kịch bản chứa tập hợp nhiều câu lệnh tri thức.
+
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\textwidth]{assets/uc_cli_source_flow.png}
+  \caption{Quy trình thực thi tập lệnh từ tệp tin nguồn.}\label{fig:quy-trình-thực-thi-tập-lệnh-từ-tệp-tin-nguồn}
+\end{figure}
+
+
+\begin{itemize}
+  \item \textbf{Mục tiêu}: Tự động hóa quá trình nạp hoặc cập nhật tri thức quy mô lớn.
+  \item \textbf{Quy trình}: Chỉ định đường dẫn tới tệp tin nguồn; hệ thống thực hiện tuần tự các khối lệnh và báo cáo tiến độ.
+\end{itemize}
+
+
+
+\subsection{Giao diện ứng dụng KBMS-CLI}
+
+
+Phân hệ giao diện dòng lệnh (\textbf{KBMS-CLI}) được thiết kế để cung cấp khả năng tương tác trực tiếp với máy chủ tri thức. Dưới đây là đặc tả chi tiết cho từng khu vực giao diện và các chế độ hoạt động chính:
+
+
+\subsubsection{Giao diện khởi tạo và thiết lập phiên}
+
+
+Đây là giao diện đầu tiên người dùng tiếp cận khi khởi động công cụ. Hệ thống cung cấp cơ chế đăng nhập bảo mật và xác lập kết nối nhị phân. Giao diện bao gồm:
+
+
+\begin{itemize}
+  \item \textbf{Dòng lệnh chào mừng}: Hiển thị phiên bản hệ thống và trạng thái sẵn sàng của bộ điều phối.
+  \item \textbf{Thanh nhập liệu Login}: Cho phép nhập danh tính và mật khẩu (mật khẩu được mã hóa và ẩn trên màn hình).
+  \item \textbf{Trạng thái kết nối}: Hiển thị địa chỉ IP máy chủ và mã định danh phiên làm việc đã được cấp.
+\end{itemize}
+
+
+
+Giao diện sử dụng tông màu tối tối giản, làm nổi bật các thông điệp trạng thái hệ thống.
+
+
+\begin{figure}[H]
+  \centering
+  \fbox{Thiếu ảnh: cli\_interface\_init.png}
+  \caption{Giao diện khởi tạo và xác lập phiên làm việc trên console.}\label{fig:giao-diện-khởi-tạo-và-xác-lập-phiên-làm-việc-trên-}
+\end{figure}
+
+
+\subsubsection{Giao diện soạn thảo cấu trúc tri thức}
+
+
+Hỗ trợ chuyên gia tri thức định nghĩa các Khái niệm và Luật dẫn thông qua cơ chế nhập liệu đa dòng. Giao diện bao gồm:
+
+
+\begin{itemize}
+  \item \textbf{Con trỏ lệnh đa cấp}: Tự động chuyển đổi sang ký hiệu thụt đầu dòng khi phát hiện câu lệnh chưa kết thúc.
+  \item \textbf{Bảng định vị lỗi}: Khi phát sinh lỗi cú pháp, CLI chỉ ra chính xác vị trí dòng/cột kèm theo gợi ý sửa lỗi.
+  \item \textbf{Bộ nhớ lịch sử (History)}: Cho phép truy xuất nhanh các khối luật đã soạn thảo trước đó để tinh chỉnh.
+\end{itemize}
+
+
+
+Bố cục đơn giản, trực quan giúp việc xây dựng các luật logic phức tạp trở nên chính xác hơn.
+
+
+\begin{figure}[H]
+  \centering
+  \fbox{Thiếu ảnh: cli\_interface\_designer.png}
+  \caption{Giao diện soạn thảo và kiểm soát cú pháp tri thức.}\label{fig:giao-diện-soạn-thảo-và-kiểm-soát-cú-pháp-tri-thức}
+\end{figure}
+
+
+\subsubsection{Giao diện truy vấn và kết xuất dữ liệu}
+
+
+Hiển thị kết quả khai thác tri thức dưới các hình thức chuẩn hóa. Giao diện bao gồm:
+
+
+\begin{itemize}
+  \item \textbf{Chế độ Bảng (Table Mode)}: Tự động căn chỉnh độ rộng cột dựa trên nội dung sự kiện tri thức.
+  \item \textbf{Chế độ Dọc (Vertical Mode)}: Kích hoạt thông qua mã lệnh đặc biệt để xem chi tiết từng thuộc tính trên các nốt tri thức phức hợp.
+  \item \textbf{Thanh trạng thái ResultSet}: Thông báo tổng số bản ghi tìm thấy và thời gian xử lý tại máy chủ.
+\end{itemize}
+
+
+
+Giao diện kết xuất theo phong cách các hệ quản trị cơ sở dữ liệu chuyên nghiệp, dễ dàng quan sát và đối soát.
+
+
+\begin{figure}[H]
+  \centering
+  \fbox{Thiếu ảnh: cli\_interface\_query.png}
+  \caption{Các chế độ hiển thị kết quả truy vấn tri thức trên console.}\label{fig:các-chế-độ-hiển-thị-kết-quả-truy-vấn-tri-thức-trên}
+\end{figure}
+
+
+\subsubsection{Giao diện truy vết và giải thuật suy luận}
+
+
+Hiển thị quy trình tư duy của hệ thống khi giải quyết một mục tiêu tri thức. Giao diện bao gồm:
+
+
+\begin{itemize}
+  \item \textbf{Cây truy vết logic (Trace Tree)}: Cấu trúc phân cấp các luật đã kích hoạt để dẫn tới kết luận.
+  \item \textbf{Danh sách sự kiện nguồn}: Hiển thị các dữ kiện cơ bản đã được máy sử dụng làm tiền đề.
+  \item \textbf{Kết luận cuối cùng}: Hiển thị rõ ràng trạng thái mục tiêu (Thành công/Thất bại) và giá trị tìm được.
+\end{itemize}
+
+
+
+Giao diện cung cấp cái nhìn minh bạch về quy trình xử lý bên trong của công cụ suy diễn.
+
+
+\begin{figure}[H]
+  \centering
+  \fbox{Thiếu ảnh: cli\_interface\_solve.png}
+  \caption{Kết quả thực thi solver và trích xuất tiến trình suy luận.}\label{fig:kết-quả-thực-thi-solver-và-trích-xuất-tiến-trình-s}
+\end{figure}
 
 
 \subsection{Giao diện Web Quản lý (KBMS STUDIO)}
 
 
-\subsection{Đặc tả Giao diện Quản trị và Phát triển (KBMS Studio)}
+\subsection{Đặc tả Giao diện Quản trị (KBMS Studio)}
 
 
-\textbf{KBMS Studio} là một môi trường phát triển tích hợp (\textbf{IDE}) hiện đại, được xây dựng trên nền tảng kỹ thuật \textbf{Electron} và \textbf{React}. Studio cung cấp trải nghiệm trực quan hóa tri thức tiên tiến, cho phép người dùng tương tác với hệ thống thông qua các giao diện đồ họa thay vì chỉ giới hạn ở các thao tác dòng lệnh truyền thống.
+\textbf{KBMS Studio} là môi trường phát triển tích hợp dành cho việc quản trị tri thức. Giao diện được xây dựng trên nền tảng công nghệ web hiện đại, cung cấp khả năng điều phối hệ thống thông qua các công cụ trực quan.
 
 
-\subsubsection{Các Phân hệ Chức năng Cốt lõi}
+Dưới đây là các phân hệ chức năng và bố cục giao diện chính trong Studio:
 
 
-Hệ thống Studio được cấu thành từ các phân hệ chuyên biệt nhằm hỗ trợ toàn diện chu trình sống của tri thức:
+\subsubsection{Bố cục Giao diện Tổng thể}
 
 
-\paragraph{Thiết kế Tri thức Trực quan (Knowledge Designer)}
+Cấu trúc Studio được phân bổ thành các khu vực chức năng chính, giúp người dùng quản lý dự án tri thức:
+
 
 \begin{itemize}
-  \item Cung cấp giao diện tương tác cho phép người dùng kiến tạo và xem xét sơ đồ phả hệ giữa các Khái niệm (\textbf{Concept}) và Quan hệ (\textbf{Relation}).
-  \item Tích hợp cơ chế tự động phát hiện các xung đột logic tiềm ẩn trong giai đoạn thiết kế mô hình tri thức (Schema Design).
+  \item \textbf{Trình Duyệt Đối tượng}: Quản lý cấu trúc cây phả hệ của tất cả các Khái niệm, Quan hệ và Luật dẫn.
+  \item \textbf{Trình Biên tập}: Khu vực làm việc chính để soạn thảo mã nguồn tri thức.
+  \item \textbf{Bảng Giám sát}: Theo dõi trạng thái hoạt động của hệ thống như CPU, tài nguyên bộ nhớ và hoạt động vào/ra dữ liệu.
 \end{itemize}
 
 
 
-\paragraph{Cửa sổ Truy vấn Tri thức (Query Console)}
+\subsubsection{Trình Thiết kế Tri thức}
+
+
+Đây là khu vực định nghĩa mô hình tri thức thông qua ngôn ngữ KBQL:
+
 
 \begin{itemize}
-  \item \textbf{Trình soạn thảo Monaco}: Tích hợp lõi trình soạn thảo của VS Code, hỗ trợ tính năng tô màu cú pháp (\textbf{Syntax Highlighting}) chuyên biệt cho ngôn ngữ \textbf{KBQL}.
-  \item \textbf{Chẩn đoán Lỗi Trực tiếp (IntelliSense \& Error detection)}: Tự động đánh dấu các sai lệch cú pháp tại vị trí chính xác (Dòng/Cột) dựa trên phản hồi từ bộ phân tích của máy chủ.
-  \item \textbf{Gợi ý Thông minh}: Tự động đề xuất các tên Khái niệm, Thuộc tính và Luật dẫn đã được định nghĩa trong cơ sở tri thức hiện hành.
+  \item \textbf{Trình soạn thảo mã nguồn}: Tích hợp tính năng tô màu cú pháp và gợi ý từ khóa dựa trên lược đồ tri thức hiện hành.
+  \item \textbf{Kiểm tra Lỗi}: Các sai sót về cú pháp được hệ thống phản hồi và chỉ thị trực tiếp trên giao diện soạn thảo.
 \end{itemize}
 
 
 
-\paragraph{Bảng Điều phối Quản trị (Management Dashboard)}
+\subsubsection{Phân hệ Truy vấn và Phân tích}
+
+
+Dành cho việc thực thi các lệnh khai thác và theo dõi kết quả:
+
 
 \begin{itemize}
-  \item \textbf{Giám sát Tài nguyên Hệ thống}: Theo dõi biến động về dung lượng bộ nhớ tạm thời (\textbf{RAM/Buffer Pool}) và không gian đĩa vật lý theo thời gian thực.
-  \item \textbf{Quản trị Phiên làm việc và Người dùng}:
-\begin{itemize}
-  \item \textbf{User Management}: Hỗ trợ các thao tác khởi tạo, điều chỉnh và phân quyền người dùng trực tiếp thông qua giao diện đồ họa.
-  \item \textbf{Active Sessions}: Kiểm soát danh sách các thực thể khách đang kết nối, cung cấp khả năng ngắt các phiên làm việc không hợp lệ để bảo vệ hạ tầng.
-\end{itemize}
-  \item \textbf{Phân tích Nhật ký (Log Analyzer)}: Bộ công cụ bóc tách nhật ký vận hành nâng cao, hỗ trợ lọc dữ liệu theo cấp độ nghiêm trọng và thực thể tri thức liên quan.
-\end{itemize}
-
-
-
-\paragraph{Hệ thống Thông báo và Giám sát Kiểm toán}
-
-\begin{itemize}
-  \item \textbf{Cảnh báo Tức thời (Push Notifications)}: Tiếp nhận và hiển thị các cảnh báo an ninh hoặc sự cố hệ thống ngay khi máy chủ phát sinh sự kiện.
-  \item \textbf{Truy vết Kiểm toán (Audit Trails)}: Cung cấp nhật ký truy cập chi tiết, cho phép quản trị viên giám sát mọi hành vi tương tác với mạng lưới tri thức.
+  \item \textbf{Lưới Dữ liệu}: Kết quả truy vấn được trình bày dưới dạng bảng dữ liệu, hỗ trợ các thao tác xem và phân loại cơ bản.
+  \item \textbf{Bảng Truy vết Suy luận}: Hiển thị chi tiết các bước logic giải quyết vấn đề đối với các lệnh tìm kiếm lời giải.
 \end{itemize}
 
 
 
-\subsubsection{Tiêu chuẩn Thiết kế và Trải nghiệm Người dùng}
+\subsubsection{Đặc điểm Giao diện và Tương tác}
 
 
-Studio tuân thủ các tiêu chuẩn thiết kế hiện đại nhằm tối ưu hóa hiệu suất làm việc của chuyên gia tri thức:
+Studio được thiết kế nhằm tối ưu hóa hiệu suất làm việc của chuyên gia tri thức:
 
 
 \begin{itemize}
-  \item \textbf{Ngôn ngữ Thiết kế Đồng nhất}: Sử dụng giao diện tối màu (Modern Dark Mode) kết hợp với hệ thống biểu tượng tối giản, giúp giảm thiểu sự xao nhãng khi làm việc với các cấu trúc logic phức tạp.
-  \item \textbf{Giao diện Kết xuất Luồng (Streaming UI)}: Kết quả truy vấn từ máy chủ được đổ trực tiếp vào lưới dữ liệu (\textbf{Data Grid}) ngay khi tiếp nhận các gói tin nhị phân đầu tiên, đảm bảo tính phản hồi liên tục của ứng dụng.
-  \item \textbf{Bố cục Linh hoạt (Responsive Layout)}: Tự động điều chỉnh không gian hiển thị khi kích hoạt các bảng điều phối dữ liệu hoặc sơ đồ đồ thị tri thức.
+  \item \textbf{Thiết kế Đồng nhất}: Sử dụng giao diện tối màu giúp tập trung vào các cấu trúc logic và giảm mỏi mắt khi làm việc kéo dài.
+  \item \textbf{Cập nhật Dữ liệu Luồng}: Kết quả truy vấn từ máy chủ được cập nhật trực tiếp vào lưới dữ liệu ngay khi tiếp nhận các gói tin, đảm bảo tính phản hồi tức thời của ứng dụng.
+  \item \textbf{Bố cục Linh hoạt}: Tự động điều chỉnh không gian hiển thị khi người dùng mở hoặc đóng các bảng điều phối dữ liệu.
 \end{itemize}
 
 
@@ -3783,148 +3854,172 @@ Tiến trình đăng nhập bảo mật được thực hiện qua chuỗi các 
 
 
 
-\subsection{Kịch bản Tương tác và Trường hợp Sử dụng Studio}
+\subsection{Các Kịch bản Sử dụng Studio}
 
 
-\textbf{KBMS Studio} không chỉ là một trình soạn thảo tri thức đơn thuần, mà còn là một bộ công cụ hỗ trợ giải quyết các bài toán tri thức chuyên sâu một cách trực quan và hiệu quả.
+Chương này trình bày các tình huống sử dụng thực tế của phân hệ Studio, minh họa quy trình tương tác phối hợp giữa các công cụ đồ họa thông qua các sơ đồ luồng dữ liệu.
 
 
-\subsubsection{Kịch bản Thiết kế Mô hình Tri thức (Schema Design)}
+\subsubsection{Kịch bản 1: Thiết kế cấu trúc tri thức}
 
 
-\begin{itemize}
-  \item \textbf{Mục tiêu}: Định nghĩa các Khái niệm (\textbf{Concept}) hình học và các Luật dẫn (\textbf{Rule}) tính toán diện tích trong không gian tri thức phẳng.
-  \item \textbf{Quy trình thực thi}:
-\begin{enumerate}
-  \item \textbf{Nhập liệu}: Người dùng sử dụng Trình soạn thảo Monaco với tính năng gợi ý thông minh (\textbf{Auto-complete}) để kiến tạo câu lệnh `CREATE CONCEPT`.
-  \item \textbf{Kiểm chứng}: Bộ phân tích tại máy chủ thực hiện biên dịch thời gian thực. Nếu phát sinh sai lệch, tính năng \textbf{Error Squiggles} sẽ tự động đánh dấu lỗi tại dòng lệnh tương ứng.
-  \item \textbf{Trực quan hóa}: Khi cấu trúc đúng, Studio sẽ tái hiện sơ đồ Concept giúp người dùng xem xét các mối quan hệ và ràng buộc logic một cách trực quan.
-\end{enumerate}
-\end{itemize}
-
+Sử dụng trình thiết kế tri thức để xây dựng cấu trúc các Khái niệm và Luật dẫn.
 
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.7\textwidth]{assets/uc_kdl_design_flow.png}
-  \caption{Luồng quy trình thiết kế và kiểm tra tri thức trong môi trường Studio.}\label{fig:luồng-quy-trình-thiết-kế-và-kiểm-tra-tri-thức-tron}
+  \includegraphics[width=0.7\textwidth]{assets/uc_studio_designer_flow.png}
+  \caption{Quy trình soạn thảo và biên dịch tri thức trên giao diện Studio.}\label{fig:quy-trình-soạn-thảo-và-biên-dịch-tri-thức-trên-gia}
 \end{figure}
 
 
-\subsubsection{Kịch bản Giải bài toán Suy diễn Tự động (Reasoning Solve)}
-
-
 \begin{itemize}
-  \item \textbf{Mục tiêu}: Tìm kiếm lời giải cho bài toán hình học dựa trên các giả thiết đầu vào.
-  \item \textbf{Quy trình thực thi}:
-\begin{enumerate}
-  \item \textbf{Gửi yêu cầu}: Nhập lệnh `SOLVE ON Triangle GIVEN AB=3, AC=4 FIND BC;`.
-  \item \textbf{Suy diễn}: Máy chủ chuyển yêu cầu tới Bộ máy Suy diễn để thực hiện giải thuật F-Closure.
-  \item \textbf{Hội tụ kết quả}: Giá trị nội suy được kết xuất trực tiếp trên lưới dữ liệu (Data Grid).
-  \item \textbf{Truy vết}: Người dùng truy cập tab \textbf{Reasoning Trace} để phân tích cây suy diễn logic đã được hệ thống thực thi.
-\end{enumerate}
+  \item \textbf{Mục tiêu}: Xây dựng mô hình tri thức hình thức thông qua giao diện đồ họa.
+  \item \textbf{Quy trình}: Người dùng thực hiện lệnh soạn thảo; hệ thống cung cấp các gợi ý cú pháp và phản hồi lỗi tức thời từ máy chủ.
 \end{itemize}
 
+
+
+\subsubsection{Kịch bản 2: Giải quyết bài toán và truy vết suy luận}
+
+
+Tìm kiếm lời giải cho mục tiêu tri thức và theo dõi sơ đồ suy luận.
 
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=1.05\textwidth]{assets/uc_reasoning_solve_flow.png}
-  \caption{Quy trình các bước thực thi từ gửi yêu cầu tới truy vết suy diễn logic.}\label{fig:quy-trình-các-bước-thực-thi-từ-gửi-yêu-cầu-tới-tru}
+  \includegraphics[width=0.7\textwidth]{assets/uc_studio_trace_flow.png}
+  \caption{Chu trình thực thi suy luận và hiển thị cây bước logic.}\label{fig:chu-trình-thực-thi-suy-luận-và-hiển-thị-cây-bước-l}
 \end{figure}
 
 
-\subsubsection{Kịch bản Quản trị và Bảo trì Dữ liệu (System Administration)}
-
-
 \begin{itemize}
-  \item \textbf{Mục tiêu}: Giám sát hiệu năng và bảo trì cấu trúc dữ liệu khi hệ thống chứa hàng triệu đối tượng tri thức.
-  \item \textbf{Quy trình thực thi}:
-\begin{enumerate}
-  \item \textbf{Nạp dữ liệu quy mô lớn}: Sử dụng giao diện nạp tập tin để đẩy hàng triệu thực thể thông qua lệnh \textbf{Bulk Insert}.
-  \item \textbf{Giám sát thực tế}: Dashboard hiển thị thời gian thực các chỉ số về bộ nhớ vùng đệm (RAM) và không gian lưu trữ vật lý (Disk).
-  \item \textbf{Bảo trì hạ tầng}: Thực thi lệnh `MAINTENANCE REINDEX` trực tiếp từ Studio để tối ưu hóa cấu trúc chỉ mục B+ Tree sau khi nạp dữ liệu lớn.
-\end{enumerate}
+  \item \textbf{Mục tiêu}: Thực hiện các bài toán suy luận và minh bạch hóa quá trình giải quyết.
+  \item \textbf{Quy trình}: Nhập yêu cầu giải quyết mục tiêu; Studio hiển thị kết quả dưới dạng lưới dữ liệu và sơ đồ truy vết các bước logic đã thực hiện.
 \end{itemize}
 
+
+
+\subsubsection{Kịch bản 3: Giám sát và bảo trì hệ thống}
+
+
+Theo dõi trạng thái vận hành và thực hiện các thao tác bảo trì cơ sở tri thức.
 
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.7\textwidth]{assets/uc_system_maint_flow.png}
-  \caption{Các bước thao tác hỗ trợ nạp dữ liệu quy mô lớn và bảo trì hệ thống.}\label{fig:các-bước-thao-tác-hỗ-trợ-nạp-dữ-liệu-quy-mô-lớn-và}
+  \includegraphics[width=0.7\textwidth]{assets/uc_studio_monitor_flow.png}
+  \caption{Quy trình thu tập chỉ số và điều phối bảo trì.}\label{fig:quy-trình-thu-tập-chỉ-số-và-điều-phối-bảo-trì}
 \end{figure}
 
 
-\subsubsection{Kịch bản Giám sát An ninh và Phân tích Nhật ký}
-
-
-Admin sử dụng Studio để kiểm soát các quyền truy cập và phân tích các nguyên nhân gốc rễ của các lỗi logic hoặc sự cố hạ tầng:
-
-
 \begin{itemize}
-  \item \textbf{Kiểm soát Phiên làm việc}: Xem danh sách các địa chỉ IP và thực thể người dùng đang kết nối, đồng thời thực hiện ngắt các phiên làm việc bất thường.
-  \item \textbf{Phân tích Nhật ký Chuyên sâu}: Sử dụng công cụ \textbf{Log Analyzer} để lọc các lỗi ở cấp độ nghiêm trọng, giúp xác định sai lệch phát sinh từ tầng luật dẫn logic hay từ tầng lưu trữ vật lý.
+  \item \textbf{Mục tiêu}: Đảm bảo trạng thái ổn định của hệ thống quản trị tri thức.
+  \item \textbf{Quy trình}: Theo dõi các biểu đồ tài nguyên trên giao diện; thực hiện các lệnh tối ưu hóa hoặc làm sạch dữ liệu khi cần thiết.
 \end{itemize}
 
 
 
-Tính năng kết hợp giữa giao diện đồ họa trực quan và hiệu năng thực thi của bộ máy hạt nhân cho phép người dùng chuyển đổi linh hoạt từ nghiên cứu học thuật sang ứng dụng công nghệ một cách nhất quán.
+\subsection{Giao diện ứng dụng KBMS Studio}
 
 
-\subsection{Kiểm định và Xác thực Giao diện Đồ họa Studio}
+Phân hệ giao diện đồ họa (\textbf{KBMS Studio}) được thiết kế như một môi trường tích hợp (IDE) giúp tối ưu hóa quy trình quản trị và phát triển tri thức. Dưới đây là đặc tả chi tiết các khu vực chức năng chính của ứng dụng:
 
 
-\textbf{KBMS Studio} đóng vai trò là trung tâm điều phối và trực quan hóa tri thức. Tính hiệu quả và độ tin cậy của các tính năng đồ họa được kiểm chứng qua các kịch bản tương tác thực tế kết nối tới máy chủ.
+\subsubsection{Giao diện quản lý dự án và phả hệ tri thức}
 
 
-\subsubsection{Kiểm định Tính năng IntelliSense và Trực quan Đồ thị}
-
-
-Hệ thống thực hiện xác thực khả năng hỗ trợ lập trình tri thức thông qua bộ máy Monaco Engine và khả năng hiển thị đồ thị tri thức (Graph View).
+Cung cấp cái nhìn tổng quát về cấu trúc tổ chức của cơ sở tri thức hiện hành. Giao diện bao gồm:
 
 
 \begin{itemize}
-  \item \textbf{Gợi ý Thông minh (IntelliSense)}: Đảm bảo khả năng tự động đề xuất các từ khóa đặc quyền như `CREATE`, `SELECT` và các định danh Khái niệm (\textbf{Concept}) đã hiện hữu.
-  \item \textbf{Cập nhật Đồ thị (Graph Refresher)}: Hệ thống tự động tái cấu trúc sơ đồ tri thức ngay khi phát sinh các thực thể mới thông qua bảng điều khiển.
+  \item \textbf{Cây Explorer}: Hiển thị danh sách phân cấp của các Concepts, Relations và Rules. Người dùng có thể nhanh chóng định vị các đối tượng tri thức thông qua cấu trúc thư mục logic.
+  \item \textbf{Thanh điều hướng nhanh}: Cho phép chuyển đổi nhanh giữa các tập tin tri thức (`.kbql`) đang mở.
+  \item \textbf{Trình đơn ngữ cảnh}: Cung cấp các thao tác nhanh như tạo mới, xóa hoặc đổi tên các thực thể tri thức trực tiếp trên cây phả hệ.
 \end{itemize}
 
 
 
-\paragraph{Minh chứng Thực nghiệm}
+Bố cục được sắp xếp khoa học ở phía bên trái màn hình, giúp chuyên gia tri thức luôn nắm bắt được quy mô của dự án.
 
 
 \begin{figure}[H]
   \centering
-  \fbox{Thiếu ảnh: studio\_concept\_editor.png}
-  \caption{Giao diện soạn thảo tri thức trực quan và hỗ trợ cú pháp trong KBMS Studio.}\label{fig:giao-diện-soạn-thảo-tri-thức-trực-quan-và-hỗ-trợ-c}
+  \fbox{Thiếu ảnh: studio\_interface\_explorer.png}
+  \caption{Giao diện quản lý cây phả hệ và điều phối tập tin tri thức.}\label{fig:giao-diện-quản-lý-cây-phả-hệ-và-điều-phối-tập-tin-}
 \end{figure}
 
 
-\subsubsection{Kiểm định Giám sát và Quản trị Hệ thống}
+\subsubsection{Giao diện soạn thảo mã nguồn tích hợp}
 
 
-Bảng điều phối ''System Snapshot'' cho phép quản trị viên theo dõi trạng thái vận hành thời gian thực của máy chủ thông qua các luồng thông điệp nhị phân.
+Đây là khu vực tương tác trọng tâm dành cho việc định nghĩa tri thức hình thức. Giao diện bao gồm:
 
 
 \begin{itemize}
-  \item \textbf{Nhật ký Hoạt động (Live Logs)}: Xác thực khả năng truyền nhận gói tin thông báo giữa máy chủ và giao diện đồ họa.
-  \item \textbf{Giám sát Tài nguyên}: Đảm bảo các chỉ số về CPU, RAM và Disk được hiển thị chính xác theo chu kỳ cập nhật.
+  \item \textbf{Vùng soạn thảo Monaco}: Hỗ trợ tô màu cú pháp chuyên sâu cho ngôn ngữ KBQL, hiển thị số dòng và hỗ trợ thu gọn khối lệnh (Code Folding).
+  \item \textbf{Hệ thống IntelliSense}: Tự động gợi ý các từ khóa đặc quyền và tên các Khái niệm đã được định nghĩa, giúp tăng tốc độ soạn thảo và giảm sai sót.
+  \item \textbf{Chỉ báo lỗi trực tiếp}: Các lỗi biên dịch được gạch chân và hiển thị thông báo chi tiết khi di chuột qua, giúp hiệu chỉnh mã nguồn tức thời.
 \end{itemize}
 
 
 
-\paragraph{Minh chứng Luồng Dữ liệu}
+Giao diện sử dụng tông màu hiện đại, tối ưu cho việc làm việc cường độ cao với văn bản logic.
 
 
 \begin{figure}[H]
   \centering
-  \fbox{Thiếu ảnh: terminal\_test\_studio\_electron.png}
-  \caption{Minh chứng luồng truyền nhận gói tin nhị phân giữa Studio và tiến trình Electron Main.}\label{fig:minh-chứng-luồng-truyền-nhận-gói-tin-nhị-phân-giữa}
+  \fbox{Thiếu ảnh: studio\_interface\_designer.png}
+  \caption{Giao diện thiết kế tri thức với hỗ trợ cú pháp và kiểm lỗi.}\label{fig:giao-diện-thiết-kế-tri-thức-với-hỗ-trợ-cú-pháp-và-}
 \end{figure}
 
 
-Việc kiểm định thành công giao diện Studio khẳng định hạ tầng thiết kế và quản trị của \textbf{KBMS} đã sẵn sàng cho các bài toán tri thức hội tụ, cung cấp giải pháp lập trình tri thức toàn diện cho người dùng chuyên nghiệp.
+\subsubsection{Giao diện giám sát hiệu năng hệ thống}
+
+
+Cung cấp các thông số vận hành thời gian thực của máy chủ KBMS. Giao diện bao gồm:
+
+
+\begin{itemize}
+  \item \textbf{Biểu đồ tài nguyên}: Trực quan hóa mức độ chiếm dụng CPU và RAM theo thời gian.
+  \item \textbf{Chỉ số Disk I/O}: Giám sát tốc độ đọc/ghi dữ liệu vào tệp tin cơ sở tri thức, hỗ trợ phát hiện các điểm nghẽn hiệu năng.
+  \item \textbf{Trạng thái Kết nối}: Hiển thị số lượng phiên làm việc đang hoạt động và băng thông đang sử dụng.
+\end{itemize}
+
+
+
+Giao diện Dashboard giúp quản trị viên chủ động trong việc duy trì độ ổn định của hạ tầng tri thức.
+
+
+\begin{figure}[H]
+  \centering
+  \fbox{Thiếu ảnh: studio\_interface\_monitor.png}
+  \caption{Giao diện Dashboard giám sát sức khỏe và hiệu năng máy chủ.}\label{fig:giao-diện-dashboard-giám-sát-sức-khỏe-và-hiệu-năng}
+\end{figure}
+
+
+\subsubsection{Giao diện thực thi và trực quan hóa kết quả}
+
+
+Khu vực hiển thị phản hồi từ máy chủ sau khi thực thi các yêu cầu tri thức. Giao diện bao gồm:
+
+
+\begin{itemize}
+  \item \textbf{Data Grid tương tác}: Kết quả truy vấn sự kiện được trình bày dưới dạng lưới dữ liệu, hỗ trợ sắp xếp và lọc trực tiếp trên các cột.
+  \item \textbf{Bảng điều khiển Trace}: Hiển thị sơ đồ cây các bước suy luận dành riêng cho lệnh `SOLVE`, giúp giải thích tường tận cách máy rút ra kết luận.
+  \item \textbf{Console Log}: Ghi nhận lịch sử các gói tin nhị phân đã trao đổi, phục vụ mục đích chẩn đoán hệ thống.
+\end{itemize}
+
+
+
+Giao diện đảm bảo tính minh bạch và dễ hiểu cho các kết quả trả về từ bộ máy suy diễn.
+
+
+\begin{figure}[H]
+  \centering
+  \fbox{Thiếu ảnh: studio\_interface\_results.png}
+  \caption{Giao diện hiển thị kết quả và trực quan hóa tiến trình suy cứu.}\label{fig:giao-diện-hiển-thị-kết-quả-và-trực-quan-hóa-tiến-t}
+\end{figure}
 
 
 \clearpage
