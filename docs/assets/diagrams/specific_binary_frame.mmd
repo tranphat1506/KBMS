@@ -1,0 +1,18 @@
+graph LR
+    subgraph Frame_Structure [Cấu trúc Khung tin KBMS]
+        L[Độ dài: 4 byte - Big Endian]
+        T[Loại tin: 1 byte]
+        SL[Độ dài Phiên: 2 byte]
+        S[Mã Phiên: Chuỗi UTF-8]
+        RL[Độ dài Yêu cầu: 2 byte]
+        R[Mã Yêu cầu: Chuỗi UTF-8]
+        P[Nội dung: Chuỗi UTF-8]
+    end
+
+    L --> T --> SL --> S --> RL --> R --> P
+
+    style L fill:#e1f5fe,stroke:#01579b
+    style T fill:#fff3e0,stroke:#e65100
+    style SL fill:#f1f8e9,stroke:#33691e
+    style RL fill:#f1f8e9,stroke:#33691e
+    style P fill:#f3e5f5,stroke:#4a148c

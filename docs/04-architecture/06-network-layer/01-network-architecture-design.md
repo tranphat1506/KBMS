@@ -1,36 +1,37 @@
-# Đặc tả Kiến trúc Tầng Mạng
+# Thiết kế Kiến trúc Tầng Mạng
 
-Tầng Mạng của hệ quản trị [KBMS](../../../00-glossary/01-glossary.md#kbms) được thiết kế như một lớp trừu tượng trung gian, đảm nhiệm vai trò thiết lập kênh truyền dẫn tin cậy giữa các trạm làm việc và nhân xử lý tri thức (Core). Mục tiêu cốt lõi của kiến trúc này là tối ưu hóa băng thông cho các tập hợp tri thức quy mô lớn và đảm bảo tính đáp ứng thời gian thực cho các truy vấn suy diễn.
+Tầng Mạng là lớp biên dưới cùng của hệ thống KBMS, chịu trách nhiệm thiết lập kết nối, quản lý luồng dữ liệu thô và đảm bảo tính toàn vẹn của các gói tin nhị phân giữa máy chủ và máy khách.
 
-## 1. Yêu cầu và Mục tiêu Thiết kế Hệ thống
+## 4.5.1. Mô hình Phân lớp và Điều phối Mạng
 
-Để phục vụ các hệ thống tri thức kết nối vạn vật (IoT) phức tạp, kiến trúc mạng KBMS được xác lập dựa trên các tiêu chí kỹ thuật nghiêm ngặt:
+Kiến trúc mạng được xây dựng dựa trên giao thức TCP/IP, sử dụng cổng mặc định 3307. Luồng dữ liệu được điều phối qua các thành phần chức năng sau:
 
--   **Tối ưu hóa độ trễ (Low Latency)**: Yêu cầu xử lý gói tin với các thành phần quản trị (Overhead) tối thiểu nhằm đạt tốc độ giải mã khung tin dưới ngưỡng 1ms.
--   **Hiệu suất khai thác băng thông**: Giảm thiểu kích thước tiêu đề (Header) so với dữ liệu tải (Payload) để tối ưu hóa việc truyền tải hàng triệu bộ bản ghi tri thức.
--   **Tính tương hợp đa nền tảng**: Giao thức được đặc tả theo định dạng nhị phân chuẩn hóa, cho phép các ngôn ngữ lập trình khác nhau dễ dàng triển khai bộ giải mã mà không phụ thuộc vào thư viện bên thứ ba.
--   **Khả năng chịu tải đồng thời**: Cấu trúc thiết kế hỗ trợ xử lý số lượng lớn kết nối đồng thời mà không gây hiện tượng nghẽn luồng xử lý tại trung tâm.
+-   **Lớp Tiếp nhận**: Sử dụng `TcpListener` để lắng nghe các yêu cầu kết nối mới từ phía máy khách.
+-   **Lớp Quản lý Kết nối**: `ConnectionManager` khởi tạo các luồng đọc/ghi bất đồng bộ cho từng Socket riêng biệt.
+-   **Lớp Giải mã Giao thức**: Thực hiện việc chuyển đổi từ dòng Byte thô sang đối tượng Tin nhắn có cấu trúc.
 
-## 2. Sơ đồ Kiến trúc và Luồng Dữ liệu
+![Sơ đồ Kiến trúc Tầng Mạng](../../assets/diagrams/network_architecture_v3.png)
+*Hình 4.14: Sơ đồ phân lớp và điều phối luồng dữ liệu tại Tầng Mạng.*
 
-Kiến trúc mạng được triển khai theo mô hình **Sự kiện bất đồng bộ (Asynchronous Event-driven)**, thực hiện việc tách biệt hoàn toàn giữa tiến trình thu nhận dữ liệu nhị phân thô và tiến trình xử lý logic tri thức.
+## 4.5.2. Ví dụ về Tiến trình Xử lý Gói tin
 
-![Kiến trúc Chi tiết Tầng Mạng KBMS](../../assets/diagrams/network_architecture_v3.png)
-*Hình 4.14: Sơ đồ Kiến trúc Tầng Mạng mô tả luồng điều phối từ TcpListener đến ConnectionManager.*
+Bảng dưới đây mô tả chi tiết các bước biến đổi dữ liệu từ dòng Byte trên đường truyền vật lý thành đối tượng logic trong bộ nhớ:
 
-Các thành phần cốt lõi trong sơ đồ bao gồm:
+*Bảng 4.7: Quy trình biến đổi và giải cấu trúc gói tin tại Tầng Mạng*
+| Giai đoạn | Hành động Kỹ thuật | Trạng thái Dữ liệu | Thành phần Xử lý |
+| :--- | :--- | :--- | :--- |
+| **1. Tiếp nhận** | `Socket.ReadAsync()` | Dòng Byte thô (Raw) | `NetworkStream` |
+| **2. Phân tách** | Đọc 4 byte đầu tiên | Độ dài khung tin (Length) | `BinaryDecoder` |
+| **3. Định danh** | Đọc byte tiếp theo | Loại tin nhắn (Type) | `Protocol.cs` |
+| **4. Ánh xạ** | Giải mã chuỗi UTF-8 | Mã Phiên & Mã Yêu cầu| 5 | `Message Object` | Chuyển đổi mảng Byte thành đối tượng truy vấn cấp cao. |
+| **Kết quả** | - | **Sẵn sàng để đưa vào Parser (Tầng Server).** |
 
-1.  **TcpListener**: Cổng tiếp nhận các kết nối mạng thô tại tầng chuyển vận (Transport Layer).
-2.  **ConnectionManager**: Khối điều phối trung tâm đảm nhiệm vai trò kiểm soát kết nối, giới hạn định mức người dùng và khởi tạo ngữ cảnh phiên làm việc.
-3.  **Bộ xử lý Giao thức (Protocol Processor)**: Chuyển hóa dòng dữ liệu nhị phân thành các đối tượng thông điệp có cấu trúc dựa trên logic đặc tả.
-4.  **Quản lý Phiên (Session Management)**: Lưu giữ trạng thái cục bộ của mỗi kết nối, đảm bảo tính cách ly dữ liệu giữa các thực thể người dùng khác nhau.
+### Phân tích tiến trình Xử lý (Network Logic)
 
-## 3. Lý đạo Lựa chọn Giao thức Nhị phân
+Tiến trình trên cho thấy bộ phận mạng của KBMS được tối ưu hóa cho các thao tác IO bất đồng bộ:
 
-Hệ thống ưu tiên sử dụng **Giao thức Nhị phân tùy chỉnh (Custom Binary Protocol)** thay vì các giao thức dựa trên văn bản (như HTTP/REST) vì các lý do học thuật và kỹ thuật sau:
+- **Giai đoạn Đệm (Bước 1-2)**: Thay vì xử lý byte thô từng byte một, KBMS sử dụng `NetworkStream` để đọc nguyên một khối dữ liệu dựa trên giá trị độ dài 4 byte đầu tiên. Điều này giúp giảm thiểu số lượng lời gọi hệ thống (Syscalls).
+- **Giai đoạn Giải cấu trúc (Bước 3-4)**: `BinaryDecoder` thực hiện bóc tách Header (loại gói tin, ID phiên) một cách trực tiếp thông qua các phép toán Bitwise và dịch chuyển con trỏ, đảm bảo thời gian xử lý gần như tức thời ($O(1)$).
+- **Tính Bất đồng bộ**: Mọi tác vụ từ bước 1 tới bước 5 đều sử dụng cơ chế `async/await` và `Task-based Asynchronous Pattern (TAP)`. Luồng (Thread) quản lý socket sẽ được giải phóng ngay sau khi gói tin được đưa vào hàng đợi xử lý, cho phép hệ thống duy trì hàng nghìn kết nối đồng thời.
 
--   **Hiệu năng xử lý**: Tiến trình giải mã nhị phân trực tiếp trên bộ nhớ vượt trội về tốc độ so với việc phân tích (Parsing) các chuỗi văn bản phức tạp.
--   **Khả năng kiểm soát luồng**: Cho phép tự định nghĩa cơ chế ghép kênh (Multiplexing) để truyền tải song song nhiều yêu cầu trên cùng một kết nối vật lý thông qua mã định danh yêu cầu (Request ID).
--   **Tối ưu hóa kích thước thông điệp**: Tiêu đề của gói tin KBMS được tinh gọn tối đa (khoảng 10-20 byte), giúp giảm thiểu đáng kể tải trọng mạng so với các tiêu đề HTTP truyền thống.
-
-Kiến trúc này đảm bảo hệ thống không chỉ vận hành như một bộ máy suy luận mạnh mẽ mà còn là một hạ tầng truyền dẫn tri thức tối ưu và tin cậy.
+Quy trình này đảm bảo rằng Tầng Server luôn nhận được các dữ liệu đã được chuẩn hóa, giúp tách biệt hoàn toàn logic mạng khỏi logic xử lý tri thức.

@@ -1,0 +1,33 @@
+graph TD
+    subgraph RAM_State [Trạng thái trong RAM - Plaintext]
+        Buf[Buffer Pool Data: 16,384 bytes]
+    end
+
+    subgraph Enc_Process [Quy trình Mã hóa AES-256]
+        Key[Master Key: SHA-256]
+        IVGen[Tạo IV ngẫu nhiên: 16 bytes]
+        AES[Bộ mã hóa AES: Block size 16]
+        Pad[Padding: 0 - 16 bytes]
+    end
+
+    subgraph Disk_State [Trạng thái trên Đĩa - Ciphertext]
+        P[Physical Page: 16,416 bytes]
+    end
+
+    Buf --> AES
+    Key --> AES
+    IVGen --> AES
+    AES --> Pad
+    Pad --> P
+
+    N1[16KB Plaintext + 16B IV + 16B Padding]
+    N2[Dữ liệu Header, Slots, Tuples tường minh]
+
+    P -.-> N1
+    Buf -.-> N2
+
+    style Buf fill:#e3f2fd,stroke:#1565c0
+    style AES fill:#fff3e0,stroke:#e65100
+    style P fill:#f3e5f5,stroke:#4a148c
+    style N1 fill:#fffde7,stroke:#fbc02d,stroke-dasharray: 5 5
+    style N2 fill:#fffde7,stroke:#fbc02d,stroke-dasharray: 5 5

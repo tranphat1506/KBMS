@@ -1,6 +1,6 @@
 # 03.3. Sơ đồ Hoạt động Tổng quát
 
-Tài liệu này trình bày cấu trúc chi tiết và quy trình vận hành phân tầng của hệ thống [KBMS](../00-glossary/01-glossary.md#kbms).
+Tài liệu này trình bày cấu trúc chi tiết và quy trình vận hành phân tầng của hệ thống KBMS.
 
 ## 1. Kiến trúc Hệ thống Chi tiết (Detailed System Architecture)
 
@@ -32,10 +32,10 @@ Mô tả luồng "sinh mệnh" (Life cycle) của một yêu cầu truy vấn tr
 
 ### 3.1. Các giai đoạn xử lý kĩ thuật:
 
-1.  **Giai đoạn Tiếp nhận (Request Stage)**: Ứng dụng khách tuần tự hóa câu lệnh [KBQL](../00-glossary/01-glossary.md#kbql) thành gói tin nhị phân và gửi qua Custom Binary Protocol.
+1.  **Giai đoạn Tiếp nhận (Request Stage)**: Ứng dụng khách tuần tự hóa câu lệnh KBQL thành gói tin nhị phân và gửi qua Custom Binary Protocol.
 2.  **Giai đoạn Tính toán & Suy diễn (Computing Stage)**: 
-    - **Parsing**: Chuyển đổi byte stream thành [AST](../00-glossary/01-glossary.md#ast) thông qua Compiler.
+    - **Parsing**: Chuyển đổi byte stream thành AST thông qua Compiler.
     - **Optimization**: Áp dụng mô hình **CBO** để thiết lập kế hoạch thực thi tối ưu.
     - **Execution Engine**: Vận hành toán tử theo mô hình **Volcano Iterator** và bộ máy suy diễn Rete.
-3.  **Giai đoạn Tương tác Lưu trữ (I/O Stage)**: Truy xuất trang dữ liệu qua `BufferPoolManager` và ghi nhật ký **WAL** để đảm bảo tính bền vững [ACID](../00-glossary/01-glossary.md#acid).
+3.  **Giai đoạn Tương tác Lưu trữ (I/O Stage)**: Truy xuất trang dữ liệu qua `BufferPoolManager` và ghi nhật ký **WAL** để đảm bảo tính bền vững ACID.
 4.  **Giai đoạn Phản hồi (Response Stage)**: Trả kết quả về client dưới dạng **Data Streaming** nhị phân.

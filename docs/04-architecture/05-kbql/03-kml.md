@@ -1,10 +1,10 @@
 # Ngôn ngữ Thao tác và Bảo trì Tri thức (KML)
 
-**KML** (Knowledge Maintenance Language) cung cấp tập hợp các câu lệnh để thực thi việc chèn, cập nhật, xóa các Sự kiện (**[Facts](../../00-glossary/01-glossary.md#fact)**) và quản lý tiến trình chuyển đổi dữ liệu trong cơ sở tri thức.
+**KML** (Knowledge Maintenance Language) cung cấp tập hợp các câu lệnh để thực thi việc chèn, cập nhật, xóa các Sự kiện (**Facts**) và quản lý tiến trình chuyển đổi dữ liệu trong cơ sở tri thức.
 
 ## 1. Khởi tạo và Chèn Sự kiện (Facts)
 
-Hành vi chèn sự kiện cho phép nạp các thực thể cụ thể vào một Khái niệm (**[Concept](../../00-glossary/01-glossary.md#concept)**) đã định nghĩa.
+Hành vi chèn sự kiện cho phép nạp các thực thể cụ thể vào một Khái niệm (**Concept**) đã định nghĩa.
 
 ### 1.1. Chèn thực thể đơn lẻ
 

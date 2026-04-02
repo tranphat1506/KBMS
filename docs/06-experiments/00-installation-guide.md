@@ -1,6 +1,6 @@
 # 6.1. Quy trình Cài đặt & Xác thực Hệ thống (macOS)
 
-Tài liệu này trình bày quy trình triển khai chuẩn cho hệ thống [KBMS](../00-glossary/01-glossary.md#kbms) trên môi trường **macOS**. Việc sử dụng các công cụ quản lý gói hiện đại giúp đảm bảo tính nhất quán của các phụ thuộc (dependencies) trong dự án.
+Tài liệu này trình bày quy trình triển khai chuẩn cho hệ thống KBMS trên môi trường **macOS**. Việc sử dụng các công cụ quản lý gói hiện đại giúp đảm bảo tính nhất quán của các phụ thuộc (dependencies) trong dự án.
 
 ## 1. Thành phần Yêu cầu
 Hệ thống yêu cầu các thành phần phần mềm sau được cài đặt qua trình quản lý gói `Homebrew`:

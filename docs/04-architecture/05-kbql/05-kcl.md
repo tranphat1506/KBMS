@@ -32,7 +32,7 @@ DROP USER <username>;
 
 ## 2. Quản trị Quyền hạn và Phân quyền
 
-Cơ chế phân quyền cho phép giới hạn khả năng thao tác của người dùng trên các Khái niệm ([Concept](../../00-glossary/01-glossary.md#concept)) và thực thể tri thức cụ thể.
+Cơ chế phân quyền cho phép giới hạn khả năng thao tác của người dùng trên các Khái niệm (Concept) và thực thể tri thức cụ thể.
 
 ### 2.1. Cấp quyền (GRANT)
 

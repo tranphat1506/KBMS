@@ -1,34 +1,38 @@
-# Đặc tả Quản lý Lưu trữ Vật lý và Vùng đệm
+# Quản lý Trang Dữ liệu
 
-Hệ quản trị **[KBMS](../../../00-glossary/01-glossary.md#kbms)** thực hiện việc phân tách giữa cấu trúc lưu trữ vật lý trên thiết bị ngoại vi và cấu trúc lưu trữ logic trong bộ nhớ tạm thời thông qua hai phân hệ then chốt: Bộ quản lý đĩa vật lý (**Disk Manager**) và Bộ quản lý vùng đệm (**Buffer Pool Manager**). Cơ chế này cho phép hệ thống vận hành với các tập dữ liệu có quy mô lớn vượt xa dung lượng bộ nhớ vật lý khả dụng của máy chủ.
+Trang dữ liệu (Page) là đơn vị nhỏ nhất trong tiến trình đọc/ghi của KBMS. Chương này phân tích cấu trúc vật lý và logic của một khối dữ liệu 16KB khi lưu trữ trên đĩa cứng.
 
-## 1. Phân hệ Trừu tượng hóa Lưu trữ Vật lý (Disk Manager)
+## 4.4.3. Cấu trúc vật lý của Trang Dữ liệu
 
-Phân hệ `DiskManager` chịu trách nhiệm tương tác trực tiếp với hệ thống tệp tin của hệ điều hành để thực thi các thao tác đọc và ghi dữ liệu theo đơn vị trang (**Page**) có kích thước cố định.
+KBMS định nghĩa một cấu trúc phân cấp cho một trang dữ liệu để đảm bảo việc bóc tách dữ liệu nhanh chóng và an toàn:
 
-1.  **Cơ chế Truy cập Ngẫu nhiên**: Hệ thống sử dụng phương thức định vị con trỏ tệp tin (**Seek**) để truy xuất trực tiếp vị trí vật lý của trang dữ liệu thông qua định danh trang (**PageId**). Địa chỉ vị trí vật lý (Offset) được xác định theo quy tắc hình thức:
-    $$Offset = PageId \times PageSize_{Physical}$$
-    Trong đó, $PageSize_{Physical}$ bao gồm 16,384 Bytes dữ liệu logic và 32 Bytes dành cho siêu dữ liệu (**Metadata**) mã mã hóa.
-2.  **Mã hóa Dữ liệu Tĩnh (Encryption at Rest)**: Các trang dữ liệu được mã hóa theo tiêu chuẩn **AES-256-CBC** trước khi thực hiện thao tác ghi xuống thiết bị lưu trữ. Khi yêu cầu đọc trang được kích hoạt, dữ liệu sẽ được giải mã trước khi chuyển nạp vào khung trang trong bộ nhớ đệm, đảm bảo tính bảo mật và toàn vẹn tuyệt đối cho tri thức hệ thống.
+### Cụm trang vật lý (Physical Page Layout)
 
-## 2. Phân hệ Điều phối Vùng nhớ đệm (Buffer Pool Manager)
+Mỗi trang khi được lưu trữ trên đĩa có kích thước thực tế là **16,416 byte**, được chia thành các phần sau:
 
-Phân hệ `BufferPoolManager` đóng vai trò là lớp quản trị bộ nhớ tạm thời, duy trì danh sách các khung trang (Page Frames) trong RAM nhằm tối ưu hóa hiệu năng nhập/xuất (I/O).
+1.  **Dữ liệu logic**: 16,384 byte (16KB) chứa các bản ghi tri thức và siêu dữ liệu của hệ thống.
+2.  **Phần bù AES (IV & Padding)**: 32 byte bổ sung phục vụ cho quá trình mã hóa AES-256 (bao gồm 16 byte Vector khởi tạo IV và 16 byte phần bù dữ liệu).
 
-![Sơ đồ Vùng đệm](../../assets/diagrams/buffer_pool_v3.png)
-*Hình 4.12: Quy trình điều phối trang dữ liệu giữa bộ nhớ RAM và thiết bị lưu trữ vật lý.*
+### Cấu trúc nội bộ của Trang logic (16KB)
 
-1.  **Giải thuật Thay thế LRU (Least Recently Used)**: Khi dung lượng vùng đệm đạt ngưỡng giới hạn, hệ thống thực thi giải thuật LRU để xác định và giải phóng trang dữ liệu ít được truy cập nhất. Nếu trang dữ liệu có dấu hiệu biến động nội dung (**Dirty Page**), hệ thống bắt buộc thực hiện quy trình đồng bộ hóa ghi xuống đĩa trước khi thu hồi khung trang.
-2.  **Cơ chế Ghim trang (Pinning)**: Để duy trì tính nhất quán trong quá trình xử lý đa nhiệm, KBMS sử dụng tham số `PinCount`. Các trang đang bị chiếm dụng bởi các phân hệ cấp cao sẽ được tăng giá trị ghim. Bộ quản lý vùng đệm cam kết không giải phóng các trang có chỉ số ghim lớn hơn 0, đảm bảo an toàn dữ liệu trong các tiến trình suy diễn song hành.
+Bên trong 16,384 byte dữ liệu logic, KBMS chia thành 3 vùng chức năng chính:
+-   **Page Header (24B)**: Chứa các thông tin quản trị như `PageId`, `LSN` (Log Sequence Number), và các con trỏ trang liên kết (`PrevPageId`, `NextPageId`).
+-   **Slot Array**: Danh sách các con trỏ (Offset và Length) trỏ tới vị trí thực tế của từng bản ghi dữ liệu trong trang.
+-   **Data Area**: Vùng chứa các chuỗi nhị phân (Tuples) đại diện cho các thực thể tri thức.
 
-## 3. Đặc tả Thông số Kỹ thuật Hạ tầng Lưu trữ
+![Cấu trúc Trang Dữ liệu Slotted Page | width=1.1](../../assets/diagrams/page_structure_v3.png)
+*Hình 4.10: Sơ đồ phân rã các vùng chức năng trong một trang dữ liệu 16KB.*
 
-Dưới đây là các thông số cấu hình tiêu chuẩn của hạ tầng lưu trữ KBMS:
+## 4.4.4. Phân rã Kích thước vật lý
 
-*Bảng 4.1: Đặc tả thông số kỹ thuật của hệ thống lưu trữ*
-| Tham số Kỹ thuật | Giá trị Đặc tả | Mô tả Chức năng |
+Bảng dưới đây đặc tả chi tiết dung lượng chiếm dụng của từng thành phần trong một trang khi ở trạng thái lưu trữ tĩnh:
+
+*Bảng 4.1: Đặc tả kích thước vật lý của một trang dữ liệu nhị phân*
+| Thành phần | Kích thước (Bytes) | Vai trò |
 | :--- | :--- | :--- |
-| **Kích thước Trang (Logic)** | 16,384 Bytes | Kích thước dữ liệu khả dụng của một trang phân khe (Slotted Page). |
-| **Kích thước Khối (Vật lý)** | 16,416 Bytes | Kích thước lưu trữ thực tế bao gồm dữ liệu và siêu dữ liệu bảo mật. |
-| **Dung lượng Vùng đệm** | 100 Khung trang | Số lượng trang tối đa được duy trì đồng thời trong bộ nhớ RAM. |
-| **Giao thức Mã hóa** | AES-256-CBC | Thuật toán bảo mật dữ liệu tri thức trên phương tiện lưu trữ vật lý. |
+| **Logic Data** | 16,384 | Dữ liệu tri thức thực tế (Slotted Page). |
+| **AES IV** | 16 | Vector khởi tạo cho thuật toán AES-256. |
+| **AES Padding** | 16 | Phần bù để đảm bảo kích thước khối 16 bytes. |
+| **Tổng thể** | **16,416** | **Kích thước thực tế trên đĩa cứng**. |
+
+Việc tách biệt rõ ràng giữa kích thước logic và vật lý cho phép `DiskManager` quản lý tệp tin một cách đồng nhất, trong khi `Encryption` có thể thực hiện bảo mật dữ liệu ở mức độ trang một cách độc lập.

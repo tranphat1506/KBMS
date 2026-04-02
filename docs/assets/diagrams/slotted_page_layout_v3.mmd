@@ -1,0 +1,28 @@
+graph TD
+    subgraph Slotted_Page_Logic [Bố cục Trang dữ liệu logic: 16,384 bytes]
+        Header[Page Header - 24 bytes]
+        Slots[Mảng Slot Index: n * 4 bytes]
+        Free[Vùng không gian trống - Free Space]
+        RecordN[Bản ghi tri thức - Tuple N]
+        Record1[Bản ghi tri thức - Tuple 0]
+    end
+
+    Header --> Slots
+    Slots --> Free
+    Free --> RecordN
+    RecordN --> Record1
+
+    HNote[PageId, LSN, Prev/Next, FSP, Count]
+    SNote[Mỗi slot: Offset 2B, Length 2B]
+    DNote[Ghi từ dưới cuối trang lên trên]
+
+    Header -.-> HNote
+    Slots -.-> SNote
+    Record1 -.-> DNote
+
+    style Header fill:#f3e5f5,stroke:#4a148c
+    style Free fill:#ffffff,stroke-dasharray: 5 5
+    style Record1 fill:#fff9c4,stroke:#fbc02d
+    style HNote fill:#fffde7,stroke:#fbc02d,stroke-dasharray: 5 5
+    style SNote fill:#fffde7,stroke:#fbc02d,stroke-dasharray: 5 5
+    style DNote fill:#fffde7,stroke:#fbc02d,stroke-dasharray: 5 5

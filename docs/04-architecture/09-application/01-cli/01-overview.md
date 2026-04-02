@@ -1,6 +1,6 @@
 # Đặc tả Giao diện Dòng lệnh (KBMS CLI)
 
-Trong hệ sinh thái ứng dụng của **[KBMS](../../../00-glossary/01-glossary.md#kbms)**, phân hệ **KBMS-CLI** đóng vai trò là công cụ quản trị và khai thác tri thức trực tiếp dành cho kỹ sư phần mềm và quản trị viên hệ thống. Thay vì thông qua giao diện đồ họa phức hợp, CLI thiết lập kết nối trực tiếp với máy chủ thông qua giao thức nhị phân, cung cấp khả năng kiểm soát hệ thống với độ trễ tối thiểu.
+Trong hệ sinh thái ứng dụng của **KBMS**, phân hệ **KBMS-CLI** đóng vai trò là công cụ quản trị và khai thác tri thức trực tiếp dành cho kỹ sư phần mềm và quản trị viên hệ thống. Thay vì thông qua giao diện đồ họa phức hợp, CLI thiết lập kết nối trực tiếp với máy chủ thông qua giao thức nhị phân, cung cấp khả năng kiểm soát hệ thống với độ trễ tối thiểu.
 
 ## 1. Các Tính năng Điều khiển Hạt nhân
 
@@ -20,7 +20,7 @@ Giao diện dòng lệnh được thiết kế với các cơ chế tương tác
 
 Bên cạnh ngôn ngữ truy vấn tri thức, CLI cung cấp tập hợp các lệnh điều phối công cụ:
 
-*Bảng 4.11: Danh mục các lệnh điều khiển đặc quyền trong giao diện CLI*
+*Bảng 4.10: Danh mục các lệnh điều khiển đặc quyền trong giao diện CLI*
 | Lệnh điều khiển | Đặc tả Chức năng |
 | :--- | :--- |
 | **`LOGIN <user> <pass>`** | Thực hiện đăng nhập bảo mật (mật khẩu được ẩn trong lịch sử lệnh). |

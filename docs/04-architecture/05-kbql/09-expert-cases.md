@@ -1,10 +1,10 @@
 # Đặc tả Kịch bản Thực thi Tri thức Nâng cao
 
-Tài liệu này trình bày các tình huống vận dụng ngôn ngữ **[KBQL](../../00-glossary/01-glossary.md#kbql)** ở mức độ chuyên sâu, khai thác tối đa sức mạnh của bộ máy suy diễn và giải toán tích hợp trong hệ quản trị **[KBMS](../../00-glossary/01-glossary.md#kbms)**.
+Tài liệu này trình bày các tình huống vận dụng ngôn ngữ **KBQL** ở mức độ chuyên sâu, khai thác tối đa sức mạnh của bộ máy suy diễn và giải toán tích hợp trong hệ quản trị **KBMS**.
 
 ## 1. Cơ chế Giải toán Ngược (Inverse Problem Solving)
 
-Hệ thống KBMS không chỉ thực hiện tính toán thuận mà còn có khả năng giải ngược các tham số đầu vào khi biết kết quả đầu ra, thông qua các thuật toán **[Newton-Raphson](../../00-glossary/01-glossary.md#newton-raphson)** và **Brent**.
+Hệ thống KBMS không chỉ thực hiện tính toán thuận mà còn có khả năng giải ngược các tham số đầu vào khi biết kết quả đầu ra, thông qua các thuật toán **Newton-Raphson** và **Brent**.
 
 ### 1.1. Kịch bản: Phân tích Mạch điện hình thức
 
@@ -25,7 +25,7 @@ SOLVE ON CONCEPT Resistor GIVEN u = 220, i = 2 FIND r; -- Kết quả: r = 110
 
 ## 2. Suy diễn Chùm và Lan truyền Tri thức (Chain Reasoning)
 
-Kịch bản thể hiện khả năng lan truyền tri thức thông qua nhiều phân lớp luật dẫn (**[Forward Chaining](../../00-glossary/01-glossary.md#forward-chaining)**).
+Kịch bản thể hiện khả năng lan truyền tri thức thông qua nhiều phân lớp luật dẫn (**Forward Chaining**).
 
 ### 2.1. Kịch bản: Hệ thống Cảnh báo và Phản ứng Sự cố
 
@@ -42,7 +42,7 @@ INSERT INTO Sensor ATTRIBUTE (110, 60);
 
 ## 3. Cơ chế Kế thừa Tri thức Đa tầng
 
-Khi thiết lập hệ thống Phân cấp (**Hierarchy**), các luật dẫn tại Khái niệm (**[Concept](../../00-glossary/01-glossary.md#concept)**) cha sẽ tự động được kế thừa và áp dụng cho toàn bộ các thực thể thuộc các khái niệm con và cháu.
+Khi thiết lập hệ thống Phân cấp (**Hierarchy**), các luật dẫn tại Khái niệm (**Concept**) cha sẽ tự động được kế thừa và áp dụng cho toàn bộ các thực thể thuộc các khái niệm con và cháu.
 
 ### 3.1. Kịch bản: Phân loại Hình học và Đặc tính Kế thừa
 
@@ -64,7 +64,7 @@ INSERT INTO Triangle ATTRIBUTE ('Red', ...);
 
 ## 4. Ràng buộc Logic Toàn vẹn (Complex Constraints)
 
-Sử dụng khối `CONSTRAINTS` để bảo vệ tính toàn vẹn của dữ liệu ở mức độ tri thức hình thức, ngăn chặn việc nạp các Sự kiện (**[Fact](../../00-glossary/01-glossary.md#fact)**) mâu thuẫn.
+Sử dụng khối `CONSTRAINTS` để bảo vệ tính toàn vẹn của dữ liệu ở mức độ tri thức hình thức, ngăn chặn việc nạp các Sự kiện (**Fact**) mâu thuẫn.
 
 ### 4.1. Kịch bản: Quản lý Quy tắc Nhân sự
 
@@ -101,7 +101,7 @@ SOLVE ON CONCEPT Intersection FIND x, y;
 
 ## 6. Phối hợp Trigger và Luật dẫn (The Chain Reaction)
 
-Sử dụng cơ chế **[Trigger](../../00-glossary/01-glossary.md#trigger)** để kích hoạt luồng suy diễn tri thức tại các Khái niệm liên quan khác.
+Sử dụng cơ chế **Trigger** để kích hoạt luồng suy diễn tri thức tại các Khái niệm liên quan khác.
 
 ### 6.1. Kịch bản: Đồng bộ Kho vận và Kiểm soát Tồn kho
 

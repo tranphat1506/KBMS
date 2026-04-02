@@ -1,0 +1,35 @@
+graph TD
+    subgraph Input_Layer [Dữ kiện Đầu vào]
+        F1[Sự thật: cạnh a=10]
+        F2[Sự thật: cạnh b=20]
+        F3[Sự thật: góc gamma=30]
+    end
+
+    subgraph Alpha_Layer [Bộ lọc Alpha]
+        A_a{Alpha: lọc cạnh a}
+        A_b{Alpha: lọc cạnh b}
+        A_g{Alpha: lọc góc gamma}
+    end
+
+    subgraph Beta_Layer [Phép nối Beta]
+        B_ab{Beta: Nối a & b}
+        B_abg{Beta: Nối ab & gamma}
+    end
+
+    subgraph Action_Layer [Thực thi Kết luận]
+        P_Node[P-Node: Tính diện tích S]
+        Result[S = 50.0]
+    end
+
+    F1 --> A_a
+    F2 --> A_b
+    F3 --> A_g
+
+    A_a -->|Token a| B_ab
+    A_b -->|Token b| B_ab
+    
+    B_ab -->|Token ab| B_abg
+    A_g -->|Token gamma| B_abg
+
+    B_abg -->|Token abg| P_Node
+    P_Node --> Result

@@ -6,7 +6,7 @@ Giao diện dòng lệnh (CLI) thực thi chu trình điều phối dữ liệu 
 
 Khi người dùng thực thi một câu lệnh, CLI thực hiện quy trình nội suy chuẩn hóa theo các giai đoạn sau:
 
-![Sơ đồ Luồng Xử lý CLI](../../../assets/diagrams/cli_processing_flow.png)
+![Sơ đồ Luồng Xử lý CLI | width=1.05](../../../assets/diagrams/cli_processing_flow.png)
 *Hình 4.29: Sơ đồ tuần tự mô tả luồng xử lý câu lệnh và phản hồi từ Server của CLI.*
 
 1.  **Đệm Dữ liệu Đầu vào (Input Buffering)**: Hệ thống thực hiện tích lũy các dòng nội dung cho đến khi tiếp nhận ký hiệu kết thúc câu lệnh (dấu `;`).

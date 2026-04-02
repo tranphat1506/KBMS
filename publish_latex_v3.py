@@ -23,11 +23,11 @@ def clean_title(s):
 
 # --- Chapter Vietnamese Mapping ---
 CHAPTER_NAMES = {
-    '01-introduction': 'GIỚI THIỆU VÀ ĐẶT VẤN ĐỀ', 
-    '02-theory': 'CƠ SỞ LÝ THUYẾT', 
+    '01-introduction': 'GIỚI THIỆU ĐỀ TÀI', 
+    '02-theory': 'CƠ SỞ LÝ THUYẾT VÀ MÔ HÌNH TRI THỨC DẠNG COKB', 
     '03-analysis-and-design': 'PHÂN TÍCH VÀ THIẾT KẾ HỆ THỐNG', 
-    '04-architecture': 'CÀI ĐẶT VÀ TRIỂN KHAI HỆ THỐNG',
-    '05-experiments': 'KIỂM THỬ VÀ ĐÁNH GIÁ HIỆU NĂNG',
+    '04-architecture': 'KIẾN TRÚC HỆ THỐNG',
+    '06-experiments': 'CÀI ĐẶT, THỬ NGHIỆM VÀ ĐÁNH GIÁ HỆ THỐNG',
 }
 
 MAP_ACADEMIC = {
@@ -50,26 +50,13 @@ MAP_ACADEMIC = {
     'system-overview': 'Tổng quan Kiến trúc Hệ thống',
 }
 
-GLOSSARY_MAP = {} # slug -> ID
-
 def slugify(s):
     s = s.lower().strip()
     s = re.sub(r'[^\w\s-]', '', s)
     s = re.sub(r'[-\s]+', '-', s)
     return s
 
-# Pre-parse glossary to build the map
-glossary_path = os.path.join(DOCS_DIR, '00-glossary', '01-glossary.md')
-if os.path.exists(glossary_path):
-    with open(glossary_path, 'r', encoding='utf-8') as f:
-        for line in f:
-            if '|' in line and '[' in line and ']' in line:
-                parts = [p.strip() for p in line.split('|')]
-                if len(parts) >= 3:
-                    gid = parts[1].strip(' *[]')
-                    term = parts[2].strip(' *[]')
-                    if gid and term:
-                        GLOSSARY_MAP[slugify(term)] = gid
+# --- Citations Configuration ---
 
 CITATIONS_TOTAL = 8 # Default
 
@@ -81,7 +68,9 @@ CITATION_MAP = {
     '[5]': 'DatabaseSystems',
     '[6]': 'RussellNorvig',
     '[7]': 'Musen_Protege',
-    '[8]': 'PrologBook'
+    '[8]': 'PrologBook',
+    '[9]': 'ReteAlgorithm',
+    '[10]': 'ComerBTree'
 }
 
 def escape_latex(text):
@@ -103,13 +92,6 @@ def process_inline_formatting(text):
         label, url = m.groups()
         if url.startswith('http'):
             return f'\\href{{{url}}}{{\\url{{{url}}}}}'
-        if '01-glossary.md' in url:
-            anchor = url.split('#')[-1] if '#' in url else slugify(label)
-            gid = GLOSSARY_MAP.get(anchor, '')
-            if gid:
-                # Use glos: prefix to match the hypertarget in the glossary table
-                return f'\\texorpdfstring{{{label}~[\\protect\\hyperlink{{glos:{anchor}}}{{{gid}}}]}}{{{label} [{gid}]}}'
-            return f'\\protect\\hyperlink{{glos:{anchor}}}{{{label}}}'
         return f'\\href{{{url}}}{{{label}}}'
     
     text = re.sub(r'\[([^\]]+)\]\(([^\)]+)\)', link_repl, text)
@@ -123,7 +105,7 @@ def process_inline_formatting(text):
     text = text.replace('‘', "'").replace('’', "'").replace('“', "``").replace('”', "''")
     return text
 
-def md_block_to_latex(block, af_id, at_id, prev_block='', next_block='', level=0, is_glossary_mode=False):
+def md_block_to_latex(block, af_id, at_id, prev_block='', next_block='', level=0):
     """Processes a Markdown block into LaTeX. Returns (tex, af, at, consumed)"""
     block = block.strip()
     consumed_next = False
@@ -137,13 +119,11 @@ def md_block_to_latex(block, af_id, at_id, prev_block='', next_block='', level=0
         if h_search and h_search.start() > 0:
             head = block[:h_search.start()].strip()
             tail = block[h_search.start():].strip()
-            h_tex, af1, at1, c1 = md_block_to_latex(head, af_id, at_id, level=level, is_glossary_mode=is_glossary_mode)
-            t_tex, af2, at2, c2 = md_block_to_latex(tail, af1, at1, level=level, is_glossary_mode=is_glossary_mode)
+            h_tex, af1, at1, c1 = md_block_to_latex(head, af_id, at_id, level=level)
+            t_tex, af2, at2, c2 = md_block_to_latex(tail, af1, at1, level=level)
             return h_tex + t_tex, af2, at2, c1 or c2
 
-    # 0. Glossary Mode (v3.71): Suppress all headers and captions
-    if is_glossary_mode:
-        if block.startswith('#'): return "", af_id, at_id, False
+    # No glossary mode in v4.1 (Removed)
 
     # 1. Skip non-content blocks
     if block == '![' or block == '---': return "", af_id, at_id, False
@@ -157,7 +137,7 @@ def md_block_to_latex(block, af_id, at_id, prev_block='', next_block='', level=0
         for match in figs:
             pre_text = block[current_pos : match.start()].strip()
             if pre_text:
-                pre_tex, af_id, at_id, _ = md_block_to_latex(pre_text, af_id, at_id, level=level, is_glossary_mode=is_glossary_mode)
+                pre_tex, af_id, at_id, _ = md_block_to_latex(pre_text, af_id, at_id, level=level)
                 processed_tex += pre_tex
             
             alt, src = match.groups()
@@ -192,15 +172,11 @@ def md_block_to_latex(block, af_id, at_id, prev_block='', next_block='', level=0
                 img_cmd = r'\fbox{Thiếu ảnh: %s}' % escape_latex(fname)
             
             clean_cap = clean_title(raw_caption)
-            if is_glossary_mode: clean_cap = ""
             
             caption = process_inline_formatting(escape_latex(clean_cap))
             fid = slugify(clean_cap)[:50] if clean_cap else f"auto_{af_id}"
             
-            if is_glossary_mode:
-                 processed_tex += '\\begin{center}\n  %s\n\\end{center}\n\n' % img_cmd
-            else:
-                 processed_tex += '\\begin{figure}[H]\n  \\centering\n  %s\n  \\caption{%s}\\label{fig:%s}\n\\end{figure}\n\n' % (img_cmd, caption, fid)
+            processed_tex += '\\begin{figure}[H]\n  \\centering\n  %s\n  \\caption{%s}\\label{fig:%s}\n\\end{figure}\n\n' % (img_cmd, caption, fid)
 
             if in_same_block:
                 current_pos = match.end() + legend_match.end()
@@ -210,14 +186,16 @@ def md_block_to_latex(block, af_id, at_id, prev_block='', next_block='', level=0
 
         post_text = block[current_pos:].strip()
         if post_text:
-            post_tex, af_id, at_id, _ = md_block_to_latex(post_text, af_id, at_id, level=level, is_glossary_mode=is_glossary_mode)
+            post_tex, af_id, at_id, _ = md_block_to_latex(post_text, af_id, at_id, level=level)
             processed_tex += post_tex
         return processed_tex, af_id, at_id, consumed_next
 
     # 3. Tables (Strict capture)
     if '|' in block and '-' in block and '\n' in block:
+        # Improved Caption Logic (v4.05): Prioritize Bảng/Table lines and avoid paragraphs
         cap_match = re.search(r'(?m)^[\*_]*(?:Bảng|Table|Bang|Table|Danh mục)[:\s\.\d\-\[\]\(\)]*\s*(.*?)(?:[\*_]*\n|$|\*)', block, re.IGNORECASE)
         if not cap_match and prev_block:
+            # Only match if it looks like a formal caption line (short, Bảng/Table prefix)
             cap_match = re.search(r'(?m)^[\*_]*(?:Bảng|Table|Bang|Table|Danh mục)[:\s\.\d\-\[\]\(\)]*\s*(.*?)(?:[\*_]*\n|$|\*)', prev_block, re.IGNORECASE)
         
         if not cap_match and next_block:
@@ -227,17 +205,16 @@ def md_block_to_latex(block, af_id, at_id, prev_block='', next_block='', level=0
         raw_caption = ""
         if cap_match:
             raw_caption = cap_match.group(1).strip()
-        elif prev_block and prev_block.startswith('#'):
-            # Fallback: use the closest preceding header as caption
-            raw_caption = re.sub(r'^#+\s*[\d\.]*\s*', '', prev_block.split('\n')[0]).strip()
+        elif prev_block and len(prev_block.split('\n')) == 1 and (":" in prev_block or "Bảng" in prev_block) and len(prev_block) < 100 and not prev_block.strip().endswith(':'):
+            # Fallback only if the preceding block is a single line, looks like a title, 
+            # is not too long, and DOES NOT end with a colon (to avoid capturing descriptive paragraphs)
+            raw_caption = re.sub(r'^#+\s*[\d\.]*\s*', '', prev_block).strip()
         
         raw_caption = clean_title(raw_caption)
         
-        if is_glossary_mode:
-            is_glossary = True
-            raw_caption = ""
-        else:
-            if not raw_caption: raw_caption = f"Bảng kê dữ liệu chuyên sâu {at_id}"
+        if not raw_caption: 
+            # Use a more generic but professional fallback if no title found
+            raw_caption = f"Phân tích dữ liệu thực nghiệm {at_id}"
         
         caption = process_inline_formatting(escape_latex(raw_caption))
         tid = slugify(raw_caption)[:50] if raw_caption else f"gtbl_{at_id}"
@@ -248,32 +225,23 @@ def md_block_to_latex(block, af_id, at_id, prev_block='', next_block='', level=0
             cols = len(hdr_line)
             is_glossary = "Tham chiếu" in hdr_line or "Thuật ngữ" in hdr_line
             
-            if is_glossary:
-                col_spec = 'p{2cm} p{3.5cm} X'
-                tbl = '\\begin{small}\n\\begin{xltabular}{\\textwidth}{|%s|}\n  \\hline\n' % col_spec.replace(' ', '|')
-                tbl += ' \\textbf{' + '} & \\textbf{'.join([process_inline_formatting(escape_latex(h)) for h in hdr_line]) + '} \\\\ \\hline\n'
-                tbl += ' \\endfirsthead\n'
-                tbl += ' \\hline \\multicolumn{%d}{|c|}{\\textit{Tiếp theo trang trước}} \\\\ \\hline\n' % cols
-                tbl += ' \\textbf{' + '} & \\textbf{'.join([process_inline_formatting(escape_latex(h)) for h in hdr_line]) + '} \\\\ \\hline\n'
-                tbl += ' \\endhead\n'
-                tbl += ' \\hline \\multicolumn{%d}{|r|}{\\textit{Xem tiếp trang sau}} \\\\ \\hline\n' % cols
-                tbl += ' \\endfoot\n'
-                tbl += ' \\hline\n'
-                tbl += ' \\endlastfoot\n'
+            if False: # Removed glossary-specific table rendering in v4.1
+                pass
             else:
                 # Dynamic column mapping (v3.90)
                 if cols <= 3:
                     col_spec = '|l|' + 'X|' * (cols - 1)
                     t_font = "\\small"
+                elif cols == 4:
+                    col_spec = '|l|' + 'L|' * (cols - 1)
+                    t_font = "\\small"
                 else:
-                    # Multi-column: use L (raggedright X) for ALL columns to avoid overlap
-                    col_spec = '|' + 'L|' * cols
-                    t_font = "\\small" if cols == 4 else "\\footnotesize"
+                    # For Many columns (5+), use p-columns to force narrowing
+                    # Rough estimate: 2cm for 1st col, then distribute remaining space
+                    col_spec = '|l|' + 'L|' * (cols - 1)
+                    t_font = "\\footnotesize"
                 
-                tbl = '\\begin{table}[H]\n  \\centering%s\\selectfont\n' % t_font
-                if not is_glossary:
-                    tbl += '  \\caption{%s}\\label{tbl:%s}\n' % (caption, tid)
-                
+                tbl = '\\begin{table}[H]\n  \\centering\\captionsetup{position=below}%s\\selectfont\n' % t_font
                 tbl += '  \\begin{tabularx}{\\textwidth}{%s}\n  \\hline\n' % col_spec
                 tbl += ' & '.join([process_inline_formatting(escape_latex(h)) for h in hdr_line]) + ' \\\\ \\hline\n'
 
@@ -285,18 +253,16 @@ def md_block_to_latex(block, af_id, at_id, prev_block='', next_block='', level=0
                 processed_cells = []
                 for i, c in enumerate(cells[:cols]):
                     esc_c = escape_latex(c.strip())
-                    if i == 1 and is_glossary:
-                        slug = slugify(c.strip(' *[]'))
-                        processed_cells.append('\\hypertarget{glos:%s}{%s}' % (slug, process_inline_formatting(esc_c)))
-                    else:
-                        processed_cells.append(process_inline_formatting(esc_c))
+                    processed_cells.append(process_inline_formatting(esc_c))
 
                 tbl += ' & '.join(processed_cells) + ' \\\\ \\hline\n'
             
-            if is_glossary:
-                tbl += '  \\end{xltabular}\n\\end{small}\n\n'
+            if False: # xltabular removed
+                pass
             else:
-                tbl += '  \\end{tabularx}\n\\end{table}\n\n'
+                tbl += '  \\end{tabularx}\n'
+                tbl += '  \\caption{%s}\\label{tbl:%s}\n' % (caption, tid)
+                tbl += '\\end{table}\n\n'
             return tbl, af_id, at_id + 1, consumed_next
 
     # 4. Headings (v3.94: Flexible regex)
@@ -319,7 +285,7 @@ def md_block_to_latex(block, af_id, at_id, prev_block='', next_block='', level=0
                 res = '\\%s{%s}\n\n' % (h_cmd, process_inline_formatting(escape_latex(h_text)))
             
             if len(lines) > 1:
-                rem_tex, af_id, at_id, _ = md_block_to_latex("\n".join(lines[1:]), af_id, at_id, level=level, is_glossary_mode=is_glossary_mode)
+                rem_tex, af_id, at_id, _ = md_block_to_latex("\n".join(lines[1:]), af_id, at_id, level=level)
                 res += rem_tex
             return res, af_id, at_id, consumed_next
 
@@ -498,20 +464,7 @@ def main():
         report_content.extend(chap_content)
         report_content.append('\\clearpage\n')
 
-    # --- Special: Glossary Synthesis (Unnumbered, in Front Matter) ---
-    glossary_content = []
-    glossary_path = os.path.join(DOCS_DIR, '00-glossary', '01-glossary.md')
-    if os.path.exists(glossary_path):
-        glossary_content.append('\\chapter*{THUẬT NGỮ VÀ TỪ VIẾT TẮT}\n')
-        glossary_content.append('\\addcontentsline{toc}{chapter}{THUẬT NGỮ VÀ TỪ VIẾT TẮT}\n')
-        with open(glossary_path, 'r', encoding='utf-8') as f_in:
-            md_text = f_in.read()
-            blocks = md_text.split('\n\n')
-            for b in blocks:
-                # Use is_glossary_mode=True (v3.71)
-                tex_b, af_id, at_id, _ = md_block_to_latex(b, af_id, at_id, is_glossary_mode=True)
-                glossary_content.append(tex_b)
-        glossary_content.append('\\clearpage\n')
+    # Glossary synthesis removed in v4.1 (Cleaned from front-matter)
 
     main_tex = r'''\documentclass[13pt,a4paper,oneside]{extreport}
 \usepackage{fontspec}
@@ -588,7 +541,7 @@ def main():
 \newcolumntype{L}{>{\raggedright\arraybackslash}X}
 \setlength{\tabcolsep}{4pt} % Tighter columns for more content space
 
-\captionsetup[table]{position=above, skip=10pt, justification=centering, font=normalfont}
+\captionsetup[table]{position=below, skip=10pt, justification=centering, font=normalfont}
 \captionsetup[figure]{position=below, skip=10pt, justification=centering, font=normalfont}
 \setstretch{1.2} % Better line spacing for entire document
 
@@ -720,7 +673,7 @@ Em xin cam kết rằng báo cáo khóa luận tốt nghiệp này được hoà
 \addcontentsline{toc}{chapter}{DANH MỤC BẢNG}
 \clearpage
 '''
-    main_tex += "".join(glossary_content)
+    # main_tex += "".join(glossary_content) # Removed
     main_tex += "\n".join(report_content)
     main_tex += r'''
 \clearpage

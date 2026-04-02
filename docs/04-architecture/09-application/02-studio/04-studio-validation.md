@@ -6,7 +6,7 @@
 
 Hệ thống thực hiện xác thực khả năng hỗ trợ lập trình tri thức thông qua bộ máy Monaco Engine và khả năng hiển thị đồ thị tri thức (Graph View).
 
--   **Gợi ý Thông minh (IntelliSense)**: Đảm bảo khả năng tự động đề xuất các từ khóa đặc quyền như `CREATE`, `SELECT` và các định danh Khái niệm (**[Concept](../../../00-glossary/01-glossary.md#concept)**) đã hiện hữu.
+-   **Gợi ý Thông minh (IntelliSense)**: Đảm bảo khả năng tự động đề xuất các từ khóa đặc quyền như `CREATE`, `SELECT` và các định danh Khái niệm (**Concept**) đã hiện hữu.
 -   **Cập nhật Đồ thị (Graph Refresher)**: Hệ thống tự động tái cấu trúc sơ đồ tri thức ngay khi phát sinh các thực thể mới thông qua bảng điều khiển.
 
 ### Minh chứng Thực nghiệm
@@ -26,4 +26,4 @@ Bảng điều phối "System Snapshot" cho phép quản trị viên theo dõi t
 ![Minh chứng Electron Main](../../../assets/diagrams/terminal_test_studio_electron.png)
 *Hình 4.40: Minh chứng luồng truyền nhận gói tin nhị phân giữa Studio và tiến trình Electron Main.*
 
-Việc kiểm định thành công giao diện Studio khẳng định hạ tầng thiết kế và quản trị của **[KBMS](../../../00-glossary/01-glossary.md#kbms)** đã sẵn sàng cho các bài toán tri thức hội tụ, cung cấp giải pháp lập trình tri thức toàn diện cho người dùng chuyên nghiệp.
+Việc kiểm định thành công giao diện Studio khẳng định hạ tầng thiết kế và quản trị của **KBMS** đã sẵn sàng cho các bài toán tri thức hội tụ, cung cấp giải pháp lập trình tri thức toàn diện cho người dùng chuyên nghiệp.

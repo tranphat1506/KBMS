@@ -4,7 +4,7 @@
 
 ## 1. Kịch bản Thiết kế Mô hình Tri thức (Schema Design)
 
--   **Mục tiêu**: Định nghĩa các Khái niệm (**[Concept](../../../00-glossary/01-glossary.md#concept)**) hình học và các Luật dẫn (**Rule**) tính toán diện tích trong không gian tri thức phẳng.
+-   **Mục tiêu**: Định nghĩa các Khái niệm (**Concept**) hình học và các Luật dẫn (**Rule**) tính toán diện tích trong không gian tri thức phẳng.
 -   **Quy trình thực thi**:
     1.  **Nhập liệu**: Người dùng sử dụng Trình soạn thảo Monaco với tính năng gợi ý thông minh (**Auto-complete**) để kiến tạo câu lệnh `CREATE CONCEPT`.
     2.  **Kiểm chứng**: Bộ phân tích tại máy chủ thực hiện biên dịch thời gian thực. Nếu phát sinh sai lệch, tính năng **Error Squiggles** sẽ tự động đánh dấu lỗi tại dòng lệnh tương ứng.
@@ -18,11 +18,11 @@
 -   **Mục tiêu**: Tìm kiếm lời giải cho bài toán hình học dựa trên các giả thiết đầu vào.
 -   **Quy trình thực thi**:
     1.  **Gửi yêu cầu**: Nhập lệnh `SOLVE ON Triangle GIVEN AB=3, AC=4 FIND BC;`.
-    2.  **Suy diễn**: Máy chủ chuyển yêu cầu tới Bộ máy Suy diễn để thực hiện giải thuật [F-Closure](../../../00-glossary/01-glossary.md#f-closure).
+    2.  **Suy diễn**: Máy chủ chuyển yêu cầu tới Bộ máy Suy diễn để thực hiện giải thuật F-Closure.
     3.  **Hội tụ kết quả**: Giá trị nội suy được kết xuất trực tiếp trên lưới dữ liệu (Data Grid).
     4.  **Truy vết**: Người dùng truy cập tab **Reasoning Trace** để phân tích cây suy diễn logic đã được hệ thống thực thi.
 
-![Quy trình Giải bài toán](../../../assets/diagrams/uc_reasoning_solve_flow.png)
+![Quy trình Giải bài toán | width=1.05](../../../assets/diagrams/uc_reasoning_solve_flow.png)
 *Hình 4.37: Quy trình các bước thực thi từ gửi yêu cầu tới truy vết suy diễn logic.*
 
 ## 3. Kịch bản Quản trị và Bảo trì Dữ liệu (System Administration)

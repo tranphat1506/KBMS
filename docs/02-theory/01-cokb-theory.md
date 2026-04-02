@@ -1,6 +1,6 @@
 # 02.1. Mô hình Đối tượng Tính toán
 
-Mô hình **[COKB](../00-glossary/01-glossary.md#cokb) (Computational Objects Knowledge Base)** [1] là sự mở rộng của các hệ thống logic truyền thống, tích hợp khả năng tính toán mạnh mẽ vào các cấu trúc đối tượng, phục vụ như là định dạng lưu trữ và biểu diễn bộ não cốt lõi của hệ thống [KBMS](../00-glossary/01-glossary.md#kbms).
+Mô hình **COKB (Computational Objects Knowledge Base)** [1] là sự mở rộng của các hệ thống logic truyền thống, tích hợp khả năng tính toán mạnh mẽ vào các cấu trúc đối tượng, phục vụ như là định dạng lưu trữ và biểu diễn bộ não cốt lõi của hệ thống KBMS.
 
 ## 1. Thành phần Hệ thống tri thức
 

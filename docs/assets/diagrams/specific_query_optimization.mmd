@@ -1,0 +1,29 @@
+graph TD
+    subgraph AST_Layer [Phân tích AST]
+        Input[Câu lệnh KBQL: SELECT ... JOIN ... WHERE ...]
+        AST[Cây AST: JoinNode, FilterNode, ProjectNode]
+    end
+
+    subgraph Optimizer_Layer [Bộ tối ưu hóa CBO]
+        Bind[Ràng buộc Concept: Emp, Dept]
+        Push[Đẩy bộ lọc xuống: salary > 70000]
+        JoinSel[Lựa chọn Hash Join: e.dept_id = d.id]
+    end
+
+    subgraph Pipeline_Layer [Thực thi Pipeline]
+        Scan1[Scan: Emp] --> Filter[Filter: salary > 70000]
+        Scan2[Scan: Dept] --> Hash[Build Hash Table: Dept]
+        
+        Filter --> Join[Probe Hash Join]
+        Hash --> Join
+        
+        Join --> Calc[Calculated Expression: CALC]
+        Calc --> Res[ResultSet: TRẢ VỀ DỮ LIỆU]
+    end
+
+    Input --> AST
+    AST --> Bind
+    Bind --> Push
+    Push --> JoinSel
+    JoinSel --> Scan1
+    JoinSel --> Scan2

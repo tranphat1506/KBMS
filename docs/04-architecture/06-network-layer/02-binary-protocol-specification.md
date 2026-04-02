@@ -1,43 +1,43 @@
-# Đặc tả Giao thức Nhị phân
+# Giao thức Nhị phân KBMS
 
-Giao thức nhị phân của [KBMS](../../../00-glossary/01-glossary.md#kbms) được định nghĩa dưới dạng khung tin (Frame) với tiêu đề (Header) có kích cỡ cố định. Cấu trúc này cho phép bộ giải mã phân tách dữ liệu với độ phức tạp thuật toán thấp nhất ($O(1)$), phục vụ cho các hệ thống tri thức đòi hỏi tần suất truy vấn cao.
+Hệ thống sử dụng giao thức nhị phân tùy chỉnh để tối ưu hóa băng thông và đảm bảo tốc độ truyền tải tri thức giữa máy chủ và máy khách. Chương này đặc tả cấu trúc các khung tin (Frames) và cách thức giải mã dữ liệu.
 
-## 1. Cấu trúc Hình học của Khung tin
+## 4.5.3. Định dạng Khung tin Nhị phân
 
-Mọi thông điệp giao tiếp giữa Máy trạm (Client) và Máy chủ (Server) đều được đóng gói theo định dạng nhị phân đồng nhất, đảm bảo tính nhất quán dữ liệu trên toàn bộ hạ tầng hệ thống.
+Mỗi gói tin trao đổi qua mạng được đóng gói theo một cấu trúc cố định gồm 7 trường dữ liệu:
 
-*Bảng 4.6: Đặc tả chi tiết các trường dữ liệu trong Gói tin Nhị phân*
-| Vị trí (Byte) | Trường dữ liệu | Kiểu dữ liệu | Vai trò đặc tả |
+![Cấu trúc Khung tin Nhị phân | width=0.4](../../assets/diagrams/specific_binary_frame.png)
+*Hình 4.15: Sơ đồ cấu trúc nội bộ của một khung tin nhị phân trong hệ thống KBMS.*
+
+1.  **Độ dài**: 4 byte (Big-Endian), xác định tổng kích thước các trường phía sau.
+2.  **Loại tin**: 1 byte, xác định mục đích của tin nhắn (Đăng nhập, Truy vấn, Phản hồi).
+3.  **Độ dài Phiên**: 2 byte, độ dài của chuỗi mã phiên.
+4.  **Mã Phiên**: Chuỗi UTF-8 định danh phiên làm việc của người dùng.
+5.  **Độ dài Yêu cầu**: 2 byte, độ dài của mã định danh yêu cầu.
+6.  **Mã Yêu cầu**: Chuỗi UTF-8 dùng để so khớp phản hồi bất đồng bộ.
+7.  **Nội dung**: Chuỗi UTF-8 mang giá trị thực tế của câu lệnh KBQL hoặc dữ liệu trả về.
+
+## 4.5.4. Ví dụ Phân rã Gói tin (Binary Breakdown)
+
+Để minh họa, xét một gói tin thực tế gửi câu lệnh `SELECT 1;` từ máy khách. Giả định không có mã phiên và mã yêu cầu:
+
+*Bảng 4.8: Phân rã cấu trúc nhị phân của một khung tin (Frame) truy vấn KBQL*
+| Byte Offset | Giá trị Hex | Diễn giải Trường | Giá trị Logic |
 | :--- | :--- | :--- | :--- |
-| **0 - 3** | **Tổng kích thước**| Số nguyên 32-bit (Big-endian) | Tổng kích thước dữ liệu tiếp nối (không bao gồm 5 byte đầu). |
-| **4** | **Loại thông điệp**| Số nguyên 8-bit | Mã định danh phân loại thông điệp (0x01: Đăng nhập, 0x02: Truy vấn,...). |
-| **5 - 6** | **Độ dài Phiên** | Số nguyên 16-bit | Độ dài của chuỗi định danh phiên làm việc (Session ID). |
-| **7 - N** | **Mã Phiên** | Chuỗi UTF-8 | Mã định danh phiên người dùng do Máy chủ cấp phát sau khi xác thực. |
-| **N+1 - N+2**| **Độ dài Yêu cầu** | Số nguyên 16-bit | Độ dài của chuỗi định danh yêu cầu truy xuất. |
-| **N+3 - M** | **Mã Yêu cầu** | Chuỗi UTF-8 | Mã định danh duy nhất (Request ID) dùng để ghép nối phản hồi. |
-| **M+1 - End** | **Dữ liệu tải** | Chuỗi UTF-8 | Nội dung chính (Câu lệnh KBQL hoặc Tập kết quả suy diễn). |
+| **00 - 03** | `00 00 00 0D` | **Độ dài (Length)** | 13 byte còn lại |
+| **04** | `02` | **Loại (Type)** | MessageType.QUERY |
+| **05 - 06** | `00 00` | **Độ dài Phiên** | 0 (Không có) |
+| **07 - 08** | `00 00` | **Độ dài Yêu cầu** | 0 (Không có) |
+| **Chuỗi Byte cuối** | `53 45 4C ... 31 3B` | `Payload` | 9B |
+| **Tổng cộng** | - | - | **41 Bytes** |
 
-## 2. Phân tích Thực nghiệm Gói tin Nhị phân
+### Phân tích chi tiết Gói tin (Binary Analysis)
 
-Dưới đây là một ví dụ minh họa về cấu trúc mã thô của một yêu cầu truy vấn chuẩn hóa từ Máy trạm ("SELECT * FROM Concept") với Mã phiên là "S1" và Mã yêu cầu là "R1".
+Dựa trên bảng phân rã mã Hex phía trên, quy trình giải mã của hệ thống được thực hiện qua các giai đoạn logic sau:
 
-*Bảng 4.7: Phân rã gói tin thực nghiệm (Mã thập lục phân)*
-| Byte (Hex) | Giá trị giải mã | Giải thích mô tả chi tiết |
-| :--- | :--- | :--- |
-| **`00 00 00 1B`**| **27** | **Tổng kích thước**: Kích thước sau tiêu đề ghi nhận 27 byte. |
-| **`02`** | **MessageType.QUERY** | Xác định loại thông điệp là truy vấn tri thức cấp cao. |
-| **`00 02`** | **2** | **Độ dài Phiên**: Mã định danh "S1" có độ dài 2 byte. |
-| **`53 31`** | **"S1"** | **Mã Phiên**: Xác định ngữ cảnh phiên làm hiện hành. |
-| **`00 02`** | **2** | **Độ dài Yêu cầu**: Mã "R1" có độ dài 2 byte. |
-| **`52 31`** | **"R1"** | **Mã Yêu cầu**: Xác định luồng yêu cầu đang xử lý. |
-| **`53 45 4C ...`** | **"SELECT * ..."** | **Dữ liệu tải**: Nội dung thô của câu lệnh KBQL (21 byte). |
+1.  **Xác định Kích thước (Byte 0-3)**: Bốn byte đầu tiên `00 00 00 29` (41 trong hệ thập phân) xác định tổng kích thước gói tin. `NetworkReader` sẽ dựa vào con số này để cấp phát đúng vùng nhớ cho mảng byte tiếp theo, tránh hiện tượng tràn bộ đệm.
+2.  **Định danh Loại và Phân luồng (Byte 4)**: Giá trị `04` tương ứng với `MessageType.QueryRequest`. Thông tin này giúp `ProtocolDispatcher` điều hướng gói tin tới bộ máy xử lý truy vấn thay vì các bộ xử lý Admin hay Heartbeat.
+3.  **Xác thực Phiên (Byte 5-20)**: Chuỗi 16 byte GUID `A1 B2 ...` khớp với `SessionManager.ActiveSessions`. Nếu GUID này không tồn tại hoặc đã hết hạn, hệ thống sẽ ngay lập tức hủy kết nối trước khi xử lý phần Payload.
+4.  **Bóc tách Payload (Byte 32-40)**: Sau khi trừ đi các byte Header cố định, 9 byte cuối cùng là chuỗi UTF-8 `SELECT 1;`. Chuỗi này được đưa trực tiếp vào `Lexer` để khởi đầu quy trình phân tích cú pháp.
 
-## 3. Đánh giá Hiệu năng và Độ trễ Phân tách
-
-Giao thức được tối ưu hóa để giảm thiểu thành phần quản trị (Overhead) xuống mức thấp nhất đảm bảo hiệu suất truyền dẫn:
-
--   **Độ phủ của Tiêu đề**: Trung bình chỉ chiếm từ **5% đến 15%** tổng kích thước thông điệp đối với các kịch bản truy vấn tri thức trong môi trường thực tế.
--   **Hiệu năng Giải mã**: Sử dụng các hàm xử lý nhị phân Big-endian đảm bảo tính nhất quán, bộ giải mã chỉ tiêu tốn trung bình **0.05ms** để phân tách khung tin trên các dòng vi xử lý hiện đại.
--   **Tính tương thích hệ thống**: Việc ép buộc chuẩn Big-endian giúp loại bỏ triệt để các sai lệch về kiến trúc phần cứng (Endianness) giữa các điểm cuối trong mạng.
-
-Kiến trúc giao thức này cho phép hệ thống giải quyết tối ưu bài toán truyền dẫn tri thức quy mô lớn với độ bền bỉ và độ chính xác cao.
+Cách đóng gói này giúp hệ thống có thể bóc tách nội dung cực nhanh chỉ bằng cách dịch chuyển con trỏ bộ nhớ (Memory Offset), thay vì phải phân tích toàn bộ văn bản như các giao thức dựa trên JSON hay XML. Điều này cực kỳ quan trọng khi thực hiện các bài toán suy luận thời gian thực với tần suất truy cập cao.

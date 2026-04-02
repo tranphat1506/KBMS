@@ -7,11 +7,11 @@
 Hệ thống Studio được cấu thành từ các phân hệ chuyên biệt nhằm hỗ trợ toàn diện chu trình sống của tri thức:
 
 ### 1.1. Thiết kế Tri thức Trực quan (Knowledge Designer)
--   Cung cấp giao diện tương tác cho phép người dùng kiến tạo và xem xét sơ đồ phả hệ giữa các Khái niệm (**[Concept](../../../00-glossary/01-glossary.md#concept)**) và Quan hệ (**Relation**).
+-   Cung cấp giao diện tương tác cho phép người dùng kiến tạo và xem xét sơ đồ phả hệ giữa các Khái niệm (**Concept**) và Quan hệ (**Relation**).
 -   Tích hợp cơ chế tự động phát hiện các xung đột logic tiềm ẩn trong giai đoạn thiết kế mô hình tri thức (Schema Design).
 
 ### 1.2. Cửa sổ Truy vấn Tri thức (Query Console)
--   **Trình soạn thảo Monaco**: Tích hợp lõi trình soạn thảo của VS Code, hỗ trợ tính năng tô màu cú pháp (**Syntax Highlighting**) chuyên biệt cho ngôn ngữ **[KBQL](../../../00-glossary/01-glossary.md#kbql)**.
+-   **Trình soạn thảo Monaco**: Tích hợp lõi trình soạn thảo của VS Code, hỗ trợ tính năng tô màu cú pháp (**Syntax Highlighting**) chuyên biệt cho ngôn ngữ **KBQL**.
 -   **Chẩn đoán Lỗi Trực tiếp (IntelliSense & Error detection)**: Tự động đánh dấu các sai lệch cú pháp tại vị trí chính xác (Dòng/Cột) dựa trên phản hồi từ bộ phân tích của máy chủ.
 -   **Gợi ý Thông minh**: Tự động đề xuất các tên Khái niệm, Thuộc tính và Luật dẫn đã được định nghĩa trong cơ sở tri thức hiện hành.
 

@@ -1,39 +1,51 @@
-# Đặc tả Cấu trúc Dữ liệu Phân khe (Slotted Page)
+# Bố cục Dữ liệu và Slotted Page
 
-Hệ thống **[KBMS](../../../00-glossary/01-glossary.md#kbms)** sử dụng cấu trúc **Trang phân khe** (**Slotted Page**) làm đơn vị phân trang cơ sở. Mô hình này được áp dụng nhằm quản trị các thực thể tri thức có kích thước biến thiên và tối ưu hóa việc phân bổ không gian lưu trữ thực tế bên trong mỗi trang dữ liệu nhị phân.
+KBMS sử dụng mô hình Slotted Page để quản lý các bản ghi (Tuples) có độ dài biến thiên trong một trang cố định 16KB. Chương này cung cấp ví dụ thực tế về cách dữ liệu được ánh xạ vào các ô nhớ nhị phân.
 
-## 1. Tổ chức Phân vùng Dữ liệu Nội tại
+## 4.4.5. Cơ chế Ánh xạ Ô nhớ (Slotted Page Mapping)
 
-Một trang dữ liệu tiêu chuẩn có dung lượng **16,384 Bytes** (16 KB) được cấu trúc thành các phân vùng chức năng sau:
+Trong mô hình Slotted Page, dữ liệu bản ghi được ghi từ cuối trang ngược lên phía đầu trang. Vùng không gian trống (Free Space) nằm ở giữa Header và các bản ghi:
 
-![Cấu trúc Slotted Page](../../assets/diagrams/slotted_page_v3.png)
-*Hình 4.13: Sơ đồ tổ chức phân vùng dữ liệu trong cấu trúc trang phân khe.*
+-   **Header**: Chứa thông tin về số lượng bản ghi và con trỏ vùng trống.
+-   **Slot Array**: Các cặp `[Offset, Length]` trỏ đến dữ liệu thực tế.
+-   **Tuples**: Dữ liệu tri thức nhị phân của các đối tượng.
 
-1.  **Tiêu đề Trang (Page Header - 24 Bytes)**: Chứa các trường dữ liệu điều phối, định danh trang và các liên kết cấu trúc phục vụ quản lý chuỗi trang (Sequential Access).
-2.  **Mảng Khe lưu trữ (Slot Array)**: Danh sách các con trỏ logic (Slots), mỗi khe có kích thước cố định 8 Bytes (`[Địa chỉ dời (Offset): 4B | Độ dài (Length): 4B]`). Vùng này phát triển tịnh tiến từ sau phần Tiêu đề.
-3.  **Vùng không gian nhớ trống (Free Space)**: Vùng nhớ khả dụng nằm giữa Mảng khe lưu trữ và vùng lưu trữ dữ liệu thực tế.
-4.  **Vùng lưu trữ Bản ghi (Record Storage)**: Vùng lưu trữ các thực thể tri thức dưới định dạng nhị phân, được cấp phát từ cuối trang (High-address) và phát triển ngược về phía đầu trang (Low-address).
+![Trạng thái Slotted Page sau khi chèn dữ liệu](../../assets/diagrams/slotted_page_layout_v3.png)
+*Hình 4.11: Minh họa vị trí thực tế của một thực thể tri thức trong bộ nhớ nhị phân.*
 
-## 2. Đặc tả Kỹ thuật của Tiêu đề Trang (Page Header)
+## 4.4.6. Ví dụ Phân rã mã Hex (Hex Dump)
 
-Tiêu đề trang lưu trữ các tham số kỹ thuật trọng yếu để duy trì cấu trúc cây B+ và hỗ trợ các giao thức phục hồi dữ liệu:
+Giả sử một trang dữ liệu (`PageId=101`) chứa một thực thể `Employee` có kích thước 43 byte. Dưới đây là mô phỏng 64 byte đầu tiên của trang (khi đã giải mã):
 
-*Bảng 4.2: Đặc tả cấu trúc Page Header và ý nghĩa các trường dữ liệu*
-| Byte Offset | Trường dữ liệu | Kiểu | Đặc tả Chức năng |
-| :--- | :--- | :--- | :--- |
-| **0 - 3** | **PageId** | Int32 | Định danh vật lý duy nhất của trang trong cơ sở tri thức. |
-| **4 - 7** | **LSN** | Int32 | Số tuần tự nhật ký (Log Sequence Number) đánh dấu phiên bản giao dịch. |
-| **8 - 11** | **PrevPageId** | Int32 | Định danh trang liền trước trong cấu trúc liên kết kép. |
-| **12 - 15** | **NextPageId** | Int32 | Định danh trang kế tiếp trong cấu trúc liên kết kép. |
-| **16 - 19** | **FreeSpacePtr**| Int32 | Con trỏ đánh dấu vị trí bắt đầu của vùng nhớ trống khả dụng. |
-| **20 - 23** | **SlotCount** | Int32 | Tổng số lượng khe lưu trữ hiện hữu trong trang dữ liệu. |
+```text
+Offset    00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F    Giải mã
+-------------------------------------------------------------------------
+; --- Header của Trang (Bắt đầu trang) ---
+00000000  65 00 00 00 00 00 00 00 FF FF FF FF FF FF FF FF    ........
+          [ PageId: 101 ] [ LSN: 0  ] [ PrevPageId: -1    ]
+00000010  FF FF FF FF D5 3F 00 00 01 00 00 00 D5 3F 00 00    .....?.......?..
+          [ Next: -1  ] [ FSP:16341] [ Count: 1 ] [Slot0: Off=16341, Len=43]
 
-## 3. Cơ chế Quản lý Thực thể Tri thức
+[...] (Vùng trống điền giá trị 0x00)
 
-Cấu trúc trang phân khe hỗ trợ các thao tác quản lý dữ liệu với hiệu quả thực thi tối ưu:
+; --- Dữ liệu Tuple (Cuối trang, tại Offset 16341) ---
+00003FD0  00 00 00 00 00 04 00 1A 00 28 00 2A 00 2B 00 99    ................
+          [ T-Head (Len=4) ][ F0 Off ][ F1 Off ][ F2 Off ][ F3 Off ]
+00003FE0  99 99 99 88 88 77 77 66 66 55 55 55 55 55 55 61    .....wwffUUUUUUa
+          [ Field 0: ObjID GUID (16 bytes)                ]
+```
 
--   **Thao tác Chèn (Insertion)**: Dữ liệu nhị phân được ghi vào vùng nhớ trống theo cơ chế cấp phát ngược chiều. Một khe lưu trữ mới được khởi tạo để lưu trữ địa chỉ dời và độ dài thực tế. Định danh bản ghi (RID) được xác định trực tiếp bằng bộ giá trị `(PageId, SlotId)`.
--   **Thao tác Truy xuất (Access)**: Hệ thống sử dụng Mảng khe lưu trữ như một bảng chỉ mục nội tại. Việc truy xuất dữ liệu thông qua `SlotId` đạt độ phức tạp thời gian **$O(1)$** nhờ khả năng tính toán địa chỉ tuyệt đối trực tiếp.
--   **Thao tác Thu hồi và Tái cấu trúc (Vacuuming & Compaction)**: Khi một bản ghi bị loại bỏ, khe tương ứng sẽ được đánh dấu trạng thái trống. Hệ thống thực hiện quy trình tái cấu trúc dữ liệu (**Compaction**) để thu hồi không gian nhớ liên tục khi có yêu cầu cấp phát mới hoặc theo định kỳ quản trị.
+### Phân tích cấu trúc Hex (Storage Logic)
 
-Cấu trúc tiêu đề cố định kết hợp với cơ chế cấp phát ngược chiều đảm bảo tính linh hoạt tối đa cho các thay đổi về kích thước dữ liệu mà không làm phá vỡ các tham chiếu logic đến thực thể.
+Phân đoạn Hex trên mô tả cách KBMS lưu trữ tri thức một cách "linh hoạt trong sự cố định":
+
+- **Page Header**: Trường `0x65` (Hex) tại Offset 0 xác định định danh trang ($101_{10}$). Trường `FSP = 16341` (Hex: `D5 3F`) đặc biệt quan trọng: nó báo hiệu rằng dữ liệu bản ghi tiếp theo sẽ được ghi vào vùng trống bắt đầu từ byte thứ 16341, đảm bảo không ghi đè lên Header hoặc Slot Array.
+- **Slot Array (Offset 28)**: Chứa giá trị `[D5 3F 2B 00]`. Điều này có nghĩa: bản ghi số 0 (Slot 0) nằm tại Offset 16341 (Hex: `D5 3F`) và có độ dài 43 byte (Hex: `2B`). 
+- **Dữ liệu Tuple (Offset cuối trang)**: Bản ghi Employee không nằm ngay sau Header mà nằm ở cuối cùng của trang logic ($16383 - 42$). Cách bố trí "đầu Header - cuối Data" cho phép không gian trống ở giữa co dãn linh hoạt khi số lượng bản ghi thay đổi, tối ưu hóa dung lượng lưu trữ đĩa.
+
+### Giải thích các con số:
+-   **Page Header**: `PageId=65` (101 trong hệ thập phân), `FSP=16341` (Vị trí bắt đầu vùng trống).
+-   **Slot Array**: `Slot0` chỉ ra rằng bản ghi đầu tiên nằm ở vị trí 16341 và dài 43 byte.
+-   **Tuple Payload**: Chứa mã GUID định danh đối tượng và các giá trị thuộc tính đã được tuần tự hóa.
+
+Cấu trúc Slotted Page giúp KBMS có thể thực hiện các thao tác thêm, xóa và cập nhật tri thức một cách linh hoạt mà không cần phải di chuyển toàn bộ dữ liệu trong tệp tin lưu trữ.

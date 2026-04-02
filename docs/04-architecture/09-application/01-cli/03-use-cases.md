@@ -10,7 +10,7 @@ Giao diện dòng lệnh (**KBMS CLI**) là công cụ chuyên dụng dành cho 
     2.  **Nhận diện Phản hồi**: CLI tiếp nhận gói tin Siêu dữ liệu với thuộc tính định danh bắt đầu bằng giá trị mô tả.
     3.  **Chuyển đổi Hiển thị**: Lớp `ResponseParser` tự động chuyển sang chế độ hiển thị theo chiều dọc (Vertical Mode) để liệt kê danh sách biến số nhằm tránh hiện tượng tràn khung hình hiển thị (Overflow).
 
-![Chế độ Hiển thị Dọc CLI](../../../assets/diagrams/uc_cli_vertical_mode.png)
+![Chế độ Hiển thị Dọc CLI | width=1.05](../../../assets/diagrams/uc_cli_vertical_mode.png)
 *Hình 4.30: Chế độ hiển thị dọc trong giao diện CLI hỗ trợ phân tích cấu trúc.*
 
 ## 2. Kịch bản Tự động hóa Nạp Tri thức (Batch Knowledge Import)

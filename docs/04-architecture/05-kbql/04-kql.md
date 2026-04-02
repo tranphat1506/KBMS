@@ -4,7 +4,7 @@
 
 ## 1. Cơ chế Truy vấn Tri thức
 
-Lệnh `SELECT` trong [KBQL](../../00-glossary/01-glossary.md#kbql) tương đương với tiêu chuẩn SQL nhưng được tối ưu hóa để tương tác với các Khái niệm ([Concept](../../00-glossary/01-glossary.md#concept)) và cấu trúc tri thức.
+Lệnh `SELECT` trong KBQL tương đương với tiêu chuẩn SQL nhưng được tối ưu hóa để tương tác với các Khái niệm (Concept) và cấu trúc tri thức.
 
 ### 1.1. Cấu trúc Lệnh Truy vấn Toàn phần
 
@@ -28,7 +28,7 @@ FROM <concept> [AS <alias>]
 
 ## 2. Quy trình Giải quyết Tri thức (Problem Solving)
 
-Lệnh `SOLVE` là đặc trưng của hệ thống [KBMS](../../00-glossary/01-glossary.md#kbms), dùng để kích hoạt bộ máy giải quyết vấn đề (Problem Solver) dựa trên các công thức và luật dẫn đã được định cấu hình.
+Lệnh `SOLVE` là đặc trưng của hệ thống KBMS, dùng để kích hoạt bộ máy giải quyết vấn đề (Problem Solver) dựa trên các công thức và luật dẫn đã được định cấu hình.
 
 ### 2.1. Cú pháp thực thi
 
@@ -44,7 +44,7 @@ FIND <target_outputs>
 
 1.  **Dữ liệu đầu vào (Input):** Nạp các giá trị tri thức đã biết vào khối `GIVEN`.
 2.  **Suy diễn (Inference):** Hệ thống áp dụng thuật toán Suy diễn tiến (**Forward Chaining**) và Giải phương trình (**Equation Solving**) để tìm giá trị các biến đích trong khối `FIND`.
-3.  **Lưu trữ (Persistence):** Nếu sử dụng từ khóa `SAVE`, kết quả suy diễn sẽ được lưu trữ trực tiếp thành một Sự kiện (**[Fact](../../00-glossary/01-glossary.md#fact)**) mới.
+3.  **Lưu trữ (Persistence):** Nếu sử dụng từ khóa `SAVE`, kết quả suy diễn sẽ được lưu trữ trực tiếp thành một Sự kiện (**Fact**) mới.
 4.  **Kết quả (Output):** Trả về kết quả sau khi đã hoàn tất quy trình suy luận logic.
 
 ## 3. Quản trị và Giám sát Hệ thống

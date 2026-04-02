@@ -13,14 +13,14 @@ Sơ đồ dưới đây mô tả cách thức một yêu cầu tri thức hình 
 
 -   **Tầng 1: Giao diện Ứng dụng (React/Electron)**: Thành phần frontend (React) quản lý trạng thái luồng dữ liệu thông qua cơ chế Redux. Khi người dùng xác nhận thực thi, yêu cầu được chuyển tải tới tiến trình chính của Electron để xử lý hạ tầng.
 -   **Tầng 2: Truyền vận và Giao thức (Network & Protocol)**: Chuyển đổi yêu cầu thành các gói tin nhị phân chuẩn hóa. Hệ thống duy trì các tín hiệu nhịp tim (**Heartbeat**) định kỳ để đảm bảo sự ổn định của kết nối Socket giữa Studio và Máy chủ.
--   **Tầng 3: Bộ máy Tri thức (Knowledge Engine)**: Thành phần `KnowledgeManager` điều phối việc phân tích mã nguồn tri thức. Nếu là lệnh suy diễn, bộ máy thực thi giải thuật [F-Closure](../../../00-glossary/01-glossary.md#f-closure) trên các trang dữ liệu được nạp vào bộ nhớ tạm thời.
+-   **Tầng 3: Bộ máy Tri thức (Knowledge Engine)**: Thành phần `KnowledgeManager` điều phối việc phân tích mã nguồn tri thức. Nếu là lệnh suy diễn, bộ máy thực thi giải thuật F-Closure trên các trang dữ liệu được nạp vào bộ nhớ tạm thời.
 -   **Tầng 4: Lưu trữ Vật lý (Storage Layer)**: Sử dụng các cấu trúc chỉ mục **B+ Tree** để định vị dữ liệu thực thể. Cơ chế **WAL** (Write-Ahead Logging) đảm bảo tính toàn vẹn của tri thức ngay cả khi xảy ra các sự cố ngắt quãng nguồn điện.
 
 ## 2. Cơ chế Thông báo Thời gian thực (Real-time Notification)
 
 Hệ thống thông báo của Studio sử dụng mô hình đẩy dữ liệu từ phía máy chủ (**Server Push**) thay vì mô hình yêu cầu - phản hồi truyền thống:
 
-![Cơ chế Server Push](../../../assets/diagrams/4_tier_notification_flow.png)
+![Cơ chế Server Push | width=1.05](../../../assets/diagrams/4_tier_notification_flow.png)
 *Hình 4.35: Cơ chế Server Push cho các thông báo hệ thống và an ninh thời gian thực.*
 
 1.  **Kích hoạt Sự kiện (Trigger)**: Một sự kiện an ninh hoặc hệ thống được phát hiện tại tầng máy chủ.

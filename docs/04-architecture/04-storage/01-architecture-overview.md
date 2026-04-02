@@ -1,28 +1,26 @@
-# Đặc tả Kiến trúc và Luồng Dữ liệu Tầng Lưu trữ
+# Kiến trúc Tầng Lưu trữ
 
-Kiến trúc lưu trữ của hệ quản trị **[KBMS](../../../00-glossary/01-glossary.md#kbms)** được thiết kế theo mô hình phân trang (**Paging**) hướng hiệu năng, thay thế các mô thức lưu trữ hướng đối tượng truyền thống để đáp ứng các bài toán tri thức quy mô lớn. Tầng lưu trữ không chỉ đóng vai trò là nơi lưu giữ dữ liệu, mà còn là một phân hệ điều phối giữa bộ nhớ tạm thời và thiết bị vật lý nhằm đảm bảo tính toàn vẹn và tốc độ truy xuất tối ưu.
+Tầng Lưu trữ là phân hệ thấp nhất của hệ quản trị KBMS, chịu trách nhiệm quản lý việc ghi dữ liệu tri thức xuống các thiết bị lưu trữ vật lý. Phân hệ này đảm bảo tính bền vững (Durability) và khả năng truy xuất ngẫu nhiên hiệu quả thông qua cấu trúc phân trang.
 
-## 1. Các Thành phần Chức năng và Phân lớp
+## 4.4.1. Sơ đồ Cấu trúc Phân hệ Storage
 
-Kiến trúc nội tại của Tầng Lưu trữ được phân rã thành các lớp chức năng chuyên biệt, phối hợp chặt chẽ để thực thi các yêu cầu từ Tầng Máy chủ. Sơ đồ dưới đây minh họa cấu trúc phân tầng thực tế của bộ máy lưu trữ:
+Kiến trúc tầng lưu trữ được tổ chức thành các thành phần chính sau:
 
-![Kiến trúc Phân lớp Tầng Lưu trữ](../../assets/diagrams/storage_tiering_v3.png)
-*Hình 4.11: Sơ đồ phân tầng chức năng và điều phối các thành phần trong Tầng Lưu trữ KBMS.*
+1.  **Disk Manager**: Thành phần giao tiếp trực tiếp với hệ điều hành để thực hiện các thao tác đọc/ghi byte thô trên tệp tin `.kdb`.
+2.  **Buffer Pool Manager**: Bộ quản lý vùng đệm trên RAM, giúp giảm thiểu số lượng thao tác I/O bằng cách giữ các trang dữ liệu thường xuyên truy cập trong bộ nhớ.
+3.  **Page Management**: Định nghĩa cấu trúc vật lý của các khối dữ liệu 16KB, bao gồm Header và vùng dữ liệu Slotted Page.
+4.  **Log Manager (WAL)**: Ghi lại mọi thay đổi vào tệp nhật ký trước khi thực hiện ghi lên đĩa, đảm bảo an toàn dữ liệu kể cả khi hệ thống gặp sự cố mất điện.
 
-Theo thiết kế hệ thống, các thành phần được phân bổ theo các lớp chức năng sau:
+![Sơ đồ Kiến trúc Tầng Lưu trữ](../../assets/diagrams/storage_architecture_v3.png)
+*Hình 4.9: Cấu trúc phân lớp và điều phối luồng dữ liệu tại Tầng Lưu trữ.*
 
-1.  **Chỉ mục và Truy xuất Logic (Indexing)**: Sử dụng cấu trúc cây B+ (**B+ Tree**) làm thành phần then chốt để định vị nhanh chóng các bản ghi tri thức. Lớp này đóng vai trò cầu nối giữa yêu cầu truy vấn logic và vị trí vật lý của dữ liệu trên đĩa.
-2.  **Phân trang và Bố cục Nhị phân (Slotted Page)**: Thành phần `Slotted Page Mapper` chịu trách nhiệm tổ chức dữ liệu bên trong mỗi trang 16KB. Thiết kế này cho phép quản lý linh hoạt các bản ghi có độ dài biến thiên mà không gây lãng phí không gian lưu trữ vật lý.
-3.  **Điều phối Vùng đệm (Buffer Pool)**: Lớp `BufferPoolManager` thực hiện quản trị vùng nhớ đệm, áp dụng thuật toán thay thế trang LRU (Least Recently Used) và cơ chế ghim trang (Pinning) để giảm thiểu tối đa số lượng thao tác đọc/ghi trực tiếp từ thiết bị lưu trữ.
-4.  **Đảm bảo Tính bền vững (Durability)**: Thành phần `WalManager` thực thi giao thức Nhật ký ghi trước (**Write-Ahead Logging - WAL**) theo chuẩn ARIES, đảm bảo mọi thay đổi tri thức được lưu vết an toàn trước khi cập nhật chính thức vào tệp tin cơ sở dữ liệu.
-5.  **Giao tiếp Vật lý (Disk I/O)**: `DiskManager` đảm nhiệm vai trò tương tác trực tiếp với hệ điều hành, thực hiện các thao tác đọc/ghi khối dữ liệu (Block I/O) và quản lý cấu trúc tệp tin dữ liệu (.dat) cùng tệp tin nhật ký (.log).
+## 4.4.2. Nguyên lý Truy xuất theo Trang (Page-based Access)
 
-## 2. Nguyên lý Vận hành và Đặc tính Kỹ thuật
+Hệ thống không đọc dữ liệu theo dòng (Stream) mà đọc theo từng khối cố định. Mỗi yêu cầu truy xuất dữ liệu từ các tầng trên đều được ánh xạ về một `PageId` cụ thể. 
 
-Hệ thống lưu trữ của KBMS được xây dựng dựa trên các nguyên lý kỹ thuật hiện đại của hệ quản trị cơ sở dữ liệu quan hệ và tri thức:
+Công thức tính toán vị trí vật lý trên đĩa (Offset):
+$$Offset = PageId \times 16416$$
 
--   **Cơ chế Nạp trang theo yêu cầu (Demand Paging)**: Dữ liệu chỉ được nạp vào bộ nhớ RAM khi có yêu cầu truy xuất, cho phép xử lý các cơ sở tri thức có dung lượng thực tế vượt ngưỡng giới hạn của bộ nhớ vật lý.
--   **Tính bền vững Tuyệt đối**: Thông qua giao thức nhật ký ghi trước, hệ thống có khả năng phục hồi hoàn toàn trạng thái tri thức ngay cả khi xảy ra các sự cố gián đoạn đột ngột về nguồn điện hoặc hệ thống.
--   **Tối ưu hóa Truy xuất Song hành**: Cấu trúc phân trang cho phép nhiều luồng xử lý truy cập độc lập vào các trang dữ liệu khác nhau, tối ưu hóa hiệu suất thực thi trong môi trường đa nhiệm.
+Kích thước 16,416 byte bao gồm 16KB dữ liệu logic và 32 byte dành cho phần bù mã hóa AES. Việc sử dụng kích thước cố định cho phép hệ thống thực hiện phép nhảy trực tiếp (`Seek`) đến vị trí cần thiết với độ phức tạp $O(1)$, không phụ thuộc vào kích thước tệp tin.
 
-Các nội dung tiếp theo sẽ đi sâu vào đặc tả chi tiết về cấu trúc dữ liệu nhị phân và logic triển khai của từng thành phần nêu trên.
+Cấu trúc này là nền tảng để triển khai các thuật toán chỉ mục phức tạp như Cây B+ và quản lý không gian trống một cách hiệu quả.

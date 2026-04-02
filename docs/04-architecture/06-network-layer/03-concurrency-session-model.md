@@ -1,6 +1,6 @@
 # Mô hình Xử lý Đồng thời và Quản lý Phiên
 
-Để đảm bảo hiệu quả phục vụ hàng trăm kết nối đồng hành mà không làm suy giảm hiệu năng hệ thống, **[KBMS](../../../00-glossary/01-glossary.md#kbms)** tích lập một mô hình quản lý phiên (Session Management) tập trung. Mô hình này dựa trên các cấu trúc dữ liệu an toàn bộ nhớ (Thread-safe) và cơ chế Vào/Ra bất đồng bộ (Asynchronous I/O).
+Để đảm bảo hiệu quả phục vụ hàng trăm kết nối đồng hành mà không làm suy giảm hiệu năng hệ thống, **KBMS** tích lập một mô hình quản lý phiên (Session Management) tập trung. Mô hình này dựa trên các cấu trúc dữ liệu an toàn bộ nhớ (Thread-safe) và cơ chế Vào/Ra bất đồng bộ (Asynchronous I/O).
 
 ## 1. Thành phần Điều hướng Kết nối và Ngữ cảnh Phiên
 

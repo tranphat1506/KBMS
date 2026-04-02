@@ -1,6 +1,6 @@
 # Đặc tả Biểu thức và Hệ thống Hàm số
 
-Biểu thức là tập hợp các đơn vị tính toán cốt lõi trong các mệnh đề `WHERE`, `IF`, `SET` và hàm `CALC()`. **[KBQL](../../00-glossary/01-glossary.md#kbql)** tích hợp bộ máy đánh giá biểu thức hỗ trợ đầy đủ các phép toán học thuật và hàm số hình thức.
+Biểu thức là tập hợp các đơn vị tính toán cốt lõi trong các mệnh đề `WHERE`, `IF`, `SET` và hàm `CALC()`. **KBQL** tích hợp bộ máy đánh giá biểu thức hỗ trợ đầy đủ các phép toán học thuật và hàm số hình thức [6].
 
 ## 1. Hệ thống Toán tử Cơ sở
 
@@ -20,7 +20,7 @@ Hệ thống toán tử trong KBQL bao gồm các phép toán tiêu chuẩn cho 
 
 ## 2. Danh mục Hàm số Tích hợp
 
-Hệ thống **[KBMS](../../00-glossary/01-glossary.md#kbms)** tích hợp sẵn các hàm toán học chuyên sâu để phục vụ việc tính toán tri thức:
+Hệ thống **KBMS** tích hợp sẵn các hàm toán học chuyên sâu để phục vụ việc tính toán tri thức:
 
 *Bảng: Danh mục Hàm số Tích hợp (Built-in Functions) trong KBQL*
 | Hàm | Đặc tả Chức năng | Ví dụ Thực thi |
@@ -41,7 +41,7 @@ Hàm `CALC()` cho phép nhúng trực tiếp biểu thức vào kết quả củ
 
 ## 4. Tương tác với Thuộc tính và Biến số
 
-Bên trong các biểu thức, người dùng có thể tham chiếu trực tiếp đến định danh của các biến thuộc **[Concept](../../00-glossary/01-glossary.md#concept)** hiện tại. Đối với các truy vấn liên kết (**JOIN**), cần sử dụng bí danh (**Alias**) để phân định rõ ràng các thực thể liên quan.
+Bên trong các biểu thức, người dùng có thể tham chiếu trực tiếp đến định danh của các biến thuộc **Concept** hiện tại. Đối với các truy vấn liên kết (**JOIN**), cần sử dụng bí danh (**Alias**) để phân định rõ ràng các thực thể liên quan.
 
 ## 5. Tối ưu hóa Hiệu năng Thực thi
 
