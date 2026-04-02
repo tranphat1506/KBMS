@@ -320,6 +320,12 @@ public class KnowledgeManager
         }
 
         var success = _kbCatalog.DropKb(node.KbName);
+        if (success)
+        {
+            _conceptCatalog.DropAllConcepts(node.KbName);
+            _v3Router.DropAllMappings(node.KbName);
+            _userCatalog.RevokeAllPrivileges(node.KbName);
+        }
         return success
             ? new { success = true, message = $"Knowledge base '{node.KbName}' dropped successfully." }
             : ErrorResponse.ExecutionErrorResponse($"Knowledge base '{node.KbName}' not found.");
@@ -1881,7 +1887,7 @@ public class KnowledgeManager
         var resolvedConcept = engine.ConceptResolver?.Invoke(node.ConceptName) ?? concept;
 
         var result = node.FindVariables.Count > 0 
-            ? engine.SolveBackward(resolvedConcept, initialFacts, node.FindVariables)
+            ? engine.FindClosure(resolvedConcept, initialFacts, node.FindVariables)
             : engine.FindClosure(resolvedConcept, initialFacts, new List<string>());
 
         if (result.Success && node.SaveResults)

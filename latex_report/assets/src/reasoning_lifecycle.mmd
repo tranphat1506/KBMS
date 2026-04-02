@@ -1,0 +1,13 @@
+graph TD
+    AST["AST từ Module IV"] --> IE[Inference Engine]
+    IE --> Compile[Rule Compiler]
+    
+    subgraph Rete_Core [Mạng lưới Rete]
+        Compile --> Rete[Rete Network: Alpha/Beta Nodes]
+        Rete --> Assert[Assert Fact]
+        Assert --> Propagate[LAN TRUYỀN: Token Propagation]
+    end
+    
+    Propagate --> Terminal[Terminal Node Trigger]
+    Terminal --> Closure[F-Closure: Fixed Point]
+    Closure --> KM[Kết quả trả về Knowledge Manager]

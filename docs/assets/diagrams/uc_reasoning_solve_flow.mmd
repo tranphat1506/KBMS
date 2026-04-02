@@ -2,13 +2,13 @@ sequenceDiagram
     participant U as Người dùng
     participant G as Studio (Data Grid)
     participant S as KBMS Server
-    participant R as Reasoning Engine
+    participant R as Rete Network
 
     U->>G: Nhập lệnh SOLVE GIVEN... FIND...
     G->>S: Gửi yêu cầu Suy diễn (MessageType.QUERY)
-    S->>R: Kích hoạt Forward Chaining (F-Closure)
-    R->>R: Áp dụng các Rule đang hoạt động
-    R->>S: Trả về chuỗi Suy luận (Derivation Trace)
-    S-->>G: Stream kết quả (MessageType.ROW)
-    S-->>G: Gửi gói tin kết thúc (MessageType.FETCH_DONE)
-    G->>U: Cập nhật Bảng dữ liệu & Tab Lời giải
+    S->>R: Khởi tạo luồng lan truyền (Token Propagation)
+    R->>R: So khớp nốt (Pattern Matching) & Quản lý Agenda
+    R->>S: Trả về bao đóng tri thức (Reasoning Result)
+    S-->>G: Stream kết quả dẫn xuất (MessageType.ROW)
+    S-->>G: Xác nhận hoàn tất (MessageType.FETCH_DONE)
+    G->>U: Hiển thị bảng dữ liệu & Vết suy luận (Traces)

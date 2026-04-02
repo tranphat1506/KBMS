@@ -1,0 +1,8 @@
+graph TD
+    User[SOLVE/INSERT Query] --> Engine[InferenceEngine.cs]
+    Engine --> Compiler[ReteCompiler.cs]
+    Compiler --> Network[ReteNetwork.cs]
+    Network --> Nodes[ReteNode Chain]
+    Nodes --> Agenda[Reasoning Agenda]
+    Agenda --> Engine
+    Engine --> Result[Final Knowledge Result]

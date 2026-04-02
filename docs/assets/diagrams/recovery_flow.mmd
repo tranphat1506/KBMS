@@ -1,17 +1,11 @@
-sequenceDiagram
-    participant DB as KBMS Storage Engine
-    participant WAL as {kbName}.wal (Binary)
-    participant DATA as {kbName}.kdb (Slotted Pages)
+graph TD
+    Start["Hệ thống Khởi động sau Sự cố"]
+    Analysis["GIAI ĐOẠN PHÂN TÍCH<br/>(Xác định các Dirty Pages và Giao dịch dở dang)"]
+    Redo["GIAI ĐOẠN TÁI HIỆN (REDO)<br/>(Áp dụng After-Image cho các Giao dịch đã COMMIT)"]
+    Undo["GIAI ĐOẠN HOÀN TÁC (UNDO)<br/>(Sử dụng Before-Image khôi phục các Giao dịch chưa COMMIT)"]
+    End["Hệ thống đạt Trạng thái Nhất quán"]
 
-    DB->>WAL: Phân tích toàn bộ tệp nhật ký (.wal)
-    loop Quét từ đầu đến cuối tệp
-        WAL-->>DB: Trả về LogRecord (TxnId, PageId, BeforeImage, Committed)
-        alt Committed == false (Giao dịch bị ngắt quãng)
-            DB->>DATA: Khôi phục trạng thái cũ (Undo bằng BeforeImage)
-            Note over DB, DATA: Đảm bảo tính nguyên tử (Atomicity)
-        else Committed == true (Giao dịch thành công)
-            DB->>DB: Bỏ qua (Dữ liệu đã được đảm bảo an toàn)
-        end
-    end
-    DB->>DATA: Xác nhận ghi xuống đĩa (Flush)
-    DB->>DB: Hệ thống sẵn sàng phục vụ
+    Start --> Analysis
+    Analysis --> Redo
+    Redo --> Undo
+    Undo --> End

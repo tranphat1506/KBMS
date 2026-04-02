@@ -24,7 +24,7 @@ with open(GLOSSARY_FILE, 'r', encoding='utf-8') as f:
 # Sort terms by length descending
 sorted_terms = sorted(term_data.keys(), key=len, reverse=True)
 
-def link_terms(content):
+def link_terms(content, rel_glossary_path):
     placeholders = []
     
     def mask(m):
@@ -32,55 +32,64 @@ def link_terms(content):
         return f"PH__{len(placeholders)-1}__PH"
 
     # Mask everything that should NOT be modified
-    # First: mask <!-- no-glossary --> ... <!-- /no-glossary --> blocks entirely
     content = re.sub(r'<!--\s*no-glossary\s*-->.*?<!--\s*/no-glossary\s*-->', mask, content, flags=re.DOTALL)
-    # Mask Markdown headers (lines starting with #) so they don't appear linked in TOC
-    content = re.sub(r'^#+.*$', mask, content, flags=re.MULTILINE)
+    content = re.sub(r'^\s*#+.*$', mask, content, flags=re.MULTILINE)
+    content = re.sub(r'^\s*\|.*\|\s*$', mask, content, flags=re.MULTILINE)
+    content = re.sub(r'^\s*(Hình|Bảng|Sơ đồ|Đồ thị|Figure|Table)\s+\d+[:.].*$', mask, content, flags=re.IGNORECASE | re.MULTILINE)
     content = re.sub(r'```.*?```', mask, content, flags=re.DOTALL)
     content = re.sub(r'`.*?`', mask, content)
-    # Mask math blocks
     content = re.sub(r'\$\$.*?\$\$', mask, content, flags=re.DOTALL)
     content = re.sub(r'\$.*?\$', mask, content)
-    # Mask existing links [text](url)
     content = re.sub(r'\[[^\]]+\]\([^\)]+\)', mask, content)
     content = re.sub(r'!\[[^\]]+\]\([^\)]+\)', mask, content)
     content = re.sub(r'<[^>]+>', mask, content)
 
-    # Combine terms into one big regex for single-pass replacement
+    # Combine terms into one big regex
     pattern = r'\b(' + '|'.join(re.escape(t) for t in sorted_terms) + r')\b'
     
+    seen_terms_in_file = set()
+    term_to_official = {t.lower(): t for t in sorted_terms}
+
     def repl(m):
         raw_text = m.group(1)
-        key = raw_text.lower()
-        for t in sorted_terms:
-            if t.lower() == key:
-                slug = term_data[t]
-                return f"[{raw_text}](../00-glossary/01-glossary.md#{slug})"
+        term_key = raw_text.lower()
+        if term_key in seen_terms_in_file: return raw_text
+        official_term = term_to_official.get(term_key)
+        if official_term:
+            slug = term_data[official_term]
+            seen_terms_in_file.add(term_key)
+            return f"[{raw_text}]({rel_glossary_path}#{slug})"
         return raw_text
 
     content = re.sub(pattern, repl, content, flags=re.IGNORECASE)
 
-    # Restore placeholders in reverse order
+    # Restore placeholders
     for i in range(len(placeholders) - 1, -1, -1):
         content = content.replace(f"PH__{i}__PH", placeholders[i])
-        
     return content
 
 # 2. Walk through all md files
 for root, dirs, files in os.walk(DOCS_DIR):
     for file in files:
-        if file.endswith('.md') and file != '01-glossary.md' and 'reference' not in file.lower():
+        # Skip the glossary itself and binary/temp folders
+        if file.endswith('.md') and file != '01-glossary.md' and '00-glossary' not in root:
+            # Also skip the actual bib chapter 06-references to keep it clean
+            if '06-references' in root: continue
+            
             path = os.path.join(root, file)
+            # Calculate the relative path from this file's folder to the glossary file
+            # e.g., from 'docs/04-architecture/02-models' to 'docs/00-glossary/01-glossary.md'
+            rel_glossary = os.path.relpath(GLOSSARY_FILE, start=root)
+            
             with open(path, 'r', encoding='utf-8') as f:
                 content = f.read()
             
-            # More aggressive link stripping to clean up broken past attempts
-            # Matches variations of glossary links (handles dashes, extra spaces, etc.)
-            content = re.sub(r'\[([^\]]+)\]\(\.\./00[-−\s]*glossary/01[-−\s]*glossary\.md[^)]*\)', r'\1', content)
+            # Deep Link Stripping: remove all glossary links (handles any number of ../)
+            content = re.sub(r'\[([^\]]+)\]\((?:\.\./)*00-glossary/01-glossary\.md[^)]*\)', r'\1', content)
             
-            new_content = link_terms(content)
+            new_content = link_terms(content, rel_glossary)
             
             if new_content != content:
                 with open(path, 'w', encoding='utf-8') as f:
                     f.write(new_content)
-                print(f"Updated {path}")
+                print(f"Updated {path} -> {rel_glossary}")

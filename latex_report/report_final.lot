@@ -2,48 +2,27 @@
 \addvspace {10\p@ }
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {3.1}{\ignorespaces So sánh Tính năng Chi tiết giữa KBMS~[\hyperlink {glos:kbms}{K00}] và các hệ thống khác}}{27}{table.caption.8}%
-\contentsline {table}{\numberline {3.2}{\ignorespaces Đặc tả Yêu cầu Chức năng Hệ thống Master}}{31}{table.caption.16}%
+\contentsline {table}{\numberline {3.1}{\ignorespaces So sánh Tính năng Chi tiết giữa KBMS và các hệ thống khác}}{22}{table.caption.7}%
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {4.1}{\ignorespaces Mô tả chức năng 4 tầng kiến trúc KBMS~[\hyperlink {glos:kbms}{K00}]}}{37}{table.caption.29}%
-\contentsline {table}{\numberline {4.2}{\ignorespaces Đặc tả yêu cầu phi chức năng hệ thống KBMS~[\hyperlink {glos:kbms}{K00}]}}{41}{table.caption.31}%
+\contentsline {table}{\numberline {4.1}{\ignorespaces Đặc tả kỹ thuật và kiến trúc mã nguồn theo phân tầng}}{32}{table.caption.14}%
+\contentsline {table}{\numberline {4.2}{\ignorespaces Đặc tả thông số kĩ thuật của hệ thống lưu trữ}}{41}{table.caption.24}%
+\contentsline {table}{\numberline {4.3}{\ignorespaces Đặc tả cấu trúc Page Header và ý nghĩa các trường dữ liệu}}{44}{table.caption.26}%
+\contentsline {table}{\numberline {4.4}{\ignorespaces Đặc tả các trường dữ liệu của bản ghi LogRecord}}{50}{table.caption.30}%
+\contentsline {table}{\numberline {4.5}{\ignorespaces Đặc tả nhị phân của thực thể Concept}}{51}{table.caption.31}%
+\contentsline {table}{\numberline {4.6}{\ignorespaces Phân loại Từ khóa dành riêng (Reserved Keywords)}}{52}{table.caption.32}%
+\contentsline {table}{\numberline {4.7}{\ignorespaces Khả năng hỗ trợ lệnh ALTER cho từng đối tượng KBQL}}{52}{table.caption.33}%
+\contentsline {table}{\numberline {4.8}{\ignorespaces Phân loại Kiểu dữ liệu nguyên thuỷ trong KBQL}}{52}{table.caption.34}%
+\contentsline {table}{\numberline {4.9}{\ignorespaces Danh mục Hàm tích hợp (Built-in Functions) trong KBQL}}{62}{table.caption.35}%
+\contentsline {table}{\numberline {4.10}{\ignorespaces Phân bổ trách nhiệm các phân hệ thuộc Tầng Máy chủ}}{67}{table.caption.37}%
+\contentsline {table}{\numberline {4.11}{\ignorespaces Đặc tả Header của Giao thức truyền tải nhị phân}}{68}{table.caption.39}%
+\contentsline {table}{\numberline {4.12}{\ignorespaces Danh mục Command Codes và Phân loại loại thông điệp}}{69}{table.caption.40}%
+\contentsline {table}{\numberline {4.13}{\ignorespaces Phân loại hệ thống từ khóa và Token của ngôn ngữ KBQL}}{73}{table.caption.46}%
+\contentsline {table}{\numberline {4.14}{\ignorespaces Ma trận danh mục các kịch bản kiểm thử tích hợp Tầng Máy chủ}}{81}{table.caption.53}%
+\contentsline {table}{\numberline {4.15}{\ignorespaces Danh mục các Toán tử vật lý trong mô hình thực thi Pipeline}}{85}{table.caption.59}%
+\contentsline {table}{\numberline {4.16}{\ignorespaces Nhật ký lan truyền dữ kiện qua mạng Rete trong kịch bản hình học}}{91}{table.caption.64}%
+\contentsline {table}{\numberline {4.17}{\ignorespaces Danh mục lệnh điều khiển CLI}}{92}{table.caption.65}%
+\contentsline {table}{\numberline {4.18}{\ignorespaces Kiểm thử định dạng kết quả truy vấn trong CLI}}{96}{table.caption.71}%
 \addvspace {10\p@ }
-\addvspace {10\p@ }
-\contentsline {table}{\numberline {6.1}{\ignorespaces Phân loại Từ khóa dành riêng (Reserved Keywords)}}{51}{table.caption.49}%
-\contentsline {table}{\numberline {6.2}{\ignorespaces Khả năng hỗ trợ lệnh ALTER cho từng đối tượng KBQL~[\hyperlink {glos:kbql}{K01}]}}{52}{table.caption.50}%
-\contentsline {table}{\numberline {6.3}{\ignorespaces Phân loại Kiểu dữ liệu nguyên thuỷ trong KBQL~[\hyperlink {glos:kbql}{K01}]}}{52}{table.caption.51}%
-\contentsline {table}{\numberline {6.4}{\ignorespaces Danh mục Hàm tích hợp (Built-in Functions) trong KBQL~[\hyperlink {glos:kbql}{K01}]}}{62}{table.caption.89}%
-\contentsline {table}{\numberline {6.5}{\ignorespaces Phân bổ kịch bản kiểm thử theo nhóm ngôn ngữ}}{65}{table.caption.96}%
-\addvspace {10\p@ }
-\contentsline {table}{\numberline {7.1}{\ignorespaces Thông số định lượng chi tiết của Storage Engine V3.}}{67}{table.caption.101}%
-\contentsline {table}{\numberline {7.2}{\ignorespaces Bảng 11}}{68}{table.caption.105}%
-\contentsline {table}{\numberline {7.3}{\ignorespaces Đặc tả cấu trúc Header~[\hyperlink {glos:header}{H03}] 24 byte của trang vật lý trong KBMS~[\hyperlink {glos:kbms}{K00}]}}{69}{table.caption.108}%
-\contentsline {table}{\numberline {7.4}{\ignorespaces Chiến lược lưu trữ nhị phân thống nhất trong KBMS~[\hyperlink {glos:kbms}{K00}].}}{72}{table.caption.114}%
-\contentsline {table}{\numberline {7.5}{\ignorespaces Layout nhị phân của ObjectInstance~[\hyperlink {glos:objectinstance}{O01}].}}{72}{table.caption.116}%
-\contentsline {table}{\numberline {7.6}{\ignorespaces Layout nhị phân của KnowledgeBase (KB).}}{73}{table.caption.118}%
-\contentsline {table}{\numberline {7.7}{\ignorespaces Layout Toán tử (Operator) \& Hàm (Function).}}{73}{table.caption.120}%
-\contentsline {table}{\numberline {7.8}{\ignorespaces Cấu trúc nhị phân chi tiết của một đơn vị LogRecord~[\hyperlink {glos:logrecord}{L02}] trong file WAL.}}{76}{table.caption.123}%
-\contentsline {table}{\numberline {7.9}{\ignorespaces Phân rã kích thước trang vật lý sau khi mã hóa AES-256~[\hyperlink {glos:aes-256}{A02}].}}{77}{table.caption.124}%
-\contentsline {table}{\numberline {7.10}{\ignorespaces Ánh xạ Tuple~[\hyperlink {glos:tuple}{T07}] nhị phân cho thực thể Employee.}}{79}{table.caption.127}%
-\contentsline {table}{\numberline {7.11}{\ignorespaces Phân tích các trường trong Tuple~[\hyperlink {glos:tuple}{T07}] Siêu dữ liệu Concept~[\hyperlink {glos:concept}{C06}].}}{81}{table.caption.130}%
-\addvspace {10\p@ }
-\contentsline {table}{\numberline {8.1}{\ignorespaces Bảng 21}}{83}{table.caption.133}%
-\addvspace {10\p@ }
-\contentsline {table}{\numberline {9.1}{\ignorespaces Đặc tả cấu trúc Header~[\hyperlink {glos:header}{H03}] nhị phân của gói tin trong giao thức KBMS~[\hyperlink {glos:kbms}{K00}]}}{88}{table.caption.140}%
-\contentsline {table}{\numberline {9.2}{\ignorespaces Danh mục các loại thông điệp trong giao thức nhị phân KBMS~[\hyperlink {glos:kbms}{K00}]}}{89}{table.caption.141}%
-\addvspace {10\p@ }
-\contentsline {table}{\numberline {10.1}{\ignorespaces Bảng 24}}{98}{table.caption.163}%
-\contentsline {table}{\numberline {10.2}{\ignorespaces Tổng hợp kết quả kiểm thử hệ thống máy chủ}}{101}{table.caption.170}%
-\addvspace {10\p@ }
-\contentsline {table}{\numberline {11.1}{\ignorespaces Phân loại các nhóm Token~[\hyperlink {glos:token}{T10}] trong Lexer~[\hyperlink {glos:lexer}{L01}]}}{104}{table.caption.183}%
-\addvspace {10\p@ }
-\contentsline {table}{\numberline {12.1}{\ignorespaces Danh mục lệnh điều khiển CLI~[\hyperlink {glos:cli}{C02}]}}{113}{table.caption.201}%
-\contentsline {table}{\numberline {12.2}{\ignorespaces Kiểm thử định dạng kết quả truy vấn trong CLI~[\hyperlink {glos:cli}{C02}]}}{117}{table.caption.210}%
-\addvspace {10\p@ }
-\addvspace {10\p@ }
-\contentsline {table}{\numberline {14.1}{\ignorespaces Yêu cầu cấu hình hệ thống tối thiểu}}{129}{table.caption.236}%
-\contentsline {table}{\numberline {14.2}{\ignorespaces Danh sách kịch bản kiểm thử tích hợp toàn diện}}{129}{table.caption.237}%
-\contentsline {table}{\numberline {14.3}{\ignorespaces Hiệu năng theo Tầng Kiến trúc}}{130}{table.caption.239}%
-\contentsline {table}{\numberline {14.4}{\ignorespaces Hiệu năng Truy vấn Khối lượng trên tập dữ liệu mô phỏng}}{130}{table.caption.240}%
-\contentsline {table}{\numberline {14.5}{\ignorespaces Danh mục các Bộ Dữ liệu Kiểm thử chuẩn}}{131}{table.caption.242}%
-\contentsline {table}{\numberline {14.6}{\ignorespaces Dữ liệu nguồn bộ kiểm thử Charlie}}{131}{table.caption.243}%
+\contentsline {table}{\numberline {5.1}{\ignorespaces Đặc tả hiệu năng phản hồi các thành phần hệ thống}}{108}{table.caption.83}%
+\contentsline {table}{\numberline {5.2}{\ignorespaces Chỉ số Throughput và Scalability trên các bộ dữ liệu}}{109}{table.caption.84}%
+\contentsline {table}{\numberline {5.3}{\ignorespaces Mức độ tiêu thụ tài nguyên thực tế}}{109}{table.caption.85}%

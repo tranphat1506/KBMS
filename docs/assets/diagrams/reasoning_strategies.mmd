@@ -1,11 +1,7 @@
 graph LR
-    subgraph Suy_dien_Tien["Suy diễn Tiến (KBMS V3)"]
-        F1["Đầu vào: GT (Sự thật khởi tạo)"] --> F2["Tìm Tập đóng (Closure)"]
-        F2 --> F3["Kết quả: Tri thức dẫn xuất"]
-        F2 -.-> F4["Dừng sớm: Đạt mục tiêu KL"]
-    end
-    
-    subgraph Suy_dien_Lui["Suy diễn Lùi (Kinh điển)"]
-        B1["Đầu vào: Mục tiêu (Giả thuyết)"] --> B2["Mục tiêu con đệ quy"]
-        B2 --> B3["Chứng minh: Đúng/Sai"]
+    subgraph Rete_Inference_Strategy["Chiến lược Suy diễn Rete (Native)"]
+        F1["Dữ kiện khởi tạo (Ground Truth)"] --> F2["Mạng lưới Rete (Topology)"]
+        F2 --> F3["Lan truyền nội bộ (Token Propagation)"]
+        F3 --> F4["Bao đóng tri thức (Fixed-point Closure)"]
+        F4 -.-> F5["Dừng sớm (Early Exit)"]
     end

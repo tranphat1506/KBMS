@@ -1,0 +1,30 @@
+-- [COKB Advanced Package] Smart City IoT (DS-L)
+DROP KNOWLEDGE BASE City_KB;
+CREATE KNOWLEDGE BASE City_KB;
+USE City_KB;
+
+-- [C] Concepts + [H] Space Hierarchy
+CREATE CONCEPT City (
+    VARIABLES (c_name: STRING)
+);
+
+CREATE CONCEPT Zone (
+    VARIABLES (z_id: STRING, status: STRING),
+    PROPERTIES (type: 'SpatialArea')
+);
+
+CREATE CONCEPT Sensor (
+    VARIABLES (s_id: STRING, speed: INT, zone_id: STRING),
+    BASE_OBJECTS (Zone),
+    CONSTRAINTS (C_ValidSpeed: speed >= 0),
+    RULES (
+        -- Luật lan truyền tắc nghẽn (Transitive Congestion)
+        RULE R_TrafficJam: IF speed < 10 THEN SET zone_id.status = 'JAMMED'
+    ),
+    PROPERTIES (source: 'Vortex_Telemetry', version: '4.0.9')
+);
+
+CREATE HIERARCHY Zone PART_OF City;
+
+-- [Data] Bulk Import from CSV (Production Mode)
+IMPORT (CONCEPT: Sensor, FORMAT: CSV, FILE: 'sensors.csv');

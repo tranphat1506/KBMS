@@ -2,76 +2,62 @@
 \addvspace {10\p@ }
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {3.1}{\ignorespaces Sơ đồ Use Case tổng quát sự tương tác giữa người dùng và các dịch vụ lõi.}}{29}{figure.caption.13}%
-\contentsline {figure}{\numberline {3.2}{\ignorespaces Sơ đồ Sequence mô tả luồng sinh mệnh của một yêu cầu trong hệ thống.}}{30}{figure.caption.14}%
+\contentsline {figure}{\numberline {3.1}{\ignorespaces Sơ đồ cấu trúc thành phần chi tiết của hệ thống KBMS Server.}}{25}{figure.caption.8}%
+\contentsline {figure}{\numberline {3.2}{\ignorespaces Sơ đồ Use Case tổng quát sự tương tác giữa người dùng và các dịch vụ lõi.}}{26}{figure.caption.9}%
+\contentsline {figure}{\numberline {3.3}{\ignorespaces Sơ đồ Sequence mô tả quy trình xử lý yêu cầu phân tầng trong KBMS V3.}}{27}{figure.caption.10}%
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {4.1}{\ignorespaces Kiến trúc 4 tầng chuẩn hóa của hệ thống KBMS~[\hyperlink {glos:kbms}{K00}] V3.}}{35}{figure.caption.26}%
-\contentsline {figure}{\numberline {4.2}{\ignorespaces Luồng xử lý yêu cầu đi xuyên suốt 4 tầng kiến trúc.}}{36}{figure.caption.27}%
-\contentsline {figure}{\numberline {4.3}{\ignorespaces Sơ đồ luồng bảo mật và chẩn đoán hệ thống song song.}}{36}{figure.caption.28}%
-\contentsline {figure}{\numberline {4.4}{\ignorespaces Bản đồ giải phẫu thành phần tầng lưu trữ vật lý.}}{40}{figure.caption.30}%
+\contentsline {figure}{\numberline {4.1}{\ignorespaces Sơ đồ cấu trúc thành phần chi tiết của hệ thống KBMS Server.}}{30}{figure.caption.11}%
+\contentsline {figure}{\numberline {4.2}{\ignorespaces Sơ đồ Sequence mô tả quy trình xử lý yêu cầu phân tầng trong KBMS V3.}}{31}{figure.caption.12}%
+\contentsline {figure}{\numberline {4.3}{\ignorespaces Sơ đồ luồng bảo mật và chẩn đoán hệ thống song song.}}{31}{figure.caption.13}%
+\contentsline {figure}{\numberline {4.4}{\ignorespaces Cấu trúc 6 thành phần hình thức của KnowledgeBase (C, H, R, Ops, Funcs, Rules).}}{32}{figure.caption.15}%
+\contentsline {figure}{\numberline {4.5}{\ignorespaces Sơ đồ lớp đặc tả cấu trúc nội tại phức hợp của một Concept~[\hyperlink {glos:concept}{C06}].}}{33}{figure.caption.16}%
+\contentsline {figure}{\numberline {4.6}{\ignorespaces Sơ đồ minh họa quan hệ Parent-Child thông qua HierarchyType.}}{34}{figure.caption.17}%
+\contentsline {figure}{\numberline {4.7}{\ignorespaces Sơ đồ lớp đặc tả Relation với Domain, Range và tri thức nội tại.}}{35}{figure.caption.18}%
+\contentsline {figure}{\numberline {4.8}{\ignorespaces Sơ đồ lớp đặc tả cấu trúc Rule~[\hyperlink {glos:rule}{R05}] và cấu trúc đệ quy Expression.}}{36}{figure.caption.19}%
+\contentsline {figure}{\numberline {4.9}{\ignorespaces Sơ đồ lớp đặc tả thành phần Function và Operator.}}{37}{figure.caption.20}%
+\contentsline {figure}{\numberline {4.10}{\ignorespaces Sơ đồ lớp đặc tả ObjectInstance và cơ chế lưu trữ giá trị Dictionary.}}{37}{figure.caption.21}%
+\contentsline {figure}{\numberline {4.11}{\ignorespaces Mô hình phân tầng từ lớp Ứng dụng đến lớp Lưu trữ vật lý của hệ thống KBMS.}}{39}{figure.caption.22}%
+\contentsline {figure}{\numberline {4.12}{\ignorespaces Quy trình điều phối trang dữ liệu giữa bộ nhớ RAM và thiết bị lưu trữ vật lý.}}{41}{figure.caption.23}%
+\contentsline {figure}{\numberline {4.13}{\ignorespaces Sơ đồ tổ chức phân vùng dữ liệu trong cấu trúc Slotted Page.}}{43}{figure.caption.25}%
+\contentsline {figure}{\numberline {4.14}{\ignorespaces Sơ đồ phân cấp cấu trúc và cơ chế liên kết nốt lá trong hệ thống chỉ mục B+ Tree.}}{46}{figure.caption.27}%
+\contentsline {figure}{\numberline {4.15}{\ignorespaces Quy trình quản lý nhật ký giao dịch và đồng bộ hóa trang dữ liệu (I/O Pipeline).}}{47}{figure.caption.28}%
+\contentsline {figure}{\numberline {4.16}{\ignorespaces Lưu đồ các giai đoạn phục hồi dữ liệu dựa trên giải thuật ARIES.}}{49}{figure.caption.29}%
+\contentsline {figure}{\numberline {4.17}{\ignorespaces Sơ đồ Master Architecture của tầng Máy chủ KBMS V3.}}{66}{figure.caption.36}%
+\contentsline {figure}{\numberline {4.18}{\ignorespaces Sơ đồ trình tự trao đổi thông điệp nhị phân giữa Client và Module I.}}{68}{figure.caption.38}%
+\contentsline {figure}{\numberline {4.19}{\ignorespaces Sơ đồ trình tự vòng đời của một truy vấn (Query Lifecycle).}}{70}{figure.caption.41}%
+\contentsline {figure}{\numberline {4.20}{\ignorespaces Kết quả chạy Unit Test cho khung truyền dẫn nhị phân.}}{71}{figure.caption.42}%
+\contentsline {figure}{\numberline {4.21}{\ignorespaces Nhật ký byte nhị phân được bóc tách trực tiếp từ Socket.}}{71}{figure.caption.43}%
+\contentsline {figure}{\numberline {4.22}{\ignorespaces Bằng chứng hệ thống xử lý ổn định 256 kết nối đồng thời không xảy ra hiện tượng nghẽn luồng (Blocking).}}{71}{figure.caption.44}%
+\contentsline {figure}{\numberline {4.23}{\ignorespaces Sơ đồ máy trạng thái điều phối luồng phân tách Token.}}{72}{figure.caption.45}%
+\contentsline {figure}{\numberline {4.24}{\ignorespaces Sơ đồ phả hệ các nút AST trong hệ thống tri thức KBMS.}}{75}{figure.caption.47}%
+\contentsline {figure}{\numberline {4.25}{\ignorespaces Mã nguồn các kịch bản kiểm thử đơn vị (Unit Test) cho bộ phân tích cú pháp.}}{78}{figure.caption.48}%
+\contentsline {figure}{\numberline {4.26}{\ignorespaces Kết quả thực thi thành công toàn bộ bộ kiểm thử cú pháp trên môi trường phát triển.}}{78}{figure.caption.49}%
+\contentsline {figure}{\numberline {4.27}{\ignorespaces Chứng minh khả năng bóc tách và xác thực thành công các cấu trúc biểu thức lồng nhau với độ phức tạp cao.}}{78}{figure.caption.50}%
+\contentsline {figure}{\numberline {4.28}{\ignorespaces Quy trình điều phối yêu cầu từ tiếp nhận đến ghi nhật ký kiểm toán.}}{79}{figure.caption.51}%
+\contentsline {figure}{\numberline {4.29}{\ignorespaces Nhật ký khởi động hệ thống ghi nhận trạng thái sẵn sàng của các phân hệ hạ tầng.}}{81}{figure.caption.52}%
+\contentsline {figure}{\numberline {4.30}{\ignorespaces Mã nguồn các kịch bản kiểm thử tích hợp cuối-đến-cuối (End-to-End).}}{82}{figure.caption.54}%
+\contentsline {figure}{\numberline {4.31}{\ignorespaces Kết quả thực thi vượt qua 111 kịch bản kiểm thử tích hợp hệ thống.}}{82}{figure.caption.55}%
+\contentsline {figure}{\numberline {4.32}{\ignorespaces Kịch bản kiểm thử khả năng cô lập quyền hạn giữa các vai trò người dùng.}}{82}{figure.caption.56}%
+\contentsline {figure}{\numberline {4.33}{\ignorespaces Minh chứng hệ thống từ chối thực thi yêu cầu của người dùng không đủ thẩm quyền.}}{82}{figure.caption.57}%
+\contentsline {figure}{\numberline {4.34}{\ignorespaces Quy trình điều phối từ cây AST đến các bộ máy thực thi chuyên biệt.}}{83}{figure.caption.58}%
+\contentsline {figure}{\numberline {4.35}{\ignorespaces Kiến trúc phân tầng của Hệ thống Suy luận KBMS.}}{86}{figure.caption.60}%
+\contentsline {figure}{\numberline {4.36}{\ignorespaces Hệ thống phân cấp các lớp nốt Rete trong mã nguồn KBMS.}}{87}{figure.caption.61}%
+\contentsline {figure}{\numberline {4.37}{\ignorespaces Quy trình biên dịch tri thức thành đồ thị nốt Rete.}}{88}{figure.caption.62}%
+\contentsline {figure}{\numberline {4.38}{\ignorespaces Sơ đồ tuần tự lan truyền Token qua các nốt Rete.}}{89}{figure.caption.63}%
+\contentsline {figure}{\numberline {4.39}{\ignorespaces Sơ đồ tuần tự mô tả luồng xử lý lệnh và phản hồi từ Server của CLI.}}{93}{figure.caption.66}%
+\contentsline {figure}{\numberline {4.40}{\ignorespaces Kịch bản thực thi hàng loạt qua lệnh SOURCE trong CLI}}{94}{figure.caption.67}%
+\contentsline {figure}{\numberline {4.41}{\ignorespaces Chế độ hiển thị dọc (Vertical Mode) trong CLI}}{95}{figure.caption.68}%
+\contentsline {figure}{\numberline {4.42}{\ignorespaces Minh chứng mã nguồn kiểm thử giao diện dòng lệnh (CLI).}}{96}{figure.caption.69}%
+\contentsline {figure}{\numberline {4.43}{\ignorespaces Giao diện tương tác CLI thực thi câu lệnh truy vấn tri thức.}}{96}{figure.caption.70}%
+\contentsline {figure}{\numberline {4.44}{\ignorespaces Hiển thị kết quả truy vấn dưới dạng bảng (Table View) trong CLI.}}{96}{figure.caption.72}%
+\contentsline {figure}{\numberline {4.45}{\ignorespaces Luồng xử lý một yêu cầu tri thức xuyên suốt 4 tầng từ Studio UI.}}{98}{figure.caption.73}%
+\contentsline {figure}{\numberline {4.46}{\ignorespaces Cơ chế Server Push cho các thông báo hệ thống thời gian thực.}}{99}{figure.caption.74}%
+\contentsline {figure}{\numberline {4.47}{\ignorespaces Luồng quy trình thiết kế và kiểm tra tri thức trong Studio.}}{100}{figure.caption.75}%
+\contentsline {figure}{\numberline {4.48}{\ignorespaces Quy trình các bước từ gửi yêu cầu đến truy vết suy diễn.}}{100}{figure.caption.76}%
+\contentsline {figure}{\numberline {4.49}{\ignorespaces Các bước thao tác nạp dữ liệu lớn và bảo trì B+ Tree~[\hyperlink {glos:b-tree}{B01}].}}{102}{figure.caption.77}%
+\contentsline {figure}{\numberline {4.50}{\ignorespaces Quy trình phát hiện và ngắt kết nối các phiên làm việc bất thường.}}{103}{figure.caption.78}%
+\contentsline {figure}{\numberline {4.51}{\ignorespaces Luồng phân tích lỗi hệ thống thông qua Log Analyzer~[\hyperlink {glos:log-analyzer}{L14}].}}{104}{figure.caption.79}%
+\contentsline {figure}{\numberline {4.52}{\ignorespaces Minh chứng mã nguồn API~[\hyperlink {glos:api}{A04}] giám sát (Dashboard API).}}{105}{figure.caption.80}%
+\contentsline {figure}{\numberline {4.53}{\ignorespaces Giao diện soạn thảo tri thức trực quan trong KBMS~[\hyperlink {glos:kbms}{K00}] Studio.}}{105}{figure.caption.81}%
+\contentsline {figure}{\numberline {4.54}{\ignorespaces Chứng minh luồng dữ liệu Studio và Electron~[\hyperlink {glos:electron}{E06}] Main truyền nhận gói tin nhị phân.}}{105}{figure.caption.82}%
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {5.1}{\ignorespaces Sơ đồ lớp mô tả cấu trúc thực thể của KnowledgeBase trong KBMS~[\hyperlink {glos:kbms}{K00}] V3.}}{43}{figure.caption.36}%
-\contentsline {figure}{\numberline {5.2}{\ignorespaces Sơ đồ lớp đặc tả cấu trúc nội tại phức hợp của một Concept~[\hyperlink {glos:concept}{C06}].}}{44}{figure.caption.37}%
-\contentsline {figure}{\numberline {5.3}{\ignorespaces Sơ đồ minh họa quan hệ Parent-Child thông qua HierarchyType.}}{45}{figure.caption.38}%
-\contentsline {figure}{\numberline {5.4}{\ignorespaces Sơ đồ lớp đặc tả Relation với Domain, Range và tri thức nội tại.}}{46}{figure.caption.39}%
-\contentsline {figure}{\numberline {5.5}{\ignorespaces Sơ đồ lớp đặc tả cấu trúc Rule~[\hyperlink {glos:rule}{R05}] và cấu trúc đệ quy Expression.}}{47}{figure.caption.40}%
-\contentsline {figure}{\numberline {5.6}{\ignorespaces Sơ đồ lớp đặc tả thành phần Function và Operator.}}{48}{figure.caption.41}%
-\contentsline {figure}{\numberline {5.7}{\ignorespaces Sơ đồ lớp đặc tả ObjectInstance~[\hyperlink {glos:objectinstance}{O01}] và cơ chế lưu trữ giá trị Dictionary.}}{48}{figure.caption.42}%
-\addvspace {10\p@ }
-\contentsline {figure}{\numberline {6.1}{\ignorespaces Kết quả kiểm thử bộ phân tích cú pháp (Parser~[\hyperlink {glos:parser}{P02}]) với hàng trăm kịch bản kiểm thử trên 21,000 dòng mã kịch bản.}}{65}{figure.caption.97}%
-\contentsline {figure}{\numberline {6.2}{\ignorespaces Luồng Token~[\hyperlink {glos:token}{T10}] được phân tách bởi Lexer~[\hyperlink {glos:lexer}{L01}] trước khi đưa vào Parser~[\hyperlink {glos:parser}{P02}].}}{65}{figure.caption.98}%
-\addvspace {10\p@ }
-\contentsline {figure}{\numberline {7.1}{\ignorespaces Sơ đồ chiến lược luồng I/O đa tầng của KBMS~[\hyperlink {glos:kbms}{K00}].}}{66}{figure.caption.99}%
-\contentsline {figure}{\numberline {7.2}{\ignorespaces Giải phẫu cấu trúc trang nhị phân Slotted-Page~[\hyperlink {glos:page}{P01}] của KBMS~[\hyperlink {glos:kbms}{K00}] V3.}}{69}{figure.caption.107}%
-\contentsline {figure}{\numberline {7.3}{\ignorespaces Sơ đồ cấu trúc đa tầng của cây B+ Tree~[\hyperlink {glos:b-tree}{B01}] trong việc quản lý thực thể.}}{70}{figure.caption.109}%
-\contentsline {figure}{\numberline {7.4}{\ignorespaces Cơ chế tách nút (Split) tự động khi trang dữ liệu bị đầy.}}{71}{figure.caption.113}%
-\contentsline {figure}{\numberline {7.5}{\ignorespaces Luồng dữ liệu qua các tầng xử lý từ Model đến Disk.}}{74}{figure.caption.121}%
-\contentsline {figure}{\numberline {7.6}{\ignorespaces Cơ chế khôi phục tính nhất quán bằng cách hoàn tác (Undo) các giao dịch chưa hoàn tất.}}{75}{figure.caption.122}%
-\contentsline {figure}{\numberline {7.7}{\ignorespaces Minh họa vị trí thực tế của đối tượng TamGiac trong bộ nhớ nhị phân.}}{80}{figure.caption.128}%
-\addvspace {10\p@ }
-\addvspace {10\p@ }
-\contentsline {figure}{\numberline {9.1}{\ignorespaces Vòng đời xử lý truy vấn xuyên suốt 4 tầng kiến trúc}}{90}{figure.caption.142}%
-\contentsline {figure}{\numberline {9.2}{\ignorespaces Quy trình đóng gói và phân rã gói tin nhị phân}}{91}{figure.caption.143}%
-\contentsline {figure}{\numberline {9.3}{\ignorespaces Kịch bản kiểm thử đóng gói và phân rã gói tin nhị phân.}}{94}{figure.caption.149}%
-\contentsline {figure}{\numberline {9.4}{\ignorespaces Nhật ký gói tin nhị phân (Little-endian~[\hyperlink {glos:little-endian}{L05}]) truyền trên Socket.}}{94}{figure.caption.151}%
-\contentsline {figure}{\numberline {9.5}{\ignorespaces Bằng chứng Server xử lý đồng thời nhiều Client mà không nghẽn.}}{94}{figure.caption.153}%
-\addvspace {10\p@ }
-\contentsline {figure}{\numberline {10.1}{\ignorespaces Sơ đồ tương tác giữa Knowledge Manager~[\hyperlink {glos:knowledge-manager}{K09}] và các phân hệ cấp thấp.}}{97}{figure.caption.160}%
-\contentsline {figure}{\numberline {10.2}{\ignorespaces Luồng khởi động Server và đăng ký các Manager}}{99}{figure.caption.164}%
-\contentsline {figure}{\numberline {10.3}{\ignorespaces Nhật ký khởi động máy chủ thành công với đầy đủ các Manager.}}{101}{figure.caption.169}%
-\contentsline {figure}{\numberline {10.4}{\ignorespaces Kịch bản kiểm thử tích hợp (End-to-End) thông qua TCP Sockets.}}{101}{figure.caption.172}%
-\contentsline {figure}{\numberline {10.5}{\ignorespaces Kết quả thực thi 111 kịch bản kiểm thử tích hợp toàn diện.}}{101}{figure.caption.174}%
-\contentsline {figure}{\numberline {10.6}{\ignorespaces Minh chứng mã nguồn kiểm thử bảo mật RBAC~[\hyperlink {glos:rbac}{R01}].}}{102}{figure.caption.176}%
-\contentsline {figure}{\numberline {10.7}{\ignorespaces Kết quả từ chối truy cập (Access Denied) đối với người dùng không có quyền.}}{102}{figure.caption.178}%
-\addvspace {10\p@ }
-\contentsline {figure}{\numberline {11.1}{\ignorespaces Luồng Token được phân tách bởi Lexer trước khi đưa vào Parser}}{103}{figure.caption.179}%
-\contentsline {figure}{\numberline {11.2}{\ignorespaces Tổng quan kiến trúc nút AST của ngôn ngữ KBQL}}{106}{figure.caption.185}%
-\contentsline {figure}{\numberline {11.3}{\ignorespaces Sơ đồ chi tiết nút AST cho ngôn ngữ KDL}}{107}{figure.caption.186}%
-\contentsline {figure}{\numberline {11.4}{\ignorespaces Sơ đồ chi tiết nút AST cho ngôn ngữ KQL và KML}}{108}{figure.caption.187}%
-\contentsline {figure}{\numberline {11.5}{\ignorespaces Sơ đồ chi tiết nút AST cho ngôn ngữ KCL và TCL}}{109}{figure.caption.190}%
-\contentsline {figure}{\numberline {11.6}{\ignorespaces Minh chứng mã nguồn kiểm thử độ bao phủ của bộ phân tích (Parser~[\hyperlink {glos:parser}{P02}]).}}{111}{figure.caption.196}%
-\contentsline {figure}{\numberline {11.7}{\ignorespaces Kết quả vượt qua bộ kiểm thử với hàng trăm kịch bản trên nền tảng 21,000 dòng mã kịch bản.}}{111}{figure.caption.198}%
-\contentsline {figure}{\numberline {11.8}{\ignorespaces Chứng minh Parser~[\hyperlink {glos:parser}{P02}] xử lý thành công các biểu thức lồng nhau phức tạp.}}{111}{figure.caption.200}%
-\addvspace {10\p@ }
-\contentsline {figure}{\numberline {12.1}{\ignorespaces Sơ đồ luồng xử lý đầu vào trong giao diện CLI}}{113}{figure.caption.202}%
-\contentsline {figure}{\numberline {12.2}{\ignorespaces Kịch bản thực thi hàng loạt qua lệnh SOURCE trong CLI}}{115}{figure.caption.204}%
-\contentsline {figure}{\numberline {12.3}{\ignorespaces Chế độ hiển thị dọc (Vertical Mode) trong CLI}}{116}{figure.caption.205}%
-\contentsline {figure}{\numberline {12.4}{\ignorespaces Minh chứng mã nguồn kiểm thử giao diện dòng lệnh (CLI~[\hyperlink {glos:cli}{C02}]).}}{117}{figure.caption.207}%
-\contentsline {figure}{\numberline {12.5}{\ignorespaces Giao diện tương tác CLI~[\hyperlink {glos:cli}{C02}] thực thi câu lệnh truy vấn tri thức.}}{117}{figure.caption.209}%
-\contentsline {figure}{\numberline {12.6}{\ignorespaces Hiển thị kết quả truy vấn dưới dạng bảng (Table View) trong CLI~[\hyperlink {glos:cli}{C02}].}}{117}{figure.caption.211}%
-\addvspace {10\p@ }
-\contentsline {figure}{\numberline {13.1}{\ignorespaces Luồng xử lý một yêu cầu tri thức xuyên suốt 4 tầng từ Studio UI.}}{119}{figure.caption.217}%
-\contentsline {figure}{\numberline {13.2}{\ignorespaces Cơ chế Server Push~[\hyperlink {glos:server-push}{S14}] cho các thông báo hệ thống thời gian thực.}}{120}{figure.caption.222}%
-\contentsline {figure}{\numberline {13.3}{\ignorespaces Luồng quy trình thiết kế và kiểm tra tri thức trong Studio.}}{121}{figure.caption.223}%
-\contentsline {figure}{\numberline {13.4}{\ignorespaces Quy trình các bước từ gửi yêu cầu đến truy vết suy diễn.}}{122}{figure.caption.224}%
-\contentsline {figure}{\numberline {13.5}{\ignorespaces Các bước thao tác nạp dữ liệu lớn và bảo trì B+ Tree~[\hyperlink {glos:b-tree}{B01}].}}{123}{figure.caption.225}%
-\contentsline {figure}{\numberline {13.6}{\ignorespaces Quy trình phát hiện và ngắt kết nối các phiên làm việc bất thường.}}{124}{figure.caption.226}%
-\contentsline {figure}{\numberline {13.7}{\ignorespaces Luồng phân tích lỗi hệ thống thông qua Log Analyzer~[\hyperlink {glos:log-analyzer}{L14}].}}{125}{figure.caption.227}%
-\contentsline {figure}{\numberline {13.8}{\ignorespaces Minh chứng mã nguồn API~[\hyperlink {glos:api}{A04}] giám sát (Dashboard API~[\hyperlink {glos:api}{A04}]).}}{126}{figure.caption.229}%
-\contentsline {figure}{\numberline {13.9}{\ignorespaces Giao diện soạn thảo tri thức trực quan trong KBMS~[\hyperlink {glos:kbms}{K00}] Studio.}}{126}{figure.caption.231}%
-\contentsline {figure}{\numberline {13.10}{\ignorespaces Chứng minh luồng dữ liệu Studio và Electron~[\hyperlink {glos:electron}{E06}] Main truyền nhận gói tin nhị phân.}}{126}{figure.caption.233}%
-\addvspace {10\p@ }
-\contentsline {figure}{\numberline {14.1}{\ignorespaces Giao diện cài đặt thành công KBMS trên Linux}}{128}{figure.caption.235}%
-\contentsline {figure}{\numberline {14.2}{\ignorespaces Tổng kết kết quả 111 kịch bản kiểm thử (100\% Passed).}}{129}{figure.caption.238}%
-\contentsline {figure}{\numberline {14.3}{\ignorespaces Kết quả đo đạc hiệu năng với cột Duration chi tiết}}{130}{figure.caption.241}%
-\contentsline {figure}{\numberline {14.4}{\ignorespaces Vết suy diễn của thuật toán F-Closure trên dữ liệu kiểm thử}}{132}{figure.caption.245}%

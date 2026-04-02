@@ -1,0 +1,134 @@
+-- [COKB Advanced Package] Geometry (DS-S)
+DROP KNOWLEDGE BASE Geometry_KB;
+CREATE KNOWLEDGE BASE Geometry_KB;
+USE Geometry_KB;
+
+-- [C] Concepts with Advanced Blocks
+CREATE CONCEPT Point (
+    VARIABLES (id: STRING, x: FLOAT, y: FLOAT),
+    PROPERTIES (domain: 'Geometry_2D', precision: 'float64')
+);
+
+CREATE CONCEPT Triangle (
+    VARIABLES (id: STRING, side_a: FLOAT, side_b: FLOAT, side_c: FLOAT, t_type: STRING),
+    CONSTRAINTS (
+        C1: side_a > 0 AND side_b > 0 AND side_c > 0,
+        C2: (side_a + side_b) > side_c
+    ),
+    RULES (
+        RULE R_RightTriangle: IF (side_a*side_a + side_b*side_b) = (side_c*side_c) THEN SET t_type = 'RightTriangle'
+    ),
+    PROPERTIES (author: 'Nguyen An', version: '1.0')
+);
+
+-- [Relation] vertex-poly mapping
+CREATE RELATION HasVertex FROM Triangle TO Point;
+
+-- [Funcs] Geometric Calculations
+CREATE FUNCTION GetDistance(x1: FLOAT, y1: FLOAT, x2: FLOAT, y2: FLOAT) RETURNS FLOAT 
+BODY {
+    RETURN SQRT((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
+}
+
+-- [Data] Bulk Ingestion
+INSERT BULK INTO Triangle ATTRIBUTE
+('T000', 83.88, 92.83, 21.67, 'Normal'),
+('T001', 10.97, 51.43, 41.35, 'Normal'),
+('T002', 87.22, 88.51, 41.33, 'Normal'),
+('T003', 27.86, 64.79, 81.15, 'Normal'),
+('T004', 46.35, 43.63, 83.76, 'Normal'),
+('T005', 80.7, 74.45, 30.42, 'Normal'),
+('T006', 16.1, 88.22, 88.61, 'Normal'),
+('T007', 6.52, 7.49, 3.07, 'Normal'),
+('T008', 8.91, 93.65, 85.8, 'Normal'),
+('T009', 62.69, 63.38, 39.11, 'Normal'),
+('T010', 37.61, 18.57, 24.3, 'Normal'),
+('T011', 36.6, 54.7, 23.61, 'Normal'),
+('T012', 21.61, 61.03, 43.36, 'Normal'),
+('T013', 96.05, 23.6, 89.51, 'Normal'),
+('T014', 40.84, 51.9, 84.42, 'Normal'),
+('T015', 52.07, 27.01, 59.95, 'Normal'),
+('T016', 68.26, 97.31, 90.27, 'Normal'),
+('T017', 35.39, 44.09, 37.32, 'Normal'),
+('T018', 46.82, 6.46, 49.66, 'Normal'),
+('T019', 20.7, 69.75, 49.9, 'Normal'),
+('T020', 98.61, 10.41, 92.49, 'Normal'),
+('T021', 27.48, 47.0, 19.98, 'Normal'),
+('T022', 90.86, 75.3, 61.74, 'Normal'),
+('T023', 55.36, 82.63, 44.76, 'Normal'),
+('T024', 83.7, 14.92, 83.1, 'Normal'),
+('T025', 81.81, 52.39, 29.45, 'Normal'),
+('T026', 55.24, 14.89, 47.4, 'Normal'),
+('T027', 91.18, 50.08, 55.32, 'Normal'),
+('T028', 105.81, 75.93, 35.86, 'Normal'),
+('T029', 27.36, 16.24, 40.01, 'Normal'),
+('T030', 64.54, 49.17, 41.94, 'Normal'),
+('T031', 47.27, 41.22, 71.26, 'Normal'),
+('T032', 39.52, 92.02, 64.18, 'Normal'),
+('T033', 21.04, 66.21, 87.21, 'Normal'),
+('T034', 66.49, 84.06, 60.95, 'Normal'),
+('T035', 91.61, 99.68, 34.06, 'Normal'),
+('T036', 52.62, 54.84, 7.03, 'Normal'),
+('T037', 90.55, 36.0, 57.13, 'Normal'),
+('T038', 16.23, 59.2, 53.57, 'Normal'),
+('T039', 69.12, 51.14, 38.61, 'Normal'),
+('T040', 78.94, 34.16, 48.57, 'Normal'),
+('T041', 36.39, 57.83, 26.42, 'Normal'),
+('T042', 76.15, 62.73, 14.46, 'Normal'),
+('T043', 24.89, 52.71, 41.97, 'Normal'),
+('T044', 41.7, 17.69, 59.04, 'Normal'),
+('T045', 7.24, 54.82, 47.87, 'Normal'),
+('T046', 73.48, 44.05, 29.55, 'Normal'),
+('T047', 34.42, 49.32, 17.19, 'Normal'),
+('T048', 71.5, 58.94, 64.44, 'Normal'),
+('T049', 68.19, 44.4, 44.75, 'Normal'),
+('T050', 40.29, 59.52, 25.04, 'Normal'),
+('T051', 48.03, 24.97, 60.17, 'Normal'),
+('T052', 75.95, 51.29, 29.19, 'Normal'),
+('T053', 37.38, 46.81, 22.74, 'Normal'),
+('T054', 33.77, 15.04, 20.66, 'Normal'),
+('T055', 64.54, 89.97, 58.6, 'Normal'),
+('T056', 26.54, 79.52, 62.59, 'Normal'),
+('T057', 62.38, 8.48, 64.62, 'Normal'),
+('T058', 17.39, 61.48, 44.61, 'Normal'),
+('T059', 21.43, 60.17, 53.97, 'Normal'),
+('T060', 76.17, 55.29, 49.76, 'Normal'),
+('T061', 27.38, 35.27, 8.32, 'Normal'),
+('T062', 69.17, 13.82, 67.02, 'Normal'),
+('T063', 42.54, 57.03, 38.89, 'Normal'),
+('T064', 89.51, 97.58, 27.28, 'Normal'),
+('T065', 71.94, 52.35, 78.66, 'Normal'),
+('T066', 68.72, 19.13, 56.79, 'Normal'),
+('T067', 19.9, 91.92, 85.14, 'Normal'),
+('T068', 60.31, 39.76, 99.71, 'Normal'),
+('T069', 78.56, 35.5, 61.27, 'Normal'),
+('T070', 32.7, 48.13, 20.0, 'Normal'),
+('T071', 79.67, 94.64, 49.26, 'Normal'),
+('T072', 68.86, 48.65, 39.57, 'Normal'),
+('T073', 101.05, 10.86, 93.87, 'Normal'),
+('T074', 5.66, 51.95, 46.5, 'Normal'),
+('T075', 58.29, 70.5, 13.03, 'Normal'),
+('T076', 72.5, 46.78, 90.59, 'Normal'),
+('T077', 76.83, 38.63, 58.28, 'Normal'),
+('T078', 13.06, 51.61, 42.86, 'Normal'),
+('T079', 9.45, 73.53, 76.96, 'Normal'),
+('T080', 45.6, 52.24, 21.82, 'Normal'),
+('T081', 6.27, 73.92, 79.01, 'Normal'),
+('T082', 41.54, 21.64, 43.17, 'Normal'),
+('T083', 13.35, 51.16, 40.65, 'Normal'),
+('T084', 70.81, 23.79, 50.21, 'Normal'),
+('T085', 11.33, 101.94, 104.38, 'Normal'),
+('T086', 78.59, 33.19, 91.18, 'Normal'),
+('T087', 32.0, 86.71, 78.78, 'Normal'),
+('T088', 88.65, 58.34, 58.44, 'Normal'),
+('T089', 15.59, 46.85, 58.99, 'Normal'),
+('T090', 68.78, 30.47, 56.71, 'Normal'),
+('T091', 10.29, 11.74, 15.77, 'Normal'),
+('T092', 38.19, 17.81, 24.87, 'Normal'),
+('T093', 59.04, 29.16, 62.35, 'Normal'),
+('T094', 60.27, 43.8, 84.56, 'Normal'),
+('T095', 48.58, 8.65, 49.5, 'Normal'),
+('T096', 33.29, 16.69, 34.1, 'Normal'),
+('T097', 53.14, 28.54, 50.99, 'Normal'),
+('T098', 74.05, 74.3, 3.14, 'Normal'),
+('T099', 31.94, 50.6, 70.47, 'Normal');

@@ -1,0 +1,12 @@
+graph LR
+    Input["User Input (;)"] --> Buffer["Command Buffer"]
+    Buffer --> Req["Request Message (MessageType)"]
+    Req --> Net["KBMS.Network (Socket)"]
+    Net --> Server["KBMS.Server (Process)"]
+    Server --> Resp["Response (TableRow/Error)"]
+    Resp --> Parser["CLI ResponseParser"]
+    Parser --> Console["Grid Display"]
+    
+    style Input fill:#e6f7ff,stroke:#1890ff
+    style Req fill:#f9f0ff,stroke:#722ed1
+    style Parser fill:#fff7e6,stroke:#fa8c16

@@ -1,0 +1,13 @@
+graph LR
+    AST["AST tu Module IV"] --> IE[Inference Engine]
+    IE --> Compile[Rule Compiler]
+    
+    subgraph Rete_Core [Mang luoi Rete]
+        Compile --> Rete[Rete Network: Alpha/Beta Nodes]
+        Rete --> Assert[Assert Fact]
+        Assert --> Propagate[LAN TRUYEN: Token Propagation]
+    end
+    
+    Propagate --> Terminal[Terminal Node Trigger]
+    Terminal --> Closure[F-Closure: Fixed Point]
+    Closure --> KM[Ket qua tra ve Knowledge Manager]

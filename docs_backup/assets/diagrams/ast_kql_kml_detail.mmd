@@ -1,0 +1,20 @@
+graph LR
+    KQL_KML["KQL & KML Family"]
+    
+    subgraph Query_Logic ["Truy vấn & Suy diễn"]
+        KQL_KML --- Q["Query: Select / Solving"]
+        KQL_KML --- D["Meta: Show / Describe / Explain"]
+    end
+    
+    subgraph Data_Ops ["Thao tác dữ liệu (Update)"]
+        KQL_KML --- I["Insert / BulkInsert"]
+        KML_DETAIL["Update / Delete"] --- KQL_KML
+    end
+    
+    subgraph Maint_Ops ["Bảo trì & Trao đổi"]
+        KQL_KML --- Imp["Import / Export"]
+        KQL_KML --- M["Maintenance: Vacuum/Reindex"]
+    end
+    
+    style KQL_KML fill:#bbf,stroke:#333,stroke-width:4px
+    style Query_Logic,Data_Ops,Maint_Ops fill:#f0f5ff,stroke:#99b,stroke-dasharray: 5 5

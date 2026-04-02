@@ -1,0 +1,24 @@
+graph TD
+    Start([Khởi động Máy chủ]) --> DetectCrash{Crash xảy ra?}
+    DetectCrash -- Không --> Normal[Hoạt động bình thường]
+    DetectCrash -- Có --> RecoveryStart[Bắt đầu Phục hồi Hệ thống]
+    
+    subgraph ARIES_Phases [Quy trình Phục hồi ARIES]
+        RecoveryStart --> Analysis[Giai đoạn 1: Phân tích - Analysis]
+        Analysis --> AnalysisNote["Xác định Dirty Pages &<br/>Giao dịch dở dang trong .klf"]
+        
+        AnalysisNote --> Redo[Giai đoạn 2: Tái hiện - Redo]
+        Redo --> RedoApply["Sử dụng After-Image cập nhật .kdb<br/>(Cập nhật lại các thay đổi đã Commit)"]
+        
+        RedoApply --> Undo[Giai đoạn 3: Hoàn tác - Undo]
+        Undo --> UndoApply["Sử dụng Before-Image khôi phục .kdb<br/>(Loại bỏ các thay đổi chưa Commit)"]
+    end
+    
+    UndoApply --> Success([Hệ thống Nhất quán & Sẵn sàng])
+
+    %% Styling
+    style Analysis fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    style Redo fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Undo fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style Success fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style ARIES_Phases fill:#f5f5f5,stroke:#9e9e9e,stroke-dasharray: 5 5

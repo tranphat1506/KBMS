@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 import re
 import shutil
@@ -8,23 +9,43 @@ LATEX_DIR = 'latex_report'
 ASSETS_DEST = os.path.join(LATEX_DIR, 'assets')
 OUTPUT_TEX = os.path.join(LATEX_DIR, 'report_final.tex')
 
+def clean_title(s):
+    """Aggressive 3-pass cleaning to remove (4.16), xx:, Figure:, etc."""
+    if not s: return ""
+    # Pass 1: Remove leading numbers/xx and brackets
+    s = re.sub(r'^\s*[\(\[x\.]*[\d\.]+[x\.\d]*[\)\]\:]*\s*', '', s)
+    # Pass 2: Remove Keywords like Hình, Bảng, Figure, xx
+    s = re.sub(r'^\s*(xx|Bảng|Hình|Figure|Table|Hinh|Bang)[:\s\.]*', '', s, flags=re.IGNORECASE)
+    # Pass 3: Catch combined or residual patterns like "Hình 4.19:" or "xx:"
+    s = re.sub(r'^\s*[\(\[x\.]*[\d\.]+[x\.\d]*[\)\]\:]*\s*', '', s)
+    s = re.sub(r'^\s*xx[:\s\.]*', '', s, flags=re.IGNORECASE)
+    return s.strip().lstrip(': ').strip(' *_')
+
 # --- Chapter Vietnamese Mapping ---
 CHAPTER_NAMES = {
     '01-introduction': 'GIỚI THIỆU VÀ ĐẶT VẤN ĐỀ', 
-    '02-theory': 'CƠ SỞ LÝ THUYẾT COKB', 
+    '02-theory': 'CƠ SỞ LÝ THUYẾT', 
     '03-analysis-and-design': 'PHÂN TÍCH VÀ THIẾT KẾ HỆ THỐNG', 
-    '04-architecture': 'KIẾN TRÚC HỆ THỐNG VÀ CÁC TẦNG XỬ LÝ',
-    '05-models': 'ĐỊNH NGHĨA MÔ HÌNH VÀ KHÁI NIỆM', 
-    '06-kbql-reference': 'NGÔN NGỮ TRUY VẤN TRI THỨC KBQL',
-    '07-storage': 'CƠ CHẾ LƯU TRỮ VÀ QUẢN LÝ DỮ LIỆU NHỊ PHÂN', 
-    '08-reasoning': 'BỘ MÁY SUY DIỄN VÀ THUẬT TOÁN BAO ĐÓNG',
-    '09-network': 'GIAO THỨC MẠNG VÀ TRUYỀN TẢI DỮ LIỆU', 
-    '10-server': 'HỆ THỐNG MÁY CHỦ VÀ QUẢN TRỊ TÀI NGUYÊN',
-    '11-parser': 'BỘ PHÂN TÍCH CÚ PHÁP VÀ TRÌNH BIÊN DỊCH', 
-    '12-cli': 'GIAO DIỆN DÒNG LỆNH (CLI)',
-    '13-kbms-studio': 'MÔI TRƯỜNG PHÁT TRIỂN KBMS STUDIO', 
-    '14-installation-and-testing': 'CÀI ĐẶT, KIỂM THỬ VÀ ĐÁNH GIÁ HIỆU NĂNG',
-    '15-references': 'TÀI LIỆU THAM KHẢO'
+    '04-architecture': 'CÀI ĐẶT VÀ TRIỂN KHAI HỆ THỐNG',
+    '05-experiments': 'KIỂM THỬ VÀ ĐÁNH GIÁ HIỆU NĂNG',
+}
+
+MAP_ACADEMIC = {
+    'system-overview': 'Tổng quan Kiến trúc Hệ thống',
+    'models': 'Mô hình Hệ quản trị Cơ sở Tri thức',
+    'storage': 'Cơ chế Lưu trữ và Quản lý Bộ nhớ',
+    'kbql': 'Ngôn ngữ Truy vấn Tri thức (KBQL)',
+    'server-layer': 'Kiến trúc Tầng xử lý Server',
+    'reasoning-layer': 'Kiến trúc Hệ thống Suy luận',
+    'application': 'Tầng Giao diện và Ứng dụng',
+    'cli': 'Giao diện Dòng lệnh (CLI)',
+    'studio': 'Giao diện Web Quản lý (KBMS STUDIO)',
+    'overview': 'Tổng quan và Mục tiêu',
+    'network': 'Giao thức và Kết nối Mạng',
+    'parser': 'Bộ phân tích Cú pháp (Parser)',
+    'system-core': 'Nhân quản trị Hệ thống (Core)',
+    'query-engine': 'Bộ máy Truy vấn và Tối ưu hóa truy vấn (Optimizer)',
+    'storage-architecture': 'Kiến trúc Lưu trữ Vật lý',
 }
 
 GLOSSARY_MAP = {} # slug -> ID
@@ -47,6 +68,8 @@ if os.path.exists(glossary_path):
                     term = parts[2].strip(' *[]')
                     if gid and term:
                         GLOSSARY_MAP[slugify(term)] = gid
+
+CITATIONS_TOTAL = 8 # Default
 
 CITATION_MAP = {
     '[1]': 'DoVanNhon1',
@@ -98,25 +121,30 @@ def process_inline_formatting(text):
     text = text.replace('‘', "'").replace('’', "'").replace('“', "``").replace('”', "''")
     return text
 
-def md_block_to_latex(block, af_id, at_id, prev_block=''):
+def md_block_to_latex(block, af_id, at_id, prev_block='', next_block='', level=0, is_glossary_mode=False):
+    """Processes a Markdown block into LaTeX. Returns (tex, af, at, consumed)"""
     block = block.strip()
-    if not block: return "", af_id, at_id
+    consumed_next = False
+    if not block: return "", af_id, at_id, False
+
+    # 1. Split mid-block headers (v3.95: Flexible detection)
+    # Detect if any line starts with '#' that isn't the first line
+    if '\n#' in block:
+        # Look for the FIRST occurrence of a header at the start of any line
+        h_search = re.search(r'(?m)^#+', block)
+        if h_search and h_search.start() > 0:
+            head = block[:h_search.start()].strip()
+            tail = block[h_search.start():].strip()
+            h_tex, af1, at1, c1 = md_block_to_latex(head, af_id, at_id, level=level, is_glossary_mode=is_glossary_mode)
+            t_tex, af2, at2, c2 = md_block_to_latex(tail, af1, at1, level=level, is_glossary_mode=is_glossary_mode)
+            return h_tex + t_tex, af2, at2, c1 or c2
+
+    # 0. Glossary Mode (v3.71): Suppress all headers and captions
+    if is_glossary_mode:
+        if block.startswith('#'): return "", af_id, at_id, False
 
     # 1. Skip non-content blocks
-    if block == '![' or block == '---': return "", af_id, at_id
-
-    # 1b. Split mixed blocks (text followed by bullet list)
-    BULLET_RE = r'^\s*(?:\*(?!\*)|\d+\.|\-|•)\s+'
-    if '\n' in block and not re.match(BULLET_RE, block):
-        lines = block.split('\n')
-        for i in range(1, len(lines)):
-            if re.match(BULLET_RE, lines[i]):
-                head = "\n".join(lines[:i])
-                tail = "\n".join(lines[i:])
-                h_tex, af1, at1 = md_block_to_latex(head, af_id, at_id)
-                t_tex, af2, at2 = md_block_to_latex(tail, af1, at1)
-                return h_tex + t_tex, af2, at2
-
+    if block == '![' or block == '---': return "", af_id, at_id, False
 
     # 2. Figures (Extract ALL within block with strict regex)
     fig_pattern = r'!\[([^\]]*)\]\(([^\)]*)\)'
@@ -127,7 +155,7 @@ def md_block_to_latex(block, af_id, at_id, prev_block=''):
         for match in figs:
             pre_text = block[current_pos : match.start()].strip()
             if pre_text:
-                pre_tex, af_id, at_id = md_block_to_latex(pre_text, af_id, at_id)
+                pre_tex, af_id, at_id, _ = md_block_to_latex(pre_text, af_id, at_id, level=level, is_glossary_mode=is_glossary_mode)
                 processed_tex += pre_tex
             
             alt, src = match.groups()
@@ -137,44 +165,81 @@ def md_block_to_latex(block, af_id, at_id, prev_block=''):
                 if w_match: width = w_match.group(1).strip()
                 alt = alt.split('|')[0].strip()
             
-            following_text = block[match.end():].split('\n\n')[0]
-            legend_match = re.search(r'[\*_]*Hình\s+([\d\.]+):?\s*(.*?)(?:[\*_]*\n|$|\*)', following_text, re.IGNORECASE)
+            # Flexible Legend (v3.84)
+            legend_match = re.search(r'(?m)^[\*_]*(?:Hình|Figure|Hinh|Pict)[:\s\d\.\-\[\]\(\)]*\s*(.*?)(?:[\*_]*\n|$|\*)', block[match.end():], re.IGNORECASE)
+            in_same_block = False
+            if legend_match:
+                raw_caption = legend_match.group(1).strip()
+                in_same_block = True
+            elif next_block:
+                legend_match = re.search(r'(?m)^[\*_]*(?:Hình|Figure|Hinh|Pict)[:\s\d\.\-\[\]\(\)]*\s*(.*?)(?:[\*_]*\s*|\n|$)', next_block, re.IGNORECASE)
+                if legend_match:
+                    raw_caption = legend_match.group(1).strip()
+                    consumed_next = True
+                else:
+                    stem = src.split('/')[-1].split('.')[0].replace('-', ' ').replace('_', ' ')
+                    raw_caption = alt.strip() or f"Hình {af_id}"
+            else:
+                raw_caption = alt.strip() or f"Hình {af_id}"
             
-            raw_caption = legend_match.group(2).strip() if legend_match else alt.strip() or f"Hình {af_id}"
-            caption = process_inline_formatting(escape_latex(raw_caption))
-            caption = re.sub(r'\]\s*\(.*?\)', '', caption)
-            
-            fid = legend_match.group(1).replace(".", "_") if legend_match and legend_match.group(1) else f"auto_{af_id}"
             fname = src.split('/')[-1]
             img_cmd = r'\includegraphics[width=%s\textwidth]{assets/%s}' % (width, fname) if os.path.exists(os.path.join(ASSETS_DEST, fname)) else r'\fbox{Thiếu ảnh: %s}' % escape_latex(fname)
             
-            processed_tex += '\\begin{figure}[H]\n  \\centering\n  %s\n  \\caption{%s}\\label{fig:%s}\n\\end{figure}\n\n' % (img_cmd, caption, fid)
+            clean_cap = clean_title(raw_caption)
+            if is_glossary_mode: clean_cap = ""
+            
+            caption = process_inline_formatting(escape_latex(clean_cap))
+            fid = slugify(clean_cap)[:50] if clean_cap else f"auto_{af_id}"
+            
+            if is_glossary_mode:
+                 processed_tex += '\\begin{center}\n  %s\n\\end{center}\n\n' % img_cmd
+            else:
+                 processed_tex += '\\begin{figure}[H]\n  \\centering\n  %s\n  \\caption{%s}\\label{fig:%s}\n\\end{figure}\n\n' % (img_cmd, caption, fid)
 
-            current_pos = match.end() + (legend_match.end() if legend_match else 0)
+            if in_same_block:
+                current_pos = match.end() + legend_match.end()
+            else:
+                current_pos = match.end()
             af_id += 1
 
         post_text = block[current_pos:].strip()
         if post_text:
-            post_tex, af_id, at_id = md_block_to_latex(post_text, af_id, at_id)
+            post_tex, af_id, at_id, _ = md_block_to_latex(post_text, af_id, at_id, level=level, is_glossary_mode=is_glossary_mode)
             processed_tex += post_tex
-        return processed_tex, af_id, at_id
+        return processed_tex, af_id, at_id, consumed_next
 
     # 3. Tables (Strict capture)
     if '|' in block and '-' in block and '\n' in block:
-        cap_match = re.search(r'[\*_]*Bảng\s+([\d\.]+):?\s*(.*?)(?:[\*_]*\n|$|\*)', block, re.IGNORECASE)
+        cap_match = re.search(r'(?m)^[\*_]*(?:Bảng|Table|Bang|Table|Danh mục)[:\s\.\d\-\[\]\(\)]*\s*(.*?)(?:[\*_]*\n|$|\*)', block, re.IGNORECASE)
         if not cap_match and prev_block:
-            # Fall back: caption may be in the immediately preceding block (separated by blank line)
-            cap_match = re.search(r'[\*_]*Bảng\s+([\d\.]+):?\s*(.*?)(?:[\*_]*\n|$|\*)', prev_block, re.IGNORECASE)
+            cap_match = re.search(r'(?m)^[\*_]*(?:Bảng|Table|Bang|Table|Danh mục)[:\s\.\d\-\[\]\(\)]*\s*(.*?)(?:[\*_]*\n|$|\*)', prev_block, re.IGNORECASE)
+        
+        if not cap_match and next_block:
+            cap_match = re.search(r'(?m)^[\*_]*(?:Bảng|Table|Bang|Table|Danh mục)[:\s\.\d\-\[\]\(\)]*\s*(.*?)(?:[\*_]*\s*|\n|$)', next_block, re.IGNORECASE)
+            if cap_match: consumed_next = True
 
-        raw_caption = cap_match.group(2).strip() if cap_match else f"Bảng {at_id}"
+        raw_caption = ""
+        if cap_match:
+            raw_caption = cap_match.group(1).strip()
+        elif prev_block and prev_block.startswith('#'):
+            # Fallback: use the closest preceding header as caption
+            raw_caption = re.sub(r'^#+\s*[\d\.]*\s*', '', prev_block.split('\n')[0]).strip()
+        
+        raw_caption = clean_title(raw_caption)
+        
+        if is_glossary_mode:
+            is_glossary = True
+            raw_caption = ""
+        else:
+            if not raw_caption: raw_caption = f"Bảng kê dữ liệu chuyên sâu {at_id}"
+        
         caption = process_inline_formatting(escape_latex(raw_caption))
-        tid = cap_match.group(1).replace(".", "_") if cap_match and cap_match.group(1) else f"auto_tbl_{at_id}"
+        tid = slugify(raw_caption)[:50] if raw_caption else f"gtbl_{at_id}"
         
         lines = [l.strip() for l in block.split('\n') if '|' in l]
         if len(lines) >= 3:
             hdr_line = [h.strip() for h in lines[0].strip('|').split('|')]
             cols = len(hdr_line)
-            # Use longtable for tables that might span multiple pages (like the glossary)
             is_glossary = "Tham chiếu" in hdr_line or "Thuật ngữ" in hdr_line
             
             if is_glossary:
@@ -190,11 +255,20 @@ def md_block_to_latex(block, af_id, at_id, prev_block=''):
                 tbl += ' \\hline\n'
                 tbl += ' \\endlastfoot\n'
             else:
+                # Dynamic column mapping (v3.90)
                 if cols <= 3:
                     col_spec = '|l|' + 'X|' * (cols - 1)
+                    t_font = "\\small"
                 else:
-                    col_spec = '|c|' + 'X|' * (cols - 1)
-                tbl = '\\begin{table}[H]\n  \\centering\\fontsize{11pt}{13pt}\\selectfont\n  \\begin{tabularx}{\\textwidth}{%s}\n  \\hline\n' % col_spec
+                    # Multi-column: use L (raggedright X) for ALL columns to avoid overlap
+                    col_spec = '|' + 'L|' * cols
+                    t_font = "\\small" if cols == 4 else "\\footnotesize"
+                
+                tbl = '\\begin{table}[H]\n  \\centering%s\\selectfont\n' % t_font
+                if not is_glossary:
+                    tbl += '  \\caption{%s}\\label{tbl:%s}\n' % (caption, tid)
+                
+                tbl += '  \\begin{tabularx}{\\textwidth}{%s}\n  \\hline\n' % col_spec
                 tbl += ' & '.join([process_inline_formatting(escape_latex(h)) for h in hdr_line]) + ' \\\\ \\hline\n'
 
             for l in lines[2:]:
@@ -205,9 +279,8 @@ def md_block_to_latex(block, af_id, at_id, prev_block=''):
                 processed_cells = []
                 for i, c in enumerate(cells[:cols]):
                     esc_c = escape_latex(c.strip())
-                    if i == 1 and is_glossary: # Term column
+                    if i == 1 and is_glossary:
                         slug = slugify(c.strip(' *[]'))
-                        # Add a prefix to glossary targets to avoid collision with section labels
                         processed_cells.append('\\hypertarget{glos:%s}{%s}' % (slug, process_inline_formatting(esc_c)))
                     else:
                         processed_cells.append(process_inline_formatting(esc_c))
@@ -217,37 +290,34 @@ def md_block_to_latex(block, af_id, at_id, prev_block=''):
             if is_glossary:
                 tbl += '  \\end{xltabular}\n\\end{small}\n\n'
             else:
-                caption_str = '\\caption{' + caption + '}\\label{tbl:' + tid + '}'
-                tbl = tbl.replace('\\begin{table}[H]\n  \\centering\\fontsize{11pt}{13pt}\\selectfont', 
-                                  '\\begin{table}[H]\n  \\centering\\fontsize{11pt}{13pt}\\selectfont\n  ' + caption_str)
                 tbl += '  \\end{tabularx}\n\\end{table}\n\n'
-            return tbl, af_id, at_id + 1
+            return tbl, af_id, at_id + 1, consumed_next
 
-
-    # 4. Headings
-    if block.startswith('#'):
-        lines = block.split('\n')
-        h_line = lines[0]
-        h_type = 4 if h_line.startswith('#### ') else 3 if h_line.startswith('### ') else 2 if h_line.startswith('## ') else 1 if h_line.startswith('# ') else 0
-
-        if h_type > 0 and h_type <= 3:
-            h_cmd = ['','section','subsection','subsubsection'][h_type]
-            h_text = re.sub(r'^[\d\s\.]+', '', h_line[h_type+1:].strip())
-            res = '\\%s{%s}\n\n' % (h_cmd, process_inline_formatting(escape_latex(h_text)))
+    # 4. Headings (v3.94: Flexible regex)
+    h_match = re.match(r'^(#+)\s*(.*)', block)
+    if h_match:
+        hashes, h_text_raw = h_match.groups()
+        h_type = len(hashes)
+        if h_type > 0:
+            lines = block.split('\n')
+            # v3.98: Restore level-based offset for folder/file hierarchy (e.g., 4.5 -> 4.5.1)
+            new_level = h_type + level
+            h_cmd = 'section' if new_level == 1 else 'subsection' if new_level == 2 else 'subsubsection' if new_level == 3 else 'paragraph'
+            
+            # Clean text from leading numbers or dots
+            h_text = re.sub(r'^[\d\s\.]+', '', h_text_raw.strip())
+            
+            if new_level > 4:
+                res = '\\noindent\\textbf{\\textit{%s}}\n\n' % process_inline_formatting(escape_latex(h_text))
+            else:
+                res = '\\%s{%s}\n\n' % (h_cmd, process_inline_formatting(escape_latex(h_text)))
+            
             if len(lines) > 1:
-                inner, af_n, at_n = md_block_to_latex("\n".join(lines[1:]), af_id, at_id)
-                return res + inner, af_n, at_n
-            return res, af_id, at_id
-        elif h_type == 4:
-            h_text = re.sub(r'^[\d\s\.]+', '', h_line[5:].strip())
-            res = '\\noindent\\textit{%s}\n\n' % process_inline_formatting(escape_latex(h_text))
-            if len(lines) > 1:
-                inner, af_n, at_n = md_block_to_latex("\n".join(lines[1:]), af_id, at_id)
-                return res + inner, af_n, at_n
-            return res, af_id, at_id
+                rem_tex, af_id, at_id, _ = md_block_to_latex("\n".join(lines[1:]), af_id, at_id, level=level, is_glossary_mode=is_glossary_mode)
+                res += rem_tex
+            return res, af_id, at_id, consumed_next
 
-
-    # 5. Nested Lists
+    # 5. Lists
     BULLET_RE = r'^\s*(?:\*(?!\*)|\d+\.|\-|•)\s+'
     if re.match(BULLET_RE, block):
         lines = block.split('\n')
@@ -288,29 +358,104 @@ def md_block_to_latex(block, af_id, at_id, prev_block=''):
         while stack:
             res += '\\end{%s}\n' % stack[-1][1]
             stack.pop()
-        return res + "\n\n", af_id, at_id
+        return res + "\n\n", af_id, at_id, consumed_next
 
     # 5b. Blockquotes
     if block.startswith('>'):
         lines = [l.lstrip('> ').strip() for l in block.split('\n')]
         content = "\\par\n".join([process_inline_formatting(escape_latex(l)) for l in lines if l])
         res = "\\begin{quote}\\itshape\\small\n%s\n\\end{quote}\n\n" % content
-        return res, af_id, at_id
+        return res, af_id, at_id, consumed_next
 
     # 6. Default Paragraph
     lines = block.split('\n')
     processed_lines = [process_inline_formatting(escape_latex(l.strip())) for l in lines]
-    return "\\par\n".join(processed_lines) + "\n\n", af_id, at_id
+    return "\\par\n".join(processed_lines) + "\n\n", af_id, at_id, consumed_next
+
+def process_directory(dir_path, level, af_id, at_id):
+    """Recursively processes hierarchy: Folder (XX-name) -> level(section/subsection)."""
+    content = []
+    items = sorted(os.listdir(dir_path))
+    
+    # Deduplication: check if any .md file has same name as the folder
+    folder_basename = os.path.basename(dir_path).split("-", 1)[-1].lower() if "-" in os.path.basename(dir_path) else os.path.basename(dir_path).lower()
+
+    for item in items:
+        full_path = os.path.join(dir_path, item)
+        if os.path.isdir(full_path):
+            if re.match(r'^\d{2}-', item):
+                slug = item.split("-", 1)[-1].lower()
+                title = MAP_ACADEMIC.get(slug, slug.replace("_", " ").replace("-", " ").title())
+                
+                # level 0 (Chapter folders) -> section (v3.71)
+                cmd = "section" if level == 0 else "subsection" if level == 1 else "subsubsection"
+                content.append('\\%s{%s}\n\n' % (cmd, title))
+                sub_content, af_id, at_id = process_directory(full_path, level + 1, af_id, at_id)
+                content.extend(sub_content)
+        elif item.endswith('.md'):
+            # Hierarchical Control (v4.0): Specify which folders should nest their files (e.g., 4.5 -> 4.5.1)
+            # Folders not in this list will have files as siblings to the folder title (e.g., 4.2 folder -> 4.3 file H1)
+            HIERARCHICAL_WHITELIST = ['03-storage', '04-kbql', '05-server-layer', '06-reasoning-layer', '07-application', '05-experiments']
+            folder_slug = os.path.basename(dir_path)
+            is_hierarchical = any(slug in folder_slug for slug in HIERARCHICAL_WHITELIST)
+            level_offset = level if is_hierarchical else (level - 1 if level > 0 else 0)
+
+            file_slug = item.split("-", 1)[-1].replace(".md", "").lower() if "-" in item else item.replace(".md", "").lower()
+            skip_header = (file_slug == folder_basename)
+
+            with open(full_path, 'r', encoding='utf-8') as f_in:
+                md_text = f_in.read()
+                math_blocks, code_blocks = [], []
+                def math_ext(m): math_blocks.append(m.group(0)); return "PHMATHX%dX" % (len(math_blocks)-1)
+                md_text = re.sub(r'\$\$.*?\$\$', math_ext, md_text, flags=re.DOTALL)
+                md_text = re.sub(r'\$.*?\$', math_ext, md_text)
+                def code_ext(m):
+                    lang = m.group(1).lower() if m.group(1) else ""
+                    if lang == "mermaid": return ""
+                    code_blocks.append(m.group(2))
+                    return "PHCODEX%dX" % (len(code_blocks)-1)
+                md_text = re.sub(r'```(\w+)?\n(.*?)\n```', code_ext, md_text, flags=re.DOTALL)
+                md_text = re.sub(r'</?details>|<summary>.*?</summary>', '', md_text)
+
+                # Smart Block Splitting (v3.71): Handle headers mid-block
+                blocks = re.split(r'\n\s*\n|(?m)^(?=#+ )', md_text)
+                prev_b = ''
+                skip_next = False
+                for i, b in enumerate(blocks):
+                    if skip_next:
+                        skip_next = False
+                        continue
+                    b = b.strip()
+                    if not b: continue
+                    if skip_header and b.startswith(('# ', '## ')): 
+                        prev_b = b
+                        continue
+
+                    nx_b = blocks[i+1].strip() if i+1 < len(blocks) else ""
+                    tex_b, af_id, at_id, consumed_nx = md_block_to_latex(b, af_id, at_id, prev_block=prev_b, next_block=nx_b, level=level_offset)
+                    if consumed_nx: skip_next = True
+                    for j, m in enumerate(math_blocks):
+                        ph = "PHMATHX%dX" % j
+                        if m.startswith('$$'): tex_b = tex_b.replace(ph, '\\begin{equation}\n%s\n\\end{equation}' % m.strip('$').strip())
+                        else: tex_b = tex_b.replace(ph, m)
+                    for j, c in enumerate(code_blocks):
+                        code_tex = "\\begin{academicbox}\n\\begin{Verbatim}[commandchars=\\\\\\{\\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\\small]\n"
+                        code_tex += c.strip()
+                        code_tex += "\n\\end{Verbatim}\n\\end{academicbox}\n\n"
+                        tex_b = tex_b.replace("PHCODEX%dX" % j, code_tex)
+                    content.append(tex_b)
+                    prev_b = b
+    return content, af_id, at_id
 
 def main():
-    print("Executing Thesis-Standard LaTeX Synthesis (v3.32) - Fixing Position & Sizes...")
+    print("Executing Thesis-Standard Multi-Level Hierarchy (v3.62) - Purging 'xx' Residue...")
     if not os.path.exists(LATEX_DIR): os.makedirs(LATEX_DIR)
     if not os.path.exists(ASSETS_DEST): os.makedirs(ASSETS_DEST)
     
     # Discovery
     all_refs = []
-    # Skip glossary and and manual references folder (now handled via BibTeX)
-    folders = sorted([f for f in os.listdir(DOCS_DIR) if re.match(r'^\d{2}-', f) and f not in ['00-glossary', '15-references']])
+    # Skip glossary and references folder (handled via BibTeX)
+    folders = sorted([f for f in os.listdir(DOCS_DIR) if re.match(r'^\d{2}-', f) and f not in ['00-glossary', '06-references', '15-references']])
     for folder in folders:
         fp = os.path.join(DOCS_DIR, folder)
         for f in os.listdir(fp):
@@ -330,46 +475,11 @@ def main():
     for folder in folders:
         chapter_title = CHAPTER_NAMES.get(folder, folder.split("-")[-1].replace("_", " ").upper())
         report_content.append('\\chapter{%s}\n' % chapter_title)
+        
         folder_path = os.path.join(DOCS_DIR, folder)
-        files = sorted([f for f in os.listdir(folder_path) if f.endswith('.md')])
-        for f_name in files:
-            with open(os.path.join(folder_path, f_name), 'r', encoding='utf-8') as f_in:
-                md_text = f_in.read()
-                # Pre-processing (Math/Code Extraction)
-                math_blocks, code_blocks = [], []
-                def math_ext(m): math_blocks.append(m.group(0)); return "PHMATHX%dX" % (len(math_blocks)-1)
-                md_text = re.sub(r'\$\$.*?\$\$', math_ext, md_text, flags=re.DOTALL)
-                md_text = re.sub(r'\$.*?\$', math_ext, md_text)
-                
-                # Filter out Mermaid blocks
-                def code_ext(m):
-                    lang = m.group(1).lower() if m.group(1) else ""
-                    if lang == "mermaid": return ""
-                    code_blocks.append(m.group(2))
-                    return "PHCODEX%dX" % (len(code_blocks)-1)
-                md_text = re.sub(r'```(\w+)?\n(.*?)\n```', code_ext, md_text, flags=re.DOTALL)
-
-                # Remove details tags
-                md_text = re.sub(r'</?details>', '', md_text)
-                md_text = re.sub(r'<summary>.*?</summary>', '', md_text)
-
-                blocks = md_text.split('\n\n')
-
-                prev_b = ''
-                for b in blocks:
-                    tex_b, af_id, at_id = md_block_to_latex(b, af_id, at_id, prev_block=prev_b)
-                    # Restoration
-                    for i, m in enumerate(math_blocks):
-                        ph = "PHMATHX%dX" % i
-                        if m.startswith('$$'): 
-                            content = m.strip('$').strip()
-                            tex_b = tex_b.replace(ph, '\\begin{equation}\n%s\n\\end{equation}' % content)
-                        else: 
-                            tex_b = tex_b.replace(ph, m)
-                    for i, c in enumerate(code_blocks):
-                        tex_b = tex_b.replace("PHCODEX%dX" % i, '\\begin{lstlisting}\n%s\n\\end{lstlisting}' % c.strip())
-                    report_content.append(tex_b)
-                    prev_b = b  # track previous block for caption fallback
+        # Use level=0 for Chapter folders (v3.71)
+        chap_content, af_id, at_id = process_directory(folder_path, 0, af_id, at_id)
+        report_content.extend(chap_content)
         report_content.append('\\clearpage\n')
 
     # --- Special: Glossary Synthesis (Unnumbered, in Front Matter) ---
@@ -382,8 +492,8 @@ def main():
             md_text = f_in.read()
             blocks = md_text.split('\n\n')
             for b in blocks:
-                if b.startswith('# '): continue
-                tex_b, af_id, at_id = md_block_to_latex(b, af_id, at_id)
+                # Use is_glossary_mode=True (v3.71)
+                tex_b, af_id, at_id, _ = md_block_to_latex(b, af_id, at_id, is_glossary_mode=True)
                 glossary_content.append(tex_b)
         glossary_content.append('\\clearpage\n')
 
@@ -405,6 +515,8 @@ def main():
 \usepackage{titlesec}
 \usepackage[table]{xcolor}
 \usepackage{listings}
+\usepackage[most]{tcolorbox}
+\tcbuselibrary{breakable}
 
 \definecolor{mydarkblue}{RGB}{0, 51, 102}
 \definecolor{myred}{RGB}{204, 0, 0}
@@ -437,23 +549,31 @@ def main():
 \setlength{\cftafterlottitleskip}{1em} 
 
 % Listings configuration for code blocks
-\lstset{
-  basicstyle=\ttfamily\small,
-  breaklines=true,
-  frame=single,
-  backgroundcolor=\color{gray!5},
-  showstringspaces=false,
-  commentstyle=\color{green!40!black},
-  keywordstyle=\color{blue},
-  stringstyle=\color{red!60!black},
-  columns=fullflexible,
-  keepspaces=true,
-  extendedchars=true,
-  literate={á}{á}1 {à}{à}1 {ả}{ả}1 {ã}{ã}1 {ạ}{ạ}1 {ă}{ă}1 {ắ}{ắ}1 {ằ}{ằ}1 {ẳ}{ẳ}1 {ẵ}{ẵ}1 {ặ}{ặ}1 {â}{â}1 {ấ}{ấ}1 {ầ}{ầ}1 {ẩ}{ẩ}1 {ẫ}{ẫ}1 {ậ}{ậ}1 {đ}{đ}1 {é}{é}1 {è}{è}1 {ẻ}{ẻ}1 {ẽ}{ẽ}1 {ẹ}{ẹ}1 {ê}{ê}1 {ế}{ế}1 {ề}{ề}1 {ể}{ể}1 {ễ}{ễ}1 {ệ}{ệ}1 {í}{í}1 {ì}{ì}1 {ỉ}{ỉ}1 {ĩ}{ĩ}1 {ị}{ị}1 {ó}{ó}1 {ò}{ò}1 {ỏ}{ỏ}1 {õ}{õ}1 {ọ}{ọ}1 {ô}{ô}1 {ố}{ố}1 {ồ}{ồ}1 {ổ}{ổ}1 {ỗ}{ỗ}1 {ộ}{ộ}1 {ơ}{ơ}1 {ớ}{ớ}1 {ờ}{ờ}1 {ở}{ở}1 {ỡ}{ỡ}1 {ợ}{ợ}1 {ú}{ú}1 {ù}{ù}1 {ủ}{ủ}1 {ũ}{ũ}1 {ụ}{ụ}1 {ư}{ư}1 {ứ}{ứ}1 {ừ}{ừ}1 {ử}{ử}1 {ữ}{ữ}1 {ự}{ự}1 {ý}{ý}1 {ỳ}{ỳ}1 {ỷ}{ỷ}1 {ỹ}{ỹ}1 {ỵ}{ỵ}1 {Á}{Á}1 {À}{À}1 {Ả}{Ả}1 {Ã}{Ã}1 {Ạ}{Ạ}1 {Ă}{Ă}1 {Ắ}{Ắ}1 {Ằ}{Ằ}1 {Ẳ}{Ẳ}1 {Ẵ}{Ẵ}1 {Ặ}{Ặ}1 {Â}{Â}1 {Ấ}{Ấ}1 {Ầ}{Ầ}1 {Ẩ}{Ẩ}1 {Ẫ}{Ẫ}1 {Ậ}{Ậ}1 {Đ}{Đ}1 {É}{É}1 {È}{È}1 {Ẻ}{Ẻ}1 {Ẽ}{Ẽ}1 {Ẹ}{Ẹ}1 {Ê}{Ê}1 {Ế}{Ế}1 {Ề}{Ề}1 {ể}{ể}1 {ễ}{ễ}1 {ệ}{ệ}1 {Í}{Í}1 {Ì}{Ì}1 {Ỉ}{Ỉ}1 {Ĩ}{Ĩ}1 {Ị}{Ị}1 {Ó}{Ó}1 {Ò}{Ò}1 {Ỏ}{Ỏ}1 {Õ}{Õ}1 {Ọ}{Ọ}1 {Ô}{Ô}1 {Ố}{Ố}1 {Ồ}{Ồ}1 {Ổ}{Ổ}1 {Ỗ}{Ỗ}1 {Ộ}{Ộ}1 {Ơ}{Ơ}1 {Ớ}{Ớ}1 {Ờ}{Ờ}1 {Ở}{Ở}1 {Ỡ}{Ỡ}1 {Ợ}{Ợ}1 {Ú}{Ú}1 {Ù}{Ù}1 {Ủ}{Ủ}1 {Ũ}{Ũ}1 {Ụ}{Ụ}1 {Ư}{Ư}1 {Ứ}{Ứ}1 {Ừ}{Ừ}1 {Ử}{Ử}1 {Ữ}{Ữ}1 {Ự}{Ự}1 {Ý}{Ý}1 {Ỳ}{Ỳ}1 {Ỷ}{Ỷ}1 {Ỹ}{Ỹ}1 {Ỵ}{Ỵ}1
+% Professional Code Box (v3.88) - No listings dependency
+\usepackage{tcolorbox}
+\usepackage{fvextra}
+\tcbuselibrary{skins,breakable}
+
+\newtcolorbox{academicbox}{
+  colback=white,
+  colframe=gray!40,
+  sharp corners,
+  boxrule=0.5pt,
+  left=5pt,
+  right=5pt,
+  top=0pt,
+  bottom=0pt,
+  breakable,
+  fontupper=\small,
 }
 
-\captionsetup[table]{position=above, skip=10pt, justification=centering, font=bf}
-\captionsetup[figure]{position=below, skip=10pt, justification=centering, font=bf}
+% Table configuration (v3.90) - Fix overlap for multi-column tables
+\usepackage{array}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\setlength{\tabcolsep}{4pt} % Tighter columns for more content space
+
+\captionsetup[table]{position=above, skip=10pt, justification=centering, font=normalfont}
+\captionsetup[figure]{position=below, skip=10pt, justification=centering, font=normalfont}
 \setstretch{1.2} % Better line spacing for entire document
 
 % Font configuration
@@ -481,6 +601,11 @@ def main():
   {\normalfont\fontsize{14pt}{17pt}\selectfont\bfseries\color{mydarkblue}}{\thesubsection}{1em}{}
 \titleformat{\subsubsection}
   {\normalfont\fontsize{13pt}{16pt}\selectfont\bfseries\color{black}}{\thesubsubsection}{1em}{}
+\titleformat{\paragraph}
+  {\normalfont\fontsize{13pt}{16pt}\selectfont\bfseries\color{black}}{\theparagraph}{1em}{}
+
+\setcounter{secnumdepth}{4}
+\setcounter{tocdepth}{2}
 
 % Numbered Chapters: "CHƯƠNG X: TITLE" (Same line, Centered, Red)
 \titleformat{\chapter}[block]

@@ -1,0 +1,20 @@
+- [x] Refactor Section 3.3.2 in `03-visual-overview.md` with academic tone
+- [x] Update `kbms_4layer_architecture.mmd` with granular modules
+- [x] Update `kbms_general_use_case.mmd` for consistency
+- [x] Update `kbms_general_system_sequence.mmd` (Fixed version conflict & HD render)
+- [x] Restructure `03-visual-overview.md` (Architecture at top, remove redundant sections)
+- [x] Render 3 HD images @ 3x scale
+- [x] Pivot `kbms_4layer_architecture.mmd` to `graph TD` + `subgraph` (Zero overlap)
+- [x] Refactor 3.4 (System Requirements) in `04-system-requirements.md` to a generalized summary
+- [x] Refactor 4.1.1 in `04-architecture/01-system-overview.md` (Standardized title & implementation focus)
+- [x] Refactor Section 4.3.5.3 (Recovery Process) & Log Specification
+- [x] Refactor Section 4.3.1 (Storage Architecture Overview) & Tiering
+- [x] Academic Refactor of Storage Layer (Chapter 4.3)
+- [x] Refactor `01-architecture-overview.md` (4.3.1)
+- [x] Refactor `02-page-management.md` (4.3.2)
+- [x] Refactor `03-data-layout-slotted-page.md` (4.3.3)
+- [x] Refactor `04-indexing-btree.md` (4.3.4)
+- [x] Refactor `05-durability-wal.md` (4.3.5)
+- [x] Refactor `06-serialization-format.md` (4.3.6)
+- [x] Render 6 Storage HD images @ 3x scale
+- [x] Final sync and verify the 110-page LaTeX report

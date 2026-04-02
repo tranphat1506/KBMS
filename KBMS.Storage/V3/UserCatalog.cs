@@ -200,6 +200,14 @@ public class UserCatalog
             var pageId = GetOrAllocatePage();
             var page = bpm.FetchPage(pageId);
             if (page == null) return false;
+
+            // --- WAL LOGGING (Start) ---
+            var wal = managers.Wal;
+            var txnId = wal.Begin();
+            byte[] beforeImage = new byte[Page.PAGE_SIZE];
+            Array.Copy(page.Data, beforeImage, Page.PAGE_SIZE);
+            // ---------------------------
+
             var sp = new SlottedPage(page);
             var slotId = sp.InsertTuple(data);
             
@@ -212,12 +220,25 @@ public class UserCatalog
                 
                 page = bpm.FetchPage(newPageId);
                 if (page == null) return false;
+
+                // --- WAL LOGGING (New Page) ---
+                Array.Copy(page.Data, beforeImage, Page.PAGE_SIZE);
+                // ------------------------------
+
                 sp = new SlottedPage(page);
                 sp.Init(newPageId);
-                sp.InsertTuple(data);
+                slotId = sp.InsertTuple(data);
             }
+
+            // --- WAL COMMIT ---
+            byte[] afterImage = new byte[Page.PAGE_SIZE];
+            Array.Copy(page.Data, afterImage, Page.PAGE_SIZE);
+            wal.LogWrite(txnId, page.PageId, beforeImage, afterImage);
+            wal.Commit(txnId);
+            // ------------------
             
             bpm.UnpinPage(page.PageId, true);
+            bpm.FlushPage(page.PageId); // Immediate Persistence for System Metadata
         }
 
         return true;
@@ -317,5 +338,21 @@ public class UserCatalog
             return id;
         }
         return _pageIds[^1];
+    }
+
+    public bool RevokeAllPrivileges(string kbName)
+    {
+        var users = ListUsers();
+        bool modified = false;
+        foreach (var user in users)
+        {
+            if (user.KbPrivileges.ContainsKey(kbName))
+            {
+                user.KbPrivileges.Remove(kbName);
+                UpdateUser(user);
+                modified = true;
+            }
+        }
+        return modified;
     }
 }

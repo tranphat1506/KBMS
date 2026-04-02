@@ -1,0 +1,13 @@
+graph LR
+    Raw["Raw KBQL String"] --> Scan{Lexer.ScanTokens}
+    Scan --> WS["Bo qua Khoang trang/Comments"]
+    WS --> Match{So khop Ky tu}
+    
+    Match -->|Keywords| K["Token: SELECT, SOLVE, ..."]
+    Match -->|Literals| L["Token: STRING, NUMBER"]
+    Match -->|Symbols| S["Token: LEFT_PAREN, PLUS, ..."]
+    
+    K --> Stream[Token Stream]
+    L --> Stream
+    S --> Stream
+    Stream --> Parser["Module II: Parser Orchestration"]

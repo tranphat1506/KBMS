@@ -1,101 +1,38 @@
 # 03.4. Đặc tả Yêu cầu Hệ thống KBMS
 
-Tài liệu này là bản tổng hợp toàn diện nhất về mọi chức năng và yêu cầu kỹ thuật của [KBMS](../00-glossary/01-glossary.md#kbms), được đối soát trực tiếp với mã nguồn hệ thống (C# Server, [Parser](../00-glossary/01-glossary.md#parser), Studio). Đây là "nền tảng xương sống" cho việc thiết kế và phát triển toàn bộ hệ thống.
+Phần này trình bày tóm tắt các yêu cầu cốt lõi của hệ thống [KBMS](../00-glossary/01-glossary.md#kbms), tập trung vào các khả năng chức năng chính và đề xuất khung công nghệ phù hợp để hiện thực hóa kiến trúc 4 tầng đã đề xuất.
 
 ---
 
-## 1. Yêu cầu Chức năng
+## 1. Yêu cầu Chức năng Tổng quát
 
-*Bảng 3.2: Đặc tả Yêu cầu Chức năng Hệ thống Master*
-| ID | Nhóm Chức năng | Mô tả Chi tiết | Mức ưu tiên |
-|----|----------------|----------------|-------------|
-| 01 | App Layer | [KBMS](../00-glossary/01-glossary.md#kbms) Studio, [CLI](../00-glossary/01-glossary.md#cli), [REPL](../00-glossary/01-glossary.md#repl) | High |
-| 02 | Network Layer | [Binary Protocol](../00-glossary/01-glossary.md#binary-protocol), [Streaming](../00-glossary/01-glossary.md#streaming) | High |
-| 03 | Server Layer | Reasoning Engine, [Parser](../00-glossary/01-glossary.md#parser) | Critical |
-| 04 | Storage Layer | WAL, [B+ Tree](../00-glossary/01-glossary.md#b-tree), Encryption | Critical |
+Hệ thống được thiết kế để đáp ứng các nhóm chức năng chính sau đây, tương ứng với mô hình phân tầng:
 
----
-
-## 1. Yêu cầu Chức năng theo Tầng Kiến trúc
-
-### a. Tầng Ứng dụng
-
-*   **[KBMS](../00-glossary/01-glossary.md#kbms) Studio ([IDE](../00-glossary/01-glossary.md#ide) Chuyên sâu)**:
-    *   **[Monaco](../00-glossary/01-glossary.md#monaco) Engine**: Soạn thảo [KBQL](../00-glossary/01-glossary.md#kbql) với Syntax Highlighting, [IntelliSense](../00-glossary/01-glossary.md#intellisense) và [Squiggles](../00-glossary/01-glossary.md#squiggles) báo lỗi thời gian thực.
-    *   **[Knowledge Designer](../00-glossary/01-glossary.md#knowledge-designer) (VGE)**: Trực quan hóa đồ thị tri thức (Graph Nodes & Edges), thiết kế [KDL](../00-glossary/01-glossary.md#kdl) kéo thả.
-    *   **[Management Dashboard](../00-glossary/01-glossary.md#management-dashboard)**: Giám sát RAM/CPU/Disk/Network, quản lý User, Session và [Log Analyzer](../00-glossary/01-glossary.md#log-analyzer).
-*   **[KBMS](../00-glossary/01-glossary.md#kbms) [CLI](../00-glossary/01-glossary.md#cli) (Interactive Tool)**:
-    *   **[REPL](../00-glossary/01-glossary.md#repl) & [LineEditor](../00-glossary/01-glossary.md#lineeditor)**: Hỗ trợ phím tắt (`Home/End`, `Escx2`), lịch sử lệnh và thụt đầu dòng tự động.
-    *   **Response [Parser](../00-glossary/01-glossary.md#parser)**: Vẽ bảng động, hỗ trợ Multi-line Cell và chế độ hiển thị dọc (`\G`).
-    *   **[Batch Processing](../00-glossary/01-glossary.md#batch-processing)**: Lệnh `SOURCE` thực thi tệp tin kịch bản `.kbql`.
-
-### b. Tầng Mạng (Network Layer - Binary Protocol)
-
-*   **Custom [Binary Protocol](../00-glossary/01-glossary.md#binary-protocol)**: Mã hóa nhị phân tối ưu (1 byte Type, 4 byte Length).
-*   **Message Types (12+ loại)**: 
-    *   `1-LOGIN / 5-LOGOUT`: Xác thực và kết thúc phiên.
-    *   `2-QUERY`: Gửi lệnh thực thi.
-    *   `6-METADATA / 7-ROW / 8-FETCH_DONE`: Luồng kết quả [streaming](../00-glossary/01-glossary.md#streaming).
-    *   `4-ERROR`: Báo lỗi line-accurate (Line/Column).
-    *   `10-STATS / 11-LOGS_STREAM / 12-SESSIONS`: Dữ liệu quản trị hệ thống.
-    *   `13-MANAGEMENT_CMD`: Lệnh điều khiển Server từ xa.
-
-### c. Tầng Máy chủ
-
-*   **KnowledgeManager**: Điều phối luồng giữa [Parser](../00-glossary/01-glossary.md#parser), Engine và Storage.
-*   **Reasoning Engine (Bộ máy Suy diễn)**:
-    *   **Thuật toán [F-Closure](../00-glossary/01-glossary.md#f-closure)**: Suy diễn tiến đến điểm đóng.
-    *   **Recursive Sub-closure**: Suy diễn tổ hợp các thành phần con.
-    *   **[SameVariables](../00-glossary/01-glossary.md#samevariables) Propagation**: Truyền thụ tính chất giữa các biến trùng tên.
-*   **[Parser](../00-glossary/01-glossary.md#parser) & Compiler**:
-    *   **[Lexer](../00-glossary/01-glossary.md#lexer)**: Nhận diện 190+ từ khóa.
-    *   **[Parser](../00-glossary/01-glossary.md#parser)**: 50+ loại [AST](../00-glossary/01-glossary.md#ast) Nodes hỗ trợ [KDL](../00-glossary/01-glossary.md#kdl), [KQL](../00-glossary/01-glossary.md#kql), [KML](../00-glossary/01-glossary.md#kml), [TCL](../00-glossary/01-glossary.md#tcl), [KCL](../00-glossary/01-glossary.md#kcl).
-*   **Security & Auth**: Xác thực Base64, Role-Based Access Control (ROOT, ADMIN, RESEARCHER).
-*   **System Services**: `Bootstrapper`, `SystemUpdater`, `V2ToV3Converter`.
-
-### d. Tầng Lưu trữ
-
-*   **Physical Paging**: Trang dữ liệu 8KB cố định.
-*   **Indexing**: [B+ Tree](../00-glossary/01-glossary.md#b-tree) tối ưu tìm kiếm $O(\log n)$.
-*   **WAL (Write-Ahead Logging)**: Nhật ký phục hồi dữ liệu đảm bảo [ACID](../00-glossary/01-glossary.md#acid).
-*   **Encryption**: Mã hóa tĩnh [AES-256](../00-glossary/01-glossary.md#aes-256) đối với tệp `.dat` và `.kbf`.
+*   **Quản trị và Tương tác (Application Layer)**: Cung cấp môi trường soạn thảo tri thức chuyên sâu (IDE), hỗ trợ trực quan hóa đồ thị và giao diện dòng lệnh (CLI) để thực thi các kịch bản [KBQL](../00-glossary/01-glossary.md#kbql) phức tạp.
+*   **Giao thức và Truyền tải (Network Layer)**: Thiết lập cơ chế giao tiếp nhị phân tối ưu, cho phép truyền tải dữ liệu theo thời gian thực (Streaming) giữa máy khách và máy chủ.
+*   **Xử lý và Suy luận (Server Engine Layer)**: Đóng vai trò hạt nhân điều phối, chịu trách nhiệm phân tích cú pháp, tối ưu hóa truy vấn và thực thi các thuật toán suy luận logic (như [F-Closure](../00-glossary/01-glossary.md#f-closure)) trên cơ sở tri thức.
+*   **Lưu trữ bền vững (Storage Layer)**: Đảm bảo dữ liệu tri thức được tổ chức khoa học dưới dạng phân trang vật lý, hỗ trợ chỉ mục (Indexing) và cơ chế phục hồi sau sự cố (WAL).
 
 ---
 
-## 2. Bản đồ Chức năng [KBQL]
+## 2. Đề xuất Khung Công nghệ (Proposed Tech Stack)
 
-Dưới đây là danh sách đầy đủ các câu lệnh hệ thống hỗ trợ:
+Để đạt được hiệu năng và độ ổn định cao nhất, hệ thống KBMS được đề xuất triển khai dựa trên các nền tảng công nghệ hiện đại sau:
 
-### Quản lý Kiểm soát (KCL - Security)
-*   `CREATE/ALTER/DROP USER`: Quản lý tài khoản người dùng hệ thống.
-*   `GRANT/REVOKE`: Phân quyền truy cập theo từng Cơ sở tri thức (KB).
-
-### Định nghĩa Tri thức (KDL - Design)
-*   `CREATE/DROP KNOWLEDGE BASE`: Quản lý thực thể KB.
-*   `CREATE/ALTER/DROP CONCEPT`: Quản lý các lớp đối tượng và thuộc tính.
-*   `CREATE/DROP RULE & EQUATION`: Định nghĩa luật logic và phương trình toán học.
-*   `CREATE FUNCTION/OPERATOR`: Mở rộng khả năng tính toán.
-*   `ADD/REMOVE COMPUTATION & HIERARCHY`: Thiết lập quan hệ tính toán và kế thừa.
-*   `CREATE INDEX`: Tối ưu hóa hiệu năng truy vấn.
-
-### Truy cập & Suy diễn (KQL/RE - Solve)
-*   `SELECT / INSERT / UPDATE / DELETE`: Thao tác dữ liệu tri thức.
-*   `SOLVE`: Kích hoạt bộ máy suy diễn tìm lời giải cho mục tiêu.
-*   `EXPLAIN / DESCRIBE / SHOW`: Giải thích luồng suy diễn và xem cấu trúc tri thức.
-
-### Bảo trì & Hệ thống (KML - Maintenance)
-*   `IMPORT / EXPORT / BULK INSERT`: Di trú dữ liệu quy mô lớn.
-*   `REINDEX / CHECKPOINT / VACUUM`: Tối ưu hóa và dọn dẹp lưu trữ vật lý.
-*   `MIGRATION V2`: Nâng cấp dữ liệu từ phiên bản cũ.
-
-### Quản lý Giao dịch (TCL - Transaction)
-*   `BEGIN / COMMIT / ROLLBACK`: Đảm bảo tính nguyên tố (Atomicity) cho các chuỗi lệnh.
+*   **Ngôn ngữ Hệ thống (Server Core)**: Đề xuất sử dụng **C# (.NET Core/Standard)** hoặc **C++** để tận dụng khả năng quản lý bộ nhớ hiệu quả, hỗ trợ đa luồng và các thư viện xử lý socket mạnh mẽ.
+*   **Giao diện Người dùng (Application)**: 
+    *   **KBMS Studio**: Khuyến nghị sử dụng **React/TypeScript** kết hợp với **Monaco Editor** để xây dựng môi trường lập trình tri thức giàu tính năng.
+    *   **CLI**: Sử dụng các thư viện quản lý dòng lệnh tiêu chuẩn để hỗ trợ lịch sử lệnh và định dạng kết quả động.
+*   **Giao thức Mạng**: Hiện thực hóa giao thức nhị phân tùy chỉnh trên nền **TCP Socket** để giảm thiểu độ trễ và băng thông truyền tải.
+*   **Quản lý Dữ liệu**: Xây dựng bộ máy lưu trữ tự quản (In-house Storage Engine) thay vì sử dụng các hệ quản trị bên thứ ba, nhằm tối ưu hóa riêng cho cấu trúc dữ liệu tri thức [COKB](../00-glossary/01-glossary.md#cokb).
 
 ---
 
 ## 3. Yêu cầu Phi chức năng
 
-*   **[ACID](../00-glossary/01-glossary.md#acid) Compliance**: Đảm bảo an toàn dữ liệu 100% thông qua WAL.
-*   **High Performance**: Độ trễ < 10ms trên LAN, hỗ trợ [Asynchronous I/O](../00-glossary/01-glossary.md#asynchronous-io).
-*   **Security**: Mã hóa [AES-256](../00-glossary/01-glossary.md#aes-256), [Master Key](../00-glossary/01-glossary.md#master-key) Security.
-*   **Scalability**: [Stateless](../00-glossary/01-glossary.md#stateless) socket handling, hỗ trợ hàng trăm kết nối đồng thời.
+Bên cạnh các chức năng nghiệp vụ, hệ thống cần hướng tới các mục tiêu chất lượng sau:
+
+*   **Tính toàn vẹn (ACID Compliance)**: Đảm bảo mọi thao tác trên tri thức đều tuân thủ các tính chất Nguyên tố, Nhất quán, Cô lập và Bền vững.
+*   **Hiệu năng cao**: Tối ưu hóa tốc độ suy luận và truy xuất dữ liệu với độ trễ thấp, hỗ trợ xử lý đồng thời hàng trăm kết nối.
+*   **Bảo mật**: Triển khai cơ chế phân quyền (RBAC) và mã hóa dữ liệu tĩnh (Encryption at Rest) để bảo vệ tài sản tri thức.
+*   **Khả năng mở rộng**: Kiến trúc được thiết kế dạng module hóa, cho phép dễ dàng tích hợp thêm các bộ máy suy luận hoặc giao thức lưu trữ mới trong tương lai.

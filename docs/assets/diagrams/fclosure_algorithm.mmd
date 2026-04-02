@@ -1,10 +1,17 @@
 graph TD
-    Start["Bắt đầu: Input Fact"] --> Load["Nạp Metadata Hiệu dụng (Làm phẳng)"]
-    Load --> Loop{Vòng lặp Iter < 50?}
-    Loop -- "Iter++" --> Sub["P6.2: Suy diễn Đệ quy (Sub-closure)"]
-    Sub --> SV["RC2: Lan truyền biến tương đương"]
-    SV --> Rule["RC4: Khớp mẫu Luật Logic"]
-    Rule --> Eq["RC5: Giải phương trình Toán học"]
-    Eq -- "Có Fact mới?" --> Loop
-    Loop -- "Đạt Tập đóng / Iter=50" --> Verify["P7: Kiểm tra Ràng buộc"]
-    Verify --> End["Kết thúc: Trả về ReasoningResult"]
+    Start["Bắt đầu: Fact Insertion"] --> Compile["Biên dịch Topology (Rete Compiler)"]
+    Compile --> Prop["Lan truyền Token Gia tăng (Incremental Prop)"]
+    
+    subgraph Network_Matching["Cơ chế So khớp Mạng lưới"]
+        Prop --> Alpha["Lọc Thuộc tính (Alpha Node)"]
+        Alpha --> Beta["So khớp Liên hợp (Beta Join)"]
+        Beta --> Terminal["Kích hoạt Luật (Activation)"]
+    end
+    
+    Terminal --> Agenda["Quản lý Bộ đệm Agenda"]
+    Agenda -- "FireNext" --> Exec["Thực thi Luật / Giải phương trình"]
+    
+    Exec -- "Sinh Fact mới" --> Prop
+    Agenda -- "Agenda Rỗng" --> Stop["Điểm dừng (Fixed-point Closure)"]
+    
+    Stop --> End["Kết thúc: ReasoningResult"]

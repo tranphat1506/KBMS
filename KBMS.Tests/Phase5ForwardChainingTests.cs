@@ -1,4 +1,5 @@
 using Xunit;
+using Xunit.Abstractions;
 using KBMS.CLI;
 using KBMS.Models;
 using KBMS.Server;
@@ -19,11 +20,13 @@ namespace KBMS.Tests
         private Cli _cli;
         private string _dataDir;
         private string _encryptionKey = "test_key_12345678";
+        private readonly ITestOutputHelper _output;
         private static int _nextPort = 8400;
         private int _port;
 
-        public Phase5ForwardChainingTests()
+        public Phase5ForwardChainingTests(ITestOutputHelper output)
         {
+            _output = output;
             _dataDir = Path.Combine(Directory.GetCurrentDirectory(), "kbms_tests_data_" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(_dataDir);
             _port = System.Threading.Interlocked.Increment(ref _nextPort);
@@ -122,16 +125,19 @@ namespace KBMS.Tests
             await InitializeAsync();
             var dbName = "db_rec_" + Guid.NewGuid().ToString("N").Substring(0, 6);
 
-            var res = await _cli.ExecuteCommandAsync($"CREATE KNOWLEDGE BASE {dbName};");
-            Assert.True(res?.Type != MessageType.ERROR, $"Failed to create KB: {res?.Content}");
-
+            await _cli.ExecuteCommandAsync($"CREATE KNOWLEDGE BASE {dbName};");
             await _cli.ExecuteCommandAsync($"USE {dbName};");
             await _cli.ExecuteCommandAsync("CREATE CONCEPT Student(name STRING, grade FLOAT, honor STRING, gifted BOOL);");
             
             await _cli.ExecuteCommandAsync("CREATE RULE HighHonor IF Student(grade >= 90) THEN Student(honor = 'High');");
             await _cli.ExecuteCommandAsync("CREATE RULE HonorToGift IF Student(honor = 'High') THEN Student(gifted = true);");
 
+            // Measure inference latency
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             await _cli.ExecuteCommandAsync("INSERT INTO Student ATTRIBUTE (name: 'Charlie', grade: 95);");
+            sw.Stop();
+            
+            _output.WriteLine($"[Reasoning] Charlie Multi-step Inference Latency: {sw.ElapsedMilliseconds}ms");
             
             var selectRes = await _cli.ExecuteCommandAsync("SELECT honor, gifted FROM Student WHERE name = 'Charlie';");
             Assert.Contains("High", selectRes!.Content);

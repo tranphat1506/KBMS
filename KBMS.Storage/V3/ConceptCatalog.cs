@@ -43,9 +43,15 @@ public class ConceptCatalog
                 return false;
 
             var pageId = GetOrAllocatePage(kbName, key, data.Length);
-
             var page = bpm.FetchPage(pageId);
             if (page == null) return false;
+
+            // --- WAL LOGGING (Start) ---
+            var wal = managers.Wal;
+            var txnId = wal.Begin();
+            byte[] beforeImage = new byte[Page.PAGE_SIZE];
+            Array.Copy(page.Data, beforeImage, Page.PAGE_SIZE);
+            // ---------------------------
 
             var sp = new SlottedPage(page);
             if (sp.TupleCount == 0 && sp.FreeSpacePointer == 0) sp.Init(pageId);
@@ -62,12 +68,25 @@ public class ConceptCatalog
 
                 page = bpm.FetchPage(newPageId);
                 if (page == null) return false;
+                
+                // --- WAL LOGGING (New Page) ---
+                Array.Copy(page.Data, beforeImage, Page.PAGE_SIZE);
+                // ------------------------------
+
                 sp = new SlottedPage(page);
                 sp.Init(newPageId);
                 slotId = sp.InsertTuple(data);
             }
 
+            // --- WAL COMMIT ---
+            byte[] afterImage = new byte[Page.PAGE_SIZE];
+            Array.Copy(page.Data, afterImage, Page.PAGE_SIZE);
+            wal.LogWrite(txnId, page.PageId, beforeImage, afterImage);
+            wal.Commit(txnId);
+            // ------------------
+
             bpm.UnpinPage(page.PageId, true);
+            bpm.FlushPage(page.PageId); // Immediate Persistence for DDL
             return slotId >= 0;
         }
     }
@@ -138,10 +157,18 @@ public class ConceptCatalog
             pageIds = new List<int>(ids);
         }
 
+        var wal = managers.Wal;
+
         foreach (var pageId in pageIds)
         {
             var page = bpm.FetchPage(pageId);
             if (page == null) continue;
+
+            // --- WAL LOGGING (Start) ---
+            var txnId = wal.Begin();
+            byte[] beforeImage = new byte[Page.PAGE_SIZE];
+            Array.Copy(page.Data, beforeImage, Page.PAGE_SIZE);
+            // ---------------------------
 
             var sp = new SlottedPage(page);
             for (int i = 0; i < sp.TupleCount; i++)
@@ -153,7 +180,16 @@ public class ConceptCatalog
                 if (concept != null && concept.Name.Equals(conceptName, StringComparison.OrdinalIgnoreCase))
                 {
                     sp.DeleteTuple(i);
+                    
+                    // --- WAL COMMIT ---
+                    byte[] afterImage = new byte[Page.PAGE_SIZE];
+                    Array.Copy(page.Data, afterImage, Page.PAGE_SIZE);
+                    wal.LogWrite(txnId, page.PageId, beforeImage, afterImage);
+                    wal.Commit(txnId);
+                    // ------------------
+
                     bpm.UnpinPage(page.PageId, true);
+                    bpm.FlushPage(page.PageId); // Immediate Persistence for DDL
                     return true;
                 }
             }
@@ -170,7 +206,13 @@ public class ConceptCatalog
     {
         lock (_lock)
         {
-            _pageMap.Remove(kbName);
+            if (_pageMap.ContainsKey(kbName))
+            {
+                _pageMap.Remove(kbName);
+                _pageMap[kbName] = new List<int>(); // Empty state
+                SavePageIds(kbName);                // Persist tombstone to Page 0
+                _pageMap.Remove(kbName);             // Final cleanup from memory
+            }
         }
     }
 

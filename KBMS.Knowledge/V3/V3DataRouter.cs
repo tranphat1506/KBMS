@@ -24,7 +24,9 @@ namespace KBMS.Knowledge.V3;
 public class V3DataRouter
 {
     private readonly StoragePool _storagePool;
-    private readonly QueryOptimizer _optimizer;
+    
+    // Per-database optimizers (RC10: ensure query pushdown uses the correct buffer pool)
+    private readonly Dictionary<string, QueryOptimizer> _kbOptimizers = new();
     
     // Catalog: "kbName:conceptName" -> list of physical page IDs holding that concept's data
     private readonly Dictionary<string, List<int>> _pageCatalog = new();
@@ -33,9 +35,6 @@ public class V3DataRouter
     public V3DataRouter(StoragePool storagePool)
     {
         _storagePool = storagePool;
-        // Use system storage for optimizer scratch space (or manage it separately)
-        var systemManagers = _storagePool.GetManagers("system");
-        _optimizer = new QueryOptimizer(systemManagers.Bpm, GetConceptPageIds);
     }
 
     // ==================== Insert Path (V1 -> V3) ====================
@@ -64,6 +63,13 @@ public class V3DataRouter
                 var page = bpm.FetchPage(pageId);
                 if (page == null) return false;
 
+                // --- WAL LOGGING ---
+                var wal = managers.Wal;
+                var txnId = wal.Begin();
+                byte[] beforeImage = new byte[Page.PAGE_SIZE];
+                Array.Copy(page.Data, beforeImage, Page.PAGE_SIZE);
+                // -------------------
+
                 var slottedPage = new SlottedPage(page);
                 if (slottedPage.TupleCount == 0 && slottedPage.FreeSpacePointer == 0)
                     slottedPage.Init(pageId);
@@ -79,10 +85,22 @@ public class V3DataRouter
 
                     page = bpm.FetchPage(newPageId);
                     if (page == null) return false;
+                    
+                    // --- WAL LOGGING (New Page) ---
+                    Array.Copy(page.Data, beforeImage, Page.PAGE_SIZE);
+                    // ------------------------------
+
                     slottedPage = new SlottedPage(page);
                     slottedPage.Init(newPageId);
                     slotId = slottedPage.InsertTuple(data);
                 }
+
+                // --- WAL COMMIT ---
+                byte[] afterImage = new byte[Page.PAGE_SIZE];
+                Array.Copy(page.Data, afterImage, Page.PAGE_SIZE);
+                wal.LogWrite(txnId, page.PageId, beforeImage, afterImage);
+                wal.Commit(txnId);
+                // ------------------
 
                 bpm.UnpinPage(page.PageId, true);
                 return slotId >= 0;
@@ -152,7 +170,19 @@ public class V3DataRouter
     public List<ObjectInstance> ExecuteSelect(string kbName, SelectNode node, Concept? concept = null)
     {
         var results = new List<ObjectInstance>();
-        var plan = _optimizer.BuildExecutionPlan(node, kbName);
+        
+        QueryOptimizer optimizer;
+        lock (_kbOptimizers)
+        {
+            if (!_kbOptimizers.TryGetValue(kbName, out optimizer!))
+            {
+                var managers = _storagePool.GetManagers(kbName);
+                optimizer = new QueryOptimizer(managers.Bpm, GetConceptPageIds);
+                _kbOptimizers[kbName] = optimizer;
+            }
+        }
+
+        var plan = optimizer.BuildExecutionPlan(node, kbName);
 
         try
         {
@@ -195,10 +225,18 @@ public class V3DataRouter
         var managers = _storagePool.GetManagers(kbName);
         var bpm = managers.Bpm;
 
+        var wal = managers.Wal;
+
         foreach (var pageId in pageIds)
         {
             var page = bpm.FetchPage(pageId);
             if (page == null) continue;
+
+            // --- WAL LOGGING (Start Delete part of Update) ---
+            var txnId = wal.Begin();
+            byte[] beforeImage = new byte[Page.PAGE_SIZE];
+            Array.Copy(page.Data, beforeImage, Page.PAGE_SIZE);
+            // --------------------------------------------------
 
             var sp = new SlottedPage(page);
             for (int i = 0; i < sp.TupleCount; i++)
@@ -212,9 +250,17 @@ public class V3DataRouter
                 if (obj.Id == id)
                 {
                     sp.DeleteTuple(i);
+                    
+                    // --- WAL COMMIT (Delete part) ---
+                    byte[] afterImage = new byte[Page.PAGE_SIZE];
+                    Array.Copy(page.Data, afterImage, Page.PAGE_SIZE);
+                    wal.LogWrite(txnId, page.PageId, beforeImage, afterImage);
+                    wal.Commit(txnId);
+                    // --------------------------------
+
                     bpm.UnpinPage(page.PageId, true);
 
-                    // Re-insert with updated values
+                    // Re-insert with updated values (This will have its own WAL txn)
                     var updated = new ObjectInstance { Id = id, ConceptName = conceptName, Values = newValues };
                     return InsertObject(kbName, updated);
                 }
@@ -246,10 +292,18 @@ public class V3DataRouter
         var bpm = managers.Bpm;
 
         int deleted = 0;
+        var wal = managers.Wal;
+
         foreach (var pageId in pageIds)
         {
             var page = bpm.FetchPage(pageId);
             if (page == null) continue;
+
+            // --- WAL LOGGING (Start) ---
+            var txnId = wal.Begin();
+            byte[] beforeImage = new byte[Page.PAGE_SIZE];
+            Array.Copy(page.Data, beforeImage, Page.PAGE_SIZE);
+            // ---------------------------
 
             var sp = new SlottedPage(page);
             bool anyDeleted = false;
@@ -268,6 +322,16 @@ public class V3DataRouter
                     deleted++;
                     anyDeleted = true;
                 }
+            }
+
+            if (anyDeleted)
+            {
+                // --- WAL COMMIT ---
+                byte[] afterImage = new byte[Page.PAGE_SIZE];
+                Array.Copy(page.Data, afterImage, Page.PAGE_SIZE);
+                wal.LogWrite(txnId, page.PageId, beforeImage, afterImage);
+                wal.Commit(txnId);
+                // ------------------
             }
 
             bpm.UnpinPage(page.PageId, anyDeleted);
@@ -548,5 +612,21 @@ public class V3DataRouter
             InsertObject("system", obj);
         }
         return true;
+    }
+
+    public bool DropAllMappings(string kbName)
+    {
+        lock (_catalogLock)
+        {
+            var keysToRemove = _pageCatalog.Keys.Where(k => k.StartsWith(kbName + ":")).ToList();
+            foreach (var key in keysToRemove)
+            {
+                _pageCatalog.Remove(key);
+            }
+            
+            // Persist the empty state for this KB (tombstone)
+            SaveCatalog(kbName);
+            return true;
+        }
     }
 }

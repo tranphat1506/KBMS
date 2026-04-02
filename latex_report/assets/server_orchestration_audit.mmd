@@ -1,0 +1,13 @@
+graph TD
+    Req["Yeu cau tu Module I & II"] --> TAP["Mo hinh Khop luong TAP"]
+    
+    subgraph Concurrency ["Dieu phoi Concurrency"]
+        TAP --> Pool["ThreadPool .NET"]
+        Pool --> Sem["SemaphoreSlim Synchronization"]
+    end
+    
+    Sem --> AuthCheck{RBAC: CheckPrivilege}
+    AuthCheck -->|Allow| Audit["Ghi Audit Log: system.kdb"]
+    AuthCheck -->|Deny| Err["Tra ve Error Frame"]
+    
+    Audit --> Dispatch["Module IV: Knowledge Dispatching"]

@@ -1,0 +1,14 @@
+sequenceDiagram
+    participant User as Người dùng
+    participant CLI as KBMS.CLI (Console)
+    participant Client as ConnectionManager
+    participant Server as KBMS.Server
+
+    User->>CLI: Nhập lệnh KBQL (VD: SOLVE...)
+    CLI->>CLI: Kiểm tra cú pháp cơ bản
+    CLI->>Client: SendRequest(KBQL_STRING)
+    Client->>Server: Gửi gói tin (TCP Protocol)
+    Note over Server: Thực thi: Parser -> Engine -> Storage
+    Server->>Client: Trả về Response (Table/Status)
+    Client->>CLI: Chuyển đổi dữ liệu (ResultSet)
+    CLI->>User: Hiển thị bảng (Console.Table)

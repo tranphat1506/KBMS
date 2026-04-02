@@ -1,27 +1,37 @@
 graph LR
     User([Học viên / Nghiên cứu sinh])
     Admin([Quản trị viên])
-    Dev([Nhà phát triển hệ thống])
-
-    subgraph Interface [Interface Layer]
-        CLI["KBMS CLI"]
-        Studio["KBMS Studio (IDE)"]
+    
+    subgraph AppLayer [Application Layer]
+        Studio["KBMS Studio<br/>(Visual IDE)"]
+        CLI["KBMS CLI<br/>(REPL)"]
     end
 
-    subgraph Service [Core Services]
-        KDL[Thiết kế Tri thức - CREATE]
-        RE[Suy diễn tự động - SOLVE]
-        KML[Bảo trì Dữ liệu - REINDEX]
-        KCL[Bảo mật & Phân quyền - GRANT]
+    subgraph ServerLayer [Server Engine Layer]
+        KM["KnowledgeManager<br/>(Coordinator)"]
+        RE["Reasoning Engine<br/>(Inference)"]
+        KDL["Compiler<br/>(Parser/AST)"]
+    end
+
+    subgraph StorageLayer [Storage Layer]
+        Index["B+ Tree Indexing"]
+        BP["BufferPoolManager"]
+        WAL["WalManager (ACID)"]
     end
 
     User --> Studio
     User --> CLI
     Admin --> Studio
-    Dev --> CLI
+    
+    Studio --> KM
+    CLI --> KM
+    
+    KM --> KDL
+    KDL --> RE
+    RE --> Index
+    RE --> BP
+    BP --> WAL
 
-    Studio --> KDL
-    Studio --> RE
-    Studio --> KCL
-    CLI --> KML
-    CLI --- Server["KBMS Core Server"]
+    style AppLayer fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style ServerLayer fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
+    style StorageLayer fill:#fce4ec,stroke:#c2185b,stroke-width:2px

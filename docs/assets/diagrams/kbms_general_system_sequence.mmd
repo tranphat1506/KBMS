@@ -1,17 +1,45 @@
 sequenceDiagram
-    participant U as Người dùng (Studio/CLI)
-    participant N as Network Layer (Binary)
-    participant S as Server Layer (Manager)
-    participant E as Engine Layer (Parser/Solver)
-    participant ST as Storage Layer (B+ Tree/WAL)
+    autonumber
+    
+    box rgb(232, 245, 233) "Application Layer"
+        participant App as Studio / CLI
+    end
+    box rgb(225, 245, 254) "Network Layer"
+        participant Net as Custom Binary Protocol
+    end
+    box rgb(255, 243, 224) "Server Layer (Engine)"
+        participant KM as KnowledgeManager
+        participant PE as Compiler & Optimizer
+        participant RE as Volcano Engine (Iterator)
+    end
+    box rgb(252, 228, 236) "Storage Layer"
+        participant BP as BufferPoolManager
+        participant DM as Persistence (WAL/Disk)
+    end
 
-    U->>N: Gửi truy vấn (MessageType.QUERY)
-    N->>S: Giải mã gói tin (Protocol Decoding)
-    S->>E: Điều phối thực thi (Orchestration)
-    E->>E: Phân tích cú pháp (AST Compilation)
-    E->>ST: Truy xuất/Ghi dữ liệu Page
-    ST-->>E: Trả về B+ Tree Node / Fact
-    E->>E: Thực hiện suy diễn F-Closure
-    E-->>S: Trả về kết quả thô
-    S-->>N: Streaming Results (Metadata/Row)
-    N-->>U: Hiển thị kết quả (Visualization)
+    App->>Net: 1. KBQL serialization
+    Net->>KM: 2. Transmission (Socket Handler)
+    
+    rect rgb(255, 255, 255)
+        Note over KM,PE: Computing Stage
+        KM->>PE: 3. Lex/Parse to AST
+        PE->>PE: 4. CBO Optimization
+        PE-->>KM: 5. Execution Plan (DAG)
+    end
+
+    KM->>RE: 6. Execute(Plan)
+    
+    loop Iterator.Next()
+        RE->>BP: 7. Request Logical Page
+        alt Cache Miss
+            BP->>DM: 8. Read Physical Page (AES Decrypted)
+            DM-->>BP: 9. Data Block (HAL)
+        end
+        BP-->>RE: 10. Record Access (Slotted Page)
+        RE->>RE: 11. Volcano Processing (Join/Filter)
+    end
+
+    RE-->>KM: 12. Streaming Results
+    
+    KM->>Net: 13. Tuple Streaming
+    Net-->>App: 14. Response Rendering

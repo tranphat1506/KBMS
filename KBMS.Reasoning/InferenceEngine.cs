@@ -5,6 +5,7 @@ using System.Linq;
 using KBMS.Models;
 using NCalc; // We will need NCalc or a similar math evaluator for parsing formulas
 using System.Text.RegularExpressions;
+using KBMS.Reasoning.Rete;
 
 namespace KBMS.Reasoning;
 
@@ -50,373 +51,127 @@ public class InferenceEngine
     {
         var result = new ReasoningResult();
         var knownFacts = new Dictionary<string, object>(initialFacts);
-        var appliedRuleIds = new HashSet<Guid>();
         int stepCount = 0;
 
-        result.Steps.Add($"Step {stepCount++}: Initializing GT (Known Facts) = {{ {string.Join(", ", initialFacts.Select(kv => $"{kv.Key}={kv.Value}"))} }}");
-        if (targetVariables.Any()) result.Steps.Add($"Goal KL (Targets) = {{ {string.Join(", ", targetVariables)} }}");
+        result.Steps.Add($"Step {stepCount++}: Initializing reasoning for '{concept.Name}'");
 
-        // (RC6.1) Resolve Hierarchy (IS-A)
+        // (RC6) Identify inherited knowledge (tri-knowledge: C, H, R)
         var effectiveConcept = GetEffectiveConcept(concept);
-        
-        result.Steps.Add($"Concept '{concept.Name}' ready. Stats: {effectiveConcept.Variables.Count} Vars, {effectiveConcept.SameVariables.Count} SameVars, {effectiveConcept.CompRels.Count} CompRels, {effectiveConcept.ConceptRules.Count} Rules, {effectiveConcept.Constraints.Count} Constraints, {effectiveConcept.Equations.Count} Equations");
-        
-        // (RC7/Early) Check initial constraints
-        if (effectiveConcept.Constraints.Count > 0)
-        {
-            foreach (var constraint in effectiveConcept.Constraints)
-            {
-                var constraintLabel = string.IsNullOrEmpty(constraint.Name) ? constraint.Expression : $"{constraint.Name}: {constraint.Expression}";
-                var locationLabel = (constraint.Line > 0) ? $" (at line {constraint.Line}, col {constraint.Column})" : "";
 
-                try
-                {
-                    var needed = ExtractVariablesFromExpression(constraint.Expression);
-                    if (needed.All(v => knownFacts.ContainsKey(v)))
-                    {
-                        var ok = EvaluateConstraint(constraint.Expression, knownFacts);
-                        if (!ok)
-                        {
-                            result.Success = false;
-                            result.ErrorMessage = $"Input constraint violated: {constraintLabel}{locationLabel}.";
-                            result.Steps.Add($"  ✗ Input constraint VIOLATED: {constraintLabel}{locationLabel}");
-                            return result;
-                        }
-                    }
-                }
-                catch { }
-            }
-        }
+        // Initialize Rete Network once for this concept
+        var network = new ReteNetwork();
+        network.Logger = (msg) => result.Steps.Add($"[Rete] {msg}");
+        var compiler = new ReteCompiler(this, network);
+        compiler.Compile(effectiveConcept);
 
-        bool factAdded = true;
         int iteration = 0;
-        while (factAdded && iteration < 50) // Limit iterations to prevent infinite loops
+        try
         {
-            factAdded = false;
-            iteration++;
-
-            // (RC6.2) Recursive Closure for sub-concepts
-            if (ConceptResolver != null)
+            while (iteration < 2000)
             {
-                foreach (var variable in effectiveConcept.Variables)
-                {
-                    if (IsConceptType(variable.Type))
-                    {
-                        var subConcept = ConceptResolver(variable.Type);
-                        if (subConcept != null)
-                        {
-                            var subFacts = new Dictionary<string, object>();
-                            var prefix = variable.Name + ".";
-                            foreach (var fact in knownFacts)
-                            {
-                                if (fact.Key.StartsWith(prefix))
-                                    subFacts[fact.Key.Substring(prefix.Length)] = fact.Value;
-                            }
+                bool factAddedThisTurn = false;
 
-                            if (subFacts.Count > 0)
+                // 1. Assert Current Known Facts into Rete
+                foreach (var fact in knownFacts)
+                {
+                    network.AssertFact(fact.Key, fact.Value);
+                }
+
+                // 2. Fire Rete Rules/Equations
+                while (network.FireNext())
+                {
+                    // FireNext triggers actions that update network.WorkingMemory
+                }
+
+                // 3. Sync Rete Memory -> Engine Memory
+                foreach (var fact in network.WorkingMemory.ToList())
+                {
+                    if (!knownFacts.ContainsKey(fact.Name))
+                    {
+                        knownFacts[fact.Name] = fact.Value;
+                        result.DerivedFacts[fact.Name] = fact.Value;
+                        factAddedThisTurn = true;
+                    }
+                }
+
+                // 4. Recursive Closure for Nested Concepts (RC6.2)
+                if (ConceptResolver != null)
+                {
+                    foreach (var variable in effectiveConcept.Variables.ToList())
+                    {
+                        if (IsConceptType(variable.Type))
+                        {
+                            var subConcept = ConceptResolver(variable.Type);
+                            if (subConcept != null)
                             {
-                                // result.Steps.Add($"  [Debug] Recursing into {variable.Name} ({variable.Type}) with {subFacts.Count} facts");
-                                var subResult = FindClosure(subConcept, subFacts, new List<string>());
-                                
-                                foreach (var derived in subResult.DerivedFacts)
+                                var subFacts = new Dictionary<string, object>();
+                                var prefix = variable.Name + ".";
+                                foreach (var fact in knownFacts.ToList())
                                 {
-                                    var fullKey = prefix + derived.Key;
-                                    if (!knownFacts.ContainsKey(fullKey))
-                                    {
-                                        knownFacts[fullKey] = derived.Value;
-                                        result.DerivedFacts[fullKey] = derived.Value;
-                                        factAdded = true;
-                                        result.Steps.Add($"Step {stepCount++}: Deriving {fullKey} = {derived.Value} (from {variable.Type} closure)");
-                                    }
+                                    if (fact.Key.StartsWith(prefix))
+                                        subFacts[fact.Key.Substring(prefix.Length)] = fact.Value;
                                 }
-                            }
-                        }
-                    }
-                }
-            }
 
-            // (RC2) SameVariables propagation
-            foreach (var sv in effectiveConcept.SameVariables)
-            {
-                if (knownFacts.ContainsKey(sv.Variable1) && !knownFacts.ContainsKey(sv.Variable2))
-                {
-                    var val = knownFacts[sv.Variable1];
-                    knownFacts[sv.Variable2] = val;
-                    result.DerivedFacts[sv.Variable2] = val;
-                    result.Steps.Add($"Step {stepCount++}: From SameVariable {sv.Variable1} = {sv.Variable2} => {sv.Variable2} = {val}");
-                    
-                    // (Phase 17) Trace
-                    result.Traces.Add(new DerivationTrace
-                    {
-                        TargetVariable = sv.Variable2,
-                        Value = val,
-                        Mechanism = "SameVariable",
-                        Source = $"{sv.Variable1} = {sv.Variable2}",
-                        Inputs = new Dictionary<string, object> { { sv.Variable1, val } }
-                    });
-
-                    factAdded = true;
-                }
-                else if (knownFacts.ContainsKey(sv.Variable2) && !knownFacts.ContainsKey(sv.Variable1))
-                {
-                    var val = knownFacts[sv.Variable2];
-                    knownFacts[sv.Variable1] = val;
-                    result.DerivedFacts[sv.Variable1] = val;
-                    result.Steps.Add($"Step {stepCount++}: From SameVariable {sv.Variable1} = {sv.Variable2} => {sv.Variable1} = {val}");
-                    
-                    // (Phase 17) Trace
-                    result.Traces.Add(new DerivationTrace
-                    {
-                        TargetVariable = sv.Variable1,
-                        Value = val,
-                        Mechanism = "SameVariable",
-                        Source = $"{sv.Variable1} = {sv.Variable2}",
-                        Inputs = new Dictionary<string, object> { { sv.Variable2, val } }
-                    });
-
-                    factAdded = true;
-                }
-            }
-
-            // (RC3) Computation Relations (Rf)
-            foreach (var rel in effectiveConcept.CompRels)
-            {
-                if (rel.ResultVariable != null && !knownFacts.ContainsKey(rel.ResultVariable))
-                {
-                    if (rel.InputVariables.All(v => knownFacts.ContainsKey(v)))
-                    {
-                        try
-                        {
-                            var res = EvaluateFormula(rel.Expression, knownFacts);
-                            var variable = effectiveConcept.Variables.FirstOrDefault(v => v.Name.Equals(rel.ResultVariable, StringComparison.OrdinalIgnoreCase));
-                            var val = CastToVariableType(res, variable);
-
-                            knownFacts[rel.ResultVariable!] = val;
-                            result.DerivedFacts[rel.ResultVariable!] = val;
-                            result.Steps.Add($"Step {stepCount++}: From Computation '{rel.Expression}' => {rel.ResultVariable} = {val}");
-                            
-                            // (Phase 17) Trace
-                            result.Traces.Add(new DerivationTrace
-                            {
-                                TargetVariable = rel.ResultVariable!,
-                                Value = val,
-                                Mechanism = "Computation",
-                                Source = rel.Expression,
-                                Inputs = rel.InputVariables.ToDictionary(v => v, v => knownFacts[v])
-                            });
-
-                            factAdded = true;
-                        }
-                        catch (Exception ex)
-                        {
-                            result.Steps.Add($"Step {stepCount++}: Error in computation {rel.Expression}: {ex.Message}");
-                        }
-                    }
-                }
-            }
-
-            foreach (var rule in effectiveConcept.ConceptRules)
-            {
-                if (appliedRuleIds.Contains(rule.Id)) continue;
-                
-                bool allHypothesisMet = true;
-                foreach (var hyp in rule.Hypothesis)
-                {
-                    try
-                    {
-                        var met = EvaluateConstraint(hyp, knownFacts);
-                        if (!met) { allHypothesisMet = false; break; }
-                    }
-                    catch { allHypothesisMet = false; break; }
-                }
-
-                if (allHypothesisMet && rule.Hypothesis.Count > 0)
-                {
-                    appliedRuleIds.Add(rule.Id);
-                    foreach (var conclusion in rule.Conclusion)
-                    {
-                        if (ApplyConclusion(conclusion, effectiveConcept, knownFacts, result, rule.Kind ?? "Unnamed", stepCount++))
-                        {
-                            // (Phase 17) Trace
-                            var varName = GetConcludedVariable(conclusion) ?? conclusion.Trim();
-                            var eqIdx = conclusion.IndexOfAny(new[] { '=', ':' });
-                            var exprStr = (eqIdx > 0) ? conclusion.Substring(eqIdx + 1) : "";
-                            
-                            var formulaVars = ExtractVariablesFromExpression(exprStr);
-                            var hypothesisVars = rule.Hypothesis.SelectMany(h => ExtractVariablesFromExpression(h)).Distinct();
-                            var allInputs = formulaVars.Concat(hypothesisVars).Distinct();
-
-                            result.Traces.Add(new DerivationTrace
-                            {
-                                TargetVariable = varName,
-                                Value = knownFacts.GetValueOrDefault(varName),
-                                Mechanism = "Rule",
-                                Source = $"IF {string.Join(" AND ", rule.Hypothesis)} THEN {conclusion}",
-                                Inputs = allInputs.Where(v => knownFacts.ContainsKey(v)).ToDictionary(v => v, v => knownFacts[v])
-                            });
-
-                            factAdded = true;
-                        }
-                    }
-                }
-            }
-
-            // (V2) Treat Constraints as Equations during solving
-            foreach (var constraint in effectiveConcept.Constraints)
-            {
-                var eqVars = ExtractVariablesFromExpression(constraint.Expression);
-                var unknownEqVars = eqVars.Where(v => !knownFacts.ContainsKey(v)).ToList();
-                
-                result.Steps.Add($"  - Checking Constraint: '{constraint.Expression}' (Unknowns: {string.Join(",", unknownEqVars)})");
-
-                if (unknownEqVars.Count == 1)
-                {
-                    string targetVar = unknownEqVars[0];
-                    try
-                    {
-                        var root = Solve1DEquation(constraint.Expression, targetVar, knownFacts);
-                        if (!double.IsNaN(root))
-                        {
-                            var variable = effectiveConcept.Variables.FirstOrDefault(v => v.Name.Equals(targetVar, StringComparison.OrdinalIgnoreCase));
-                            var castedVal = CastToVariableType(root, variable);
-
-                            knownFacts[targetVar] = castedVal;
-                            result.DerivedFacts[targetVar] = castedVal;
-                            result.Steps.Add($"Step {stepCount++}: From Constraint '{constraint.Expression}' solved for {targetVar} => {castedVal}");
-                            
-                            result.Traces.Add(new DerivationTrace
-                            {
-                                TargetVariable = targetVar,
-                                Value = castedVal,
-                                Mechanism = "Constraint (Equation)",
-                                Source = constraint.Expression,
-                                Inputs = eqVars.Where(v => v != targetVar && knownFacts.ContainsKey(v))
-                                               .ToDictionary(v => v, v => knownFacts[v])
-                            });
-
-                            factAdded = true;
-                        }
-                    }
-                    catch { }
-                }
-            }
-
-            // (RC5) Equation Solving
-            foreach (var eq in effectiveConcept.Equations)
-            {
-                var eqVars = ExtractVariablesFromExpression(eq.Expression);
-                var unknownEqVars = eqVars.Where(v => !knownFacts.ContainsKey(v)).ToList();
-                
-                result.Steps.Add($"  - (DEBUG) Testing Equation '{eq.Expression}': Vars=[{string.Join(",", eqVars)}], Unknowns=[{string.Join(",", unknownEqVars)}]");
-
-                if (unknownEqVars.Count == 1)
-                {
-                    string targetVar = unknownEqVars[0];
-                    try
-                    {
-                        var root = Solve1DEquation(eq.Expression, targetVar, knownFacts, (msg) => result.Steps.Add(msg));
-                        if (!double.IsNaN(root))
-                        {
-                            var variable = effectiveConcept.Variables.FirstOrDefault(v => v.Name.Equals(targetVar, StringComparison.OrdinalIgnoreCase));
-                            var castedVal = CastToVariableType(root, variable);
-
-                            knownFacts[targetVar] = castedVal;
-                            result.DerivedFacts[targetVar] = castedVal;
-                            result.Steps.Add($"Step {stepCount++}: From Equation '{eq.Expression}' solved for {targetVar} => {castedVal}");
-                            
-                            // (Phase 17) Trace
-                            result.Traces.Add(new DerivationTrace
-                            {
-                                TargetVariable = targetVar,
-                                Value = castedVal,
-                                Mechanism = "Equation",
-                                Source = eq.Expression,
-                                Inputs = eqVars.Where(v => v != targetVar && knownFacts.ContainsKey(v))
-                                               .ToDictionary(v => v, v => knownFacts[v])
-                            });
-
-                            factAdded = true;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        var loc = (eq.Line > 0) ? $" (at line {eq.Line}, col {eq.Column})" : "";
-                        result.Steps.Add($"  - (ERROR) Solving Equation '{eq.Expression}'{loc} for {targetVar} failed: {ex.Message}");
-                    }
-                }
-                else if (unknownEqVars.Count == 2)
-                {
-                    // Look for a pair of equations that share the same two unknowns
-                    foreach (var eq2 in effectiveConcept.Equations)
-                    {
-                        if (eq == eq2) continue; // Don't pair an equation with itself
-                        var eq2Vars = ExtractVariablesFromExpression(eq2.Expression);
-                        var unknowns2 = eq2Vars.Where(v => !knownFacts.ContainsKey(v)).ToHashSet();
-                        
-                        if (unknowns2.Count == 2 && unknowns2.SetEquals(unknownEqVars))
-                        {
-                            try
-                            {
-                                var unknownList = unknownEqVars.ToList();
-                                var sol = Solve2DEquationSystem(eq.Expression, eq2.Expression, unknownList[0], unknownList[1], knownFacts);
-                                if (sol != null)
+                                if (subFacts.Count > 0)
                                 {
-                                    foreach (var kvp in sol)
+                                    var subResult = FindClosure(subConcept, subFacts, new List<string>());
+                                    
+                                    // Merge steps for debugging
+                                    foreach(var step in subResult.Steps) 
+                                        result.Steps.Add($"  [{variable.Name}] {step}");
+
+                                    foreach (var derived in subResult.DerivedFacts)
                                     {
-                                        if (!knownFacts.ContainsKey(kvp.Key)) // Only add if not already known
+                                        var fullKey = prefix + derived.Key;
+                                        if (!knownFacts.ContainsKey(fullKey))
                                         {
-                                            knownFacts[kvp.Key] = kvp.Value;
-                                            result.DerivedFacts[kvp.Key] = kvp.Value;
-                                            factAdded = true;
+                                            // Assert back into parent Rete network
+                                            network.AssertFact(fullKey, derived.Value);
+                                            factAddedThisTurn = true;
                                         }
                                     }
-                                    if (factAdded) // Only log if new facts were added
-                                        result.Steps.Add($"Step {stepCount++}: From Equation System {{'{eq.Expression}', '{eq2.Expression}'}} solved for {{{string.Join(", ", unknownList)}}} => {{{string.Join(", ", sol.Values.Select(v => v.ToString("F4")))}}}");
                                 }
                             }
-                            catch { } // Failed to solve system, skip
                         }
                     }
                 }
-            }
 
-            // Early exit if all targets KL met
-            if (targetVariables.Any() && targetVariables.All(v => knownFacts.ContainsKey(v)))
-            {
-                result.Success = true;
-                result.Steps.Add("=> Stopping condition met: All target variables KL are found in GT.");
-                break;
+                if (!factAddedThisTurn) break;
+                iteration++;
             }
         }
-
-        // Final Constraints Check
-        if (effectiveConcept.Constraints.Count > 0)
+        catch (Exception ex)
         {
-            result.Steps.Add($"Step {stepCount++}: Validating {effectiveConcept.Constraints.Count} constraint(s)...");
-            foreach (var constraint in effectiveConcept.Constraints)
-            {
-                var constraintLabel = string.IsNullOrEmpty(constraint.Name) ? constraint.Expression : $"{constraint.Name}: {constraint.Expression}";
-                var locationLabel = (constraint.Line > 0) ? $" (at line {constraint.Line}, col {constraint.Column})" : "";
+            result.Steps.Add($"[FATAL-ERROR] {ex.Message}");
+            result.Success = false;
+            result.ErrorMessage = ex.Message;
+            return result;
+        }
 
-                try
+        // Final Constraints Check (RC7)
+        foreach (var constraint in effectiveConcept.Constraints)
+        {
+            try
+            {
+                var needed = ExtractVariablesFromExpression(constraint.Expression);
+                if (needed.All(v => knownFacts.ContainsKey(v)))
                 {
                     var ok = EvaluateConstraint(constraint.Expression, knownFacts);
-                    if (ok) result.Steps.Add($"  ✓ Constraint satisfied: {constraintLabel}{locationLabel}");
-                    else
+                    if (!ok)
                     {
-                        result.Steps.Add($"  ✗ Constraint VIOLATED: {constraintLabel}{locationLabel}");
                         result.Success = false;
-                        result.ErrorMessage = $"Constraint violated: {constraintLabel}{locationLabel}";
+                        result.ErrorMessage = $"Constraint violated: {constraint.Expression}";
+                        result.Steps.Add($"  ✗ Constraint VIOLATED: {constraint.Expression}");
                     }
                 }
-                catch { result.Steps.Add($"  ? Constraint skipped (missing vars): {constraintLabel}{locationLabel}"); } // Cannot evaluate, assume not violated for now
             }
+            catch { }
         }
 
         if (targetVariables.Count > 0 && !targetVariables.All(v => knownFacts.ContainsKey(v)))
         {
             result.Success = false;
-            result.ErrorMessage = "Reasoning engine halted: FClosure(GT) exhausted without reaching Goal(KL).";
+            result.ErrorMessage = "Target variables not reached.";
         }
 
         return result;
@@ -603,7 +358,7 @@ public class InferenceEngine
         return (expr, "0"); // Default to expr = 0 if no simple '=' found
     }
 
-    private double Solve1DEquation(string expr, string target, Dictionary<string, object> parameters, Action<string>? log = null)
+    public double Solve1DEquation(string expr, string target, Dictionary<string, object> parameters, Action<string>? log = null)
     {
         var s = SplitEquation(expr);
         Func<double, double> f = (x) => { 
@@ -737,7 +492,7 @@ public class InferenceEngine
         return res;
     }
 
-    public object CastToVariableType(object? val, Models.Variable? variable)
+    public object CastToVariableType(object? val, KBMS.Models.Variable? variable)
     {
         if (val == null || variable == null) return val ?? 0.0;
 
@@ -796,7 +551,7 @@ public class InferenceEngine
         return val;
     }
 
-    private bool EvaluateConstraint(string expr, Dictionary<string, object> parameters)
+    public bool EvaluateConstraint(string expr, Dictionary<string, object> parameters)
     {
         // Replace custom operators
         string processed = PreProcessOperators(expr);
@@ -878,7 +633,7 @@ public class InferenceEngine
         return nameToSymbol.TryGetValue(name, out var sym) ? sym : name;
     }
 
-    private List<string> ExtractVariablesFromExpression(string expression)
+    public List<string> ExtractVariablesFromExpression(string expression)
     {
         if (string.IsNullOrWhiteSpace(expression)) return new List<string>();
 
@@ -916,223 +671,7 @@ public class InferenceEngine
         return vars.ToList();
     }
 
-    /// <summary>
-    /// Performs Backward Chaining (Goal-Driven) reasoning.
-    /// </summary>
-    public ReasoningResult SolveBackward(Concept concept, Dictionary<string, object> initialFacts, List<string> targetVariables)
-    {
-        var result = new ReasoningResult();
-        var knownFacts = new Dictionary<string, object>(initialFacts);
-        var activeGoals = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var appliedRuleIds = new HashSet<Guid>();
-
-        result.Steps.Add($"Backward Chaining Initialized. Goals: {string.Join(", ", targetVariables)}");
-
-        // (RC6) Effective concept with IS-A inheritance
-        var effective = GetEffectiveConcept(concept);
-
-        foreach (var goal in targetVariables)
-        {
-            ResolveGoal(goal, effective, knownFacts, activeGoals, appliedRuleIds, result);
-        }
-
-        result.Success = targetVariables.All(g => knownFacts.ContainsKey(g));
-        if (!result.Success)
-        {
-            var missing = targetVariables.Where(g => !knownFacts.ContainsKey(g)).ToList();
-            result.ErrorMessage = $"Could not resolve goals: {string.Join(", ", missing)}";
-        }
-
-        // Final Derived facts are those NOT in initial facts
-        foreach (var kvp in knownFacts)
-        {
-            if (!initialFacts.ContainsKey(kvp.Key))
-                result.DerivedFacts[kvp.Key] = kvp.Value;
-        }
-
-        return result;
-    }
-
-    private object? ResolveGoal(string goalVar, Concept concept, Dictionary<string, object> knownFacts, HashSet<string> activeGoals, HashSet<Guid> appliedRuleIds, ReasoningResult result)
-    {
-        if (knownFacts.TryGetValue(goalVar, out var cached)) return cached;
-        if (activeGoals.Contains(goalVar))
-        {
-            result.Steps.Add($"Circular dependency: {goalVar}");
-            return null;
-        }
-
-        activeGoals.Add(goalVar);
-        result.Steps.Add($"Goal: Try resolve '{goalVar}'");
-
-        // 1. Try Rules that conclude this variable
-        var candidateRules = concept.ConceptRules
-            .Where(r => r.Conclusion.Any(c => goalVar.Equals(GetConcludedVariable(c), StringComparison.OrdinalIgnoreCase)))
-            .ToList();
-
-        foreach (var rule in candidateRules)
-        {
-            if (appliedRuleIds.Contains(rule.Id)) continue;
-
-            result.Steps.Add($"  Analyzing rule '{rule.Kind ?? "Unnamed"}' to resolve '{goalVar}'");
-            bool allHypMet = true;
-
-            foreach (var hyp in rule.Hypothesis)
-            {
-                var neededVars = ExtractVariablesFromExpression(hyp);
-                foreach (var needed in neededVars)
-                {
-                    if (!knownFacts.ContainsKey(needed))
-                    {
-                        var resolved = ResolveGoal(needed, concept, knownFacts, activeGoals, appliedRuleIds, result);
-                        if (resolved == null)
-                        {
-                            allHypMet = false;
-                            break;
-                        }
-                    }
-                }
-
-                if (!allHypMet) break;
-
-                try
-                {
-                    if (!EvaluateConstraint(hyp, knownFacts))
-                    {
-                        allHypMet = false;
-                        result.Steps.Add($"  Rule '{rule.Kind}': Hypothesis [{hyp}] is FALSE");
-                        break;
-                    }
-                }
-                catch
-                {
-                    allHypMet = false;
-                    break;
-                }
-            }
-
-            if (allHypothesisMet(rule, knownFacts))
-            {
-                appliedRuleIds.Add(rule.Id);
-                foreach (var conclusion in rule.Conclusion)
-                {
-                    if (ApplyConclusion(conclusion, concept, knownFacts, result, rule.Kind ?? "Unnamed"))
-                    {
-                        var concludedVar = GetConcludedVariable(conclusion) ?? conclusion.Trim();
-                        if (concludedVar.Equals(goalVar, StringComparison.OrdinalIgnoreCase))
-                        {
-                            result.Steps.Add($"Rule {rule.Kind} resolved {goalVar} = {knownFacts[concludedVar]}");
-                            activeGoals.Remove(goalVar);
-                            return knownFacts[concludedVar];
-                        }
-                    }
-                }
-            }
-        }
-
-        // 2. Try Computation Relations
-        var candidateComps = concept.CompRels
-            .Where(cr => goalVar.Equals(cr.ResultVariable, StringComparison.OrdinalIgnoreCase))
-            .ToList();
-
-        foreach (var comp in candidateComps)
-        {
-            if (string.IsNullOrEmpty(comp.ResultVariable)) continue;
-            bool allInputsResolved = true;
-            foreach (var input in comp.InputVariables)
-            {
-                if (!knownFacts.ContainsKey(input))
-                {
-                    if (ResolveGoal(input, concept, knownFacts, activeGoals, appliedRuleIds, result) == null)
-                    {
-                        allInputsResolved = false;
-                        break;
-                    }
-                }
-            }
-
-            if (allInputsResolved)
-            {
-                try
-                {
-                    var val = EvaluateFormula(comp.Expression, knownFacts);
-                    var variable = concept.Variables.FirstOrDefault(v => v.Name.Equals(comp.ResultVariable, StringComparison.OrdinalIgnoreCase));
-                    var castedVal = CastToVariableType(val, variable);
-
-                    knownFacts[comp.ResultVariable] = castedVal;
-                    result.DerivedFacts[comp.ResultVariable] = castedVal;
-                    result.Steps.Add($"Computation {comp.ResultVariable} resolved = {castedVal}");
-                    activeGoals.Remove(goalVar);
-                    return castedVal;
-                }
-                catch { }
-            }
-        }
-
-        // 3. Try Equations & Constraints (Goal in equation)
-        var allEqs = concept.Equations.Select(e => e.Expression)
-            .Concat(concept.Constraints.Select(c => c.Expression))
-            .ToList();
-
-        var candidateEqs = allEqs
-            .Where(eq => ExtractVariablesFromExpression(eq).Contains(goalVar, StringComparer.OrdinalIgnoreCase))
-            .ToList();
-
-        foreach (var eq in candidateEqs)
-        {
-            var eqVars = ExtractVariablesFromExpression(eq);
-            var others = eqVars.Where(v => !v.Equals(goalVar, StringComparison.OrdinalIgnoreCase)).ToList();
-
-            bool allOthersResolved = true;
-            foreach (var other in others)
-            {
-                if (!knownFacts.ContainsKey(other))
-                {
-                    if (ResolveGoal(other, concept, knownFacts, activeGoals, appliedRuleIds, result) == null)
-                    {
-                        allOthersResolved = false;
-                        break;
-                    }
-                }
-            }
-
-            if (allOthersResolved)
-            {
-                try
-                {
-                    var root = Solve1DEquation(eq, goalVar, knownFacts);
-                    if (!double.IsNaN(root))
-                    {
-                        var variable = concept.Variables.FirstOrDefault(v => v.Name.Equals(goalVar, StringComparison.OrdinalIgnoreCase));
-                        var castedVal = CastToVariableType(root, variable);
-
-                        knownFacts[goalVar] = castedVal;
-                        result.DerivedFacts[goalVar] = castedVal;
-                        result.Steps.Add($"Equation resolved {goalVar} = {castedVal}");
-                        activeGoals.Remove(goalVar);
-                        return castedVal;
-                    }
-                }
-                catch { }
-            }
-        }
-
-        activeGoals.Remove(goalVar);
-        return null;
-    }
-
-    private bool allHypothesisMet(ConceptRule rule, Dictionary<string, object> knownFacts)
-    {
-        foreach (var hyp in rule.Hypothesis)
-        {
-            try
-            {
-                if (!EvaluateConstraint(hyp, knownFacts)) return false;
-            }
-            catch { return false; }
-        }
-        return rule.Hypothesis.Count > 0;
-    }
+    // --- Helper methods for expression parsing and evaluation ---
 
     private string? GetConcludedVariable(string conclusion)
     {
@@ -1155,7 +694,7 @@ public class InferenceEngine
         return null;
     }
 
-    private bool ApplyConclusion(string conclusion, Concept concept, Dictionary<string, object> knownFacts, ReasoningResult result, string ruleKind, int? stepNumber = null)
+    public bool ApplyConclusion(string conclusion, Concept concept, Dictionary<string, object> knownFacts, ReasoningResult result, string ruleKind, int? stepNumber = null)
     {
         var trimmed = conclusion.Trim();
         while (trimmed.StartsWith("(") && trimmed.EndsWith(")"))

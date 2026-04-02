@@ -1,0 +1,57 @@
+graph TD
+    %% Global Styling
+    classDef layerBox fill:#f9f9f9,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
+    classDef appNode fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    classDef netNode fill:#e1f5fe,stroke:#0277bd,stroke-width:2px;
+    classDef engineNode fill:#fff3e0,stroke:#ef6c00,stroke-width:2px;
+    classDef storageNode fill:#fce4ec,stroke:#c2185b,stroke-width:2px;
+
+    subgraph AppLayer ["Tầng Ứng dụng (Application Layer)"]
+        direction LR
+        Studio["KBMS Studio"]:::appNode
+        CLI["KBMS CLI"]:::appNode
+    end
+
+    subgraph NetLayer ["Tầng Truyền tải (Network Layer)"]
+        direction LR
+        PacketManager["PacketManager<br/>(Binary Protocol)"]:::netNode
+        SocketServer["SocketServer<br/>(Async TCP)"]:::netNode
+        StreamEngine["StreamEngine<br/>(Streaming)"]:::netNode
+    end
+
+    subgraph ServerLayer ["Tầng Xử lý (Server Engine Layer)"]
+        direction TB
+        subgraph Coordinator ["Bộ Điều phối"]
+            KM["KnowledgeManager"]:::engineNode
+            TX["Transaction Lifecycle"]:::engineNode
+        end
+        subgraph Core ["Bộ Nhân Xử lý"]
+            direction LR
+            Compiler["Compiler<br/>(Lex/Parse)"]:::engineNode
+            Optimizer["Optimizer<br/>(CBO)"]:::engineNode
+            Reasoning["Reasoning Engine<br/>(Rete/Closure)"]:::engineNode
+            Volcano["Volcano Engine<br/>(Operators)"]:::engineNode
+        end
+    end
+
+    subgraph StorageLayer ["Tầng Lưu trữ (Storage Layer)"]
+        direction TB
+        subgraph MemoryM ["Quản lý Bộ nhớ"]
+            BP["BufferPoolManager"]:::storageNode
+        end
+        subgraph DataP ["Lưu trữ Dữ liệu"]
+            direction LR
+            Slotted["SlottedPage<br/>(Layout)"]:::storageNode
+            BPlusTree["B+ Tree<br/>(Index)"]:::storageNode
+            WAL["WalManager<br/>(Durability)"]:::storageNode
+        end
+        Disk["DiskManager (HAL / AES-256)"]:::storageNode
+    end
+
+    %% Connectors
+    AppLayer <==> NetLayer
+    NetLayer <==> ServerLayer
+    ServerLayer <==> StorageLayer
+
+    %% Assigning Classes
+    class AppLayer,NetLayer,ServerLayer,StorageLayer layerBox;

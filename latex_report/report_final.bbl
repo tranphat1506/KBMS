@@ -22,76 +22,43 @@
 \BIBdecl
 
 \bibitem{DoVanNhon1}
-{\DJ}.~V. Nh{\u{o}}n, \emph{H\d{e} th\d{o}ng C\u{o} s\d{o} tri th\u{u}c c\'{a}c
-  \d{đ}\d{o}i t\u{u}\d{o}ng t\'{i}nh to\'{a}n (KBMS)}.\hskip 1em plus 0.5em
-  minus 0.4em\relax TP. H\d{ồ} Ch\'{i} Minh, Vi\d{ệ}t Nam: Nh\`{a} xu\^{a}t
-  b\d{a}n \d{Đ}\d{a}i h\d{o}c Qu\d{o}c gia TP.HCM, 2011.
+�.~V. Nhơn, \emph{Hệ thống Cơ sở tri thức các đối tượng tính
+  toán (KBMS)}.\hskip 1em plus 0.5em minus 0.4em\relax TP. Hồ Chí Minh,
+  Việt Nam: Nhà xuất bản Đại học Quốc gia TP.HCM, 2011.
 
 \bibitem{HIUJS_Article}
 \BIBentryALTinterwordspacing
-M.~T. Th\`{a}nh and \d{Đ}. V.~Nh{\u{o}}n, ``Thi\d{ế}t k\d{ế} h\d{e}
-  tr\d{ợ} gi\'{u}p h\d{o}c t\d{ậ}p th\^{o}ng minh d\d{ự}a tr\^{e}n tri
-  th\u{u}c m\d{ẫ}u,'' \emph{T\d{ạ}p ch\'{i} Khoa h\d{o}c Tr\u{u}\d{ờ}ng
-  \d{Đ}\d{a}i h\d{o}c Qu\d{o}c t\d{ế} H\d{ồ}ng B\`{a}ng (HIUJS)}, 2023,
-  [Tr\d{ự}c tuy\d{ế}n]. C\'{o} s\d{ẫ}n t\d{ạ}i:
-  \url{https://tapchikhoahochongbang.vn/index.php/hiujs/article/view/123}.
-  [Online]. Available:
+M.~T. Thành and �.~V. Nhơn, ``Thiết kế hệ trợ giúp học tập
+  thông minh dựa trên tri thức mẫu,'' \emph{Tạp chí Khoa học
+  Trường Đại học Quốc tế Hồng Bàng (HIUJS)}, 2026. [Online].
+  Available:
   \url{https://tapchikhoahochongbang.vn/index.php/hiujs/article/view/123}
 \BIBentrySTDinterwordspacing
 
 \bibitem{PrologBook}
-\BIBentryALTinterwordspacing
 W.~F. Clocksin and C.~S. Mellish, \emph{Programming in Prolog}.\hskip 1em plus
-  0.5em minus 0.4em\relax Springer Science \& Business Media, 2012, [Tr\d{ự}c
-  tuy\d{ế}n]. C\'{o} s\d{ẫ}n t\d{ạ}i:
-  \url{https://link.springer.com/book/10.1007/978-3-642-55481-0}. [Online].
-  Available: \url{https://link.springer.com/book/10.1007/978-3-642-55481-0}
-\BIBentrySTDinterwordspacing
+  0.5em minus 0.4em\relax Springer Science \& Business Media, 2012.
 
 \bibitem{RussellNorvig}
-\BIBentryALTinterwordspacing
 S.~Russell and P.~Norvig, \emph{Artificial Intelligence: A Modern Approach},
-  4th~ed.\hskip 1em plus 0.5em minus 0.4em\relax Pearson, 2020, [Tr\d{ự}c
-  tuy\d{ế}n]. C\'{o} s\d{ẫ}n t\d{ạ}i: \url{http://aima.cs.berkeley.edu/}.
-  [Online]. Available: \url{http://aima.cs.berkeley.edu/}
-\BIBentrySTDinterwordspacing
+  4th~ed.\hskip 1em plus 0.5em minus 0.4em\relax Pearson, 2020.
 
 \bibitem{DatabaseSystems}
-\BIBentryALTinterwordspacing
 A.~Silberschatz, H.~F. Korth, and S.~Sudarshan, \emph{Database System
   Concepts}, 7th~ed.\hskip 1em plus 0.5em minus 0.4em\relax New York, NY, USA:
-  McGraw-Hill Education, 2019, [Tr\d{ự}c tuy\d{ế}n]. C\'{o} s\d{ẫ}n
-  t\d{ạ}i: \url{https://www.db-book.com/}. [Online]. Available:
-  \url{https://www.db-book.com/}
-\BIBentrySTDinterwordspacing
+  McGraw-Hill Education, 2019.
 
 \bibitem{Musen_Protege}
-\BIBentryALTinterwordspacing
-M.~A. Musen, ``The prot{\'e}g{\'e} project: A look back and a look forward,''
-  \emph{AI Matters}, vol.~1, no.~4, pp. 4--12, 2015, [Tr\d{ự}c tuy\d{ế}n].
-  C\'{o} s\d{ẫ}n t\d{ạ}i:
-  \url{https://dl.acm.org/doi/10.1145/2757001.2757003}. [Online]. Available:
-  \url{https://dl.acm.org/doi/10.1145/2757001.2757003}
-\BIBentrySTDinterwordspacing
+M.~A. Musen, ``The protégé project: A look back and a look forward,''
+  \emph{AI Matters}, vol.~1, no.~4, pp. 4--12, 2015.
 
 \bibitem{Dvn_Ijcsi}
-\BIBentryALTinterwordspacing
 D.~V. Nhon, ``Model for knowledge bases of computational objects,'' \emph{Int.
-  J. Comput. Sci. Issues (IJCSI)}, vol.~7, no.~3, 2010, [Tr\d{ự}c
-  tuy\d{ế}n]. C\'{o} s\d{ẫ}n t\d{ạ}i:
-  \url{https://ijcsis.org/v7n3/paper1.pdf}. [Online]. Available:
-  \url{https://ijcsis.org/v7n3/paper1.pdf}
-\BIBentrySTDinterwordspacing
+  J. Comput. Sci. Issues (IJCSI)}, vol.~7, no.~3, 2010.
 
 \bibitem{Dvn_Somet}
-\BIBentryALTinterwordspacing
 ------, ``Ontology cokb for knowledge representation and reasoning in designing
   knowledge-based systems,'' in \emph{Proc. Int. Conf. Intelligent Software
-  Methodologies, Tools, and Techniques}, 2014, [Tr\d{ự}c tuy\d{ế}n]. C\'{o}
-  s\d{ẫ}n t\d{ạ}i:
-  \url{https://www.researchgate.net/publication/281345678_Ontology_COKB}.
-  [Online]. Available:
-  \url{https://www.researchgate.net/publication/281345678_Ontology_COKB}
-\BIBentrySTDinterwordspacing
+  Methodologies, Tools, and Techniques}, 2014.
 
 \end{thebibliography}

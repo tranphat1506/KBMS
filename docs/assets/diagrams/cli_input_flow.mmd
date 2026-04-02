@@ -1,12 +1,14 @@
-graph LR
-    Input["User Input (;)"] --> Buffer["Command Buffer"]
-    Buffer --> Req["Request Message (MessageType)"]
-    Req --> Net["KBMS.Network (Socket)"]
-    Net --> Server["KBMS.Server (Process)"]
-    Server --> Resp["Response (TableRow/Error)"]
-    Resp --> Parser["CLI ResponseParser"]
-    Parser --> Console["Grid Display"]
-    
-    style Input fill:#e6f7ff,stroke:#1890ff
-    style Req fill:#f9f0ff,stroke:#722ed1
-    style Parser fill:#fff7e6,stroke:#fa8c16
+graph TD
+    Step1[1. Input Buffering]
+    Step2[2. Request Construction]
+    Step3[3. Binary Transport]
+    Step4[4. Wait for Response]
+
+    Step1 --> Step2
+    Step2 --> Step3
+    Step3 --> Step4
+
+    style Step1 fill:#e6f7ff,stroke:#1890ff
+    style Step2 fill:#e6f7ff,stroke:#1890ff
+    style Step3 fill:#e6f7ff,stroke:#1890ff
+    style Step4 fill:#e6f7ff,stroke:#1890ff

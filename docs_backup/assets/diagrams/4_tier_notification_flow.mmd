@@ -1,0 +1,13 @@
+sequenceDiagram
+    participant S as KBMS Server (Audit/Log)
+    participant N as Network Layer (Binary)
+    participant E as Electron Main (Socket Client)
+    participant R as Redux Store (Action)
+    participant U as React UI (Toast/Bell)
+
+    S->>N: Phát cảnh báo (Push Event)
+    N->>E: Gửi gói tin MessageType.NOTIFICATION
+    E->>R: Dispatch addNotification(payload)
+    R->>U: Kích hoạt NotificationToasts.tsx
+    U->>U: Rung chuông (NotificationBell.tsx)
+    Note over S,U: Đảm bảo độ trễ < 10ms trên LAN

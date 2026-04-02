@@ -1,0 +1,18 @@
+classDiagram
+    class Rule {
+        +Guid Id
+        +Guid KbId
+        +string Name
+        +string RuleType
+        +string Scope
+        +int Cost
+        +List~Expression~ Hypothesis
+        +List~Expression~ Conclusion
+    }
+    class Expression {
+        +string Type
+        +string Content
+        +List~Expression~ Children
+    }
+    Rule *-- Expression
+    Expression *-- Expression
