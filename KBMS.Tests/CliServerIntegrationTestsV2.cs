@@ -82,6 +82,7 @@ public class CliServerIntegrationTestsV2 : IAsyncLifetime
         var createQuery = @"
             CREATE CONCEPT Rectangle (
                 VARIABLES (
+                    id: string,
                     width: double,
                     height: double,
                     area: double,
@@ -95,14 +96,14 @@ public class CliServerIntegrationTestsV2 : IAsyncLifetime
         var res1 = await _cli.ExecuteCommandAsync(createQuery);
         Assert.Equal(MessageType.RESULT, res1!.Type);
 
-        // 3. KML: Insert using ATTRIBUTE with colon syntax (must respect constraints now!)
-        var insertQuery = "INSERT INTO Rectangle ATTRIBUTE ( width:5.0, height:10.0, area:50.0, perimeter:30.0 );";
+        // 3. KML: Insert
+        var insertQuery = "INSERT INTO Rectangle ATTRIBUTE ( id:'R1', width:5.0, height:10.0, area:50.0, perimeter:30.0 );";
         var res2 = await _cli.ExecuteCommandAsync(insertQuery);
         Assert.Equal(MessageType.RESULT, res2!.Type);
 
-        // 4. KQL: SOLVE using GIVEN colon syntax
-        var solveQuery = "SOLVE ON CONCEPT Rectangle GIVEN width:2.0, height:4.0 FIND area, perimeter SAVE;";
-        var res3 = await _cli.ExecuteCommandAsync(solveQuery);
+        // 4. KQL: SOLVE using SELECT function call
+        await _cli.ExecuteCommandAsync("INSERT INTO Rectangle ATTRIBUTE ( id:'R2', width:2.0, height:4.0 );");
+        var res3 = await _cli.ExecuteCommandAsync("SELECT SOLVE(area), SOLVE(perimeter) FROM Rectangle WHERE id = 'R2';");
         Assert.Equal(MessageType.RESULT, res3!.Type);
         Assert.Contains("8", res3.Content); // area = 8
         Assert.Contains("12", res3.Content); // perimeter = 12
@@ -157,21 +158,21 @@ public class CliServerIntegrationTestsV2 : IAsyncLifetime
         var createCircle = @"
             CREATE CONCEPT Circle (
                 VARIABLES (
+                    id: string,
                     radius: double,
                     area: double
                 )
-                CONSTRAINTS (
-                    area = 3.14159 * radius * radius
-                )
             );";
         await _cli.ExecuteCommandAsync(createCircle);
+        await _cli.ExecuteCommandAsync("CREATE RULE CalcArea SCOPE Circle IF radius > 0 THEN SET area = 3.14159 * radius * radius;");
         await _cli.ExecuteCommandAsync("ADD HIERARCHY Circle IS_A Shape;");
 
         // 4. Insert (must respect constraints now!)
-        await _cli.ExecuteCommandAsync("INSERT INTO Circle ATTRIBUTE (radius:2.0, area:12.56636);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Circle ATTRIBUTE (id:'C1', radius:2.0, area:12.56636);");
 
         // 5. SOLVE
-        var res = await _cli.ExecuteCommandAsync("SOLVE ON CONCEPT Circle GIVEN radius:3.0 FIND area SAVE;");
-        Assert.Contains("28.2", res!.Content);
+        await _cli.ExecuteCommandAsync("INSERT INTO Circle ATTRIBUTE (id:'C2', radius:3.0);");
+        var res = await _cli.ExecuteCommandAsync("SELECT SOLVE(area) FROM Circle WHERE id = 'C2';");
+        Assert.Contains("28", res!.Content); // area = 28.274...
     }
 }

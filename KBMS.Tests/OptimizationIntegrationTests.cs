@@ -79,7 +79,7 @@ public class OptimizationIntegrationTests : IDisposable
         Assert.Contains("CHECK_CONSISTENCY", resStr, StringComparison.OrdinalIgnoreCase);
 
         // 6. Explain
-        var expRes = Exec("EXPLAIN ( SOLVE ON CONCEPT Person GIVEN age: 25 FIND name );");
+        var expRes = Exec("EXPLAIN ( SELECT SOLVE(name) FROM Person WHERE age = 25 );");
         resStr = System.Text.Json.JsonSerializer.Serialize((object)expRes);
         Assert.Contains("plan", resStr, StringComparison.OrdinalIgnoreCase);
     }

@@ -132,10 +132,7 @@ public enum TokenType
 
     // Keywords - Solve
     FOR,            // FOR
-    GIVEN,          // GIVEN
     USING,          // USING
-    FIND,           // FIND
-    SAVE,           // SAVE
     DOMAIN,         // DOMAIN
     RANGE,          // RANGE
     CALC,           // CALC

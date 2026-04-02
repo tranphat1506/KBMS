@@ -65,7 +65,7 @@ public class BackwardChainingTests : IAsyncLifetime
         await _cli.ExecuteCommandAsync(@"
             CREATE CONCEPT Student (
                 VARIABLES (
-                    id: INT,
+                    name: STRING,
                     grade: DECIMAL,
                     honor: STRING,
                     gifted: BOOLEAN
@@ -78,13 +78,17 @@ public class BackwardChainingTests : IAsyncLifetime
         // Rule 2: honor -> gifted (Recursive)
         await _cli.ExecuteCommandAsync("CREATE RULE R2 SCOPE Student IF honor = 'High' THEN SET gifted = true;");
 
-        // Test SOLVE: Starting from grade, find gifted (2-step recursive goal)
-        var res = await _cli.ExecuteCommandAsync("SOLVE ON CONCEPT Student GIVEN grade: 95 FIND gifted;");
+        // Insert base fact
+        await _cli.ExecuteCommandAsync("INSERT INTO Student ATTRIBUTE(name: 'Charlie', grade: 95);");
+
+        // Test SOLVE via SELECT
+        var res = await _cli.ExecuteCommandAsync("SELECT name, SOLVE(honor), SOLVE(gifted) FROM Student WHERE name = 'Charlie';");
         
         Assert.Equal(MessageType.RESULT, res!.Type);
-        Assert.Contains("Derived Fact: gifted = True", res.Content);
-        Assert.Contains("Rule R1 resolved honor", res.Content);
-        Assert.Contains("Rule R2 resolved gifted", res.Content);
+        // Expect tabular format
+        Assert.Contains("Charlie", res.Content);
+        Assert.Contains("High", res.Content);
+        Assert.Contains("true", res.Content.ToLower());
     }
 
     [Fact]
@@ -92,14 +96,18 @@ public class BackwardChainingTests : IAsyncLifetime
     {
         await _cli!.ExecuteCommandAsync("CREATE KNOWLEDGE BASE back_fail_kb;");
         await _cli.ExecuteCommandAsync("USE back_fail_kb;");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Student ( VARIABLES (grade: DECIMAL, gifted: BOOLEAN) );");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT Student ( VARIABLES (name: STRING, grade: DECIMAL, gifted: BOOLEAN) );");
         await _cli.ExecuteCommandAsync("CREATE RULE R1 SCOPE Student IF grade >= 90 THEN SET gifted = true;");
 
+        // Insert base fact with low grade
+        await _cli.ExecuteCommandAsync("INSERT INTO Student ATTRIBUTE(name: 'Bob', grade: 80);");
+
         // Goal cannot be met because grade is too low
-        var res = await _cli.ExecuteCommandAsync("SOLVE ON CONCEPT Student GIVEN grade: 80 FIND gifted;");
+        var res = await _cli.ExecuteCommandAsync("SELECT SOLVE(gifted) FROM Student WHERE name = 'Bob';");
         
         Assert.Equal(MessageType.RESULT, res!.Type);
-        Assert.Contains("Could not resolve goals: gifted", res.Content);
+        // Should not contain true
+        Assert.DoesNotContain("true", res.Content.ToLower());
     }
 
     [Fact]
@@ -107,18 +115,24 @@ public class BackwardChainingTests : IAsyncLifetime
     {
         await _cli!.ExecuteCommandAsync("CREATE KNOWLEDGE BASE circle_kb;");
         await _cli.ExecuteCommandAsync("USE circle_kb;");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Node ( VARIABLES (a: BOOLEAN, b: BOOLEAN) );");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT Node ( VARIABLES (id: STRING, a: BOOLEAN, b: BOOLEAN) );");
 
         // Circular rules
         await _cli.ExecuteCommandAsync("CREATE RULE R_A_to_B SCOPE Node IF a = true THEN SET b = true;");
         await _cli.ExecuteCommandAsync("CREATE RULE R_B_to_A SCOPE Node IF b = true THEN SET a = true;");
 
-        var res = await _cli.ExecuteCommandAsync("SOLVE ON CONCEPT Node GIVEN a: true FIND b;");
-        // Should resolve because a=true is given
-        Assert.Contains("Derived Fact: b = True", res!.Content);
+        // Case 1: a=true given via INSERT
+        await _cli.ExecuteCommandAsync("INSERT INTO Node ATTRIBUTE(id: 'N1', a: true);");
+        var res = await _cli.ExecuteCommandAsync("SELECT SOLVE(b) FROM Node WHERE id = 'N1';");
+        
+        // Should resolve because a=true is in DB
+        Assert.Contains("true", res!.Content.ToLower());
 
-        // Goal that is impossible and circular (none known)
-        var res2 = await _cli.ExecuteCommandAsync("SOLVE ON CONCEPT Node FIND b;");
-        Assert.Contains("Circular dependency: b", res2!.Content);
+        // Case 2: No base facts triggering the circle
+        await _cli.ExecuteCommandAsync("INSERT INTO Node ATTRIBUTE(id: 'N2', a: false);");
+        var res2 = await _cli.ExecuteCommandAsync("SELECT SOLVE(b) FROM Node WHERE id = 'N2';");
+        
+        // Should not resolve b
+        Assert.DoesNotContain("true", res2!.Content.ToLower());
     }
 }

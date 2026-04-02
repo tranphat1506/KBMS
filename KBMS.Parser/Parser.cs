@@ -3344,7 +3344,6 @@ public class Parser
                type == TokenType.ON ||
                type == TokenType.FROM ||
                type == TokenType.FOR ||
-               type == TokenType.GIVEN ||
                type == TokenType.USING ||
                type == TokenType.PASSWORD ||
                type == TokenType.ROLE ||

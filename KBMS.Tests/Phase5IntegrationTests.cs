@@ -112,8 +112,8 @@ public class Phase5IntegrationTests : IDisposable
         Exec("CREATE KNOWLEDGE BASE p5_kb;", "system");
         Exec("CREATE CONCEPT Product ( VARIABLES ( name: string ) );");
 
-        // Use SOLVE in DO block to avoid SELECT * wildcard parse ambiguity in nested context
-        var tRes = Exec("CREATE TRIGGER trg_product_insert ( ON ( INSERT OF Product ), DO ( SOLVE ON CONCEPT Product GIVEN name: 'X' FIND name ) );");
+        // Use SELECT SOLVE in DO block to avoid SELECT * wildcard parse ambiguity in nested context
+        var tRes = Exec("CREATE TRIGGER trg_product_insert ( ON ( INSERT OF Product ), DO ( SELECT SOLVE(name) FROM Product ) );");
         var s = Json((object)tRes);
         Assert.Contains("\"success\":true", s);
         Assert.Contains("trg_product_insert", s);

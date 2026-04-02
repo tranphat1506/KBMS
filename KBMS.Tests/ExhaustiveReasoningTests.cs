@@ -137,14 +137,10 @@ namespace KBMS.Tests
             string pName = $"Planet_{id}";
             await cli.ExecuteCommandAsync($"INSERT INTO Planet ATTRIBUTE (name: '{pName}', mass: {pMass}, radius: {pRadius});");
             
-            var sw1 = new System.IO.StringWriter();
-            var origOut1 = Console.Out;
-            Console.SetOut(sw1);
             var res1 = await cli.ExecuteCommandAsync($"SELECT SOLVE(isGas) FROM Planet WHERE name = '{pName}';");
-            Console.SetOut(origOut1);
-            var out1 = sw1.ToString();
+            var out1 = res1.Content;
             
-            // Check if console output has the result
+            // Check if result content has the expected value
             if(expectedGas)
             {
                 Assert.Contains("true", out1, StringComparison.OrdinalIgnoreCase);
@@ -153,12 +149,8 @@ namespace KBMS.Tests
             // Phase B: Create Orbit System using inherited data, testing Equations and Functions
             await cli.ExecuteCommandAsync($"INSERT INTO OrbitSystem ATTRIBUTE (pName: '{pName}', pMass: {pMass}, pRadius: {pRadius}, distance: {distance});");
             
-            var sw2 = new System.IO.StringWriter();
-            var origOut2 = Console.Out;
-            Console.SetOut(sw2);
             var res2 = await cli.ExecuteCommandAsync($"SELECT distance, SOLVE(force) FROM OrbitSystem WHERE pName = '{pName}';");
-            Console.SetOut(origOut2);
-            var out2 = sw2.ToString();
+            var out2 = res2.Content;
 
             // Verify standard reasoning pipeline success
             Assert.Equal(MessageType.RESULT, res2.Type);

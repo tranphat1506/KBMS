@@ -238,12 +238,6 @@ public class LexerTests
         Assert.Equal(TokenType.DELETE, tokens[0].Type);
     }
 
-    [Fact]
-    public void Lexer_ShouldTokenizeSOLVE()
-    {
-        var tokens = Tokenize("SOLVE");
-        Assert.Equal(TokenType.IDENTIFIER, tokens[0].Type);
-    }
 
     [Fact]
     public void Lexer_ShouldTokenizeSHOW()

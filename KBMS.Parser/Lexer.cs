@@ -136,10 +136,7 @@ public class Lexer
 
         // Solve Keywords
         { "FOR", TokenType.FOR },
-        { "GIVEN", TokenType.GIVEN },
         { "USING", TokenType.USING },
-        { "FIND", TokenType.FIND },
-        { "SAVE", TokenType.SAVE },
         { "DOMAIN", TokenType.DOMAIN },
         { "RANGE", TokenType.RANGE },
         { "CALC", TokenType.CALC },

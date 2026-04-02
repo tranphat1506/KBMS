@@ -911,17 +911,19 @@ public class CliServerIntegrationTests : IAsyncLifetime
         await _cli!.ExecuteCommandAsync("LOGIN root root");
         await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE solve_test_kb;");
         await _cli.ExecuteCommandAsync("USE solve_test_kb;");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Triangle ( VARIABLES (a: DOUBLE, b: DOUBLE, c: DOUBLE, area: DOUBLE) );");
-        await _cli.ExecuteCommandAsync("INSERT INTO Triangle ATTRIBUTE (3, 4, 5, null);");
+        await _cli.ExecuteCommandAsync("CREATE CONCEPT Triangle ( VARIABLES (id: STRING, a: DOUBLE, b: DOUBLE, c: DOUBLE, area: DOUBLE) );");
+        await _cli.ExecuteCommandAsync("CREATE RULE CalcArea SCOPE Triangle IF a > 0 AND b > 0 THEN SET area = (a * b) / 2.0;");
+        await _cli.ExecuteCommandAsync("INSERT INTO Triangle ATTRIBUTE (id: 'T1', a: 3.0, b: 4.0, c: 5.0);");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync(
-            "SOLVE Triangle GIVEN a = 3, b = 4 FIND area");
+        var response = await _cli.ExecuteCommandAsync("SELECT SOLVE(area) FROM Triangle WHERE id = 'T1';");
 
         // Assert
         Assert.NotNull(response);
-        // Result depends on implementation
+        Assert.Equal(MessageType.RESULT, response!.Type);
+        Assert.Contains("6", response.Content);
     }
+
 
     // ==================== AGGREGATION TESTS ====================
 
