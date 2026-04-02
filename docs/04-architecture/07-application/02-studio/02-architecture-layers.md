@@ -7,7 +7,7 @@
 Sơ đồ dưới đây mô tả cách một câu lệnh Tri thức (như `SOLVE`) đi qua hệ thống:
 
 ![Luồng xử lý một yêu cầu tri thức xuyên suốt 4 tầng từ Studio UI](../../../assets/diagrams/4_tier_studio_flow.png)
-*Hình: Luồng xử lý một yêu cầu tri thức xuyên suốt 4 tầng từ Studio UI.*
+*Hình 4.21: Luồng xử lý một yêu cầu tri thức xuyên suốt 4 tầng từ Studio UI.*
 
 ---
 

@@ -2,27 +2,25 @@
 \addvspace {10\p@ }
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {3.1}{\ignorespaces So sánh Tính năng Chi tiết giữa KBMS và các hệ thống khác}}{22}{table.caption.7}%
+\contentsline {table}{\numberline {3.1}{\ignorespaces So sánh Tính năng Chi tiết giữa KBMS và các hệ thống khác}}{19}{table.caption.7}%
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {4.1}{\ignorespaces Đặc tả kỹ thuật và kiến trúc mã nguồn theo phân tầng}}{32}{table.caption.14}%
-\contentsline {table}{\numberline {4.2}{\ignorespaces Đặc tả thông số kĩ thuật của hệ thống lưu trữ}}{41}{table.caption.24}%
-\contentsline {table}{\numberline {4.3}{\ignorespaces Đặc tả cấu trúc Page Header và ý nghĩa các trường dữ liệu}}{44}{table.caption.26}%
-\contentsline {table}{\numberline {4.4}{\ignorespaces Đặc tả các trường dữ liệu của bản ghi LogRecord}}{50}{table.caption.30}%
-\contentsline {table}{\numberline {4.5}{\ignorespaces Đặc tả nhị phân của thực thể Concept}}{51}{table.caption.31}%
-\contentsline {table}{\numberline {4.6}{\ignorespaces Phân loại Từ khóa dành riêng (Reserved Keywords)}}{52}{table.caption.32}%
-\contentsline {table}{\numberline {4.7}{\ignorespaces Khả năng hỗ trợ lệnh ALTER cho từng đối tượng KBQL}}{52}{table.caption.33}%
-\contentsline {table}{\numberline {4.8}{\ignorespaces Phân loại Kiểu dữ liệu nguyên thuỷ trong KBQL}}{52}{table.caption.34}%
-\contentsline {table}{\numberline {4.9}{\ignorespaces Danh mục Hàm tích hợp (Built-in Functions) trong KBQL}}{62}{table.caption.35}%
-\contentsline {table}{\numberline {4.10}{\ignorespaces Phân bổ trách nhiệm các phân hệ thuộc Tầng Máy chủ}}{67}{table.caption.37}%
-\contentsline {table}{\numberline {4.11}{\ignorespaces Đặc tả Header của Giao thức truyền tải nhị phân}}{68}{table.caption.39}%
-\contentsline {table}{\numberline {4.12}{\ignorespaces Danh mục Command Codes và Phân loại loại thông điệp}}{69}{table.caption.40}%
-\contentsline {table}{\numberline {4.13}{\ignorespaces Phân loại hệ thống từ khóa và Token của ngôn ngữ KBQL}}{73}{table.caption.46}%
-\contentsline {table}{\numberline {4.14}{\ignorespaces Ma trận danh mục các kịch bản kiểm thử tích hợp Tầng Máy chủ}}{81}{table.caption.53}%
-\contentsline {table}{\numberline {4.15}{\ignorespaces Danh mục các Toán tử vật lý trong mô hình thực thi Pipeline}}{85}{table.caption.59}%
-\contentsline {table}{\numberline {4.16}{\ignorespaces Nhật ký lan truyền dữ kiện qua mạng Rete trong kịch bản hình học}}{91}{table.caption.64}%
-\contentsline {table}{\numberline {4.17}{\ignorespaces Danh mục lệnh điều khiển CLI}}{92}{table.caption.65}%
-\contentsline {table}{\numberline {4.18}{\ignorespaces Kiểm thử định dạng kết quả truy vấn trong CLI}}{96}{table.caption.71}%
+\contentsline {table}{\numberline {4.1}{\ignorespaces Đặc tả kỹ thuật và kiến trúc mã nguồn theo phân tầng}}{29}{table.caption.14}%
+\contentsline {table}{\numberline {4.2}{\ignorespaces Đặc tả thông số kĩ thuật của hệ thống lưu trữ}}{38}{table.caption.24}%
+\contentsline {table}{\numberline {4.3}{\ignorespaces Đặc tả cấu trúc Page Header và ý nghĩa các trường dữ liệu}}{40}{table.caption.26}%
+\contentsline {table}{\numberline {4.4}{\ignorespaces Đặc tả các trường dữ liệu của bản ghi LogRecord}}{46}{table.caption.30}%
+\contentsline {table}{\numberline {4.5}{\ignorespaces Đặc tả nhị phân của thực thể Concept}}{47}{table.caption.31}%
+\contentsline {table}{\numberline {4.6}{\ignorespaces Phân loại Từ khóa dành riêng (Reserved Keywords)}}{48}{table.caption.32}%
+\contentsline {table}{\numberline {4.7}{\ignorespaces Khả năng hỗ trợ lệnh ALTER cho từng đối tượng KBQL}}{48}{table.caption.33}%
+\contentsline {table}{\numberline {4.8}{\ignorespaces Phân loại Kiểu dữ liệu nguyên thuỷ trong KBQL}}{48}{table.caption.34}%
+\contentsline {table}{\numberline {4.9}{\ignorespaces Danh mục Hàm tích hợp (Built-in Functions) trong KBQL}}{58}{table.caption.35}%
+\contentsline {table}{\numberline {4.10}{\ignorespaces Bảng kê dữ liệu chuyên sâu 11}}{63}{table.caption.37}%
+\contentsline {table}{\numberline {4.11}{\ignorespaces Bảng kê dữ liệu chuyên sâu 12}}{65}{table.caption.38}%
+\contentsline {table}{\numberline {4.12}{\ignorespaces dưới đây đặc tả chức năng và mục đích của từng loại thông điệp nhị phân được chuẩn hóa trong KBMS V3:}}{67}{table.caption.40}%
+\contentsline {table}{\numberline {4.13}{\ignorespaces Bảng kê dữ liệu chuyên sâu 14}}{72}{table.caption.43}%
+\contentsline {table}{\numberline {4.14}{\ignorespaces Nhật ký lan truyền dữ kiện qua mạng Rete trong kịch bản hình học}}{87}{table.caption.52}%
+\contentsline {table}{\numberline {4.15}{\ignorespaces Danh mục lệnh điều khiển CLI}}{88}{table.caption.53}%
+\contentsline {table}{\numberline {4.16}{\ignorespaces Kiểm thử định dạng kết quả truy vấn trong CLI}}{92}{table.caption.59}%
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {5.1}{\ignorespaces Đặc tả hiệu năng phản hồi các thành phần hệ thống}}{108}{table.caption.83}%
-\contentsline {table}{\numberline {5.2}{\ignorespaces Chỉ số Throughput và Scalability trên các bộ dữ liệu}}{109}{table.caption.84}%
-\contentsline {table}{\numberline {5.3}{\ignorespaces Mức độ tiêu thụ tài nguyên thực tế}}{109}{table.caption.85}%
+\contentsline {table}{\numberline {5.1}{\ignorespaces Đặc tả hiệu năng phản hồi các thành phần hệ thống}}{104}{table.caption.71}%
+\contentsline {table}{\numberline {5.2}{\ignorespaces Chỉ số Throughput và Scalability trên các bộ dữ liệu}}{105}{table.caption.72}%
+\contentsline {table}{\numberline {5.3}{\ignorespaces Mức độ tiêu thụ tài nguyên thực tế}}{105}{table.caption.73}%

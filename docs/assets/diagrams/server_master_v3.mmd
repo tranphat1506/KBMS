@@ -1,0 +1,60 @@
+graph TB
+    subgraph Client_Zone ["Giao diện Người dùng"]
+        CLI["KBMS.CLI"]
+        Studio["KBMS Studio"]
+    end
+
+    subgraph Server_Layer ["Chapter 4.6: Kiến trúc Tầng Server"]
+        subgraph Network_Module ["4.6.2 Network & Session"]
+            CM["ConnectionManager"]
+            Session["Session Context"]
+            Protocol["Binary Protocol (TCP:3307)"]
+        end
+
+        subgraph Parser_Module ["4.6.3 Language Pipeline"]
+            Lexer["Lexer (Tokenization)"]
+            Parser["Parser (Recursive Descent)"]
+            AST["Abstract Syntax Tree (AST)"]
+        end
+
+        subgraph Core_Module ["4.6.4 System Core Services"]
+            Auth["AuthenticationManager (RBAC)"]
+            Logger["SystemLogger (Audit/Diag)"]
+            Mgmt["ManagementManager (Telemetry)"]
+        end
+
+        subgraph Engine_Module ["4.6.5 Knowledge Engine"]
+            KM["KnowledgeManager (Orchestrator)"]
+            Router["V3 Data Router"]
+            Inf["InferenceEngine (Reasoning)"]
+        end
+    end
+
+    subgraph Storage_Layer ["Chapter 4.4: Tầng Lưu trữ"]
+        SP["StoragePool (Page-based)"]
+        WAL["Write-Ahead Logging"]
+    end
+
+    %% Flow
+    CLI --> Protocol
+    Studio --> Protocol
+    Protocol --> CM
+    CM --> Session
+    Session --> Lexer
+    Lexer --> Parser
+    Parser --> AST
+    AST --> Auth
+    Auth --> KM
+    KM --> Router
+    Router --> SP
+    SP --> WAL
+    
+    %% Cross-cutting
+    KM -.-> Inf
+    KM -.-> Logger
+    Logger -.-> Router
+    Mgmt -.-> CM
+    Mgmt -.-> Logger
+    Logger -.-> Router
+    Mgmt -.-> CM
+    Mgmt -.-> Logger

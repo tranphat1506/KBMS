@@ -1,7 +1,0 @@
-graph LR
-    subgraph Rete_Inference_Strategy["Chiến lược Suy diễn Rete (Native)"]
-        F1["Dữ kiện khởi tạo (Ground Truth)"] --> F2["Mạng lưới Rete (Topology)"]
-        F2 --> F3["Lan truyền nội bộ (Token Propagation)"]
-        F3 --> F4["Bao đóng tri thức (Fixed-point Closure)"]
-        F4 -.-> F5["Dừng sớm (Early Exit)"]
-    end

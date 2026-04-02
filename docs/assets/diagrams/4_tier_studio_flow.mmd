@@ -1,37 +1,50 @@
 graph TD
-    subgraph App_Layer ["Tầng 1: Application (UI)"]
-        React["React Components / Redux"]
-        Monaco["Monaco Editor (KQL/KDL)"]
-        Dash["Management Dashboard"]
+    subgraph UI_Layer ["Tầng 1: Application UI (React/Electron)"]
+        React["React Components (Redux Store)"]
+        Monaco["Monaco Editor (KQL/KDL Logic)"]
     end
     
-    subgraph Network_Layer ["Tầng 2: Network (Socket)"]
-        Socket["Socket Client (Electron Main)"]
-        Binary["Binary Protocol (Header/Payload)"]
+    subgraph Net_Layer ["Tầng 2: Network & Protocol (Binary)"]
+        Socket["Electron Main (Socket Client)"]
+        Binary["Binary Framing (Header/Payload)"]
     end
     
-    subgraph Server_Layer ["Tầng 3: Server (Engine)"]
-        Orch["Orchestration (KnowledgeManager)"]
-        RE["Reasoning Engine (F-Closure)"]
-        Audit["Audit & Session Logs"]
+    subgraph Eng_Layer ["Tầng 3: Knowledge Engine (Server)"]
+        Orch["KnowledgeManager (Orchestrator)"]
+        Reason["Reasoning Engine (F-Closure)"]
+        Audit["Audit & Session Telemetry"]
     end
     
-    subgraph Storage_Layer ["Tầng 4: Storage (Data)"]
+    subgraph Store_Layer ["Tầng 4: Storage & Persistence (Data)"]
         BTree["B+ Tree Indexing"]
-        LRU["Page Cache (LRU Manager)"]
-        WAL["WAL (Durability)"]
+        LRU["Buffer Pool (LRU Manager)"]
+        WAL["WAL (Write-Ahead Logging)"]
     end
     
-    React --- Socket
+    %% Connections
+    React --> Socket
+    Monaco --> Socket
     Socket <==> Binary
     Binary <==> Orch
-    Orch --- RE
-    Orch --- Audit
-    Orch --- BTree
-    BTree --- LRU
-    LRU --- WAL
+    Orch <==> Reason
+    Orch --> Audit
+    Orch <==> BTree
+    BTree <==> LRU
+    LRU <==> WAL
     
-    style App_Layer fill:#f0f7ff,stroke:#0050b3
-    style Network_Layer fill:#fff7e6,stroke:#d46b08
-    style Server_Layer fill:#f6ffed,stroke:#389e0d
-    style Storage_Layer fill:#fff1f0,stroke:#cf1322
+    %% Styling
+    style UI_Layer fill:#e6f7ff,stroke:#1890ff,stroke-width:2px
+    style Net_Layer fill:#fff7e6,stroke:#ffa940,stroke-width:2px
+    style Eng_Layer fill:#f6ffed,stroke:#52c41a,stroke-width:2px
+    style Store_Layer fill:#fff1f0,stroke:#f5222d,stroke-width:2px
+    
+    style React fill:#fff,stroke:#1890ff
+    style Monaco fill:#fff,stroke:#1890ff
+    style Socket fill:#fff,stroke:#ffa940
+    style Binary fill:#fff,stroke:#ffa940
+    style Orch fill:#fff,stroke:#52c41a
+    style Reason fill:#fff,stroke:#52c41a
+    style Audit fill:#fff,stroke:#52c41a
+    style BTree fill:#fff,stroke:#f5222d
+    style LRU fill:#fff,stroke:#f5222d
+    style WAL fill:#fff,stroke:#f5222d

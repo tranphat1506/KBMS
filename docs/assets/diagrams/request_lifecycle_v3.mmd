@@ -1,0 +1,36 @@
+sequenceDiagram
+    participant C as KBMS Client (CLI/Studio)
+    participant N as Network Layer (Binary Protocol)
+    participant KM as KnowledgeManager (Orchestrator)
+    participant P as Parser (Lexer/AST)
+    participant R as Reasoning Engine (Rete)
+    participant S as Storage Layer (B+ Tree/WAL)
+
+    Note over C,S: Vòng đời truy vấn KBMS V3 (High Efficiency)
+
+    C->>+N: Gửi Byte Frame (Binary Request)
+    N->>N: Validate Header & Decode Length
+    N->>+KM: Forward Payload (KBQL String)
+    
+    KM->>+P: ParseToAST(payload)
+    P-->>-KM: Trả về Abstract Syntax Tree (AST)
+    
+    KM->>KM: Đăng ký Session & Check RBAC
+    
+    alt Lệnh Truy vấn (SELECT/INSERT)
+        KM->>+S: ExecuteDML(AST)
+        S->>S: Tra cứu B+ Tree / Buffer Page
+        S-->>-KM: Trả về Dữ liệu Tuple
+    else Lệnh Suy luận (SOLVE)
+        KM->>+R: Solve(AST)
+        R->>R: Match Pattern (Rete Network)
+        R->>S: Truy xuất dữ kiện nền
+        S-->>R: Dữ liệu Trang vật lý
+        R-->>-KM: Danh sách Lời giải (Inference)
+    end
+    
+    KM->>KM: Ghi Nhật ký Kiểm toán (Audit Log)
+    KM-->>-N: Gói tin Kết quả nhị phân
+    N-->>-C: Phản hồi Binary Response Frame
+    
+    Note right of C: Hiển thị kết quả (Dạng bảng/Thông báo)

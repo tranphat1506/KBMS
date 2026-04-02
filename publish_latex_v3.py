@@ -183,7 +183,11 @@ def md_block_to_latex(block, af_id, at_id, prev_block='', next_block='', level=0
                 raw_caption = alt.strip() or f"Hình {af_id}"
             
             fname = src.split('/')[-1]
-            img_cmd = r'\includegraphics[width=%s\textwidth]{assets/%s}' % (width, fname) if os.path.exists(os.path.join(ASSETS_DEST, fname)) else r'\fbox{Thiếu ảnh: %s}' % escape_latex(fname)
+            # Verify file exists after flattening
+            if os.path.exists(os.path.join(ASSETS_DEST, fname)):
+                img_cmd = r'\includegraphics[width=%s\textwidth]{assets/%s}' % (width if width else "0.7", fname)
+            else:
+                img_cmd = r'\fbox{Thiếu ảnh: %s}' % escape_latex(fname)
             
             clean_cap = clean_title(raw_caption)
             if is_glossary_mode: clean_cap = ""
@@ -448,9 +452,19 @@ def process_directory(dir_path, level, af_id, at_id):
     return content, af_id, at_id
 
 def main():
-    print("Executing Thesis-Standard Multi-Level Hierarchy (v3.62) - Purging 'xx' Residue...")
+    print("Executing Thesis-Standard Multi-Level Hierarchy (v3.98) - Flattening Assets...")
     if not os.path.exists(LATEX_DIR): os.makedirs(LATEX_DIR)
-    if not os.path.exists(ASSETS_DEST): os.makedirs(ASSETS_DEST)
+    
+    # --- STEP 1: Aggressive Asset Sync & Flattening ---
+    if os.path.exists(os.path.join(DOCS_DIR, 'assets')):
+        if os.path.exists(ASSETS_DEST): shutil.rmtree(ASSETS_DEST)
+        os.makedirs(ASSETS_DEST)
+        for root, dirs, files in os.walk(os.path.join(DOCS_DIR, 'assets')):
+            for file in files:
+                if file.endswith('.png') or file.endswith('.jpg') or file.endswith('.pdf'):
+                    src_path = os.path.join(root, file)
+                    shutil.copy2(src_path, os.path.join(ASSETS_DEST, file))
+        print(f"Success! Flattened docs/assets to {ASSETS_DEST}")
     
     # Discovery
     all_refs = []
@@ -714,6 +728,7 @@ Em xin cam kết rằng báo cáo khóa luận tốt nghiệp này được hoà
 \end{document}
 '''
     with open(OUTPUT_TEX, 'w', encoding='utf-8') as f: f.write(main_tex)
+    
     print(f"Success! Final Polished Report generated: {OUTPUT_TEX}")
 
 if __name__ == '__main__': main()

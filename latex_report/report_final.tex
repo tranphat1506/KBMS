@@ -2575,989 +2575,1023 @@ CREATE RULE OutOfStock SCOPE Product IF stock < 0 THEN SET status = 'Refill';
 \subsection{Tổng quan và Mục tiêu}
 
 
-Tầng Máy chủ của \texorpdfstring{KBMS~[\protect\hyperlink{glos:kbms}{K00}]}{KBMS [K00]} được thiết kế như một hệ sinh thái xử lý tri thức hợp nhất, chịu trách nhiệm điều phối luồng dữ liệu giữa người dùng và các tầng lưu trữ/suy diễn cấp thấp. Kiến trúc này được chuẩn hóa nhằm đảm bảo tính toàn vẹn của tri thức, hiệu suất xử lý đồng thời (concurrency) và khả năng tự quản trị (Self-managed).
+\subsection{Kiến trúc Tổng thể (Master Architecture)}
 
 
-Quy trình vận hành được minh họa thông qua hành trình của một yêu cầu tri thức, đi qua các lớp trừu tượng từ thô đến tinh:
+Tầng Máy chủ (Server Layer) của hệ thống \texorpdfstring{KBMS~[\protect\hyperlink{glos:kbms}{K00}]}{KBMS [K00]} V3 được thiết kế dựa trên mô hình \textbf{kiến trúc phân tầng (Layered Architecture)}, kết hợp với các nguyên lý của \textbf{Kiến trúc hướng Dịch vụ (Service-Oriented Architecture - SOA)}. Mục tiêu cốt lõi của kiến trúc này là thiết lập một nền tảng điều phối trung tâm, có khả năng xử lý các yêu cầu truy vấn tri thức phức tạp với hiệu năng cao và tính toàn vẹn dữ liệu tuyệt đối.
+
+
+\subsubsection{Triết lý Thiết kế SOA (Service-Oriented Architecture)}
+
+
+Khác với các hệ thống nguyên khối (Monolithic), KBMS V3 phân tách các chức năng thành các khối logic độc lập, giao tiếp với nhau qua các giao diện lập trình nội bộ. Điều này mang lại các lợi ích chiến lược:\par
+- \textbf{Tính độc lập (Loose Coupling)}: Các thành phần như `Network`, `Parser`, và `QueryEngine` hoạt động độc lập, giảm thiểu sự phụ thuộc lẫn nhau.\par
+- \textbf{Khả năng mở rộng (Scalability)}: Cho phép nâng cấp hoặc thay thế từng thành phần (ví dụ: thay đổi bộ máy suy luận) mà không ảnh hưởng đến toàn bộ hệ thống.\par
+- \textbf{Tính tái sử dụng (Reusability)}: Các khối chức năng như `SystemCore` có thể được tái sử dụng cho các mục đích quản trị và kiểm soát khác nhau.
+
+
+\subsubsection{Sơ đồ Cấu trúc Tổng thể (Master Architecture Diagram)}
+
+
+Sơ đồ dưới đây mô tả cấu trúc phân tầng và luồng dữ liệu chính trong KBMS Server V3, từ tầng tiếp nhận yêu cầu mạng đến tầng truy xuất dữ liệu vật lý.
 
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.7\textwidth]{assets/server_master_architecture.png}
-  \caption{Sơ đồ Master Architecture của tầng Máy chủ KBMS V3.}\label{fig:sơ-đồ-master-architecture-của-tầng-máy-chủ-kbms-v3}
+  \includegraphics[width=0.7\textwidth]{assets/server_master_v3.png}
+  \caption{Sơ đồ Master Architecture mô tả các thành phần cấu trúc và luồng dữ liệu của KBMS Server V3.}\label{fig:sơ-đồ-master-architecture-mô-tả-các-thành-phần-cấu}
 \end{figure}
 
 
-Kiến trúc Tầng Máy chủ được phân rã thành 4 phân hệ logic chính với các trách nhiệm biệt lập:
+Trong sơ đồ này, chúng ta có thể thấy sự phân tách rạch ròi giữa:\par
+1. \textbf{Tầng Giao tiếp (Communication Layer)}: Xử lý giao thức nhị phân và quản lý phiên.\par
+2. \textbf{Tầng Logic (Logic Layer)}: Bao gồm bộ phân tích cú pháp (Parser) và động cơ truy vấn (Query Engine).\par
+3. \textbf{Tầng Dữ liệu (Data Layer)}: Định tuyến và tương tác với công cụ lưu trữ (Storage Engine).
+
+
+Kiến trúc này đảm bảo rằng mọi yêu cầu từ phía Client (CLI hoặc Studio) đều được chuẩn hóa, thẩm định quyền hạn và thực thi một cách tối ưu trước khi trả về kết quả.
+
+
+\subsection{Phân rã Thành phần Cấu trúc (Modular Decomposition)}
+
+
+Kiến trúc của \texorpdfstring{KBMS~[\protect\hyperlink{glos:kbms}{K00}]}{KBMS [K00]} V3 được phân tách thành các khối chức năng có tính liên lỏng (Loose Coupling), đảm nhiệm các vai trò chuyên biệt từ tầng mạng đến tầng thực thi. Dựa trên mã nguồn C\#, hệ thống được tổ chức thông qua các lớp quản trị (\textbf{Manager Classes}), tuân thủ nguyên lý đơn nhiệm (Single Responsibility Principle).
+
+
+\subsubsection{Phân loại Khối chức năng (Functional Blocks)}
+
+
+Dưới đây là bảng liệt kê các thành phần cấu trúc chính trong Tầng Máy chủ, cùng với các lớp quản trị tương ứng và trách nhiệm cụ thể của chúng:
 
 
 \begin{table}[H]
-  \centering\footnotesize\selectfont
-  \caption{Phân bổ trách nhiệm các phân hệ thuộc Tầng Máy chủ}\label{tbl:phân-bổ-trách-nhiệm-các-phân-hệ-thuộc-tầng-máy-chủ}
-  \begin{tabularx}{\textwidth}{|L|L|L|L|L|}
+  \centering\small\selectfont
+  \caption{Bảng kê dữ liệu chuyên sâu 11}\label{tbl:bảng-kê-dữ-liệu-chuyên-sâu-11}
+  \begin{tabularx}{\textwidth}{|l|X|X|}
   \hline
-Phân hệ (Module) & Thành phần C\# Chính & Vai trò Lõi & Đầu vào & Đầu ra \\ \hline
-\textbf{I. Network Layer} & `KbmsServer.cs`, `Protocol.cs` & Quản trị kết nối TCP \& Giao thức nhị phân & Byte thô & Chuỗi lệnh KBQL \\ \hline
-\textbf{II. Language Parser} & `Lexer.cs`, `Parser.cs` & Phân tích cú pháp \& Xây dựng AST & Chuỗi lệnh & Cây AST Node \\ \hline
-\textbf{III. System Core} & `ServerOrchestrator.cs` & Điều phối đa luồng, RBAC \& Audit Log & Cây AST & AST đã xác thực \\ \hline
-\textbf{IV. Query Engine} & `KnowledgeManager.cs` & Định tuyến tri thức \& Tối ưu kế hoạch & Cây AST & Lệnh thực thi \\ \hline
+Khối chức năng & Quản trị viên (C\#) & Trách nhiệm và Đặc tả Chức năng \\ \hline
+\textbf{Giao diện Mạng} & `ConnectionManager` & Thiết lập máy chủ TCP, quản lý tài nguyên `Socket` và điều phối các đối tượng `Session`. \\ \hline
+\textbf{Xử lý Ngôn ngữ} & `Lexer`, `Parser` & Chuyển đổi mã nguồn KBQL thành cây cú pháp trừu tượng (`AstNode`) thông qua phân tích từ vựng và cú pháp. \\ \hline
+\textbf{Kiểm soát Hệ thống} & `AuthenticationManager` & Thực thi xác thực và phân quyền dựa trên mô hình RBAC (Role-Based Access Control) tích hợp. \\ \hline
+\textbf{Quản lý Tri thức} & `KnowledgeManager` & Điều phối thực thi các nút AST, lập kế hoạch truy vấn và định tuyến tới `V3DataRouter`. \\ \hline
+\textbf{Giám sát \& Quản trị} & `ManagementManager` & Cung cấp luồng trạng thái (`Stats`) và truyền phát nhật ký hệ thống thời gian thực tới Designer. \\ \hline
   \end{tabularx}
 \end{table}
 
 
+\subsubsection{Mô hình Tương tác Thành phần (Component Interaction Flow)}
+
+
+Mọi yêu cầu truy vấn từ phía người dùng đều trải qua một quy trình phối hợp khép kín giữa các thành phần cấu trúc:
+
+
 \begin{enumerate}
-  \item \textbf{Phân hệ I: Giao diện mạng \& Giao thức}: Thiết lập kênh truyền dẫn tin cậy, thực hiện giải mã gói tin nhị phân và duy trì phiên giao dịch (Session).
-  \item \textbf{Phân hệ II: Trình phân tích Ngôn ngữ}: Đóng vai trò là ''cơ quan cảm giác'', chuyển hóa ngôn ngữ tự nhiên từ người dùng thành các đối tượng logic lập trình được (AST).
-  \item \textbf{Phân hệ III: Hạ tầng Điều phối \& Giám sát}: Đảm nhiệm vai trò ''xương sống'' quản lý tài nguyên hệ thống, bảo mật RBAC và cơ chế ghi nhật ký tự thân (Self-logging).
-  \item \textbf{Phân hệ IV: Điều hướng và Tối ưu hóa}: Thành phần hạt nhân chịu trách nhiệm lựa chọn kế hoạch thực thi (Execution Plan) tối ưu nhất trước khi chuyển tới các tầng dữ liệu.
+  \item \textbf{Khối mạng} đón nhận và giải mã gói tin nhị phân.
+  \item \textbf{Khối kiểm soát} xác minh định danh người dùng thông qua Token phiên.
+  \item \textbf{Khối xử lý ngôn ngữ} thông dịch câu lệnh thành cấu trúc `AST`.
+  \item \textbf{Khối quản lý tri thức} lập lịch thực thi và triệu gọi tầng lưu trữ hoặc bộ máy suy luận.
+  \item \textbf{Khối giám sát} ghi nhận các sự kiện kiểm toán (`Audit`) và phát tán tới các bên liên quan.
 \end{enumerate}
 
 
 
-Trong các tiểu mục tiếp theo, các đặc tả kỹ thuật và cơ chế vận hành của từng phân hệ sẽ được trình bày chi tiết theo đúng trình tự của một đường ống xử lý tri thức. Phân hệ đầu tiên cần xem xét là Tầng Mạng, nơi thiết lập nền móng giao tiếp giữa Client và Server.
+Việc phân rã thành các khối độc lập này giúp hệ thống duy trì tính ổn định, dễ dàng trong việc bảo trì và nâng cấp các bộ phận riêng lẻ mà không ảnh hưởng đến kiến trúc tổng thể.
+
+
+\subsection{Các Mô hình Thiết kế Chuẩn hóa (Design Patterns)}
+
+
+Kiến trúc của \texorpdfstring{KBMS~[\protect\hyperlink{glos:kbms}{K00}]}{KBMS [K00]} Server V3 áp dụng các mô hình thiết kế phần mềm chuẩn hóa nhằm đảm bảo tính linh hoạt, khả năng mở rộng và quản trị tài nguyên tập trung. Các mô hình này được triển khai trực tiếp trong mã nguồn C\#, tạo nên sự thống nhất cho các lớp điều hướng và thực thi.
+
+
+\subsubsection{Mô hình Singleton (Manager Context)}
+
+
+Mọi lớp quản lý tài nguyên hệ thống (Manager Classes) trong Tầng Máy chủ đều thực thi mô hình \textbf{Singleton}, đảm bảo rằng chỉ có một thực thể duy nhất tồn tại xuyên suốt vòng đời ứng dụng.
+
+
+\begin{itemize}
+  \item \textbf{Ứng dụng tiêu biểu}: `ConnectionManager`, `AuthenticationManager`, `KnowledgeManager`.
+  \item \textbf{Lợi ích}: Duy trì tính nhất quán cho các bảng tra cứu phiên (`ConcurrentDictionary`), danh sách người dùng và Metadata tri thức toàn cục.
+  \item \textbf{Triển khai C\#}: Sử dụng thuộc tính `Instance` kết hợp với từ khóa `lock` để đảm bảo an toàn luồng trong môi trường đa luồng.
+\end{itemize}
+
+
+
+\subsubsection{Mô hình Factory (Operator Generation)}
+
+
+Query Engine sử dụng mô hình \textbf{Factory} để khởi tạo các toán tử thực thi linh hoạt dựa trên cấu trúc của cây cú pháp trừu tượng (AST).
+
+
+\begin{itemize}
+  \item \textbf{Khối thực thi}: `ExecutionFactory`.
+  \item \textbf{Chức năng}: Chuyển đổi các nút kế hoạch (Plan Nodes) thành các đối tượng `IExecutionOperator`. Ví dụ: Khi gặp `SelectNode`, Factory sẽ trả về một `SequentialScanOperator` hoặc `IndexScanOperator`.
+  \item \textbf{Tính linh hoạt}: Cho phép bộ tối ưu hóa (Optimizer) thay đổi chiến lược thực thi mà không cần can thiệp vào logic điều khiển chính.
+\end{itemize}
+
+
+
+\subsubsection{Mô hình Observer (Event Distribution)}
+
+
+Hệ thống ghi vết (`SystemLogger`) và giám sát (`ManagementManager`) áp dụng mô hình \textbf{Observer} để truyền phát các sự kiện hệ thống tới các bên đăng ký nhận tin.
+
+
+\begin{itemize}
+  \item \textbf{Nguồn tin}: `SystemLogger`.
+  \item \textbf{Người nhận}: Studio Designer, tệp tin nhật ký, hoặc bảng kiểm toán (`audit\_logs`).
+  \item \textbf{Ứng dụng}: Luồng nhật ký thời gian thực (`Log Streaming`) cho phép Designer giám sát mọi hoạt động của server mà không gây ảnh hưởng đến hiệu năng xử lý truy vấn chính.
+\end{itemize}
+
+
+
+\subsubsection{Mô hình Chiến lược (Inference Strategy)}
+
+
+Thành phần suy luận (`InferenceEngine`) tích hợp mô hình \textbf{Strategy} để hỗ trợ các phương thức giải quyết tri thức khác nhau.
+
+
+\begin{itemize}
+  \item \textbf{Lựa chọn chiến lược}: Tùy thuộc vào yêu cầu của câu lệnh `SOLVE` hoặc `INFER`, hệ thống có thể chuyển đổi giữa các thuật toán suy diễn tiến (Forward Chaining) như `Recursive Closure` hoặc `f-closure` một cách linh hoạt.
+  \item \textbf{Trừu tượng hóa}: Query Engine chỉ triệu gọi giao diện `IInferenceEngine`, giúp cô lập logic suy luận khỏi logic truy vấn.
+\end{itemize}
+
+
+
+Việc áp dụng các thiết kế mẫu chuẩn hóa này không chỉ tăng cao chất lượng mã nguồn mà còn tạo nền tảng vững chắc cho việc bảo trì và tích hợp các tính năng mới trong tương lai.
 
 
 \subsection{Giao thức và Kết nối Mạng}
 
 
-\subsection{Giao tiếp và Giao thức Nhị phân (Binary Protocol Layer)}
+\subsection{Đặc tả Giao thức Nhị phân (Binary Protocol Specification)}
 
 
-Phân hệ I (Network Layer) của Tầng Máy chủ chịu trách nhiệm tiếp nhận các luồng byte thô từ kết nối TCP, thực hiện giải mã và xác thực gói tin trước khi bàn giao nội dung cho các bộ xử lý ngôn ngữ. Để đạt được hiệu năng tối ưu và khả năng tương thích cao giữa Server (C\#), \texorpdfstring{CLI~[\protect\hyperlink{glos:cli}{C02}]}{CLI [C02]} và Studio (Node.js/\texorpdfstring{Electron~[\protect\hyperlink{glos:electron}{E06}]}{Electron [E06]}), \texorpdfstring{KBMS~[\protect\hyperlink{glos:kbms}{K00}]}{KBMS [K00]} V3 sử dụng một giao thức truyền tải nhị phân (\texorpdfstring{Binary Protocol~[\protect\hyperlink{glos:binary-protocol}{B06}]}{Binary Protocol [B06]}) tùy chỉnh chạy trên nền TCP.
+Để đạt được hiệu năng tối ưu và khả năng tương thích đa nền tảng giữa Server (C\#), CLI (C\#) và Studio (Node.js), \texorpdfstring{KBMS~[\protect\hyperlink{glos:kbms}{K00}]}{KBMS [K00]} V3 sử dụng một \textbf{Giao thức nhị phân tùy chỉnh (Custom Binary Protocol)} chạy trên nền TCP. Giao thức này được chuẩn hóa dưới dạng khung tin (Frame-based) với Header có kích thước cố định và Payload có kích thước biến thiên.
 
 
-\subsubsection{Luồng Trao đổi Thông điệp Nhị phân (Protocol Flow)}
+\subsubsection{Cấu trúc Khung tin (Frame Structure)}
 
 
-Quy trình tương tác giữa Client và Server được chuẩn hóa thông qua các khung (Frames) nhị phân, đảm bảo tính toàn vẹn và tốc độ xử lý:
-
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.7\textwidth]{assets/binary_protocol_exchange.png}
-  \caption{Sơ đồ trình tự trao đổi thông điệp nhị phân giữa Client và Module I.}\label{fig:sơ-đồ-trình-tự-trao-đổi-thông-điệp-nhị-phân-giữa-c}
-\end{figure}
-
-
-
-\subsubsection{Cấu trúc Gói tin (Binary Frame Structure)}
-
-
-Mọi thông điệp trao đổi giữa Client và Server đều được đóng gói theo định dạng nhị phân với \texorpdfstring{Header~[\protect\hyperlink{glos:header}{H03}]}{Header [H03]} cố định và Payload biến thiên. Cấu trúc này giúp giảm thiểu chi phí phân tích (parsing overhead) so với các giao thức dựa trên văn bản như HTTP/REST.
-
-
-\paragraph{Đặc tả Header nhị phân:}
+Mọi thông điệp trao đổi giữa Client và Server đều được đóng gói theo định dạng nhị phân, cho phép bộ giải mã (Decoder) phân tách dữ liệu với độ phức tạp thuật toán $O(1)$.
 
 
 \begin{table}[H]
   \centering\small\selectfont
-  \caption{Đặc tả Header của Giao thức truyền tải nhị phân}\label{tbl:đặc-tả-header-của-giao-thức-truyền-tải-nhị-phân}
+  \caption{Bảng kê dữ liệu chuyên sâu 12}\label{tbl:bảng-kê-dữ-liệu-chuyên-sâu-12}
   \begin{tabularx}{\textwidth}{|L|L|L|L|}
   \hline
-Byte Offset & Trường dữ liệu & Kiểu & Mô tả \\ \hline
-\textbf{0 - 3} & \textbf{Total Length} & Int32 & Tổng kích thước gói tin (Big-Endian). \\ \hline
-\textbf{4} & \textbf{Message Type} & Byte & Loại thông điệp (LOGIN, QUERY, RESULT, ...). \\ \hline
-\textbf{5 - 6} & \textbf{SessionLen} & UInt16 & Độ dài của Session ID chuỗi. \\ \hline
-\textbf{7 - N} & \textbf{Session ID} & String & Định danh phiên làm việc (UTF-8). \\ \hline
-\textbf{N+1 - N+2} & \textbf{RequestLen} & UInt16 & Độ dài của Request ID chuỗi. \\ \hline
-\textbf{N+3 - M} & \textbf{Request ID} & String & Định danh yêu cầu (Dùng để bắt cặp phản hồi). \\ \hline
-\textbf{M+1 - End} & \textbf{Payload} & String & Nội dung chính của thông điệp (JSON/Text/Binary). \\ \hline
+Offset (Byte) & Trường dữ liệu & Kiểu dữ liệu & Mô tả chức năng \\ \hline
+\textbf{0 - 3} & \textbf{Total Length} & Int32 & Tổng kích thước gói tin bao gồm cả Header (Big-Endian). \\ \hline
+\textbf{4} & \textbf{Message Type} & Byte & Mã định danh loại thông điệp (LOGIN, QUERY, ...). \\ \hline
+\textbf{5 - 6} & \textbf{SessionLen} & UInt16 & Kích thước của chuỗi định danh phiên làm việc. \\ \hline
+\textbf{7 - N} & \textbf{Session ID} & String & Chuỗi GUID định danh phiên (Mã hóa UTF-8). \\ \hline
+\textbf{N+1 - N+2} & \textbf{RequestLen} & UInt16 & Kích thước của chuỗi định danh yêu cầu đơn lẻ. \\ \hline
+\textbf{N+3 - M} & \textbf{Request ID} & String & Mã định danh duy nhất phục vụ cơ chế Multiplexing. \\ \hline
+\textbf{M+1 - End} & \textbf{Payload} & String & Nội dung chính của thông điệp (JSON/Raw Text). \\ \hline
   \end{tabularx}
 \end{table}
 
 
+\subsubsection{Kỹ thuật Xử lý Nhị phân (Binary Mapping)}
 
-\subsubsection{Danh mục Loại thông điệp (Command Codes)}
+
+Hệ thống sử dụng các thư viện C\# Core cấp thấp để đảm bảo tính nhất quán của dữ liệu trên các kiến trúc CPU khác nhau (x64, ARM).
 
 
-Hệ thống sử dụng các mã lệnh (Command Codes) để định nghĩa ngữ cảnh xử lý cho từng gói tin:
+\begin{itemize}
+  \item \textbf{Big-Endian Consistency}: Các trường số lượng (`Total Length`, `SessionLen`, `RequestLen`) luôn được mã hóa theo chuẩn Big-Endian bằng lớp `BinaryPrimitives`. Điều này đảm bảo tính tương thích khi giao tiếp với các môi trường như Node.js (Studio) vốn có thể khác biệt về Byte-order.
+  \item \textbf{Mã hóa UTF-8}: Toàn bộ chuỗi định danh (`Session ID`, `Request ID`) và nội dung `Payload` được mã hóa UTF-8 để hỗ trợ đầy đủ các ký tự tiếng Việt Unicode trong các định nghĩa tri thức.
+  \item \textbf{Tối ưu hóa Bộ nhớ}: Sử dụng `Span<byte>` và `ReadOnlySequence<byte>` trong quá trình giải mã luồng (Stream Pipes), giảm thiểu việc cấp phát vùng nhớ tạm thời (Allocation-free decoding).
+\end{itemize}
+
+
+
+Sơ đồ dưới đây minh họa quy trình đóng gói và phân rã khung tin nhị phân từ dòng dữ liệu thô:
+
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\textwidth]{assets/packet_processing_v3.png}
+  \caption{Sơ đồ Quy trình đóng gói và phân rã (Serialization/Deserialization) gói tin nhị phân.}\label{fig:sơ-đồ-quy-trình-đóng-gói-và-phân-rã-serializationd}
+\end{figure}
+
+
+Đặc tả này là nền tảng cho việc thiết lập kênh truyền dẫn tin cậy, hiệu năng cao, cho phép KBMS xử lý hàng triệu bộ dữ liệu tri thức mà không gây ra hiện tượng tắc nghẽn băng thông.
+
+
+\subsection{Danh mục Loại Thông điệp (Message Type Definitions)}
+
+
+Hệ thống \texorpdfstring{KBMS~[\protect\hyperlink{glos:kbms}{K00}]}{KBMS [K00]} V3 sử dụng các mã lệnh (Command Codes) có kích thước 1 Byte trong Header để định nghĩa ngữ cảnh xử lý cho Khối chức năng mạng. Các mã này ánh xạ trực tiếp tới enum `MessageType` trong mã nguồn C\# của cả Client và Server.
+
+
+\subsubsection{Bảng Phân loại Loại thông điệp (Message Categories)}
+
+
+Bảng dưới đây đặc tả chức năng và mục đích của từng loại thông điệp nhị phân được chuẩn hóa trong KBMS V3:
 
 
 \begin{table}[H]
   \centering\small\selectfont
-  \caption{Danh mục Command Codes và Phân loại loại thông điệp}\label{tbl:danh-mục-command-codes-và-phân-loại-loại-thông-điệ}
+  \caption{dưới đây đặc tả chức năng và mục đích của từng loại thông điệp nhị phân được chuẩn hóa trong KBMS V3:}\label{tbl:dưới-đây-đặc-tả-chức-năng-và-mục-đích-của-từng-loạ}
   \begin{tabularx}{\textwidth}{|l|X|X|}
   \hline
-Giá trị & Tên loại & Mục đích sử dụng \\ \hline
-\textbf{1} & \textbf{LOGIN} & Gửi thông tin đăng nhập (User/Pass). \\ \hline
-\textbf{2} & \textbf{QUERY} & Gửi mã nguồn KBQL để thực hiện suy diễn/truy vấn. \\ \hline
-\textbf{3} & \textbf{RESULT} & Trả về thông tin kết quả đơn lẻ hoặc thông báo thành công. \\ \hline
-\textbf{4} & \textbf{ERROR} & Trả về thông tin lỗi (Runtime, Parser, Auth). \\ \hline
-\textbf{6} & \textbf{METADATA} & Trả về định nghĩa cột và dữ liệu thống kê của tập kết quả. \\ \hline
-\textbf{7} & \textbf{ROW} & Trả về một lô (Batch) dữ liệu kết quả dưới dạng lưới. \\ \hline
-\textbf{8} & \textbf{FETCH\_DONE} & Thông báo đã hoàn tất việc gửi dữ liệu cho một Request. \\ \hline
-\textbf{10} & \textbf{STATS} & Yêu cầu/Trả về thông số hiệu năng hệ thống (ROOT only). \\ \hline
-\textbf{11} & \textbf{LOGS\_STREAM} & Đăng ký nhận luồng log thời gian thực từ Server (ROOT only). \\ \hline
+Giá trị Byte & Tên loại & Mô tả chức năng \& Ngữ cảnh sử dụng \\ \hline
+\textbf{1} & \textbf{LOGIN} & Gửi thông tin định danh (User/Pass). Thực hiện quá trình xác thực Handshake. \\ \hline
+\textbf{2} & \textbf{QUERY} & Gửi nội dung mã nguồn KBQL để thực hiện thực thi, suy diễn hoặc thao tác tri thức. \\ \hline
+\textbf{3} & \textbf{RESULT} & Phản hồi thông tin kết quả đơn lẻ (Scalar) hoặc xác nhận hoạt động thành công (ACK). \\ \hline
+\textbf{4} & \textbf{ERROR} & Trả về thông tin ngoại lệ (Exception) bao gồm mã lỗi và vị trí (Dòng/Cột). \\ \hline
+\textbf{6} & \textbf{METADATA} & Trả về định nghĩa cấu trúc (Schema) của tập dữ liệu kết quả (Tên cột, Kiểu dữ liệu). \\ \hline
+\textbf{7} & \textbf{ROW} & Truyền tải dữ liệu kết quả thực tế theo từng lô (Batch), mỗi gói chứa tối đa 100 bộ tri thức. \\ \hline
+\textbf{8} & \textbf{FETCH\_DONE} & Thông báo kết thúc quá trình truyền dữ liệu cho một yêu cầu cụ thể (Request). \\ \hline
+\textbf{10} & \textbf{STATS} & Trao đổi các thông số hiệu năng và sức khỏe máy chủ (Chỉ dành cho tài khoản ROOT). \\ \hline
+\textbf{11} & \textbf{LOGS\_STREAM} & Đăng ký nhận luồng nhật ký hệ thống thời gian thực từ Server. \\ \hline
   \end{tabularx}
 \end{table}
 
 
+\subsubsection{Quy trình Trao đổi (Handshake \& Query Flows)}
 
-\subsubsection{Quy trình Trao đổi (Handshake \& Pipelining)}
 
+Giao thức truyền thông được thiết kế theo mô hình yêu cầu-phản hồi (Request-Response) nhưng hỗ trợ chế độ đa luồng hóa (Asynchronous Multiplexing).
+
+
+\paragraph{Quy trình Xác thực (Authentication)}
 
 \begin{enumerate}
-  \item \textbf{Xác thực Phiên (Handshake)}: Client khởi tạo gói `LOGIN`. Hệ thống kiểm tra thông tin định danh và trả về `RESULT:SUCCESS` kèm theo một `Session ID` duy nhất để sử dụng cho các yêu cầu tiếp theo.
-  \item \textbf{Đa luồng hóa Yêu cầu (Pipelining)}: Nhờ có `RequestId`, Client có khả năng gửi nhiều yêu cầu đồng thời mà không cần chờ đợi phản hồi tuần tự (Asynchronous Multiplexing). Mỗi phản hồi từ Server sẽ mang theo `RequestId` tương ứng để Client bóc tách dữ liệu chính xác.
-  \item \textbf{Hỗ trợ đa ngôn ngữ}: Toàn bộ chuỗi ký tự (SessionID, Payload) được mã hóa theo chuẩn UTF-8, đảm bảo tính nhất quán của tri thức tiếng Việt khi truyền dẫn giữa các nền tảng (C\#, Node.js).
+  \item \textbf{Client} gửi gói tin `LOGIN` chứa thông tin tài khoản.
+  \item \textbf{Server} kiểm tra quyền hạn và phản hồi `RESULT:SUCCESS` kèm theo một `Session ID` duy nhất để sử dụng cho các tương tác kế tiếp.
 \end{enumerate}
 
 
 
-Sau khi Module I hoàn tất việc giải mã Payload từ giao thức nhị phân, nội dung này sẽ được chuyển giao cho các bộ xử lý logic cấp cao hơn để bắt đầu vòng đời thực thi của một truy vấn tri thức.
-
-
-\subsection{Vòng đời Xử lý Truy vấn (Query Lifecycle)}
-
-
-Trong kiến trúc phân tầng của KBMS, sau khi gói tin nhị phân được giải mã tại Tầng Mạng (Phân hệ 4.5.2.1), Server khởi động một quy trình xử lý đa tầng để phiên dịch ý định người dùng (User Intent) thành các phép toán và suy diễn tri thức cụ thể. Quy trình này đảm bảo tính nhất quán từ lúc tiếp nhận luồng byte cho đến khi trả về tập kết quả cuối cùng.
-
-
-\subsubsection{Vòng đời của một Truy vấn (Request Flow)}
-
-
-Mọi yêu cầu được chuẩn hóa theo một đường ống xử lý (Pipeline) nghiêm ngặt để tối ưu hóa tài nguyên máy chủ:
-
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.7\textwidth]{assets/query_lifecycle_v3.png}
-  \caption{Sơ đồ trình tự vòng đời của một truy vấn (Query Lifecycle).}\label{fig:sơ-đồ-trình-tự-vòng-đời-của-một-truy-vấn-query-lif}
-\end{figure}
-
-
-
-\subsubsection{Luồng xử lý Packet nhị phân}
-
-
-Hệ thống thực hiện bóc tách các byte dữ liệu thô từ luồng (Stream) và chuyển đổi chúng thành các cấu trúc dữ liệu logic:
-
+\paragraph{Luồng Truy vấn tri thức (Query Flow)}
 
 \begin{enumerate}
-  \item \textbf{Phân rã Header}: Xác định loại thông điệp và kích thước Payload.
-  \item \textbf{Định danh Phiên}: Gắn kết gói tin với một `Session` cụ thể trong `ConnectionManager.cs`.
-  \item \textbf{Trích xuất Payload}: Payload (thường là mã nguồn KBQL) được giải mã UTF-8 và chuyển giao cho bộ phận phân tích ngôn ngữ.
+  \item \textbf{Client} gửi gói tin `QUERY` kèm định danh yêu cầu (`Request ID`).
+  \item \textbf{Server} phản hồi bằng chuỗi các khung tin tuần tự:
+\begin{itemize}
+  \item Một khung `METADATA` mô tả cấu trúc dữ liệu.
+  \item Một hoặc nhiều khung `ROW` chứa các bộ tri thức thực tế.
+  \item Kết thúc bằng khung `FETCH\_DONE` để Client đóng trạng thái chờ.
+\end{itemize}
 \end{enumerate}
 
 
 
-
-\subsubsection{Phân rã và Giải mã Cú pháp (Parsing \& AST)}
-
-
-Đây là giai đoạn then chốt trong việc chuyển đổi ý định người dùng sang thực thể lập trình được:\par
-*   \textbf{Phân tích Từ vựng (Lexing)}: Quét chuỗi ký tự thô để nhận diện các Tokens (Từ khóa, Định danh, Toán tử).\par
-*   \textbf{Xây dựng Cây AST}: Sử dụng kỹ thuật \textbf{Recursive Descent} để kiểm tra tính hợp lệ của ngữ pháp và xây dựng cây cú pháp trừu tượng (Abstract Syntax Tree).
+Nhờ có sự phân định rõ ràng giữa các loại thông điệp, Khối chức năng mạng có thể điều hướng yêu cầu tới đúng Khối logic xử lý mà không cần phân tích nội dung Payload một cách đắt đỏ.
 
 
-
-\subsubsection{Điều phối và Thực thi (Dispatching)}
-
-
-Sau khi có cấu trúc AST hoàn chỉnh, `KnowledgeManager.cs` thực hiện vai trò điều phối:\par
-1.  \textbf{Thẩm định Quyền (RBAC)}: Kiểm tra quyền thực thi (`SELECT`, `INSERT`, `SOLVE`) dựa trên thông tin người dùng trong Session.\par
-2.  \textbf{Định tuyến Logic}: Chuyển giao AST tới `StorageEngine` (để truy xuất/ghi dữ liệu vật lý) hoặc `ReasoningEngine` (để lan truyền suy diễn trên mạng Rete).\par
-3.  \textbf{Hồi đáp (Response Coding)}: Kết quả từ các tầng dưới được Module I đóng gói ngược lại vào các khung nhị phân (`METADATA`, `ROW`, `FETCH\_DONE`) để gửi về cho khách hàng.
+\subsection{Quản lý Phiên và Đa luồng hóa (Session \& Multiplexing Management)}
 
 
-\subsubsection{Ví dụ thực tế: Luồng xử lý lệnh SELECT}
+Thành phần quản trị kết nối (`ConnectionManager.cs`) trong \texorpdfstring{KBMS~[\protect\hyperlink{glos:kbms}{K00}]}{KBMS [K00]} V3 chịu trách nhiệm điều phối vòng đời của mọi yêu cầu từ xa. Lớp này thực thi mô hình quản lý trạng thái phiên hành động (Stateful Session), duy trì ngữ cảnh người dùng xuyên suốt quá trình thực thi triệu gọi từ xa.
 
 
-Khi người dùng thực thi: `SELECT name FROM Student WHERE age > 18;`
+\subsubsection{Thành phần Điều phối Kết nối (ConnectionManager)}
 
 
-\begin{enumerate}
-  \item \textbf{Lớp Network}: Nhận gói tin `TYPE:QUERY`, bóc tách payload chuỗi.
-  \item \textbf{Lớp Parser}: Tạo đối tượng `SelectAstNode` chứa thông tin về bảng `Student` và điều kiện lọc.
-  \item \textbf{Lớp Core}: Xác minh người dùng có quyền `READ` trên bảng `Student`.
-  \item \textbf{Lớp Engine}: Thực hiện tìm kiếm trên chỉ mục B+ Tree của `Student`, lọc dữ liệu và trả về các dòng thỏa mãn.
-\end{enumerate}
-
-
-
-Giai đoạn giải mã mạng và điều phối này chỉ là bước khởi đầu. Để thực sự hiểu ý nghĩa sâu xa của câu lệnh người dùng, hệ thống cần đi sâu vào Phân hệ II  nơi các chuỗi văn bản vô hồn được bẻ gãy thành các nguyên tử ngôn ngữ (Tokens) và cấu trúc cây logic.
-
-
-\subsection{Xác thực Giao thức (Protocol Validation)}
-
-
-Để đảm bảo tính toàn vẹn của dữ liệu trong quá trình truyền dẫn nhị phân, Module I trải qua các quy trình xác thực nghiêm ngặt về cả cấu trúc gói tin lẫn khả năng chịu tải đồng thời.
-
-
-\subsubsection{Kiểm thử Cấu trúc Gói tin (Binary Frame Integrity)}
-
-
-Quá trình xác thực sử dụng bộ kịch bản mô phỏng tại `Protocol.cs` để kiểm tra khả năng đóng gói (Marshalling) và giải mã (Unmarshalling) dữ liệu:
+`ConnectionManager` được triển khai dưới dạng một lớp quản lý trung tâm (Manager Class), thực hiện vai trò điều phối tài nguyên liên lạc:
 
 
 \begin{itemize}
-  \item \textbf{Xác thực Handshake}: Mô phỏng kịch bản Client gửi gói tin `LOGIN` và nhận diện chính xác phản hồi `RESULT:SUCCESS`.
-  \item \textbf{Xác thực Luồng dữ liệu (Streaming)}: Kiểm tra khả năng nhận diện dấu hiệu kết thúc luồng (`FETCH\_DONE`) trong các truy vấn có tập kết quả lớn.
+  \item \textbf{Quản trị Danh mục Phiên (Session Catalog)}: Sử dụng cấu trúc `ConcurrentDictionary<string, Session>` để theo dõi toàn bộ các phiên làm việc đang hoạt động. Điều này đảm bảo tính an toàn đầu tiên (Thread-safety) khi có hàng ngàn người dùng tương tác đồng thời.
+  \item \textbf{Tính năng Cleanup tự động (Expired Sessions)}: Hệ thống duy trì một tiểu trình quét định kỳ (Scavenger) để đóng các socket không còn hoạt động, giải phóng RAM và socket ID về máy chủ.
+  \item \textbf{Giới hạn Kết nối (Capacity Guard)}: Thực thi cơ chế giới hạn số lượng người dùng đồng thời (`MaxConnections`) để duy trì độ trễ hệ thống ở mức thấp dưới tải cao.
 \end{itemize}
 
 
 
-\paragraph{Minh chứng Thực thi:}
-
-\begin{figure}[H]
-  \centering
-  \fbox{Thiếu ảnh: code\_test\_binary\_protocol.png}
-  \caption{Kết quả chạy Unit Test cho khung truyền dẫn nhị phân.}\label{fig:kết-quả-chạy-unit-test-cho-khung-truyền-dẫn-nhị-ph}
-\end{figure}
+\subsubsection{Vòng đời của một Phiên (Session Lifecycle)}
 
 
-\begin{figure}[H]
-  \centering
-  \fbox{Thiếu ảnh: terminal\_test\_protocol\_hex.png}
-  \caption{Nhật ký byte nhị phân được bóc tách trực tiếp từ Socket.}\label{fig:nhật-ký-byte-nhị-phân-được-bóc-tách-trực-tiếp-từ-s}
-\end{figure}
+Mỗi thực thể phiên (`Session.cs`) lưu trữ các thuộc tính định danh và trạng thái bao gồm:\par
+- \textbf{`SessionID`}: Mã GUID định danh duy nhất cho mỗi quá trình Handshake.\par
+- \textbf{`User`}: Tham chiếu tới thông tin quyền hạn sau khi xác thực thành công.\par
+- \textbf{`CurrentKb`}: Không gian tri thức hiện hành (Namespace) mà phiên này đang làm việc.\par
+- \textbf{Trạng thái (Status)}: `AUTHENTICATED`, `BUSY` (Đang xử lý), `IDLE` (Chờ lệnh).
 
 
-\subsubsection{Kiểm thử Khả năng Xử lý Đồng thời (Concurrency Proof)}
+\subsubsection{Cơ chế Đa luồng hóa Yêu cầu (Asynchronous Multiplexing)}
 
 
-Để chứng minh tính hiệu quả của mô hình xử lý bất đồng bộ (TAP), hệ thống được thử nghiệm với kịch bản 256 kết nối giả lập thực thi truy vấn cùng một thời điểm:
+Khác với mô hình đồng bộ (Synchronous), KBMS V3 hỗ trợ khả năng thực thi đồng thời nhiều yêu cầu trên cùng một kết nối TCP duy nhất nhờ vào định danh `Request ID`.
 
 
 \begin{itemize}
-  \item \textbf{Độ trễ (Latency)}: Kiểm tra thời gian phản hồi trung bình khi hàng đợi ThreadPool bị chiếm dụng cao.
-  \item \textbf{Tính cô lập (Isolation)}: Đảm bảo dữ liệu của các phiên (Session) khác nhau không bị trộn lẫn trong quá trình ghi xuống Socket chung.
+  \item \textbf{Pipelining}: Nhờ có `Request ID` đính kèm trong Header nhị phân, Client có khả năng phát hành yêu cầu tiếp theo mà không nhất thiết phải chờ đợi phản hồi của yêu cầu trước đó.
+  \item \textbf{Xác thực Hiệu năng (Concurrency Proof)}: Trong các kịch bản thử nghiệm thực tế, hệ thống có khả năng xử lý \textbf{256 người dùng} thực hiện truy vấn đồng thời với độ trễ phản hồi ổn định, chứng minh tính hiệu quả của mô hình Asynchronous Sockets.
 \end{itemize}
 
 
 
-\paragraph{Minh chứng Hiệu năng:}
-
 \begin{figure}[H]
   \centering
-  \fbox{Thiếu ảnh: terminal\_test\_concurrent\_clients.png}
-  \caption{Bằng chứng hệ thống xử lý ổn định 256 kết nối đồng thời không xảy ra hiện tượng nghẽn luồng (Blocking).}\label{fig:bằng-chứng-hệ-thống-xử-lý-ổn-định-256-kết-nối-đồng}
+  \includegraphics[width=0.7\textwidth]{assets/concurrency_interaction.png}
+  \caption{Kết quả thử nghiệm tải đồng thời cao trên tầng mạng KBMS Server V3.}\label{fig:kết-quả-thử-nghiệm-tải-đồng-thời-cao-trên-tầng-mạn}
 \end{figure}
 
 
-Việc xác thực thành công Tầng Mạng ghi dấu sự hoàn thiện của Phân hệ I. Tại thời điểm này, các byte dữ liệu thô đã sẵn sàng để được chuyển giao cho Phân hệ II  nơi trí tuệ ngôn ngữ của KBMS bắt đầu bóc tách các ký pháp để xây dựng nên cấu trúc tri thức AST phức tạp.
+Cơ chế quản lý phiên và đa luồng hóa này là yếu tố then chốt giúp KBMS V3 phục vụ đồng thời cả công cụ Desktop (Designer) và hệ thống CLI di động với độ tin cậy và băng thông tối ưu nhất.
 
 
 \subsection{Bộ phân tích Cú pháp (Parser)}
 
 
-\subsection{Phân tích Từ vựng (Lexical Analysis)}
+\subsection{Phân tích Từ vựng và Máy trạng thái (Lexical Analysis)}
 
 
-Phân hệ II (Language Parser) tiếp nhận chuỗi ký tự KBQL thô đã được giải mã từ Module I (Network Layer). Thành phần đầu tiên của phân hệ này là `Lexer.cs`, chịu trách nhiệm thực hiện quá trình quét chuỗi (Scanning) với độ phức tạp thời gian $O(L)$ (với $L$ là độ dài chuỗi) để phân rã văn bản thành một danh sách các đơn vị ngôn ngữ cơ bản gọi là \textbf{Tokens}.
+Phân tích từ vựng (Lexical Analysis) là giai đoạn đầu tiên trong tiến trình xử thông điệp truy vấn tri thức của \texorpdfstring{KBMS~[\protect\hyperlink{glos:kbms}{K00}]}{KBMS [K00]} Server V3. Khối xử lý này, được triển khai trong lớp `Lexer.cs`, chịu trách nhiệm chuyển đổi một chuỗi văn bản KBQL thô thành danh sách các đơn vị có nghĩa logic được gọi là \textbf{Tokens}.
 
 
-\subsubsection{Dòng chảy Phân tích Từ vựng (Lexing Flow)}
+\subsubsection{Mô hình Máy trạng thái (Deterministic Finite Automaton - DFA)}
 
 
-Bộ Lexer vận hành như một máy trạng thái hữu hạn (Finite State Machine), đảm bảo mọi ký tự đều được định danh hoặc báo lỗi kịp thời dựa trên bộ quy tắc ngôn ngữ:
+Trung tâm của tiến trình quét (Scanner) là một cỗ máy trạng thái hữu hạn. Lớp `Lexer` sử dụng kỹ thuật hai con trỏ (`\_start` và `\_current`) để trích xuất các từ tố (Lexemes) từ dòng ký tự đầu vào.
 
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.7\textwidth]{assets/lexer_tokenization_flow.png}
-  \caption{Sơ đồ máy trạng thái điều phối luồng phân tách Token.}\label{fig:sơ-đồ-máy-trạng-thái-điều-phối-luồng-phân-tách-tok}
-\end{figure}
-
-
-\paragraph{Ví dụ minh họa luồng biến đổi:}
-
-Để hiểu rõ vai trò của Lexer, xét câu lệnh KBQL sau:\par
-`SELECT canh\_a FROM TamGiac;`
-
-
-Quy trình bóc tách của Lexer sẽ tạo ra chuỗi Token Stream tương ứng:\par
-1.  `KW\_SELECT` (Từ khóa SELECT)\par
-2.  `IDENTIFIER(''canh\_a'')` (Định danh biến)\par
-3.  `KW\_FROM` (Từ khóa FROM)\par
-4.  `IDENTIFIER(''TamGiac'')` (Định danh Concept)\par
-5.  `SEMICOLON` (Dấu chấm phẩy kết thúc)\par
-6.  `EOF` (Kết thúc tệp/chuỗi)
-
-
-
-\subsubsection{Cơ chế Quét Máy trạng thái (State Machine)}
-
-
-`Lexer.cs` duy trì trạng thái quét thông qua hai con trỏ con trỏ chỉ vị trí: `\_start` (vị trí bắt đầu của lexeme hiện tại) và `\_current` (vị trí ký tự đang được xem xét).
-
-
-\paragraph{Quy trình xử lý hạt nhân (`ScanToken`):}
 
 \begin{itemize}
-  \item \textbf{Loại bỏ nhiễu (Noise Reduction)}: Tự động bỏ qua các khoảng trắng, tab và ký tự xuống dòng. Khi phát hiện ký tự xuống dòng (`\textbackslash{}n`), hệ thống cập nhật chỉ số dòng (`\_line`) và cột (`\_column`) để phục vụ việc định vị lỗi chính xác cho người dùng.
-  \item \textbf{Nhận diện Ký tự đơn}: Các ký pháp toán học và cú pháp đơn giản (`(`, `)`, `,`, `;`, `+`, `-`) được định danh ngay lập tức.
-  \item \textbf{So khớp Toán tử (Look-ahead)}: Sử dụng cơ chế xem trước một ký tự tiếp theo để phân biệt các toán tử đơn và kép (Ví dụ: phân biệt `>` và `>=`).
-  \item \textbf{Xử lý Chú thích (Comments)}: Mọi ký tự đứng sau ký hiệu `--` cho đến hết dòng đều bị loại bỏ khỏi luồng xử lý logic.
+  \item \textbf{Trạng thái Quét}: Dựa trên ký tự hiện tại, `Lexer` sẽ quyết định chuyển dịch sang trạng thái nhận diện số, chuỗi định danh (Identifiers), từ khóa hoặc các ký tự phân tách.
+  \item \textbf{Định nghĩa Token}: Mỗi Token được đặc tả đầy đủ các thuộc tính kỹ thuật bao gồm: `Type` (Loại), `Lexeme` (Chuỗi thô), `Literal` (Giá trị định kiểu) và vị trí tọa độ (`Line`/`Column`).
+  \item \textbf{Tập luật Ngôn ngữ}: Bộ Lexer nhận diện hơn \textbf{190 loại Token}, bao quát toàn bộ các lớp ngôn ngữ:
+\begin{itemize}
+  \item \textbf{Định nghĩa tri thức (KDL)}: `CREATE`, `CONCEPT`, `RULE`.
+  \item \textbf{Truy vấn tri thức (KQL)}: `SELECT`, `SOLVE`, `EXPLAIN`.
+  \item \textbf{Thao tác dữ liệu (KML)}: `INSERT`, `UPDATE`, `DELETE`.
+\end{itemize}
 \end{itemize}
 
 
 
-
-\subsubsection{Xử lý Hằng số và Hóa thân Dữ liệu (Literal Extraction)}
-
-
-Lexer không chỉ phân loại mà còn thực hiện trích xuất giá trị thực từ các hằng số (Literals):
+\subsubsection{Kỹ thuật Tokenization và So khớp Regex}
 
 
-\paragraph{Hằng số Số học (Numerics)}
-
-Hệ thống hỗ trợ đa dạng định dạng số, bao gồm số nguyên, số thực và ký pháp khoa học (ví dụ: `1.23e-10`). Việc chuyển đổi được thực hiện qua `double.TryParse` với định dạng `InvariantCulture` để đảm bảo tính nhất quán dữ liệu trên toàn cầu.
-
-
-\paragraph{Hằng số Chuỗi (Strings)}
-
-Hỗ trợ văn bản bao đóng trong nháy đơn (`'`) hoặc nháy kép (`''`). Lexer xử lý các ký tự thoát (escape sequences) và cho phép chuỗi trải dài trên nhiều dòng, bảo toàn nguyên vẹn các ký tự định dạng văn bản bên trong.
-
-
-
-\subsubsection{Quản lý Hệ thống Từ khóa (Keywords Registry)}
-
-
-KBMS V3 sở hữu bộ từ điển từ khóa mở rộng với hơn \textbf{190 Token Types}, chia thành các nhóm chức năng:
-
-
-\begin{table}[H]
-  \centering\small\selectfont
-  \caption{Phân loại hệ thống từ khóa và Token của ngôn ngữ KBQL}\label{tbl:phân-loại-hệ-thống-từ-khóa-và-token-của-ngôn-ngữ-k}
-  \begin{tabularx}{\textwidth}{|l|X|}
-  \hline
-Nhóm chức năng & Các Token điển hình \\ \hline
-\textbf{Thao tác Tri thức (DML)} & `SELECT`, `INSERT`, `UPDATE`, `DELETE`, `SOLVE` \\ \hline
-\textbf{Định nghĩa Cấu trúc (DDL)} & `CREATE`, `DROP`, `ALTER`, `CONCEPT`, `RULE` \\ \hline
-\textbf{Kiểu dữ liệu (Types)} & `INT`, `DECIMAL`, `VARCHAR`, `BOOLEAN`, `DATE` \\ \hline
-\textbf{Kiểm soát Giao dịch (TCL)} & `BEGIN`, `COMMIT`, `ROLLBACK` \\ \hline
-  \end{tabularx}
-\end{table}
-
-
-Việc tra cứu từ khóa được thực hiện theo cơ chế `OrdinalIgnoreCase`, giúp tăng tốc độ xử lý và giảm thiểu sai sót do quy tắc viết hoa/thường của người dùng. Một khi chuỗi Token đã được làm sạch và định danh, chúng sẽ được chuyển giao cho bộ phận điều phối Parser để xây dựng cấu trúc logic AST.
-
-
-\subsection{Điều phối Phân tích Cú pháp (Parser Orchestration)}
-
-
-Lớp `Parser.cs` đóng vai trò là trung tâm điều hướng ngôn ngữ của máy chủ \texorpdfstring{KBMS~[\protect\hyperlink{glos:kbms}{K00}]}{KBMS [K00]}. Với cấu trúc hơn 3400 dòng mã nguồn, thành phần này thực hiện quy trình phân tích cú pháp hiệu năng cao dựa trên thuật toán \textbf{\texorpdfstring{Recursive Descent~[\protect\hyperlink{glos:recursive-descent}{R06}]}{Recursive Descent [R06]} (Phân tích đệ quy đi xuống)} để chuyển hóa Token Stream thành cây cú pháp trừu tượng (AST).
-
-
-\subsubsection{Cơ chế Điều hướng Phân tích (Parsing Dispatch)}
-
-
-Mỗi khi hệ thống tiếp nhận một chuỗi Tokens từ Module II, `Parser.cs` thực hiện duyệt tuần tự thông qua phương thức `ParseAll()`. Quy trình này lặp lại cho đến khi gặp Token `EOF`, đảm bảo mọi câu lệnh trong một chuỗi truy vấn (Query Batch) đều được xử lý triệt để.
-
-
-\paragraph{Hàm điều phối `ParseStatement()`}
-
-Đây là bộ khung logic quyết định loại câu lệnh tiếp theo thuộc nhóm ngôn ngữ nào (DDL, DML, TCL hay DCL). Khi nhận diện được từ khóa khởi đầu (ví dụ: `CREATE`, `SELECT`), Parser sẽ ủy quyền cho các phương thức con chuyên biệt như `ParseCreate()` hoặc `ParseSelect()`.
-
-
-
-\subsubsection{Kỹ thuật Phân tích LL(k) và Cấu trúc AST}
-
-
-Hệ thống sử dụng ngữ pháp \textbf{LL(k)}, cho phép Parser nhìn trước (\texorpdfstring{Look-ahead~[\protect\hyperlink{glos:look-ahead}{L09}]}{Look-ahead [L09]}) $k$ Tokens để quyết định nhánh thực thi mà không cần chi phí quay lui (\texorpdfstring{Backtracking~[\protect\hyperlink{glos:backtracking}{B10}]}{Backtracking [B10]}).
-
-
-\paragraph{Minh họa cấu trúc AST đầu ra:}
-
-Giả sử câu lệnh `SELECT a, b FROM Concept\_X;` được thực thi, Parser sẽ trả về một cấu trúc cây logic như sau:
-
-
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
-SelectAstNode
-├── Source: "Concept_X"
-├── Fields:
-│   ├── IdentNode: "a"
-│   └── IdentNode: "b"
-├── Where: NULL
-└── Limit: -1 (All)
-\end{Verbatim}
-\end{academicbox}
-
-\par
-\textit{Hình 4.xx: Minh họa cấu trúc phân cấp của một nút AST điển hình.}
-
-
-\paragraph{Các nguyên tử điều khiển Parser:}
-
-\begin{itemize}
-  \item \textbf{`Consume(type)`}: Kiểm tra tính đúng đắn của Token hiện tại. Nếu khớp, tiến tới Token tiếp theo; nếu sai, ngay lập tức ném ra `ParserException` kèm tọa độ `Line/Column` để báo lỗi cho người dùng.
-  \item \textbf{`Peek()` \& `Check(type)`}: Thực hiện kiểm tra mà không tiêu thụ Token, cho phép Parser dự đoán cấu trúc tiếp theo của câu lệnh.
-\end{itemize}
-
-
-
-
-\subsubsection{Phân tích Khối lệnh phức tạp (Nested Descent)}
-
-
-Một minh chứng điển hình cho sức mạnh của thuật toán đệ quy đi xuống trong KBMS là việc bóc tách lệnh `CREATE CONCEPT`. Thay vì một bộ phân tích phẳng, Parser thực hiện lồng ghép nhiều cấp:
+Các đơn vị từ vựng được phân tách dựa trên các quy tắc ngữ pháp của KBQL:
 
 
 \begin{enumerate}
-  \item \textbf{Cấp 1}: `ParseCreate` nhận định danh từ khóa `CREATE` và chuyển cho `ParseCreateConcept`.
-  \item \textbf{Cấp 2}: `ParseCreateConcept` quét khối `\{...\}` và xác định các phân đoạn `VARIABLES`, `CONSTRAINTS`, `RULES`.
-  \item \textbf{Cấp 3}: Tùy vào phân đoạn, Parser gọi đệ quy các hàm con như `ParseVariableDefinition` hoặc `ParseExpression` để xây dựng các nhánh con cho nút Concept.
+  \item \textbf{Chuỗi Định danh (Identifiers)}: Sử dụng các quy tắc Regex chuẩn để nhận diện các tên biến, tên Concept hoặc tên Luật suy luận. Hệ thống hỗ trợ đầy đủ các định danh chứa ký tự Unicode (tiếng Việt).
+  \item \textbf{Từ khóa (Keywords)}: Tập hợp các từ dành riêng được lưu trữ trong bảng băm (Hash-set) để so khớp nhanh chóng với độ phức tạp $O(1)$.
+  \item \textbf{Toán tử và Dấu phân tách}: Nhận diện các ký hiệu logic (`AND`, `OR`, `NOT`) và các dấu phân tách cấu trúc (như dấu chấm phẩy `;` hoặc dấu ngoặc đơn `()`).
 \end{enumerate}
 
 
 
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
-// Minh họa thuật toán: Recursive Descent Parser bóc tách lệnh CREATE CONCEPT
-private AstNode ParseCreateConcept() {
-    Consume(TokenType.CREATE); // Xác thực từ khóa
-    Consume(TokenType.CONCEPT);
-    var conceptName = Consume(TokenType.IDENTIFIER).Text;
-    var conceptNode = new AstNode.Concept(conceptName);
-    
-    Consume(TokenType.LBRACE); // Nhận diện dấu {
-    while (!Check(TokenType.RBRACE) && !IsAtEnd()) {
-        if (Match(TokenType.VARIABLES)) {
-            conceptNode.Variables = ParseVariablesList(); // Gọi đệ quy nhánh 1
-        } else if (Match(TokenType.CONSTRAINTS)) {
-            conceptNode.Constraints = ParseConstraintsList(); // Gọi đệ quy nhánh 2
-        } else {
-            throw new ParseException("Cú pháp khối lệnh không hợp lệ.");
-        }
-    }
-    Consume(TokenType.RBRACE); // Nhận diện dấu }
-    return conceptNode;
-}
-\end{Verbatim}
-\end{academicbox}
+\subsubsection{Báo lỗi và Ngoại lệ (Lexer Exceptions)}
 
 
+Khi quá trình quét gặp các ký tự không hợp lệ hoặc không thuộc bảng chữ cái được phép, hệ thống ngay lập tức phát hành một ngoại lệ. Ngoại lệ này chứa thông tin chính xác về vị trí xảy ra lỗi trên tệp tin nguồn (Dòng, Cột), giúp người dùng Designer nhanh chóng chẩn đoán và hiệu chỉnh mã nguồn.
 
 
-Kiến trúc đệ quy này cho phép KBMS mở rộng ngôn ngữ một cách linh hoạt mà không làm ảnh hưởng đến tính ổn định của các bộ phân tích cũ. Sau khi cấu trúc AST được hình thành, chúng được phân loại vào các lớp đối tượng chuyên biệt để chuẩn bị cho giai đoạn thực thi.
+Tiến trình phân tích từ vựng đảm bảo đầu vào cho giai đoạn phân tích cú pháp là một danh sách các tín hiệu logic thuần khiết, loại bỏ hoàn toàn các ký tự dư thừa và khoảng trắng không có nghĩa.
 
 
-\subsection{Hệ thống Cây cú pháp Trừu tượng (AST Nodes)}
+\subsection{Phân tích Cú pháp và Cấu trúc Đệ quy (Syntactic Parser)}
 
 
-Cây cú pháp trừu tượng (Abstract Syntax Tree - AST) là đại diện logic hoàn chỉnh cho tri thức sau khi được biên dịch. Trong kiến trúc KBMS V3, mỗi câu lệnh được bóc tách thành một hoặc nhiều `AstNode` chuyên biệt, kế thừa từ lớp cơ sở `AstNode.cs`. Các nút này được phân loại thành 5 hệ phả ngôn ngữ chính, tương ứng với các phân hệ chức năng trong mã nguồn `KBMS.Parser/Ast`.
+Phối hợp chặt chẽ với Khối phân tích từ vựng, Khối phân tích cú pháp (Syntactic Parser) trong \texorpdfstring{KBMS~[\protect\hyperlink{glos:kbms}{K00}]}{KBMS [K00]} V3 chịu trách nhiệm xây dựng \textbf{Cây cú pháp trừu tượng (Abstract Syntax Tree - AST)} từ danh sách Tokens. Lớp `Parser.cs` thực thi thuật toán phân tích tiên tiến để khớp với bộ ngữ pháp KBQL.
 
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.7\textwidth]{assets/ast_overview_v2.png}
-  \caption{Sơ đồ phả hệ các nút AST trong hệ thống tri thức KBMS.}\label{fig:sơ-đồ-phả-hệ-các-nút-ast-trong-hệ-thống-tri-thức-k}
-\end{figure}
+\subsubsection{Thuật toán Phân tích Đệ quy Xuống (Recursive Descent Parsing)}
 
 
-
-\subsubsection{Hệ phả Định nghĩa Tri thức (KDL Nodes)}
-
-
-Đây là phân hệ phức tạp nhất, chịu trách nhiệm kiến tạo cấu trúc của các thực thể tri thức:
+`Parser` trong KBMS V3 vận hành theo phương thức \textbf{Top-down Parsing} thông qua kỹ thuật liệt kê đệ quy (`Recursive Descent`). Thuật toán này cho phép hệ thống giải quyết các quy tắc ngữ pháp phi ngữ cảnh (Context-Free Grammar).
 
 
 \begin{itemize}
-  \item \textbf{Knowledge Base}: Bao gồm `CreateKnowledgeBaseNode`, `DropKbNode`, `UseKbNode`. These nodes manage the lifecycle of knowledge repositories.
-  \item \textbf{Concepts \& Variables}: `CreateConceptNode`, `AddVariableNode`. Quản lý việc định nghĩa các khái niệm và thuộc tính.
-  \item \textbf{Advanced Logic}: `CreateRuleNode`, `AddComputationNode`, `CreateTriggerNode`. Định nghĩa các luật suy diễn và các điểm kích hoạt logic trong mạng Rete.
+  \item \textbf{Quy tắc Thực thi}: Bắt đầu từ câu lệnh gốc (`ParseStatement`), trình phân tích sử dụng các hàm đệ quy để khớp các mẫu cú pháp phức tạp như `ParseSelect`, `ParseInsert`, hoặc `ParseSolve`.
+  \item \textbf{Khả năng Xem trước (Look-ahead)}: Sử dụng Token hiện tại và Token kế tiếp để quyết định rẽ nhánh logic mà không cần quay lui (Backtracking), tối ưu hóa tốc độ phân tích cho các chuỗi truy vấn dài.
+  \item \textbf{Độ ưu tiên Toán tử}: Các biểu thức logic (`AND`, `OR`) và so sánh (`>`, `<`) được phân rã theo cấu trúc lồng nhau đệ quy, đảm bảo thứ tự ưu tiên tính toán chính xác trong cây AST.
 \end{itemize}
 
 
 
-
-\subsubsection{Hệ phả Truy vấn và Thao tác (KQL \& KML Nodes)}
-
-
-Phân hệ này điều phối các hoạt động tương tác và bảo trì dữ liệu tri thức:
+\subsubsection{Xử lý Lỗi và Đồng bộ hóa (Parser Error Handling)}
 
 
-\paragraph{Nhóm Truy vấn (KQL)}
-
-\begin{itemize}
-  \item \textbf{`SelectNode`}: Chịu trách nhiệm trích xuất thông tin dựa trên các điều kiện lọc và phép chiếu thuộc tính.
-  \item \textbf{`SolveNode`}: Thành phần cốt lõi của giao diện suy diễn, chứa các mệnh đề giả thiết (`Given`) và mục tiêu (`Find`).
-  \item \textbf{`ExplainNode`}: Cung cấp khả năng truy vết logic, cho phép hệ thống giải thích các bước suy luận dẫn đến kết quả.
-\end{itemize}
-
-
-
-\paragraph{Nhóm Thao tác (KML)}
-
-\begin{itemize}
-  \item \textbf{`InsertNode`}: Thực hiện nạp các bản ghi tri thức mới vào tầng lưu trữ vật lý.
-  \item \textbf{`UpdateNode` / `DeleteNode`}: Quản lý vòng đời của các thực thể dữ liệu hiện hữu.
-  \item \textbf{`MaintenanceNode`}: Điều phối các tác vụ hạ tầng như tái lập chỉ mục (`REINDEX`) hoặc thu dọn bộ nhớ (`VACUUM`).
-\end{itemize}
-
-
-
-
-\subsubsection{Hệ phả Kiểm soát và Giao dịch (KCL \& TCL Nodes)}
-
-
-Đảm bảo tính bảo mật và toàn vẹn của hệ thống thông qua các cơ chế quản trị:
-
-
-\begin{itemize}
-  \item \textbf{Kiểm soát Truy cập (KCL)}: `GrantNode`, `RevokeNode`, `CreateUserNode`. Quản lý quyền hạn người dùng dựa trên mô hình RBAC.
-  \item \textbf{Quản trị Giao dịch (TCL)}: `BeginTransactionNode`, `CommitNode`, `RollbackNode`. Đảm bảo tính ACID cho các thao tác tri thức phức tạp.
-\end{itemize}
-
-
-
-
-\subsubsection{Đặc điểm Kỹ thuật Chung (Core Node Features)}
-
-
-Mọi biến thể của `AstNode` đều tuân thủ các nguyên lý thiết kế thống nhất:\par
-1.  \textbf{Vị trí nguồn (Source Mapping)}: Lưu trữ chính xác dòng (`Line`) và cột (`Column`) của mã nguồn gốc, hỗ trợ báo lỗi chính xác tới người dùng.\par
-2.  \textbf{Định danh Loại (Type Identification)}: Thuộc tính `Type` cho phép Module III (System Core) thực hiện điều hướng (routing) nhanh chóng mà không cần kiểm tra kiểu dữ liệu tại runtime (type checking).\par
-3.  \textbf{Khả năng Tái cấu trúc (Reverse Engineering)}: Phương thức `ToQueryString()` cho phép chuyển đổi ngược từ cây AST về mã nguồn KBQL ban đầu.
-
-
-Sau khi cấu trúc AST được Parser Module hoàn thiện và xác thực về mặt cú pháp, toàn bộ cây logic này được bàn giao cho Module III (System Core). Đây là nơi hệ thống bắt đầu quy trình kiểm tra quyền hạn, ghi nhật ký kiểm toán và điều phối tài nguyên máy chủ để thực thi yêu cầu.
-
-
-\subsection{Bộ máy Đánh giá Biểu thức (Expression Engine)}
-
-
-Bộ máy đánh giá biểu thức (Expression Engine) là thành phần hạt nhân xử lý logic và toán học bên trong các câu lệnh tri thức. Thông qua lớp cơ sở `ExpressionNode.cs` và các lớp con chuyên biệt, hệ thống thực hiện giải mã các phép toán phức tạp từ cây AST để phục vụ cho cả tầng lưu trữ phân tích và tầng suy diễn.
-
-
-\subsubsection{Phân tích Biểu thức Nhị phân (Binary Expressions)}
-
-
-Các biểu thức chứa hai toán hạng được xử lý thông qua `BinaryExpressionNode`. Hệ thống hỗ trợ đầy đủ các nhóm toán tử chuẩn:
-
-
-\begin{itemize}
-  \item \textbf{Toán tử Số học}: Bao gồm các phép tính cơ bản (`+`, `-`, `*`, `/`) và các phép toán nâng cao (`\textasciicircum{}` - lũy thừa, `\%` - chia lấy dư).
-  \item \textbf{Toán tử So sánh}: Thiết lập các mệnh đề quan hệ (`=`, `!=`, `<`, `>`, `<=`, `>=`).
-  \item \textbf{Toán tử Logic}: Kết hợp các biểu thức Boolean thông qua `AND` và `OR`.
-\end{itemize}
-
-
-
-\paragraph{Thứ tự ưu tiên Toán tử (Operator Precedence)}
-
-Để đảm bảo tính chính xác tuyệt đối trong các bài toán tri thức, Parser tuân thủ nghiêm ngặt bảng thứ tự ưu tiên quốc tế, được thực hiện thông qua cấu trúc phân tầng của các phương thức đệ quy:
+Một trong những thách thức của trình phân tích cú pháp là duy trì trạng thái ổn định khi gặp lỗi ngữ pháp. `Parser.cs` thực thi cơ chế \textbf{Đồng bộ hóa (Synchronization)}:
 
 
 \begin{enumerate}
-  \item \textbf{Cấp 1 (Primary)}: Biểu thức trong ngoặc `(...)`, truy cập thuộc tính `.` và các hằng số.
-  \item \textbf{Cấp 2 (Unary)}: Phép phủ định `NOT` và dấu âm `-`.
-  \item \textbf{Cấp 3 (Factor)}: Các phép toán nhân/chia `*`, `/`.
-  \item \textbf{Cấp 4 (Term)}: Các phép toán cộng/trừ `+`, `-`.
-  \item \textbf{Cấp 5 (Comparison)}: Các phép so sánh quan hệ.
-  \item \textbf{Cấp 6 (Equality)}: Kiểm tra tính bằng nhau (`=`, `!=`).
-  \item \textbf{Cấp 7 (Logic)}: Các phép kết hợp `AND`, `OR`.
+  \item \textbf{Phát hiện lỗi}: Khi một Token không khớp với kỳ vọng, hệ thống ném ra `ParserException`.
+  \item \textbf{Thu thập thông tin}: Ngoại lệ ghi lại tên Token gây lỗi, mô tả chi tiết và vị trí tọa độ (Dòng/Cột).
+  \item \textbf{Phục hồi (Recovery)}: `Parser` bỏ qua các Token cho đến khi gặp dấu phân tách lệnh (như `;`) để bắt đầu phân tích câu lệnh tiếp theo, đảm bảo một lỗi cú pháp không làm hỏng toàn bộ chu trình xử lý các lệnh khác trong cùng một tệp.
 \end{enumerate}
 
 
 
-
-\subsubsection{Các Thành phần Biểu thức Học thuật}
-
-
-Trong cấu trúc cây AST, các biểu thức được phân tách thành các nút nút lá (leaf) và nút nhánh (branch) với chức năng cụ thể:
+\subsubsection{Chuyển đổi sang AST (Mapping to AST Nodes)}
 
 
-\paragraph{Nút Biến (`VariableNode`)}
-
-Đại diện cho các thuộc tính định danh của một Concept (ví dụ: `age`, `velocity`). Hệ thống hỗ trợ cơ chế truy cập thuộc tính phân cấp thông qua toán tử chấm (`p.x`), cho phép xử lý các mô hình tri thức đa tầng và quan hệ lồng nhau.
-
-
-\paragraph{Nút Hằng số (`LiteralNode`)}
-
-Lưu trữ các giá trị dữ liệu thực tế như số học (`100`), chuỗi văn bản (`''Active''`), hoặc giá trị logic (`true`/`false`). Mỗi nút không chỉ chứa giá trị thô mà còn lưu giữ định danh kiểu dữ liệu (`TokenType`) để phục vụ kiểm tra kiểu tại runtime.
-
-
-\paragraph{Nút Gọi hàm (`FunctionCallNode`)}
-
-Điều phối việc thực thi các hàm tri thức tích hợp (ví dụ: `Sqrt(x)`, `Abs(y)`). Parser bóc tách định danh hàm và danh sách các tham số đầu vào, cho phép xây dựng các biểu thức lồng nhau với độ phức tạp cao.
-
-
-
-\subsubsection{Xử lý Biểu thức Đơn phân (Unary Expressions)}
-
-
-Được đại diện bởi `UnaryExpressionNode`, thành phần này xử lý các toán tử tác động lên một toán hạng duy nhất. Hai trường hợp phổ biến nhất là phép phủ định logic (`NOT`) và đảo dấu số học (`-`), đóng vai trò quan trọng trong việc thiết lập các ràng buộc tri thức loại trừ.
-
-
-Sau khi các biểu thức và cấu trúc câu lệnh đã được Parser bóc tách thành cây AST hoàn chỉnh, hệ thống cần trải qua một quy trình kiểm định cuối cùng để đảm bảo tính đúng đắn của dữ liệu trước khi bàn giao cho tầng điều phối Core.
-
-
-\subsection{Xác thực Bộ biên dịch (Parser Validation)}
-
-
-Bộ phân tích cú pháp (Parser) là thành phần nhạy cảm nhất đối với dữ liệu đầu vào không cấu trúc từ người dùng. Do đó, việc xác thực tính đúng đắn của Parser là yêu cầu tiên quyết để đảm bảo sự ổn định của toàn bộ hệ thống tri thức.
-
-
-\subsubsection{Chỉ số Bao phủ Kiểm thử (Testing Coverage Metrics)}
-
-
-Tầng Parser được bảo vệ bởi một hệ thống kiểm thử tự động toàn diện với hơn \textbf{21,000 dòng mã kịch bản test} tại `ParserTests.cs` và `LexerTests.cs`, bao phủ hơn \textbf{300 kịch bản chuyên biệt}:
+Kết quả cuối cùng của quá trình phân tích là một cây các đối tượng thực thi. Mỗi câu lệnh KBQL được ánh xạ thành một nút gốc của cây AST.
 
 
 \begin{itemize}
-  \item \textbf{Trường hợp chuẩn (Positive Cases)}: Kiểm chứng khả năng bóc tách chính xác 100\% các từ khóa và cấu trúc lệnh thuộc cả 5 hệ phả ngôn ngữ (KDL, KQL, KML, KCL, TCL).
-  \item \textbf{Trường hợp biên và lỗi (Negative Cases)}: Thử nghiệm khả năng từ chối và báo lỗi đối với các câu lệnh phá vỡ quy tắc cú pháp (thiếu dấu phân tách, sai kiểu dữ liệu, hoặc sai cấu trúc khối lệnh).
+  \item \textbf{Dữ liệu định kiểu}: Các giá trị hằng số (như `18`, `''Student''`) được đóng gói thành các nút `LiteralNode` với kiểu dữ liệu tương ứng (Int, String).
+  \item \textbf{Cấu trúc điều kiện}: Các mệnh đề `WHERE` được chuyển đổi thành các cây biểu thức logic đệ quy, sẵn sàng cho việc đánh giá tại Động cơ Truy vấn.
 \end{itemize}
 
 
 
-\paragraph{Minh chứng Thực thi:}
+Quy trình phân tích cú pháp đệ quy đảm bảo rằng mọi ý đồ của con người thể hiện qua ngôn ngữ KBQL đều được hệ thống máy tính hiểu và cấu trúc hóa một cách chặt chẽ, tạo tiền đề cho giai đoạn thực thi tri thức kế tiếp.
+
+
+\subsection{Phân cấp Cây Cú pháp Trừu tượng (AST Hierarchy)}
+
+
+Kết quả cuối cùng của tiến trình xử lý ngôn ngữ trong \texorpdfstring{KBMS~[\protect\hyperlink{glos:kbms}{K00}]}{KBMS [K00]} V3 là một cấu trúc dữ liệu hình cây được gọi là \textbf{Cây cú pháp trừu tượng (Abstract Syntax Tree - AST)}. Mỗi nút trong cây AST (`AstNode.cs`) đại diện cho một thành phần cấu trúc hoặc ý đồ thực thi trong ngôn ngữ KBQL.
+
+
+\subsubsection{Phân loại Các Nút AST (AstNode Taxonomy)}
+
+
+Hệ thống AST được tổ chức theo cấu trúc phân cấp, cho phép Máy chủ thực hiện các thao tác duyệt cây (Tree Traversal) để thực thi lệnh.
+
+
+\paragraph{Khối Định nghĩa (KDL Nodes)}
+
+Kiến tạo và biến đổi cấu trúc tri thức bao gồm:\par
+- \textbf{`CreateKbNode`}: Lệnh khởi tạo không gian tri thức mới.\par
+- \textbf{`CreateConceptNode`}: Định nghĩa một khái niệm (Concept) kèm các thuộc tính.\par
+- \textbf{`CreateRuleNode`}: Thiết lập logic suy luận thông qua các biến và ràng buộc.
+
+
+\paragraph{Khối Truy vấn và Suy luận (KQL Nodes)}
+
+Khai thác dữ kiện tri thức hiện hữu:\par
+- \textbf{`SelectNode`}: Đặc tả yêu cầu trích xuất dữ liệu, bao gồm các phép chiếu (`Fields`), nguồn (`From`) và bộ lọc (`Where`).\par
+- \textbf{`SolveNode`}: Kích hoạt bộ máy suy luận (`InferenceEngine`) để tìm kiếm lời giải dựa trên các luật đã định nghĩa.\par
+- \textbf{`ExplainNode`}: Yêu cầu hệ thống cung cấp sơ đồ truy vết (Proof Trace) cho một kết luận suy luận.
+
+
+\paragraph{Khối Thao tác Dữ liệu (KML Nodes)}
+
+Biến đổi trạng thái nội dung của Cơ sở tri thức:\par
+- \textbf{`InsertNode` , `UpdateNode` , `DeleteNode`}: Các thao tác cơ bản trên các bộ tri thức (Triples).\par
+- \textbf{`MaintenanceNode`}: Các lệnh dọn dẹp và tối ưu hóa Metadata hệ thống.
+
+
+\subsubsection{Hỗ trợ Ngôn ngữ Unicode (Vietnamese Encoding)}
+
+
+KBMS V3 được thiết kế để hỗ trợ tối đa các ký tự tiếng Việt Unicode trong toàn bộ cấu trúc AST:
+
+
+\begin{itemize}
+  \item \textbf{Định danh Concept/Variable}: Toàn bộ tên thực thể và biến đều được `Lexer` và `Parser` chấp nhận nếu chúng tuân thủ định dạng UTF-8.
+  \item \textbf{Biểu thức chuỗi (Literals)}: Các giá trị chuỗi tiếng Việt như `''Sinh viên''`, `''Hòa Bình''` được lưu trữ chính xác trong các nút `StringLiteralNode`.
+  \item \textbf{Thông điệp lỗi}: Các thông báo ngoại lệ phản hồi từ cây AST đều được Việt hóa, hỗ trợ quá trình chẩn đoán lỗi trực quan cho người dùng Designer.
+\end{itemize}
+
+
+
+\subsubsection{Quy trình Chuyển giao sang Động cơ Truy vấn (AST Ingress)}
+
+
+Sau khi cây AST được xây dựng hoàn chỉnh và vượt qua các vòng thẩm định cú pháp, nó sẽ được chuyển giao cho Khối quản lý tri thức (`KnowledgeManager.cs`).
+
+
+\begin{itemize}
+  \item \textbf{Duyệt cây (Traversal)}: `KnowledgeManager` sử dụng mô hình Visitor để duyệt qua các nút AST và kích hoạt các toán tử thực thi tương ứng.
+  \item \textbf{Định tuyến (Routing)}: Dựa trên loại nút AST, hệ thống sẽ quyết định gửi yêu cầu tới `StorageEngine` để truy xuất dữ liệu vật lý hoặc tới `InferenceEngine` để thực hiện suy luận logic.
+\end{itemize}
+
+
+
+Sơ đồ dưới đây minh họa hệ phả phân cấp của các thực thể nút AST trong hệ thống:
+
 
 \begin{figure}[H]
   \centering
-  \fbox{Thiếu ảnh: code\_test\_parser.png}
-  \caption{Mã nguồn các kịch bản kiểm thử đơn vị (Unit Test) cho bộ phân tích cú pháp.}\label{fig:mã-nguồn-các-kịch-bản-kiểm-thử-đơn-vị-unit-test-ch}
+  \includegraphics[width=0.7\textwidth]{assets/ast_hierarchy_v3.png}
+  \caption{Sơ đồ phân cấp các thực thể nút AST trong KBMS V3.}\label{fig:sơ-đồ-phân-cấp-các-thực-thể-nút-ast-trong-kbms-v3}
 \end{figure}
 
 
-\begin{figure}[H]
-  \centering
-  \fbox{Thiếu ảnh: result\_test\_parser.png}
-  \caption{Kết quả thực thi thành công toàn bộ bộ kiểm thử cú pháp trên môi trường phát triển.}\label{fig:kết-quả-thực-thi-thành-công-toàn-bộ-bộ-kiểm-thử-cú}
-\end{figure}
-
-
-\subsubsection{Cơ chế Đặc tả Lỗi Cú pháp (Error Reporting)}
-
-
-Một Parser học thuật không chỉ dừng lại ở việc phát hiện lỗi mà còn phải cung cấp thông tin định vị chính xác (Dòng, Cột) và gợi ý khắc phục. Điều này được thực hiện thông qua việc lưu giữ metadata của Token trong quá trình quét của Lexer.
-
-
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
--- Ví dụ về lỗi cú pháp: Thiếu dấu đóng ngoặc
-CREATE CONCEPT ModelX ( VARIABLES ( id: INT );
--- Kết quả trả về: [ERROR] Unexpected token ';', expected ')' at Line 1, Col 35.
-\end{Verbatim}
-\end{academicbox}
-
-
-
-
-\paragraph{Minh chứng Hiệu quả:}
-
-\begin{figure}[H]
-  \centering
-  \fbox{Thiếu ảnh: terminal\_test\_parser\_nested.png}
-  \caption{Chứng minh khả năng bóc tách và xác thực thành công các cấu trúc biểu thức lồng nhau với độ phức tạp cao.}\label{fig:chứng-minh-khả-năng-bóc-tách-và-xác-thực-thành-côn}
-\end{figure}
-
-
-Việc hoàn thiện Phân hệ II (Language Parser) đánh dấu sự chuyển đổi thành công từ ngôn ngữ văn bản sang cấu trúc cây logic AST. Tại giai đoạn tiếp theo, các nút AST này sẽ được chuyển giao cho Phân hệ III (System Core)  ''hệ điều hành'' của KBMS  để thực hiện các quy trình điều phối đa luồng, kiểm soát truy cập và ghi nhật ký kiểm toán hệ thống.
+Cấu trúc AST chặt chẽ và linh hoạt là nền tảng giúp KBMS V3 có thể hiểu và thực thi các kịch bản tri thức phức tạp một cách chính xác và hiệu quả.
 
 
 \subsection{Nhân quản trị Hệ thống (Core)}
 
 
-\subsection{Phân hệ Điều phối và Hạ tầng Máy chủ (Server Orchestration)}
+\subsection{Cơ chế Xác thực và Phân quyền (Authorization Logic)}
 
 
-Máy chủ \texorpdfstring{KBMS~[\protect\hyperlink{glos:kbms}{K00}]}{KBMS [K00]} V3 (thực thi tại `KbmsServer.cs`) đóng vai trò là ''hệ điều hành'' trung tâm của mạng lưới tri thức. Phân hệ III (System Core) được thiết kế dựa trên các nguyên lý xử lý hiệu năng cao, tích hợp khả năng điều phối luồng bất đồng bộ và cơ chế quản trị tri thức tự thân (Self-managed) thông qua mô hình tri thức hệ thống.
+Khối kiểm soát an ninh trong \texorpdfstring{KBMS~[\protect\hyperlink{glos:kbms}{K00}]}{KBMS [K00]} V3 được triển khai tập trung tại lớp `AuthenticationManager.cs`. Thành phần này chịu trách nhiệm thực thi các chính sách bảo mật, xác minh danh tính người dùng và đảm bảo rằng mọi yêu cầu truy vấn đều tuân thủ mô hình \textbf{Phân quyền dựa trên Vai trò (Role-Based Access Control - RBAC)}.
 
 
-\subsubsection{Dòng chảy Điều phối và Giám sát (Orchestration Flow)}
+\subsubsection{Thành phần Quản trị Xác thực (AuthenticationManager)}
 
 
-Toàn bộ quy trình quản trị kết nối và thực thi yêu cầu được chuẩn hóa để đảm bảo tính an toàn, minh bạch và khả năng phục hồi:
-
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.7\textwidth]{assets/server_orchestration_audit.png}
-  \caption{Quy trình điều phối yêu cầu từ tiếp nhận đến ghi nhật ký kiểm toán.}\label{fig:quy-trình-điều-phối-yêu-cầu-từ-tiếp-nhận-đến-ghi-n}
-\end{figure}
-
-
-
-Người quản trị (\texorpdfstring{DBA~[\protect\hyperlink{glos:dba}{D01}]}{DBA [D01]}) có khả năng truy vấn trạng thái máy chủ ngay bằng ngôn ngữ KBQL, ví dụ:\par
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
--- Thống kê các truy vấn có thời gian xử lý > 500ms để tối ưu hóa
-SELECT username, command, duration_ms 
-FROM audit_logs 
-WHERE duration_ms > 500 
-IN system;
-\end{Verbatim}
-\end{academicbox}
-
-\par
-Cơ chế này mang lại khả năng quản trị đồng nhất: mọi thứ trong KBMS đều là tri thức, ngay cả chính nhật ký vận hành của nó.
-
-
-\subsection{Quản trị và Giám sát Từ xa (Management \& Telemetry)}
-
-
-Một hệ thống quản trị tri thức hiện đại yêu cầu khả năng tự giám sát sức khỏe vận hành và khả năng phát tán nhật ký hoạt động (Logging) theo thời gian thực. Trong kiến trúc KBMS V3, các thành phần tại `ManagementManager.cs` và `SystemLogger.cs` đảm nhiệm vai trò duy trì sự minh bạch và ổn định của máy chủ.
-
-
-\subsubsection{Cơ chế Thu thập Chỉ số Vận hành (System Metrics)}
-
-
-Hệ thống cung cấp giao diện lập trình cho phép các thành phần khách (đặc biệt là KBMS Studio) truy xuất dữ liệu vận hành thông qua các lệnh quản trị cấp cao:
+`AuthenticationManager` vận hành như một dịch vụ trung tâm (Singleton Service) trong Tầng Máy chủ:
 
 
 \begin{itemize}
-  \item \textbf{Chỉ số Đo lường (STATS)}: Cung cấp thông tin định lượng về số lượng kết nối đang hoạt động (\textbf{Active Connections}), thời gian vận hành liên tục (\textbf{Uptime}), và hiệu suất sử dụng tài nguyên của bộ nhớ đệm (\textbf{BufferPool Hit Rate}). Các chỉ số này đóng vai trò quan trọng trong việc đưa ra quyết định mở rộng tài nguyên (Scaling) hoặc tối ưu hóa truy vấn.
-  \item \textbf{Điều phối Phiên làm việc (SESSIONS)}: Quản trị viên có khả năng trích xuất danh sách thực thể người dùng trực tuyến, thực hiện các thao tác ngắt kết nối (Kill Session) hoặc điều chỉnh ngưỡng giới hạn kết nối đồng thời để bảo vệ tài nguyên hệ thống trước các nguy cơ tấn công từ chối dịch vụ (DoS).
+  \item \textbf{Xác minh Danh tính (Identity Verification)}: Khi nhận được yêu cầu `LOGIN`, hệ thống thực thi thuật toán so khớp mã hóa (Hashed Password) dựa trên cơ sở tri thức người dùng hệ thống (`system\_users`).
+  \item \textbf{Cấp phát Token Phiên}: Sau khi xác thực thành công, Manager sẽ đính kèm quyền hạn tương ứng vào đối tượng `Session`, cho phép các yêu cầu kế tiếp được thực thi mà không cần xác thực lại.
 \end{itemize}
 
 
 
-
-\subsubsection{Hệ thống Nhật ký Luồng (Live Log Streaming)}
-
-
-Đây là một tính năng tiên tiến của KBMS V3, cho phép giám sát mọi biến động của máy chủ mà không gây ảnh hưởng đến hiệu suất thực thi chính.
+\subsubsection{Mô hình Phân quyền RBAC (Role-Based Access Control)}
 
 
-\paragraph{Kiến trúc `SystemLogger.cs`}
-
-Lớp này đóng vai trò là thực thể ghi nhận trung tâm. Khi phát sinh các sự kiện hệ thống hoặc lỗi thực thi tại tầng Lưu trữ/Suy diễn, `SystemLogger` thực hiện cơ chế ghi kép (Dual-write):\par
-1.  \textbf{Lưu trữ Vật lý}: Ghi nhận vào tệp tin `.log` truyền thống phục vụ mục đích truy vết và hậu kiểm lâu dài.\par
-2.  \textbf{Lưu trữ Tri thức}: Ghi trực tiếp một sự kiện (Fact) mới vào Concept `Log` bên trong cơ sở tri thức `system`. Cơ chế này biến nhật ký vận hành thành một phần của mạng lưới tri thức, cho phép truy vấn ngược bằng ngôn ngữ KBQL.
-
-
-\paragraph{Giao thức `LOGS\_STREAM` (Publish/Subscribe)}
-
-Khi một ứng dụng khách (với vai trò ROOT) gửi yêu cầu `LOGS\_STREAM`, `ManagementManager` sẽ kích hoạt mô hình \textbf{Pub/Sub}. Mọi dòng nhật ký vừa phát sinh sẽ được đóng gói và gửi ngay lập tức tới các Client đã đăng ký. Cơ chế này cho phép xây dựng các bảng điều khiển (Dashboards) giám sát tri thức thời gian thực với độ trễ cực thấp.
-
-
-
-\subsubsection{Quyền hạn và Lệnh Quản trị Đặc quyền}
-
-
-Đối với các tác vụ cấu hình hệ thống hoặc khôi phục dữ liệu, máy chủ cung cấp mã lệnh `MANAGEMENT\_CMD` (0x0D), được thiết kế với các ràng buộc an ninh nghiêm ngặt:\par
-*   \textbf{Xác thực vai trò (ROOT only)}: Chỉ những tài khoản có thẩm quyền tối cao mới có thể kích hoạt các lệnh can thiệp vào tầng hạ tầng.\par
-*   \textbf{Khả năng can thiệp}: Cho phép thay đổi nóng các tham số cấu hình như `MaxConnections`, `BufferPoolSize`, hoặc kích hoạt tiến trình dọn dẹp ghi nhật ký trước (Write-Ahead Log - WAL) thông qua lệnh `Checkpoint`.
-
-
-Sự kết hợp giữa điều phối luồng bất đồng bộ và khả năng giám sát từ xa tạo nên một hạ tầng máy chủ vững chắc. Để chứng minh tính ổn định này, hệ thống cần vượt qua các bài kiểm định khắt khe về thông lượng và độ tin cậy trong môi trường thực tế.
-
-
-\subsection{Xác thực Hạ tầng và Điều phối Máy chủ (Server Validation)}
-
-
-Hạ tầng máy chủ KBMS đóng vai trò trung tâm điều phối, do đó mọi quy trình từ khởi động hệ thống đến xử lý các kịch bản tương tác thực tế đều được kiểm chuẩn chặt chẽ nhằm đảm bảo tính sẵn sàng cao và độ tin cậy tuyệt đối.
-
-
-\subsubsection{Kiểm thử Quy trình Khởi động (Bootstrapping Validation)}
-
-
-Hệ thống sử dụng bộ nạp đặc quyền `SystemKbBootstrapper.cs` để thiết lập môi trường vận hành ban đầu. Quy trình xác thực tập trung vào:
-
-
-\begin{itemize}
-  \item \textbf{Tính toàn vẹn của Cơ sở tri thức hệ thống (System KB)}: Đảm bảo tệp `system.kdb` được khởi tạo và cấu trúc chính xác các Concept nền tảng (`users`, `audit\_logs`).
-  \item \textbf{Kích hoạt các Trình quản lý (Managers Activation)}: Xác nhận trạng thái sẵn sàng của bộ ba điều phối: `ConnectionManager`, `ManagementManager` và `SystemLogger`.
-\end{itemize}
-
-
-
-\paragraph{Minh chứng Thực thi:}
-
-\begin{figure}[H]
-  \centering
-  \fbox{Thiếu ảnh: terminal\_test\_server\_bootlogs.png}
-  \caption{Nhật ký khởi động hệ thống ghi nhận trạng thái sẵn sàng của các phân hệ hạ tầng.}\label{fig:nhật-ký-khởi-động-hệ-thống-ghi-nhận-trạng-thái-sẵn}
-\end{figure}
-
-
-
-\subsubsection{Kiểm thử Tích hợp Hệ thống (End-to-End Integration)}
-
-
-Sử dụng bộ công cụ kiểm thử tích hợp `CliServerIntegrationTests.cs`, hệ thống thực hiện mô phỏng hơn 100 tình huống tương tác thực tế thông qua các kết nối Socket nhị phân:
+Hệ thống phân cấp quyền hạn theo thực thể và hành vi, cho phép quản trị viên thiết lập các chính sách bảo mật linh hoạt cho các không gian tri thức (KBs) khác nhau.
 
 
 \begin{table}[H]
   \centering\small\selectfont
-  \caption{Ma trận danh mục các kịch bản kiểm thử tích hợp Tầng Máy chủ}\label{tbl:ma-trận-danh-mục-các-kịch-bản-kiểm-thử-tích-hợp-tầ}
+  \caption{Bảng kê dữ liệu chuyên sâu 14}\label{tbl:bảng-kê-dữ-liệu-chuyên-sâu-14}
   \begin{tabularx}{\textwidth}{|l|X|X|}
   \hline
-Kịch bản kiểm thử & Mô tả mục tiêu & Trạng thái \\ \hline
-\textbf{Luồng Login-Query} & Xác thực quy trình đăng nhập và truy vấn dữ liệu liên tục. & \textbf{Thành công} \\ \hline
-\textbf{Xử lý Xung đột Tài nguyên} & Kiểm tra cơ chế khóa (Locking) khi thực hiện xóa KB đang có phiên làm việc truy cập. & \textbf{Lỗi được bẫy (Locked)} \\ \hline
-\textbf{Truy vấn Dữ liệu Quy mô lớn} & Kiểm tra độ ổn định khi truyền tải metadata của các Concept có hàng trăm thuộc tính. & \textbf{Thành công} \\ \hline
+Vai trò & Phân loại Quyền & Đặc tả Hành vi Cho phép \\ \hline
+\textbf{`READ`} & Quyền đọc & Thực thi các lệnh khai thác tri thức (`SELECT`, `SOLVE`, `EXPLAIN`). \\ \hline
+\textbf{`WRITE`} & Quyền ghi & Thực thi các lệnh biến động dữ liệu (`INSERT`, `UPDATE`, `DELETE`). \\ \hline
+\textbf{`DBA`} & Quản trị KB & Định nghĩa cấu trúc tri thức (`CREATE`, `DROP`, `GRANT` trong phạm vi KB). \\ \hline
+\textbf{`ROOT`} & Siêu quản trị & Kiểm soát toàn bộ hệ thống (Quản trị User, Giám sát TPS, Cấu hình Runtime). \\ \hline
   \end{tabularx}
 \end{table}
 
 
-\paragraph{Minh chứng Thực nghiệm:}
+\subsubsection{Thực thi Kiểm soát Truy cập (Access Control Enforcement)}
+
+
+Mọi nút của cây cú pháp trừu tượng (AST) trước khi được thực thi đều phải vượt qua lớp thẩm định quyền hạn (`Validation`):
+
+
+\begin{enumerate}
+  \item \textbf{Khối quản lý tri thức} triệu gọi `AuthenticationManager` để xác thực quyền hạn của người dùng sở hữu phiên hiện tại.
+  \item \textbf{Đối soát quyền hạn}: Nếu người dùng không có quyền (ví dụ: thực hiện `DELETE` nhưng chỉ có quyền `READ`), hệ thống ngay lập tức ném ra ngoại lệ `SecurityException`.
+  \item \textbf{Phản hồi Lỗi}: Ngoại lệ bảo mật được đóng gói vào gói tin nhị phân `ERROR` và gửi ngược lại cho Client để thông báo vi phạm chính sách.
+\end{enumerate}
+
+
+
+Sơ đồ dưới đây minh họa sự phối hợp giữa thành phần xác thực và hệ thống thực thi truy vấn:
+
 
 \begin{figure}[H]
   \centering
-  \fbox{Thiếu ảnh: code\_test\_server\_integration.png}
-  \caption{Mã nguồn các kịch bản kiểm thử tích hợp cuối-đến-cuối (End-to-End).}\label{fig:mã-nguồn-các-kịch-bản-kiểm-thử-tích-hợp-cuối-đến-c}
+  \includegraphics[width=0.7\textwidth]{assets/security_and_logging_v3.png}
+  \caption{Sơ đồ phối hợp giữa thành phần bảo mật và luồng thực thi truy vấn.}\label{fig:sơ-đồ-phối-hợp-giữa-thành-phần-bảo-mật-và-luồng-th}
 \end{figure}
 
 
-\begin{figure}[H]
-  \centering
-  \fbox{Thiếu ảnh: result\_test\_cli.png}
-  \caption{Kết quả thực thi vượt qua 111 kịch bản kiểm thử tích hợp hệ thống.}\label{fig:kết-quả-thực-thi-vượt-qua-111-kịch-bản-kiểm-thử-tí}
-\end{figure}
+Cơ chế RBAC chặt chẽ đảm bảo tính an toàn cho các kho tri thức quy mô lớn, ngăn chặn các truy cập trái phép và bảo vệ tính toàn vẹn của dữ liệu hệ thống.
 
 
+\subsection{Hệ thống Nhật ký Kiểm toán (Audit Engine)}
 
-\subsubsection{Xác thực An ninh và Phân quyền (Security \& RBAC Validation)}
+
+Thành phần quản trị sự kiện (`SystemLogger.cs`) trong \texorpdfstring{KBMS~[\protect\hyperlink{glos:kbms}{K00}]}{KBMS [K00]} V3 đóng vai trò là khối chức năng ghi lại mọi vết tích vận hành của hệ thống. Khác với các cơ chế lưu trữ tệp tin văn bản (Log files) truyền thống, KBMS V3 thực thi mô hình \textbf{Nhật ký tự thân (Self-contained Auditing)}.
 
 
-Quy trình xác thực bảo mật tập trung vào việc thực thi mô hình phân quyền dựa trên vai trò (RBAC) thông qua bộ kịch bản `AuthV3Tests.cs`:
+\subsubsection{Thành phần Ghi vết (SystemLogger)}
+
+
+`SystemLogger` là một dịch vụ trung tâm chịu trách nhiệm thu thập và cấu trúc hóa các sự kiện hệ thống:
 
 
 \begin{itemize}
-  \item \textbf{Quyền hạn Đặc quyền (Root Access)}: Xác nhận quyền thực thi không hạn chế đối với các lệnh định nghĩa cấu trúc (DDL) và quản trị hệ thống.
-  \item \textbf{Quyền hạn Người dùng (Non-root Access)}: Kiểm chứng khả năng từ chối truy cập (Access Denied) khi người dùng thông thường cố gắng can thiệp vào các vùng tri thức nhạy cảm hoặc thực hiện các lệnh quản trị hạ tầng.
+  \item \textbf{Chuyển đổi Dữ kiện Tri thức}: Mỗi sự kiện kiểm toán được chuyển đổi thành các thực thể tri thức (Triples) và lưu trữ trực tiếp vào không gian tri thức hệ thống (`system`).
+  \item \textbf{Ghi nhận Sự kiện Truy vấn}: Lưu trữ thông tin chi tiết của mọi yêu cầu `QUERY` bao gồm:
+\begin{itemize}
+  \item `Timestamp`: Dấu thời gian chính xác đến mili-giây.
+  \item `Principal`: Định danh người dùng thực hiện yêu cầu.
+  \item `IpAddress`: Địa chỉ IP nguồn của Client.
+  \item `Command`: Nội dung thô của câu lệnh KBQL.
+  \item `Status`: Kết quả thực thi (Thành công/Lỗi).
+  \item `Duration`: Thời gian xử lý tại server (Latency).
+\end{itemize}
 \end{itemize}
 
 
 
-\paragraph{Minh chứng Bảo mật:}
+\subsubsection{Các Loại Thực thể Kiểm toán (Audit Entities)}
+
+
+Hệ thống phân tách các vết tích thành hai thực thể tri thức chính:
+
+
+\begin{enumerate}
+  \item \textbf{`audit\_logs`}: Chứa các thông tin về tương tác người dùng và các câu lệnh truy vấn dữ liệu.
+  \item \textbf{`system\_events`}: Ghi lại các biến động trạng thái hệ thống như khởi động (Startup), dừng (Shutdown), sự kiện thay đổi cấu hình runtime và các ngoại lệ hệ thống (`SystemException`).
+\end{enumerate}
+
+
+
+\subsubsection{Quản trị và Truy vấn Nhật ký (Log Management)}
+
+
+Việc lưu trữ nhật ký dưới định dạng tri thức mang lại những ưu điểm vượt trội:
+
+
+\begin{itemize}
+  \item \textbf{Truy vấn bằng KBQL}: Quản trị viên (ROOT) có thể sử dụng chính ngôn ngữ `SELECT` để phân tích hành vi người dùng hoặc chẩn đoán các tắc nghẽn hiệu năng mà không cần các công cụ phân tích bên ngoài.
+  \item \textbf{Phân đoạn Nhật ký (Rotation)}: `SystemLogger` tự động thực hiện phân đoạn các bảng nhật ký theo thời gian hoặc kích thước tệp tin, đảm bảo hệ thống `system` không bị quá tải.
+\end{itemize}
+
+
+
+Sơ đồ dưới đây mô tả quy trình thu thập và phản hồi sự kiện kiểm toán:
+
 
 \begin{figure}[H]
   \centering
-  \fbox{Thiếu ảnh: code\_test\_security.png}
-  \caption{Kịch bản kiểm thử khả năng cô lập quyền hạn giữa các vai trò người dùng.}\label{fig:kịch-bản-kiểm-thử-khả-năng-cô-lập-quyền-hạn-giữa-c}
+  \includegraphics[width=0.7\textwidth]{assets/audit_management_v3.png}
+  \caption{Sơ đồ Quy trình thu thập và hệ thống hóa sự kiện kiểm toán tập trung trong KBMS V3.}\label{fig:sơ-đồ-quy-trình-thu-thập-và-hệ-thống-hóa-sự-kiện-k}
 \end{figure}
 
 
-\begin{figure}[H]
-  \centering
-  \fbox{Thiếu ảnh: result\_test\_security.png}
-  \caption{Minh chứng hệ thống từ chối thực thi yêu cầu của người dùng không đủ thẩm quyền.}\label{fig:minh-chứng-hệ-thống-từ-chối-thực-thi-yêu-cầu-của-n}
-\end{figure}
+Hệ thống nhật ký kiểm toán không chỉ đảm bảo tính minh bạch và khả năng giải trình (Accountability) mà còn là nguồn dữ liệu quý giá cho việc tối ưu hóa hiệu năng và bảo trì hệ thống.
 
 
-Việc xác thực thành công Phân hệ III xác nhận rằng hạ tầng KBMS đã sẵn sàng để tiếp nhận và điều phối các lệnh thực thi. Tại giai đoạn cuối cùng này, AST đã được xác thực sẽ được chuyển giao cho Phân hệ IV  nơi các chiến lược tối ưu hóa truy vấn và cơ chế định hướng tri thức được kích hoạt để tạo ra kết quả cuối cùng.
+\subsection{Dịch vụ Đo lường và Giám sát (Telemetry Service)}
+
+
+Khối chức năng giám sát hiệu năng (`ManagementManager.cs`) trong \texorpdfstring{KBMS~[\protect\hyperlink{glos:kbms}{K00}]}{KBMS [K00]} V3 cung cấp khả năng quan sát hệ thống (System Observability) thông qua các chỉ số đo lường định lượng và luồng trạng thái thời gian thực. Thành phần này là công cụ then chốt cho quản trị viên hệ thống (ROOT) trong việc theo dõi sức khỏe của máy chủ.
+
+
+\subsubsection{Thành phần Giám sát (ManagementManager)}
+
+
+`ManagementManager` vận hành như một dịch vụ quan sát (Monitoring Service) chuyên biệt:
+
+
+\begin{itemize}
+  \item \textbf{Thu thập Metrics}: Theo dõi các thông số vận hành của phần cứng và phần mềm hệ thống:
+\begin{itemize}
+  \item \textbf{Kết nối Đồng thời}: Số lượng phiên đang ở trạng thái `ACTIVE`.
+  \item \textbf{Lưu lượng I/O}: Tốc độ đọc/ghi dữ liệu từ `StorageEngine`.
+  \item \textbf{Tần suất Truy vấn (TPS)}: Số lượng câu lệnh KBQL được thực thi trên giây.
+  \item \textbf{Tỷ lệ Trúng Cache (Hit Rate)}: Hiệu quả của bộ đệm dữ liệu (Buffer Pool).
+\end{itemize}
+  \item \textbf{Phân phối Trạng thái}: Cung cấp giao diện đo lường (`Telemetry API`) cho ứng dụng Studio để hiển thị biểu đồ hiệu năng.
+\end{itemize}
+
+
+
+\subsubsection{Truyền phát Nhật ký Thời gian thực (Log Streaming)}
+
+
+Điểm đặc biệt của KBMS V3 là khả năng truyền phát luồng nhật ký (`STATS` - Message Type 10) trực tiếp tới các Client được cấp quyền.
+
+
+\begin{itemize}
+  \item \textbf{Mô hình Observer}: `ManagementManager` đóng vai trò là một người quan sát (Observer) đối với các sự kiện từ `SystemLogger`.
+  \item \textbf{Độ trễ thấp}: Luồng dữ liệu nhật ký được đẩy qua socket nhị phân ngay khi sự kiện xảy ra, cho phép Designer giám sát quá trình suy luận hoặc thực thi truy vấn mà không bị trễ.
+  \item \textbf{Tính chọn lọc}: Chỉ những phiên làm việc có quyền `ROOT` mới có thể đăng ký nhận luồng nhật ký hệ thống (`LOGS\_STREAM` - Message Type 11).
+\end{itemize}
+
+
+
+\subsubsection{Điều phối và Giải phóng Tài nguyên (Resource Control)}
+
+
+`ManagementManager` cũng tham gia vào việc điều hành các tiến trình bảo trì hệ thống:
+
+
+\begin{enumerate}
+  \item \textbf{Quản trị Phiên (Session Control)}: Cung cấp tính năng ngắt kết nối (`Termination`) đối với các phiên vi phạm chính sách hoặc tiêu tốn quá nhiều tài nguyên CPU/RAM.
+  \item \textbf{Cập nhật Cấu hình Runtime}: Cho phép thay đổi các tham số hệ thống (như `MaxConnections` hoặc `LogRetentionPeriod`) mà không cần khởi động lại máy chủ.
+  \item \textbf{Giám sát Không gian Tri thức}: Báo cáo dung lượng lưu trữ thực tế của tệp tin `.kdb` và tình trạng phân mảnh của chỉ mục B+ Tree.
+\end{enumerate}
+
+
+
+Sự hiện diện của dịch vụ đo lường đảm bảo tính ổn định và khả năng dự báo hành vi của hệ thống KBMS V3 trong môi trường vận hành thực tế quy mô lớn.
 
 
 \subsection{Bộ máy Truy vấn và Tối ưu hóa truy vấn (Optimizer)}
 
 
-\subsection{Phân hệ Điều động Tri thức (Knowledge Dispatcher)}
+\subsection{Luồng Thực thi Truy vấn (Execution Pipeline)}
 
 
-Phân hệ IV (Query Engine) là thành phần hạt nhân, đóng vai trò ''bộ não'' điều phối toàn diện cho hệ thống \texorpdfstring{KBMS~[\protect\hyperlink{glos:kbms}{K00}]}{KBMS [K00]}. Thành phần thực thi tại `KnowledgeManager.cs` thiết lập sự liên kết chặt chẽ giữa Tầng Phân tích Ngôn ngữ (Phân hệ II) và các Tầng Thực thi/Lưu trữ cấp thấp (Reasoning/Storage Layers), đảm bảo mọi yêu cầu tri thức đều được định tuyến và xử lý tối ưu.
+Động cơ Truy vấn (Query Engine) trong hệ thống \texorpdfstring{KBMS~[\protect\hyperlink{glos:kbms}{K00}]}{KBMS [K00]} V3 đóng vai trò là khối chức năng thực thi các kế hoạch truy xuất và suy luận tri thức từ tầng lưu trữ. Động cơ này được triển khai dựa trên mô hình \textbf{Toán tử thực thi (Operator-driven Architecture)}, hỗ trợ việc xử lý dữ liệu theo mô hình dòng dữ liệu (Streaming).
 
 
-\subsubsection{Vòng đời Truy vấn và Luồng Điều phối (Query Dispatching Flow)}
+\subsubsection{Mô hình Toán tử (Volcano-style Iterator Model)}
 
 
-Hành trình của một yêu cầu tri thức sau khi vượt qua các lớp hạ tầng sẽ đi qua các công đoạn thẩm định quyền hạn và định tuyến logic nghiêm ngặt:
+Query Engine thực thi các kế hoạch truy vấn thông qua một cây các toán tử. Mỗi nút của cây thực hiện một thao tác logic cụ thể trên tập dữ liệu tri thức.
+
+
+\begin{itemize}
+  \item \textbf{Giao diện Kết nối (`IExecutionOperator.cs`)}: Mọi toán tử đều thực thi giao diện chuẩn hóa với ba phương thức chính: `Open()`, `Next()`, và `Close()`.
+  \item \textbf{Mô hình Kéo (Pull-based Execution)}: Toán tử gốc (Root) yêu cầu dữ liệu từ các toán tử con, và các yêu cầu này lan truyền xuống dưới cây cho đến khi chạm tới các toán tử truy xuất dữ liệu vật lý.
+  \item \textbf{Tối ưu hóa Bộ nhớ}: Dữ liệu được xử lý theo từng bản ghi (Tuple-at-a-time), giúp hệ thống duy trì mức sử dụng RAM ổn định ngay cả khi tập kết quả lên tới hàng triệu bộ tri thức.
+\end{itemize}
+
+
+
+\subsubsection{Các Thành phần Toán tử Đặc trưng (Execution Operators)}
+
+
+Dựa trên mã nguồn C\#, Máy chủ KBMS V3 đặc tả các toán tử thực thi chuyên biệt:
+
+
+\paragraph{Toán tử Quét và Truy xuất (Scan Operators)}
+
+\begin{itemize}
+  \item \textbf{`SequentialScanOperator`}: Thực hiện quét mẫu (Pattern Matching) trên toàn bộ thực thể trong một Concept cụ thể.
+  \item \textbf{`IndexScanOperator`}: Sử dụng cấu trúc B+ Tree để tìm kiếm trực tiếp các bộ tri thức thỏa mãn các ràng buộc về khóa hoặc thuộc tính có chỉ mục.
+\end{itemize}
+
+
+
+\paragraph{Toán tử Logic (Logical Operators)}
+
+\begin{itemize}
+  \item \textbf{`FilterOperator`}: Thực thi biểu thức điều kiện `WHERE` để loại bỏ các bộ dữ liệu không thỏa mãn.
+  \item \textbf{`ProjectionOperator`}: Trích xuất các trường dữ liệu cụ thể theo danh sách đặc tả trong lệnh `SELECT`.
+  \item \textbf{`LimitNode`}: Giới hạn số lượng bộ kết quả trả về cho Client.
+\end{itemize}
+
+
+
+\paragraph{Toán tử Suy luận (Inference Operator)}
+
+\begin{itemize}
+  \item \textbf{`SolveOperator`}: Một toán tử chuyên biệt có nhiệm vụ kích hoạt Khối suy luận (`InferenceEngine.cs`) để thực hiện các tiến trình lan truyền tri thức và tìm kiếm lời giải.
+\end{itemize}
+
+
+
+Sơ đồ dưới đây minh họa sự phối hợp giữa các toán tử thực thi trong Query Engine:
+
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\textwidth]{assets/engine_orchestration_v3.png}
+  \caption{Sơ đồ phối hợp và phân tầng giữa các toán tử thực thi trong Query Engine V3.}\label{fig:sơ-đồ-phối-hợp-và-phân-tầng-giữa-các-toán-tử-thực-}
+\end{figure}
+
+
+Kiến trúc toán tử phân tầng cho phép KBMS V3 mở rộng khả năng xử lý một cách linh hoạt, từ các truy vấn quan hệ đơn giản đến các tiến trình suy diễn tri thức phức tạp.
+
+
+\subsection{Chiến lược Tối ưu hóa Truy vấn (Optimization Strategies)}
+
+
+Khối quản trị tri thức (`KnowledgeManager.cs`) trong \texorpdfstring{KBMS~[\protect\hyperlink{glos:kbms}{K00}]}{KBMS [K00]} V3 đóng vai trò là kiến trúc sư thực thi, chịu trách nhiệm tối ưu hóa các kế hoạch truy lục tri thức. Mục tiêu của quá trình tối ưu hóa là giảm thiểu khối lượng dữ liệu cần xử lý và giảm số lượng thao tác đọc/ghi vật lý trên tầng lưu trữ (`StorageEngine.cs`).
+
+
+\subsubsection{Tối ưu hóa Cấp độ Logic (Logical Optimization)}
+
+
+Trước khi thực thi, cây cú pháp AST sẽ trải qua quá trình tối ưu hóa các biểu thức đại số tri thức để tinh gọn quy mô dữ liệu.
+
+
+\begin{itemize}
+  \item \textbf{Đẩy Điều kiện Lọc (Predicate Pushdown)}: Một trong những kỹ thuật quan trọng nhất của KBMS V3. Thay vì lấy toàn bộ dữ liệu từ ổ đĩa rồi mới lọc tại server, hệ thống sẽ cố gắng đẩy mệnh đề `WHERE` gần nhất có thể tới tầng `StorageEngine`. Điều này giúp giảm thiểu đáng kể số lượng trang dữ liệu (Binary Pages) cần nạp vào bộ nhớ.
+  \item \textbf{Đơn giản hóa Biểu thức (Expression Constant Folding)}: Tính toán các biểu thức hằng số trước khi thực thi để giảm khối lượng tính toán lặp lại trong chu kỳ quét dữ liệu.
+\end{itemize}
+
+
+
+\subsubsection{Kế hoạch Thực thi Vật lý (Physical Planning)}
+
+
+`KnowledgeManager` thực hiện vai trò ra quyết định chiến lược (Access Pattern) dựa trên tình trạngMetadata thực tế của kho tri thức:
+
+
+\begin{enumerate}
+  \item \textbf{Lựa chọn Truy cập Chân thực (Scan Selection)}:
+\begin{itemize}
+  \item Nếu truy vấn có điều kiện trên các thuộc tính đã có chỉ mục: Khởi tạo toán tử `IndexScanOperator`.
+  \item Nếu không có chỉ mục phù hợp: Chuyển sang `SequentialScanOperator` với chi phí quét cao hơn.
+\end{itemize}
+  \item \textbf{Quản trị Kết tri thức (Join Strategy)}: Dựa trên kích thước của hai tập dữ liệu, Máy chủ sẽ lựa chọn giữa các thuật toán Kết tri thức `Nested Loop Join` (cho tập nhỏ) hoặc `Hash Join` (cho tập dữ liệu quy mô hàng triệu bộ).
+  \item \textbf{Định tuyến Dữ liệu (V3DataRouter)}: Thực hiện trừu tượng hóa các không gian tri thức (KBs) vật lý trên tệp tin `.kdb`, đảm bảo tính cô lập dữ liệu (Data Isolation) giữa các người dùng khác nhau.
+\end{enumerate}
+
+
+
+\subsubsection{Tối ưu hóa Bộ đệm và Phân phối Trang (Buffer Pool Management)}
+
+
+Hệ thống điều phối truy vấn làm việc chặt chẽ với Khối quản trị bộ đệm để tối ưu hóa hiệu suất I/O:
+
+
+\begin{itemize}
+  \item \textbf{LRU Policy}: Sử dụng thuật toán thay thế trang ít được dùng gần nhất (Least Recently Used) để lưu trữ các khối dữ liệu tri thức hay được truy cập.
+  \item \textbf{Pre-fetching}: Dự đoán luồng dữ liệu của câu lệnh `SELECT` để nạp trước các trang kế tiếp vào RAM, giảm độ trễ khi Client yêu cầu gói tin `ROW` tiếp theo.
+\end{itemize}
+
+
+
+Sơ đồ dưới đây mô tả chu trình tối ưu hóa từ cấu trúc AST sang kế hoạch thực thi vật lý:
 
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.7\textwidth]{assets/query_lifecycle_optimization.png}
-  \caption{Quy trình điều phối từ cây AST đến các bộ máy thực thi chuyên biệt.}\label{fig:quy-trình-điều-phối-từ-cây-ast-đến-các-bộ-máy-thực}
+  \caption{Chu trình biến đổi từ cấu trúc AST sang kết quả thông qua các tầng tối ưu hóa.}\label{fig:chu-trình-biến-đổi-từ-cấu-trúc-ast-sang-kết-quả-th}
 \end{figure}
 
 
-\paragraph{Cơ chế thực thi lõi (Execution Pipeline)}
-
-Sau khi `KBMS.Parser` chuyển đổi câu lệnh thành cấu trúc cây cú pháp trừu tượng (AST), `KnowledgeManager` thực hiện duyệt đệ quy và kích hoạt phương thức `Execute(ast, user, currentKb)`. Quy trình này bao gồm các bước:
+Các chiến lược tối ưu hóa này giúp KBMS V3 duy trì khả năng đáp ứng cao ngay cả khi đương đầu với các kho tri thức IoT khổng lồ hoặc các ma trận suy luận phức tạp.
 
 
-\begin{enumerate}
-  \item \textbf{Định tuyến Tri thức (Knowledge Routing)}: Xác thực và điều hướng câu lệnh tới Cơ sở tri thức (KB) mục tiêu dựa trên ngữ cảnh phiên làm việc hoặc tham số định danh trong AST.
-  \item \textbf{Kiểm soát Quyền thực thi (Access Control)}: Sử dụng phương thức `CheckPrivilege` để đối soát quyền hạn của người dùng (`ROOT`, `ADMIN`, `WRITE`, `SELECT`) với hành động yêu cầu, ngăn chặn truy cập trái phép trước khi tác động xuống dữ liệu.
-  \item \textbf{Điều hướng Logic đa phân hệ}: Phương thức `ExecuteQuery` đóng vai trò là bộ định tuyến cho hơn 50 loại nút AST, phân phối công việc tới bộ máy Suy diễn (nếu là lệnh `SOLVE`) hoặc bộ máy Lưu trữ (nếu là lệnh `INSERT`/`SELECT`).
-\end{enumerate}
+\subsection{Tích hợp Cơ chế Suy luận (Reasoning Engine Integration)}
 
 
+Điểm khác biệt chiến lược của \texorpdfstring{KBMS~[\protect\hyperlink{glos:kbms}{K00}]}{KBMS [K00]} V3 so với các hệ quản trị cơ sở dữ liệu truyền thống là khả năng thực thi các tiến trình suy luận logic lồng ghép trực tiếp vào luồng truy vấn. Khối chức năng này được triển khai thông qua sự phối hợp giữa `KnowledgeManager` và lớp chuyên biệt `InferenceEngine.cs`.
 
 
-\subsubsection{Các Công nghệ Tối ưu hóa và Liên kết Tri thức}
+\subsubsection{Cơ chế Suy luận Tiến (Forward Chaining Execution)}
 
 
-Bộ điều động tích hợp các cơ chế hiện đại nhằm đảm bảo hiệu năng thực thi trong môi trường tri thức quy mô lớn:
+Bộ máy suy luận thực thi các quy tắc (Rules) theo chiến lược \textbf{Suy luận Tiến (Forward Chaining)} để lan truyền tri thức từ các dữ kiện hiện có (Facts) đến các kết luận mới.
 
 
 \begin{itemize}
-  \item \textbf{Tự động Phân rã Biến (Auto-expand Variables)}: Đối với các Concept có cấu trúc lồng nhau, hệ thống thực hiện quy trình phân rã tự động các thuộc tính phức tạp thành các biến nguyên thủy. Cơ chế này cho phép mạng lưới suy diễn thực hiện lan truyền dữ kiện trực tiếp mà không tốn chi phí phân tích lại cấu trúc đối tượng (parsing overhead) tại thời điểm thực thi.
-  \item \textbf{Đăng ký và Kích hoạt Trình kích hoạt (Triggers Registry)}: Quản lý danh sách các `Trigger` thuộc về mô hình tri thức. Ngay sau khi các thao tác đột biến dữ liệu được xác nhận, hệ thống kích hoạt hàm `FireTriggers`, tạo ra các luồng lan truyền trạng thái gia tăng trong mạng lưới Rete.
-  \item \textbf{Trừu tượng hóa Truy xuất V3 (V3 Data Router)}: Quá trình tương tác vật lý được trừu tượng hóa qua thành phần `V3DataRouter`, chịu trách nhiệm định vị và quản lý luồng dữ liệu nhị phân trên các tệp tin lưu trữ phân tán, hỗ trợ kiến trúc đa cơ sở tri thức (Multi-KB).
+  \item \textbf{Mô hình f-closure (Forward Closure)}: Khi nhận được yêu cầu suy luận (`SOLVE` hoặc `INFER`), hệ thống thực hiện thuật toán tính đóng bao của tập dữ kiện dưới sự tác động của tập luật. Tiến trình này được thực thi đệ quy cho đến khi không còn bộ tri thức mới nào được sinh ra hoặc đạt tới mục tiêu cần chứng minh.
+  \item \textbf{Tương thích Logic bậc cao}: Hỗ trợ các quy tắc có cấu trúc biến (Variables) và ràng buộc logic phức tạp, cho phép thực hiện các phép suy diễn tri thức chuyên sâu trong các lĩnh vực như chuẩn đoán y khoa hoặc điều khiển IoT.
 \end{itemize}
 
 
 
-
-\subsubsection{Kiểm soát Giao dịch và Tính nhất quán (Transaction Integrity)}
-
-
-Bộ điều phối hỗ trợ đầy đủ các nguyên lý ACID thông qua nhóm ngôn ngữ kiểm soát giao dịch (TCL):\par
-*   \textbf{Atomic Operations}: Sử dụng `BeginTransaction` để khởi tạo ngữ cảnh giao dịch và bộ đệm thay đổi tạm thời.\par
-*   \textbf{Duy trì trạng thái Nhất quán}: Lệnh `COMMIT` thực thi quy trình đồng bộ dữ liệu bền vững qua cơ chế Ghi trước nhật ký (WAL), trong khi `ROLLBACK` cho phép hủy bỏ các thay đổi và đưa trạng thái mạng lưới tri thức về điểm an toàn gần nhất.
+\subsubsection{Tiêm luồng Suy luận (Reasoning Injection)}
 
 
-Hiệu năng của Phân hệ IV không chỉ nằm ở khả năng điều phối mà còn phụ thuộc mật thiết vào các chiến lược tối ưu hóa kế hoạch thực thi, đảm bảo con đường truy xuất tri thức luôn là ngắn nhất và tốn ít tài nguyên nhất.
+Một kỹ thuật độc đáo của Máy chủ KBMS V3 là cơ chế \textbf{Tiêm (Inject)} các bước suy luận vào kế hoạch thực thi của Query Engine.
 
 
-\subsection{Chiến lược Tối ưu hóa Truy vấn (Query Optimization)}
-
-
-Bộ tối ưu hóa truy vấn (\textbf{\texorpdfstring{Query Optimizer~[\protect\hyperlink{glos:query-optimizer}{Q01}]}{Query Optimizer [Q01]}}) đóng vai trò là thực thể trí tuệ của Phân hệ IV, chịu trách nhiệm chuyển đổi các yêu cầu tri thức trừu tượng thành các kế hoạch thực thi (Execution Plans) đạt hiệu suất cao nhất trên hạ tầng lưu trữ vật lý.
+\begin{itemize}
+  \item \textbf{Tiền xử lý Suy luận}: Khi câu lệnh `SELECT` yêu cầu các thuộc tính không có sẵn trong storage (thuộc tính ảo/suy dẫn), `KnowledgeManager` tự động chèn một toán tử `SolveOperator` vào trước toán tử chiếu (`ProjectionOperator`).
+  \item \textbf{Thực thi Song hành}: Dữ liệu từ `StorageEngine` được luân chuyển qua `InferenceEngine` để thực hiện làm giàu tri thức (Enrichment) trước khi được đóng gói thành các gói tin `ROW` gửi về phía Client.
+  \item \textbf{Tính chọn lọc (Selective Inference)}: Chỉ kích hoạt suy luận cho các thực thể được yêu cầu, giảm thiểu gánh nặng tính toán cho hệ thống.
+\end{itemize}
 
 
 
-\subsubsection{Cơ chế Tối ưu hóa trong Kiến trúc Máy chủ}
+\subsubsection{Quản trị Quy tắc và Ràng buộc (Rule Management)}
 
 
-Trong hệ thống \texorpdfstring{KBMS~[\protect\hyperlink{glos:kbms}{K00}]}{KBMS [K00]} V3, Query Optimizer tiếp nhận đầu vào là cây cú pháp \texorpdfstring{AST~[\protect\hyperlink{glos:ast}{A05}]}{AST [A05]} từ Phân hệ II và thực hiện quy trình chuẩn hóa qua ba giai đoạn then chốt:\par
-*   \textbf{Ánh xạ Vật lý (Logical to Physical Mapping)}: Thực hiện chuyển đổi các định danh Concept trừu tượng sang danh sách các trang dữ liệu (`Slotted Pages`) cụ thể trên đĩa cứng.\par
-*   \textbf{Ước lượng Chi phí (Cost Estimation)}: Sử dụng các mô hình toán học để dự báo mức độ chiếm dụng tài nguyên (CPU, I/O) cho từng lộ trình thực thi khả thi.\par
-*   \textbf{Lựa chọn Kế hoạch Tối ưu (Plan Selection)}: Quyết định chiến lược truy cập dữ liệu hiệu quả nhất, ví dụ cân nhắc giữa việc sử dụng chỉ mục B+ Tree hay quét tuần tự dựa trên quy mô dữ liệu thực tế.
+Khối suy luận làm việc chặt chẽ với lớp quản trị thực thể để đảm bảo tính toàn vẹn của logic:
 
 
-
-\subsubsection{Mô hình Ước lượng dựa trên Chi phí (Cost-Based Model)}
-
-
-Để định lượng hiệu quả của một kế hoạch, KBMS áp dụng mô hình chi phí dựa trên kỳ vọng về tài nguyên phần cứng:
-
-
-\paragraph{Đơn vị Chi phí Cơ sở (I/O Cost)}
-
-Thao tác đọc một trang dữ liệu 16KB tuần tự từ đĩa cứng được xác định là đơn vị chi phí cơ bản (\textbf{Standard Cost = 1.0}). Mọi phép toán khác đều được quy đổi dựa trên đơn vị này.
-
-
-\paragraph{Hệ số Trọng số Xử lý (CPU Penalty)}
-
-Các toán tử tiêu tốn chu kỳ xử lý của CPU được gán các hệ số ''phạt'' nhằm phản ánh độ phức tạp thuật toán:\par
-*   \textbf{Đánh giá Biểu thức (Predicate Evaluation)}: Chi phí \textbf{1.1} cho mỗi bản ghi, phản ánh quá trình biên dịch và thực thi các logic điều kiện.\par
-*   \textbf{Xây dựng Bảng băm (Hash Construction)}: Chi phí \textbf{10.0}, tương ứng với độ phức tạp $O(N+M)$ khi thiết lập cấu trúc dữ liệu tạm thời trong bộ nhớ để phục vụ các phép kết nối (Join) quy mô lớn.
+\begin{enumerate}
+  \item \textbf{Thẩm định Quy tắc}: `InferenceEngine` xác minh tính hợp lệ của các biến và khái niệm tham chiếu trong các luật (`RULE`).
+  \item \textbf{Theo dõi Sự kiện (Trigger Integration)}: Khi có dữ liệu mới được nạp vào (`INSERT`), hệ thống có thể tự động kích hoạt các luật suy luận để cập nhật trạng thái của các thực thể liên quan, đảm bảo kho tri thức luôn trong trạng thái cập nhật nhất.
+  \item \textbf{Cấu trúc f-Tree}: Để hỗ trợ việc giải thích (Explainability), bộ máy suy luận xây dựng một cây chứng minh (Proof Tree), cho phép Client yêu cầu sơ đồ truy vết quá trình suy diễn thông qua lệnh `EXPLAIN`.
+\end{enumerate}
 
 
 
-\subsubsection{Khung thực thi Pipeline (Volcano Model)}
+Việc tích hợp sâu cơ chế suy luận vào động cơ truy vấn giúp KBMS V3 không chỉ là một kho lưu trữ dữ liệu, mà còn là một trí tuệ nhân tạo thực thụ có khả năng hiểu và khám phá những tri thức tiềm ẩn từ các dữ kiện thô.
 
 
-Sau khi kế hoạch được phê duyệt, hệ thống chuyển sang giai đoạn thực thi theo mô hình \textbf{Pipeline} (\texorpdfstring{Volcano Model~[\protect\hyperlink{glos:volcano-model}{V05}]}{Volcano Model [V05]}). Cơ chế này cho phép luân chuyển dữ liệu theo từng bản ghi giữa các toán tử vật lý, giúp tối ưu hóa không gian bộ nhớ đệm:
+\subsection{Ví dụ Luồng Xử lý Truy vấn Thực tế (Execution Trace Example)}
 
 
-\begin{table}[H]
-  \centering\small\selectfont
-  \caption{Danh mục các Toán tử vật lý trong mô hình thực thi Pipeline}\label{tbl:danh-mục-các-toán-tử-vật-lý-trong-mô-hình-thực-thi}
-  \begin{tabularx}{\textwidth}{|l|X|}
-  \hline
-Toán tử Vật lý & Vai trò Kỹ thuật \\ \hline
-\textbf{SequentialScan} & Thực hiện quét đĩa tuần tự để truy xuất các Slotted Pages liên quan đến thực thể. \\ \hline
-\textbf{HashJoin} & Kết hợp hai luồng thực thể dựa trên thuật toán băm, đặc biệt hiệu quả với tập dữ liệu vượt ngưỡng 10.000 bản ghi. \\ \hline
-\textbf{Filter (Pushdown)} & Áp dụng chiến lược \textbf{Predicate Pushdown} để thực hiện lọc dữ liệu ngay tại tầng truy xuất thấp nhất, giảm thiểu lượng dữ liệu cần chuyển lên các tầng trên. \\ \hline
-  \end{tabularx}
-\end{table}
+Để minh họa sự phối hợp giữa tất cả các lớp xử lý và các mô hình thiết kế đã trình bày, chúng ta sẽ thực hiện theo dõi luồng thực thi (Trace) của một câu lệnh KBQL điển hình trong hệ thống \texorpdfstring{KBMS~[\protect\hyperlink{glos:kbms}{K00}]}{KBMS [K00]} V3.
+
+
+\subsubsection{Kịch bản Thực thi (Query Scenario)}
+
+
+Giả sử người dùng gửi câu lệnh từ ứng dụng Studio:\par
+`SELECT hoten FROM SinhVien WHERE tuoi > 18;`
+
+
+\subsubsection{Các Giai đoạn Xử lý tại Máy chủ (Server Processing Steps)}
+
+
+Tiến trình truy vấn được thực hiện qua các bước phối hợp giữa các thành phần cấu trúc chính:
+
+
+\paragraph{Bước 1: Tiếp nhận và Giải mã (Ingress \& Binary Parsing)}
+
+\begin{itemize}
+  \item \textbf{`ConnectionManager`} nhận được khung tin TCP chứa gói dữ liệu nhị phân.
+  \item Bộ giải mã xác định `Message Type = 2` (QUERY).
+  \item Tách `Payload` chứa chuỗi văn bản KBQL bên trên.
+\end{itemize}
 
 
 
-\subsubsection{Chỉ số Hiệu năng Thực nghiệm}
+\paragraph{Bước 2: Phân tích Cú pháp (Parsing \& AST Generation)}
+
+\begin{itemize}
+  \item \textbf{`Lexer`} quét chuỗi và tạo ra danh sách Tokens: `[SELECT, hoten, FROM, SinhVien, WHERE, tuoi, >, 18, ;]`.
+  \item \textbf{`Parser`} thực thi phân tích đệ quy và xây dựng nút `SelectNode` làm nút gốc của cây AST.
+  \item Ghi nhận `Source = ''SinhVien''`, `Projection = [''hoten'']`, `Condition = (tuoi > 18)`.
+\end{itemize}
 
 
-Kiến trúc tối ưu hóa này đã được kiểm chứng thông qua các bài thử nghiệm áp lực (Stress Test), mang lại những kết quả định lượng ấn tượng:\par
-*   \textbf{Thông lượng ghi nhận}: Đạt mức $30,000$ thao tác trên giây trong điều kiện tải cao.\par
-*   \textbf{Tốc độ Truy vấn}: Thực hiện kết nối hai tập thực thể quy mô $10^4 \times 10^4$ chỉ trong \textbf{18 ms}, chứng minh tính hiệu quả của chiến lược lựa chọn toán tử vật lý.
+
+\paragraph{Bước 3: Thẩm định và Phân quyền (Security \& Validation)}
+
+\begin{itemize}
+  \item \textbf{`KnowledgeManager`} kiểm tra sự tồn tại của Concept `SinhVien` trong KB hiện hành.
+  \item \textbf{`AuthenticationManager`} xác minh người dùng sở hữu phiên (`Session`) có quyền `READ` đối với Concept này.
+\end{itemize}
+
+
+
+\paragraph{Bước 4: Lập kế hoạch và Tối ưu hóa (Planning \& Optimization)}
+
+\begin{itemize}
+  \item Hệ thống kiểm tra Metadata chỉ mục (Index). Nếu có B+ Tree cho thuộc tính `tuoi`, toán tử `IndexScanOperator` sẽ được khởi tạo.
+  \item Ngược lại, hệ thống sử dụng `SequentialScanOperator` kết hợp với `FilterOperator` thực thi điều kiện `tuoi > 18`.
+\end{itemize}
+
+
+
+\paragraph{Bước 5: Thực thi và Trả kết quả (Execution \& Egress)}
+
+\begin{itemize}
+  \item Query Engine duyệt qua dữ liệu, trích xuất các thuộc tính yêu cầu.
+  \item Mỗi bản ghi (Tuple) được thành phần mạng đóng gói vào khung tin `ROW` (Message Type 7).
+  \item Sau khi quét hết tập dữ liệu, server gửi khung tin `FETCH\_DONE` (Message Type 8) để báo hiệu kết thúc.
+\end{itemize}
+
+
+
+\subsubsection{Nhật ký và Giám sát (Audit \& Telemetry)}
+
+
+\begin{itemize}
+  \item \textbf{`SystemLogger`} tự động ghi một bản ghi vào bảng `audit\_logs` của hệ thống bao gồm nội dung câu lệnh, thời gian thực thi (Latency) và trạng thái thành công.
+  \item Nếu Designer đang mở tab Monitor, \textbf{`ManagementManager`} sẽ gửi thông số cập nhật về TPS và hoạt động I/O ngay lập tức.
+\end{itemize}
+
+
+
+Tiến trình khép kín này thể hiện khả năng điều phối hiệu quả của kiến trúc KBMS V3, đảm bảo mọi truy vấn tri thức đều được xử lý một cách an toàn, minh bạch và với hiệu năng tối ưu nhất.
+
+
+\subsection{Roadmap}
+
+
+\subsection{Lộ trình Triển khai Thành phần Backend (Implementation Roadmap)}
+
+
+Quá trình xây dựng và phát triển Tầng Máy chủ trong hệ lụy \texorpdfstring{KBMS~[\protect\hyperlink{glos:kbms}{K00}]}{KBMS [K00]} V3 được thực hiện theo mô hình phát triển lũy tiến (Incremental Development), phân tách thành 4 giai đoạn chiến lược nhằm đảm bảo tính ổn định và khả năng tích hợp của toàn hệ thống.
+
+
+\subsubsection{Giai đoạn 1: Quản trị Kết nối (Connection Management)}
+
+
+Giai đoạn đầu tiên tập trung vào việc thiết kế và lập trình hạ tầng thu phát dữ liệu thô.
+
+
+\begin{itemize}
+  \item \textbf{Thành phần cấu trúc}: Máy chủ `KbmsServer` dựa trên kiến trúc `Async/Await` I/O.
+  \item \textbf{Tiến trình xử lý}: Hứng các yêu cầu kết nối từ Client, phục vụ đồng thời nhiều thực thể thông qua mô hình không chặn (Non-blocking).
+  \item \textbf{Tính năng cốt lõi}: Thiết lập cơ chế định kỳ quét và giải phóng các socket (`Cleanup Expired Sessions`) nhằm tối ưu hóa việc sử dụng RAM và ID socket trên hệ điều hành máy chủ.
+\end{itemize}
+
+
+
+\subsubsection{Giai đoạn 2: Mã hóa Giao thức Nhị phân (Binary Protocol)}
+
+
+Sau khi có hạ tầng kết nối ổn định, giai đoạn này tập trung vào việc chuẩn hóa ngôn ngữ giao tiếp nhị phân giữa các thành phần.
+
+
+\begin{itemize}
+  \item \textbf{Thành phần cấu trúc}: Bộ thư viện `KBMNetwork` và đặc tả `Protocol.cs`.
+  \item \textbf{Tiến trình xử lý}: Lập trình các thao tác đọc/ghi Big-endian cấp thấp sử dụng `Span<byte>` và `BinaryPrimitives`.
+  \item \textbf{Tính năng cốt lõi}: Đóng gói các thông điệp (`Message Types`) theo đúng cấu trúc Header cố định, đảm bảo tính nhất quán của dữ liệu trên mọi kiến trúc CPU (x64, ARM).
+\end{itemize}
+
+
+
+\subsubsection{Giai đoạn 3: Phân tích Cú pháp và AST (Lexer \& AST Parser)}
+
+
+Giai đoạn then chốt trong việc đưa ''trí tuệ'' vào máy chủ, cho phép hệ thống hiểu và thông dịch ngôn ngữ KBQL.
+
+
+\begin{itemize}
+  \item \textbf{Thành phần cấu trúc}: Lớp `Lexer.cs` và `Parser.cs`.
+  \item \textbf{Tiến trình xử lý}: Lập trình bộ quét Token (Scanner) dựa trên DFA và bộ phân tích đệ quy đệ quy (Recursive Descent Parser).
+  \item \textbf{Tính năng cốt lõi}: Chuyển đổi mã nguồn tri thức của người dùng thành hệ phả Cây cú pháp trừu tượng (AST), sẵn sàng cho các toán tử thực thi của Query Engine.
+\end{itemize}
+
+
+
+\subsubsection{Giai đoạn 4: Bảo mật \& Phiên làm việc (Security \& Session Auth)}
+
+
+Giai đoạn hoàn thiện hệ thống, thiết lập các lớp bảo vệ và quản trị người dùng.
+
+
+\begin{itemize}
+  \item \textbf{Thành phần cấu trúc}: Lớp `AuthenticationManager.cs` và `ConcurrentDictionary` quản lý phiên.
+  \item \textbf{Tiến trình xử lý}: Triển khai giao thực xác thực đăng nhập (`LOGIN`), đối soát mã hóa Password (`Hashed`) và phân quyền người dùng theo mô hình RBAC.
+  \item \textbf{Tính năng cốt lõi}: Thực thi cơ chế bắt lỗi AST và phản hồi cho Client dưới dạng JSON lỗi chuẩn hóa (`ERROR`), bao gồm thông tin chi tiết về dòng và cột xảy ra sai sót cú pháp hoặc logic.
+\end{itemize}
+
+
+
+Lộ trình triển khai bài bản qua 4 giai đoạn giúp đội ngũ phát triển kiểm soát được rủi ro tại từng tầng kiến trúc, đồng thời tạo ra một nền tảng Máy chủ KBMS V3 mạnh mẽ, an toàn và dễ dàng mở rộng trong tương lai.
 
 
 \section{Kiến trúc Hệ thống Suy luận}
