@@ -131,6 +131,7 @@ public enum TokenType
     IN,             // IN
 
     // Keywords - Solve
+    SOLVE,          // SOLVE
     FOR,            // FOR
     USING,          // USING
     DOMAIN,         // DOMAIN

@@ -14,7 +14,7 @@ public class StoragePool : IDisposable
     private readonly string _dataDir;
     private readonly int _defaultPoolSize;
     private readonly string _masterKey;
-    private readonly Dictionary<string, (DiskManager Disk, BufferPoolManager Bpm, WalManagerV3 Wal)> _pools = new();
+    private readonly Dictionary<string, (DiskManager Disk, BufferPoolManager Bpm, WalManagerV3 Wal)> _pools = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _lock = new();
 
     public StoragePool(string dataDir, int defaultPoolSize = 16384, string masterKey = "KBMS_V3_MASTER_SECRET_2026")

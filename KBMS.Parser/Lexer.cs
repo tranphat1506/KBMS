@@ -135,6 +135,7 @@ public class Lexer
         { "IN", TokenType.IN },
 
         // Solve Keywords
+        { "SOLVE", TokenType.SOLVE },
         { "FOR", TokenType.FOR },
         { "USING", TokenType.USING },
         { "DOMAIN", TokenType.DOMAIN },

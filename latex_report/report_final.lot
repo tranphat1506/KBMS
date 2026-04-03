@@ -23,6 +23,8 @@
 \contentsline {table}{\numberline {4.17}{\ignorespaces dưới đây mô tả trình tự thực thi của pipeline sau khi đã được tối ưu:}}{111}{table.caption.59}%
 \contentsline {table}{\numberline {4.18}{\ignorespaces Danh mục các lệnh điều khiển trong giao diện CLI}}{117}{table.caption.62}%
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {5.1}{\ignorespaces Đặc tả hiệu năng phản hồi của các thành phần trong hệ thống KBMS}}{135}{table.caption.82}%
-\contentsline {table}{\numberline {5.2}{\ignorespaces Chỉ số thông lượng (Throughput) và khả năng mở rộng (Scalability)}}{135}{table.caption.83}%
-\contentsline {table}{\numberline {5.3}{\ignorespaces Mức độ tiêu thụ tài nguyên phần cứng thực tế (CPU/RAM/IO)}}{136}{table.caption.84}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {6.1}{\ignorespaces Đặc tả hiệu năng phản hồi của các thành phần trong hệ thống KBMS}}{138}{table.caption.82}%
+\contentsline {table}{\numberline {6.2}{\ignorespaces Chỉ số thông lượng (Throughput) và khả năng mở rộng (Scalability)}}{139}{table.caption.83}%
+\contentsline {table}{\numberline {6.3}{\ignorespaces Mức độ tiêu thụ tài nguyên phần cứng thực tế (CPU/RAM/IO)}}{139}{table.caption.84}%
+\addvspace {10\p@ }

@@ -33,6 +33,10 @@ public class BufferPoolManager : IDisposable
     private readonly CancellationTokenSource _cts = new();
     private readonly Task _checkpointTask;
 
+    // I/O Counters for Performance Analysis
+    public long ReadCount { get; private set; }
+    public long WriteCount { get; private set; }
+
     public BufferPoolManager(DiskManager diskManager, WalManagerV3 wal, int poolSize = 100)
     {
         _diskManager = diskManager;
@@ -102,6 +106,7 @@ public class BufferPoolManager : IDisposable
             newPage.ResetMemory();
             newPage.PageId = pageId;
             _diskManager.ReadPage(pageId, newPage);
+            ReadCount++; // Increment I/O counter
             
             // 4. Update metadata
             _pageTable[pageId] = frameId;
@@ -158,6 +163,7 @@ public class BufferPoolManager : IDisposable
 
                 // Write to disk manager (data file)
                 _diskManager.WritePage(page.PageId, page);
+                WriteCount++; // Increment I/O counter
                 page.IsDirty = false;
             }
             return true;
@@ -227,6 +233,7 @@ public class BufferPoolManager : IDisposable
                 _wal.LogFullPage(victimPage.PageId, victimPage.Data);
                 
                 _diskManager.WritePage(victimPage.PageId, victimPage);
+                WriteCount++; // Increment I/O counter
                 victimPage.IsDirty = false;
             }
 

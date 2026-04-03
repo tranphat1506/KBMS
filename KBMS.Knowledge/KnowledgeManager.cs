@@ -1080,15 +1080,20 @@ public class KnowledgeManager
             // 8. Apply column projection (SelectColumns with optional AS alias)
             if (node.SelectColumns.Count > 0)
             {
+                var isStarSelected = node.SelectColumns.Any(sc => sc.IsStar);
                 var colsToInclude = node.SelectColumns.Where(sc => !sc.IsStar).ToList();
-                if (colsToInclude.Count > 0)
+
+                if (isStarSelected || colsToInclude.Count > 0)
                 {
                     var tableAlias = node.Alias ?? entityName;
                     var engine = GetConfiguredEngine(kbName);
 
                     objects = objects.Select(obj =>
                     {
-                        var newValues = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+                        // If * is selected, start with all existing values
+                        var newValues = isStarSelected 
+                            ? new Dictionary<string, object?>(obj.Values, StringComparer.OrdinalIgnoreCase)
+                            : new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
                         
                         // Prepare evaluation parameters with both raw and aliased names
                         var evalParams = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
@@ -1103,7 +1108,7 @@ public class KnowledgeManager
                         foreach (var col in colsToInclude)
                         {
                             var sourceName = col.Expression?.ToString() ?? col.Name;
-                            var outName = col.Alias ?? col.Name;
+                            var outName = col.Alias ?? (col.Expression != null ? col.Expression.ToString() : col.Name);
 
                             // 1. Try direct resolution (for simple field names)
                             var val = ResolveValue(obj, sourceName, tableAlias, entityName);

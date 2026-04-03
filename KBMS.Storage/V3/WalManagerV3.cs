@@ -151,15 +151,14 @@ public class WalManagerV3 : IDisposable
 
         lock (_writeLock)
         {
-            using var bw = new BinaryWriter(_walFile, Encoding.UTF8, leaveOpen: true);
             foreach (var entryOffset in offsets)
             {
-                // Seek-back to update the committed flag
+                // Seek to the start of the record
                 _walFile.Seek(entryOffset, SeekOrigin.Begin);
                 using var br = new BinaryReader(_walFile, Encoding.UTF8, leaveOpen: true);
                 
                 byte type = br.ReadByte();
-                if (type != 2) continue; // Only PAGE_WRITE entries have committed flags
+                if (type != 2) continue; // Only PAGE_WRITE (Type 2) has a 'committed' flag to toggle
                 
                 br.ReadBytes(16); // TxnId
                 br.ReadInt32();   // PageId
@@ -170,7 +169,9 @@ public class WalManagerV3 : IDisposable
                 
                 long flagPosition = _walFile.Position;
                 _walFile.Seek(flagPosition, SeekOrigin.Begin);
-                bw.Write(true);
+                
+                using var bw = new BinaryWriter(_walFile, Encoding.UTF8, leaveOpen: true);
+                bw.Write(true); // Toggle to committed
             }
             _walFile.Seek(0, SeekOrigin.End);
         }
@@ -193,12 +194,16 @@ public class WalManagerV3 : IDisposable
             {
                 _walFile.Seek(entryOffset, SeekOrigin.Begin);
                 using var br = new BinaryReader(_walFile, Encoding.UTF8, leaveOpen: true);
-                br.ReadBytes(16); // TxnId
-                int pageId = br.ReadInt32();
-                int beforeLen = br.ReadInt32();
-                byte[] beforeImage = br.ReadBytes(beforeLen);
-
-                restorations.Add((pageId, beforeImage));
+                byte type = br.ReadByte();
+                if (type == 2) // PAGE_WRITE
+                {
+                    br.ReadBytes(16); // TxnId
+                    int pageId = br.ReadInt32();
+                    int beforeLen = br.ReadInt32();
+                    byte[] beforeImage = br.ReadBytes(beforeLen);
+                    restorations.Add((pageId, beforeImage));
+                }
+                // ROW_INSERT (Type 4) can be optionally handled if we need to undo slot allocations
             }
             _walFile.Seek(0, SeekOrigin.End);
         }
@@ -222,20 +227,41 @@ public class WalManagerV3 : IDisposable
         {
             try
             {
-                var txnId = new Guid(br.ReadBytes(16));
-                int pageId = br.ReadInt32();
-                int beforeLen = br.ReadInt32();
-                byte[] before = br.ReadBytes(beforeLen);
-                int afterLen = br.ReadInt32();
-                br.ReadBytes(afterLen); // skip after-image
-                bool committed = br.ReadBoolean();
+                byte type = br.ReadByte();
+                if (type == 2) // PAGE_WRITE
+                {
+                    var txnId = new Guid(br.ReadBytes(16));
+                    int pageId = br.ReadInt32();
+                    int beforeLen = br.ReadInt32();
+                    byte[] before = br.ReadBytes(beforeLen);
+                    int afterLen = br.ReadInt32();
+                    br.ReadBytes(afterLen); // skip after-image
+                    bool committed = br.ReadBoolean();
 
-                if (!committed)
-                    results.Add((txnId, pageId, before));
+                    if (!committed)
+                        results.Add((txnId, pageId, before));
+                }
+                else if (type == 3) // FULL_PAGE_IMAGE
+                {
+                    br.ReadInt32(); // pageId
+                    int len = br.ReadInt32();
+                    br.ReadBytes(len); // skip
+                }
+                else if (type == 4) // ROW_INSERT
+                {
+                    var txnId = new Guid(br.ReadBytes(16));
+                    br.ReadInt32(); // pageId
+                    br.ReadInt32(); // slotId
+                    int len = br.ReadInt32();
+                    br.ReadBytes(len); // skip
+                    // Note: Row inserts are uncommitted by default if the end-of-txn commit marker is missing,
+                    // but since they have no before-image, we can't 'restore' them. 
+                    // To be strictly correct, we'd need an UNDO log for inserts.
+                }
             }
             catch
             {
-                break; // Partial write at end of WAL is normal after crash
+                break; 
             }
         }
 

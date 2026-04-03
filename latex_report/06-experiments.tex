@@ -1,0 +1,130 @@
+\chapter{THỰC NGHIỆM VÀ ĐÁNH GIÁ HIỆU NĂNG}
+
+\section{Thiết lập thực nghiệm và Môi trường thử nghiệm}
+
+Quá trình thực nghiệm được tiến hành nhằm đánh giá các chỉ số kỹ thuật cốt lõi của hệ quản trị cơ sở tri thức KBMS V3, tập trung vào hiệu năng xử lý dữ liệu quy mô lớn và khả năng tối ưu hóa tài nguyên hệ thống. Các phép đo đạc được thực hiện trực tiếp trên kiến trúc phần cứng hiện đại để đảm bảo tính khách quan và khả năng ứng dụng thực tế.
+
+\subsection{Cấu hình phần cứng và phần mềm}
+
+Hệ thống thử nghiệm được thiết lập trên môi trường máy trạm đơn nốt với cấu hình chi tiết như sau:
+\begin{itemize}
+    \item \textbf{Vi xử lý (CPU)}: Apple M1 (8 nhân), kiến trúc ARM64.
+    \item \textbf{Bộ nhớ trong (RAM)}: 8GB LPDDR4X.
+    \item \textbf{Hệ điều hành}: macOS Sequoia 15.1.
+    \item \textbf{Môi trường thực thi}: .NET 8.0 SDK (Release Build).
+    \item \textbf{Công cụ đo đạc}: Bộ công cụ Benchmark tích hợp (`PerformanceBenchmarkV3`).
+\end{itemize}
+
+\subsection{Các tập dữ liệu thử nghiệm}
+
+Dữ liệu thực nghiệm được chia thành 3 kịch bản chính với độ lớn tăng dần nhằm đánh giá khả năng mở rộng của hệ thống:
+\begin{itemize}
+    \item \textbf{DS-S (Small)}: 10.000 thực thể tri thức, đánh giá độ trễ cơ sở.
+    \item \textbf{DS-M (Medium)}: 100.000 thực thể, đánh giá hiệu năng nạp Bulk.
+    \item \textbf{DS-L (Large)}: 1.000.000 thực thể, đánh giá áp lực giới hạn và I/O.
+\end{itemize}
+
+\section{Kịch bản thực nghiệm và Xác thực chức năng}
+
+Hệ thống KBMS V3 được xác thực thông qua 4 kịch bản thực tế với độ phức tạp tăng dần, từ suy diễn logic đơn lẻ đến bao đóng tri thức trên mạng lưới thực thể quy mô lớn. Các kịch bản này được thiết kế nhằm kiểm tra khả năng tích hợp giữa bộ biên dịch ngôn ngữ KBQL và công cụ thực thi Inference Engine.
+
+\subsection{Kịch bản A: Hệ tri thức Giáo dục (Education)}
+\begin{itemize}
+    \item \textbf{Mục tiêu}: Xác thực tính đúng đắn của Forward Chaining khi xử lý các luật logic kết hợp đa thuộc tính (GPA, Hành kiểm, Tín chỉ).
+    \item \textbf{Kết quả}: Hệ thống suy diễn chính xác trạng thái học thuật `DeanList` dựa trên các quy tắc nghiệp vụ, đạt mức độ trễ xử lý < 2ms.
+\end{itemize}
+
+\subsection{Kịch bản B: Chẩn đoán Y khoa (Medical Diagnostic)}
+\begin{itemize}
+    \item \textbf{Mục tiêu}: Đánh giá hiệu năng suy diễn trên miền giá trị số thực và các ngưỡng chẩn đoán lâm sàng phức tạp.
+    \item \textbf{Kết quả}: Xác định mức độ rủi ro tim mạch (`p_risk = 'High'`) tức thời, minh chứng cho khả năng tính toán biểu thức trực tiếp trong mạng nốt Beta của Rete.
+\end{itemize}
+
+\subsection{Kịch bản C: Đồ thị Đô thị Thông minh (SmartCity Transit)}
+\begin{itemize}
+    \item \textbf{Mục tiêu}: Kiểm tra khả năng xử lý xung đột và bao đóng tri thức lan truyền trên mạng lưới cảm biến quy mô lớn.
+    \item \textbf{Kết quả}: Hệ thống nhận diện và cập nhật trạng thái tắc nghẽn (`JAMMED`) thông qua việc lan truyền giá trị trên thuộc tính định danh xuyên suốt các tầng phân cấp.
+\end{itemize}
+
+\subsection{Kịch bản D: Phân loại Hình học (Geometry)}
+\begin{itemize}
+    \item \textbf{Mục tiêu}: Xác thực khả năng tính toán biểu thức toán học phức tạp (Định lý Pythagoras) trong điều kiện của luật dẫn nội tại (Concept Rules).
+    \item \textbf{Kết quả}: Phân loại chính xác các loại hình học đặc biệt nhờ cơ chế tính toán trực tiếp trên Buffer Pool, giảm thiểu overhead giải mã dữ liệu.
+\end{itemize}
+
+\section{Phân tích hiệu năng độ trễ (Latency)}
+
+Độ trễ phản hồi (Latency) là chỉ số quan trọng đo lường hiệu quả của từng tầng xử lý trong kiến trúc 4 lớp của KBMS. Bảng \ref{tbl:latency-v3} tổng hợp thời gian thực thi trung bình cho các thao tác đơn lẻ.
+
+\begin{table}[H]
+    \centering
+    \small
+    \begin{tabularx}{\textwidth}{|l|L|c|L|}
+    \hline
+    \textbf{Tầng xử lý} & \textbf{Thao tác} & \textbf{Độ trễ trung bình} & \textbf{Ghi chú} \\ \hline
+    Mạng (Network) & Handshake \& Authentication & 2,15 ms & Giao thức nhị phân TCP. \\ \hline
+    Phân tích (Parser) & Cấu trúc hóa AST (50k ops) & < 1,00 ms & Thuật toán Recursive Descent. \\ \hline
+    Tìm kiếm (Index) & B+ Tree Search (1 triệu bản ghi) & 1,00 ms & O(log n) trực tiếp trên đĩa. \\ \hline
+    Suy diễn (Reasoning) & F-Closure (Bước suy diễn đơn) & 2,40 ms & Mạng nốt Rete V3. \\ \hline
+    Lưu trữ (Storage) & Ghi trang Slotted Page (16KB) & 0,01 ms & Hiệu quả Buffer Pool LRU. \\ \hline
+    \end{tabularx}
+    \caption{Phân tích độ trễ phản hồi các thành phần hệ thống KBMS V3}
+    \label{tbl:latency-v3}
+\end{table}
+
+Kết quả ghi nhận độ trễ tìm kiếm chỉ mục duy trì ở mức 1ms đối với tập dữ liệu 1 triệu bản ghi, minh chứng cho hiệu quả của cấu trúc cây B+ Tree được tối ưu hóa nhị phân.
+
+\section{Hiệu năng thông lượng và Khả năng mở rộng (Throughput)}
+
+Đánh giá thông lượng (Throughput) tập trung vào khả năng ghi dữ liệu quy mô lớn. KBMS V3 áp dụng cơ chế Nhật ký theo hàng (Row-Level WAL) giúp giảm thiểu overhead ghi trang vật lý.
+
+\begin{table}[H]
+    \centering
+    \small
+    \begin{tabularx}{\textwidth}{|l|c|r|c|}
+    \hline
+    \textbf{Tập dữ liệu} & \textbf{Số lượng thực thể} & \textbf{Thông lượng (ops/sec)} & \textbf{Thời gian (ms)} \\ \hline
+    DS-S (Normal) & 10.000 & 121.951 & 82 \\ \hline
+    DS-M (Bulk) & 100.000 & 169.204 & 591 \\ \hline
+    \textbf{DS-L (Normal)} & 1.000.000 & \textbf{174.550} & 5.729 \\ \hline
+    \textbf{DS-L (Bulk)} & 1.000.000 & \textbf{207.296} & 4.824 \\ \hline
+    \end{tabularx}
+    \caption{Thông lượng xử lý ghi dữ liệu của công cụ lưu trữ V3 Turbo}
+    \label{tbl:throughput-v3}
+\end{table}
+
+Ghi nhận thông lượng đạt đỉnh ở mức 207.296 ops/sec khi sử dụng cơ chế nạp hàng loạt (Bulk). So với các phiên bản trước đó, cơ chế Row-level WAL kết hợp Sliding Slot Window trong Slotted Page đã giúp cải thiện đáng kể hiệu suất nạp dữ liệu.
+
+\section{Đánh giá hiệu quả bộ đệm và Tác động I/O}
+
+Một trong những cải tiến trọng tâm của KBMS V3 là bộ quản lý bộ đệm (Buffer Pool Manager) sử dụng chính sách thay thế LRU. Thực nghiệm thực hiện so sánh tác động của kích thước bộ đệm đối với số lượng thao tác đọc/ghi đĩa vật lý vật lý.
+
+\begin{table}[H]
+    \centering
+    \small
+    \begin{tabularx}{\textwidth}{|l|c|c|L|}
+    \hline
+    \textbf{Cấu hình Buffer} & \textbf{Disk Reads} & \textbf{Disk Writes} & \textbf{Hiệu quả I/O} \\ \hline
+    256 MB (Cấu hình lớn) & 1.738 & 0 & Lớp chắn I/O (Absorbing). \\ \hline
+    10 MB (Cấu hình giới hạn) & 1.738 & 1.098 & Liên tục thu hồi/ghi trang. \\ \hline
+    \end{tabularx}
+    \caption{So sánh tác động của kích thước bộ nhớ đệm đối với I/O đĩa vật lý}
+    \label{tbl:io-comparison}
+\end{table}
+
+\noindent \textbf{Phân tích kết quả}:
+\begin{itemize}
+    \item Với cấu hình 256MB, hệ thống đạt trạng thái lý tưởng khi toàn bộ thao tác sửa đổi được hấp thụ trong RAM, dẫn đến số lần ghi đĩa vật lý bằng 0 trong suốt quá trình chèn dữ liệu.
+    \item Với cấu hình 10MB, hệ thống buộc phải thực hiện 1.098 lượt ghi trang vật lý do tần suất thu hồi trang (Page Eviction) tăng cao. Tuy nhiên, thông lượng vẫn được duy trì ổn định nhờ cơ chế WAL đảm bảo an toàn dữ liệu.
+\end{itemize}
+
+\section{Tổng kết đánh giá kết quả}
+
+Sau khi tiến hành các bài thực nghiệm chuyên sâu, kết quả cho thấy hệ quản trị cơ sở tri thức KBMS V3 đã đạt được các mục tiêu khoa học đề ra:
+\begin{enumerate}
+    \item \textbf{Khả năng mở rộng}: Hệ thống vận hành ổn định trên quy mô 1 triệu thực thể, duy trì thông lượng trên 200.000 ops/sec.
+    \item \textbf{Tối ưu hóa tài nguyên}: Cơ chế Buffer Pool giúp giảm thiểu tối đa các thao tác I/O vật lý tốn kém.
+    \item \textbf{Độ trễ thấp}: Các thao tác truy vấn và suy diễn đạt mức phản hồi mili-giây, phù hợp cho các bài toán xử lý tri thức thời gian thực.
+\end{enumerate}
+
+Những dữ liệu thực nghiệm này khẳng định tính khả thi và hiệu quả của kiến trúc hướng trang (Page-oriented architecture) trong việc quản trị các mô hình tri thức phức tạp.

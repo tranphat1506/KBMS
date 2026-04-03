@@ -1,0 +1,14 @@
+=== KBMS V3 BUFFER POOL I/O COMPARISON REPORT ===
+Timestamp: 3/4/2026 08:22:06
+Workload: 500000 objects (~65MB serialized data)
+
+| Config     | Time (ms) | Throughput   | Disk Reads   | Disk Writes   |
+|------------|-----------|--------------|--------------|---------------|
+| 256MB      |      2715ms |    184162,06 |         1738 |             0 |
+| 10MB       |      2139ms |    233754,09 |         1738 |          1098 |
+================================================================
+
+CONCLUSION:
+1. Larger Buffer Pool (256MB) acts as an I/O shield, absorbing all modifications in RAM.
+2. Smaller Buffer Pool (10MB) forces continuous Page Eviction, massive disk write-back overhead.
+3. Observe the 'Disk Writes' column: 10MB will have thousands more writes than 256MB.

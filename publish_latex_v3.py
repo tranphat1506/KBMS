@@ -27,7 +27,9 @@ CHAPTER_NAMES = {
     '02-theory': 'CƠ SỞ LÝ THUYẾT VÀ MÔ HÌNH TRI THỨC DẠNG COKB', 
     '03-analysis-and-design': 'PHÂN TÍCH VÀ THIẾT KẾ HỆ THỐNG', 
     '04-architecture': 'KIẾN TRÚC HỆ THỐNG',
-    '06-experiments': 'CÀI ĐẶT, THỬ NGHIỆM VÀ ĐÁNH GIÁ HỆ THỐNG',
+    '05-implementation': 'CÀI ĐẶT VÀ TRIỂN KHAI HỆ THỐNG',
+    '06-evaluation': 'THỰC NGHIỆM VÀ ĐÁNH GIÁ HIỆU NĂNG',
+    '07-conclusion': 'KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN',
 }
 
 MAP_ACADEMIC = {
@@ -367,7 +369,7 @@ def process_directory(dir_path, level, af_id, at_id):
         elif item.endswith('.md'):
             # Hierarchical Control (v4.0): Specify which folders should nest their files (e.g., 4.5 -> 4.5.1)
             # Folders not in this list will have files as siblings to the folder title (e.g., 4.2 folder -> 4.3 file H1)
-            HIERARCHICAL_WHITELIST = ['02-models', '04-storage', '05-kbql', '06-network-layer', '07-server-layer', '08-reasoning-layer', '09-application', '05-experiments', '01-overview', '03-parser', '04-system-core', '05-query-engine']
+            HIERARCHICAL_WHITELIST = ['02-models', '04-storage', '05-kbql', '06-network-layer', '07-server-layer', '08-reasoning-layer', '09-application', '05-implementation', '06-evaluation', '01-overview', '03-parser', '04-system-core', '05-query-engine']
             folder_slug = os.path.basename(dir_path)
             is_hierarchical = any(slug in folder_slug for slug in HIERARCHICAL_WHITELIST)
             level_offset = level if is_hierarchical else (level - 1 if level > 0 else 0)

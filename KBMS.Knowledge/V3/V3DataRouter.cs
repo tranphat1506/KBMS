@@ -29,11 +29,11 @@ public class V3DataRouter
     private readonly Dictionary<string, QueryOptimizer> _kbOptimizers = new();
     
     // Catalog: "kbName:conceptName" -> list of physical page IDs holding that concept's data
-    private readonly Dictionary<string, List<int>> _pageCatalog = new();
+    private readonly Dictionary<string, List<int>> _pageCatalog = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _catalogLock = new();
     
     // In-Memory Value Index: "kbName:conceptName" -> (FieldName -> (Value -> (PageId, SlotId)))
-    private readonly Dictionary<string, Dictionary<string, Dictionary<string, (int PageId, int SlotId)>>> _valueIndex = new();
+    private readonly Dictionary<string, Dictionary<string, Dictionary<string, (int PageId, int SlotId)>>> _valueIndex = new(StringComparer.OrdinalIgnoreCase);
 
     public V3DataRouter(StoragePool storagePool)
     {

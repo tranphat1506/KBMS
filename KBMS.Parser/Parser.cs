@@ -1711,14 +1711,14 @@ public class Parser
         };
 
         // Parse SELECT columns: *, aggregates, or named column list with optional AS aliases
-        if (Check(TokenType.STAR))
+        if (Check(TokenType.STAR) && PeekNext() != null && PeekNext()!.Type == TokenType.FROM)
         {
             Consume(TokenType.STAR);
-            // SELECT * - SelectColumns remains empty => means all columns
+            // Pure SELECT * FROM concept - SelectColumns remains empty
         }
         else if (Check(TokenType.COUNT) || Check(TokenType.SUM) || Check(TokenType.AVG) || Check(TokenType.MIN) || Check(TokenType.MAX))
         {
-            // Aggregate function: SELECT COUNT(*) FROM concept
+            // ... existing aggregate logic (no change needed here for now) ...
             var agg = new AggregateClause();
             var funcToken = Advance()!;
             agg.AggregateType = funcToken.Type.ToString();
@@ -1747,49 +1747,17 @@ public class Parser
 
             node.Aggregates.Add(agg);
         }
-        else if (Check(TokenType.IDENTIFIER) || Check(TokenType.NUMBER) || Check(TokenType.LPAREN) || Check(TokenType.CALC))
+        else
         {
-            // Heuristic to distinguish SELECT <ColumnList> FROM ... vs SELECT <ShorthandConceptName> [WHERE...]
-            // It's a column list if followed by DOT, AS, COMMA, or FROM, or if it starts with literal/expression markers.
-            var next = PeekNext();
-            bool isColumnList = Check(TokenType.NUMBER) || Check(TokenType.LPAREN) || Check(TokenType.CALC) || (
-                next != null && (
-                    next.Type == TokenType.DOT || 
-                    next.Type == TokenType.AS || 
-                    next.Type == TokenType.COMMA || 
-                    next.Type == TokenType.FROM ||
-                    next.Type == TokenType.STAR ||
-                    next.Type == TokenType.PLUS ||
-                    next.Type == TokenType.MINUS ||
-                    next.Type == TokenType.SLASH ||
-                    next.Type == TokenType.NUMBER ||
-                    next.Type == TokenType.LPAREN
-                )
-            );
-
-            if (isColumnList)
+            // Parse comma-separated list of expressions/columns (which may include *)
+            node.SelectColumns.Add(ParseSelectColumnItem());
+            while (Check(TokenType.COMMA))
             {
-                // Parse column list
-                node.SelectColumns.Add(ParseSelectColumn());
-                while (Check(TokenType.COMMA))
-                {
-                    Consume(TokenType.COMMA);
-                    if (Check(TokenType.FROM))
-                        throw Error("Trailing comma in SELECT list");
+                Consume(TokenType.COMMA);
+                if (Check(TokenType.FROM))
+                    throw Error("Trailing comma in SELECT list");
 
-                    if (Check(TokenType.STAR))
-                    {
-                        Consume(TokenType.STAR);
-                        node.SelectColumns.Clear();
-                        break;
-                    }
-                    node.SelectColumns.Add(ParseSelectColumn());
-                }
-            }
-            else
-            {
-                // Shorthand ConceptName (e.g. SELECT Person WHERE...)
-                node.ConceptName = Consume(TokenType.IDENTIFIER)!.Lexeme;
+                node.SelectColumns.Add(ParseSelectColumnItem());
             }
         }
 
@@ -1895,6 +1863,16 @@ public class Parser
         }
 
         return node;
+    }
+
+    private SelectColumn ParseSelectColumnItem()
+    {
+        if (Check(TokenType.STAR))
+        {
+            Consume(TokenType.STAR);
+            return new SelectColumn { Name = "*" };
+        }
+        return ParseSelectColumn();
     }
 
     private SelectColumn ParseSelectColumn()
@@ -2623,6 +2601,10 @@ public class Parser
                 };
 
             case TokenType.IDENTIFIER:
+            case TokenType.SOLVE: // Allow SOLVE keyword as a function name
+            case TokenType.KNOWLEDGE:
+            case TokenType.CONCEPT:
+            case TokenType.RELATION:
                 Advance();
 
                 // Check for function call

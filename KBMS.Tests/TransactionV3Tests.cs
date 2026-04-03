@@ -28,10 +28,10 @@ public class TransactionV3Tests : IDisposable
 
     public void Dispose()
     {
-        _wal?.Dispose();
         _bpm?.Dispose();
-        if (File.Exists(_dbPath)) File.Delete(_dbPath);
-        if (File.Exists(_dbPath + ".wal")) File.Delete(_dbPath + ".wal");
+        _wal?.Dispose();
+        if (File.Exists(_dbPath)) try { File.Delete(_dbPath); } catch {}
+        if (File.Exists(_dbPath + ".wal")) try { File.Delete(_dbPath + ".wal"); } catch {}
     }
 
     // Test 1: Begin + Commit - WAL records the transaction

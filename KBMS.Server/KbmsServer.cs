@@ -531,7 +531,13 @@ public class KbmsServer
                 RequestId = message.RequestId,
                 Content = ToJson(result)
             });
-
+        }
+        catch (Exception ex)
+        {
+            await SendProtocolMessageAsync(clientId, stream, new Message { Type = MessageType.ERROR, Content = ex.Message });
+        }
+        finally
+        {
             // Send FETCH_DONE to signal completion of the management request
             await SendProtocolMessageAsync(clientId, stream, new Message
             {
@@ -539,10 +545,6 @@ public class KbmsServer
                 RequestId = message.RequestId,
                 Content = "{}"
             });
-        }
-        catch (Exception ex)
-        {
-            await SendProtocolMessageAsync(clientId, stream, new Message { Type = MessageType.ERROR, Content = ex.Message });
         }
     }
 
@@ -615,7 +617,13 @@ public class KbmsServer
                 RequestId = message.RequestId,
                 Content = ToJson(result ?? new { success = true })
             });
-
+        }
+        catch (Exception ex)
+        {
+            await SendProtocolMessageAsync(clientId, stream, new Message { Type = MessageType.ERROR, RequestId = message.RequestId, Content = ex.Message });
+        }
+        finally
+        {
             // Send FETCH_DONE to signal completion
             await SendProtocolMessageAsync(clientId, stream, new Message
             {
@@ -624,15 +632,15 @@ public class KbmsServer
                 Content = "{}"
             });
         }
-        catch (Exception ex)
-        {
-            await SendProtocolMessageAsync(clientId, stream, new Message { Type = MessageType.ERROR, RequestId = message.RequestId, Content = ex.Message });
-        }
     }
 
     private async Task SendProtocolMessageAsync(string clientId, Stream stream, Message message)
     {
         var session = _connectionManager.GetSession(clientId);
+        if (session != null && string.IsNullOrEmpty(message.SessionId))
+        {
+            message.SessionId = session.SessionId;
+        }
         await Protocol.SendMessageAsync(stream, message, session?.MessageLock);
     }
 

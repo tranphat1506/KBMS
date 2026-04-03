@@ -17,7 +17,8 @@ public class Cli
     private readonly object _lock = new();
     private readonly HistoryManager _history = new();
     private readonly LineEditor _editor = new();
-
+    private string? _sessionId;
+    
     public Cli(string host = "localhost", int port = 3307)
     {
         _host = host;
@@ -111,7 +112,8 @@ public class Cli
             {
                 Type = MessageType.QUERY,
                 Content = command,
-                RequestId = requestId
+                RequestId = requestId,
+                SessionId = _sessionId // Send current session ID
             };
 
             await Protocol.SendMessageAsync(_stream, queryMessage);
@@ -135,7 +137,9 @@ public class Cli
                 {
                     ResponseParser.DisplayError(response.Content, command);
                     lastErrorResponse = response;
-                    break;
+                    // DO NOT break here! We must continue reading until FETCH_DONE 
+                    // otherwise the protocol stream will be desynchronized.
+                    continue; 
                 }
 
                 // If it's a streaming component or normal command result, display it immediately and keep waiting
@@ -168,6 +172,12 @@ public class Cli
         }
         catch (Exception ex)
         {
+            if (ex is System.IO.IOException || ex is SocketException)
+            {
+                Console.WriteLine("Server disconnected. Connection lost.");
+                _isConnected = false;
+                _sessionId = null; // Clear session on disconnect
+            }
             Console.WriteLine($"Error executing command: {ex.Message}");
             return new Message
             {
@@ -189,7 +199,7 @@ public class Cli
             Console.WriteLine("CLI will continue in offline mode. Type 'CONNECT' to retry.");
         }
 
-        Console.WriteLine("KBMS CLI v3.0.0 (Page-based Binary Edition)");
+        Console.WriteLine("KBMS CLI v3.4.0-stable (V3 Turbo Edition)");
         Console.WriteLine("Type 'HELP' for available commands, 'EXIT' to quit.");
         Console.WriteLine("Type 'CONNECT' to reconnect if connection is lost.\n");
 
@@ -401,7 +411,12 @@ public class Cli
         {
             var resultParts = msg.Content.Split(':');
             var username = resultParts[1];
-            Console.WriteLine($"Logged in as {username} ({resultParts[2]})");
+            var role = resultParts[2];
+            if (resultParts.Length > 3)
+            {
+                _sessionId = resultParts[3]; // Store session ID
+            }
+            Console.WriteLine($"Logged in as {username} ({role})");
             return username;
         }
         else if (msg?.Type == MessageType.ERROR)
