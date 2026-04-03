@@ -2,7 +2,7 @@
 
 ## 1. Tổng quan
 
-Dựa trên kết quả chạy `run_all_and_report.sh`, hệ thống KBMS V3 đã vượt qua toàn bộ 7 nhóm kiểm thử:
+Dựa trên kết quả chạy đã vượt qua toàn bộ 7 nhóm kiểm thử:
 
 ```
 === SUMMARY CONCLUSION ===
