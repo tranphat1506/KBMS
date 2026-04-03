@@ -1620,6 +1620,8 @@ public class KnowledgeManager
         int failed = 0;
         var errors = new List<string>();
 
+        var objectsToInsert = new List<ObjectInstance>();
+
         foreach (var rowValues in node.Rows)
         {
             var values = new Dictionary<string, object>();
@@ -1657,10 +1659,11 @@ public class KnowledgeManager
                 Values = values
             };
 
-            bool ok = _v3Router.InsertObject(kbName, obj);
-            if (ok) inserted++;
-            else { failed++; errors.Add($"Row {inserted + failed + 1}: failed"); }
+            objectsToInsert.Add(obj);
         }
+
+        inserted = _v3Router.BulkInsertObjects(kbName, objectsToInsert);
+        failed = objectsToInsert.Count - inserted;
 
         return new
         {

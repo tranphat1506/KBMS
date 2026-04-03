@@ -31,6 +31,9 @@ public class V3DataRouter
     // Catalog: "kbName:conceptName" -> list of physical page IDs holding that concept's data
     private readonly Dictionary<string, List<int>> _pageCatalog = new();
     private readonly object _catalogLock = new();
+    
+    // In-Memory Value Index: "kbName:conceptName" -> (FieldName -> (Value -> (PageId, SlotId)))
+    private readonly Dictionary<string, Dictionary<string, Dictionary<string, (int PageId, int SlotId)>>> _valueIndex = new();
 
     public V3DataRouter(StoragePool storagePool)
     {
@@ -66,8 +69,6 @@ public class V3DataRouter
                 // --- WAL LOGGING ---
                 var wal = managers.Wal;
                 var txnId = wal.Begin();
-                byte[] beforeImage = new byte[Page.PAGE_SIZE];
-                Array.Copy(page.Data, beforeImage, Page.PAGE_SIZE);
                 // -------------------
 
                 var slottedPage = new SlottedPage(page);
@@ -86,19 +87,25 @@ public class V3DataRouter
                     page = bpm.FetchPage(newPageId);
                     if (page == null) return false;
                     
-                    // --- WAL LOGGING (New Page) ---
-                    Array.Copy(page.Data, beforeImage, Page.PAGE_SIZE);
-                    // ------------------------------
-
                     slottedPage = new SlottedPage(page);
                     slottedPage.Init(newPageId);
                     slotId = slottedPage.InsertTuple(data);
                 }
 
+                // --- WAL LOG (Row-Level) ---
+                wal.LogInsert(txnId, page.PageId, slotId, data);
+                // ---------------------------
+
+                // --- UPDATE VALUE INDEX (specifically for 'id' field) ---
+                if (obj.Values.TryGetValue("id", out var val))
+                {
+                    if (!_valueIndex.ContainsKey(catalogKey)) _valueIndex[catalogKey] = new();
+                    if (!_valueIndex[catalogKey].ContainsKey("id")) _valueIndex[catalogKey]["id"] = new();
+                    _valueIndex[catalogKey]["id"][val.ToString()!] = (page.PageId, slotId);
+                }
+                // --------------------
+
                 // --- WAL COMMIT ---
-                byte[] afterImage = new byte[Page.PAGE_SIZE];
-                Array.Copy(page.Data, afterImage, Page.PAGE_SIZE);
-                wal.LogWrite(txnId, page.PageId, beforeImage, afterImage);
                 wal.Commit(txnId);
                 // ------------------
 
@@ -110,6 +117,84 @@ public class V3DataRouter
         {
             Console.Error.WriteLine($"[V3DataRouter] InsertObject failed: {ex.Message}");
             return false;
+        }
+    }
+
+    /// <summary>
+    /// TRANSACTIONAL BULK INSERT: Inserts a batch of objects within a single WAL transaction.
+    /// This is the most efficient way to load large datasets.
+    /// </summary>
+    public int BulkInsertObjects(string kbName, List<ObjectInstance> objects)
+    {
+        if (objects == null || objects.Count == 0) return 0;
+
+        var managers = _storagePool.GetManagers(kbName);
+        var bpm = managers.Bpm;
+        var diskManager = managers.Disk;
+        var wal = managers.Wal;
+
+        var txnId = wal.Begin();
+        int successCount = 0;
+
+        try
+        {
+            lock (_catalogLock)
+            {
+                foreach (var obj in objects)
+                {
+                    var tuple = ObjectToTuple(obj);
+                    var data = tuple.Serialize();
+                    var catalogKey = $"{kbName}:{obj.ConceptName}";
+
+                    if (!_pageCatalog.ContainsKey(catalogKey)) LoadCatalog(kbName);
+                    
+                    var pageId = GetOrAllocateWritablePage(kbName, catalogKey, data.Length);
+                    var page = bpm.FetchPage(pageId);
+                    if (page == null) continue;
+
+                    var slottedPage = new SlottedPage(page);
+                    if (slottedPage.TupleCount == 0 && slottedPage.FreeSpacePointer == 0)
+                        slottedPage.Init(pageId);
+                        
+                    var slotId = slottedPage.InsertTuple(data);
+
+                    if (slotId < 0)
+                    {
+                        bpm.UnpinPage(page.PageId, false);
+                        var newPageId = diskManager.AllocatePage();
+                        if (!_pageCatalog.ContainsKey(catalogKey)) _pageCatalog[catalogKey] = new List<int>();
+                        _pageCatalog[catalogKey].Add(newPageId);
+                        SaveCatalog(kbName);
+
+                        page = bpm.FetchPage(newPageId);
+                        if (page == null) continue;
+                        
+                        slottedPage = new SlottedPage(page);
+                        slottedPage.Init(newPageId);
+                        slotId = slottedPage.InsertTuple(data);
+                    }
+
+                    // Log each insertion under the SAME txnId
+                    wal.LogInsert(txnId, page.PageId, slotId, data);
+
+                    // Update Index
+                    if (!_valueIndex.ContainsKey(catalogKey)) _valueIndex[catalogKey] = new();
+                    if (!_valueIndex[catalogKey].ContainsKey("id")) _valueIndex[catalogKey]["id"] = new();
+                    if (obj.Values.TryGetValue("id", out var idVal))
+                        _valueIndex[catalogKey]["id"][idVal.ToString()!] = (page.PageId, slotId);
+
+                    bpm.UnpinPage(page.PageId, true);
+                    successCount++;
+                }
+            }
+
+            wal.Commit(txnId);
+            return successCount;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[V3DataRouter] BulkInsert failed: {ex.Message}");
+            return successCount;
         }
     }
 
@@ -158,6 +243,42 @@ public class V3DataRouter
             }
 
             bpm.UnpinPage(page.PageId, false);
+        }
+
+        return results;
+    }
+
+    /// <summary>
+    /// FAST PATH: Uses the in-memory value index to find an object by a specific field value.
+    /// Eliminates the need for O(N) full table scans.
+    /// </summary>
+    public List<ObjectInstance> SelectByValue(string kbName, string conceptName, string fieldName, string value)
+    {
+        var results = new List<ObjectInstance>();
+        var catalogKey = $"{kbName}:{conceptName}";
+        
+        if (!_valueIndex.TryGetValue(catalogKey, out var fieldIndex)) return results;
+        if (!fieldIndex.TryGetValue(fieldName, out var valMap)) return results;
+        if (!valMap.TryGetValue(value, out var pos)) return results;
+
+        var managers = _storagePool.GetManagers(kbName);
+        var bpm = managers.Bpm;
+        var page = bpm.FetchPage(pos.PageId);
+        if (page == null) return results;
+
+        try
+        {
+            var sp = new SlottedPage(page);
+            var raw = sp.GetTuple(pos.SlotId);
+            if (raw != null)
+            {
+                var tuple = Tuple.Deserialize(raw);
+                results.Add(TupleToObject(tuple, conceptName, kbName));
+            }
+        }
+        finally
+        {
+            bpm.UnpinPage(pos.PageId, false);
         }
 
         return results;
@@ -507,7 +628,6 @@ public class V3DataRouter
                 catalogRootPageId = diskManager.AllocatePage();
                 BitConverter.GetBytes(catalogRootPageId).CopyTo(headerPage.Data, 2048);
                 bpm.UnpinPage(0, true);
-                bpm.FlushPage(0);
             }
             else
             {
@@ -526,7 +646,6 @@ public class V3DataRouter
             Array.Copy(data, 0, catalogPage.Data, 0, Math.Min(data.Length, Page.PAGE_SIZE));
             
             bpm.UnpinPage(catalogRootPageId, true);
-            bpm.FlushPage(catalogRootPageId);
         }
         catch { try { bpm.UnpinPage(0, false); } catch {} }
     }

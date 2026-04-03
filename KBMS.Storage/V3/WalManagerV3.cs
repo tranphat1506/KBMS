@@ -25,6 +25,8 @@ public class WalManagerV3 : IDisposable
     private readonly string _walPath;
     private readonly FileStream _walFile;
     private readonly object _writeLock = new();
+    private readonly CancellationTokenSource _cts = new();
+    private readonly Task _syncTask;
 
     // In-memory index: txnId -> list of (offset, pageId) in the WAL file
     private readonly ConcurrentDictionary<Guid, List<long>> _activeTxns = new();
@@ -32,8 +34,33 @@ public class WalManagerV3 : IDisposable
     public WalManagerV3(string dbPath)
     {
         _walPath = dbPath + ".wal";
-        _walFile = new FileStream(_walPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read);
-        _walFile.Seek(0, SeekOrigin.End); // Always append
+        // Use a 128KB buffer for the FileStream to minimize syscalls
+        _walFile = new FileStream(_walPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read, 128 * 1024);
+        _walFile.Seek(0, SeekOrigin.End);
+
+        // 1-second Heartbeat Sync
+        _syncTask = Task.Run(PeriodicSyncAsync);
+    }
+
+    private async Task PeriodicSyncAsync()
+    {
+        while (!_cts.Token.IsCancellationRequested)
+        {
+            try
+            {
+                await Task.Delay(1000, _cts.Token);
+                Flush(true);
+            }
+            catch { break; }
+        }
+    }
+
+    public void Flush(bool physicalDiskSync = false)
+    {
+        lock (_writeLock)
+        {
+            try { _walFile.Flush(physicalDiskSync); } catch { }
+        }
     }
 
     // ===================== BEGIN =====================
@@ -45,22 +72,46 @@ public class WalManagerV3 : IDisposable
         return txnId;
     }
 
-    // ===================== LOG WRITE =====================
-
+    // ===================== LOG INSERT (Row-Level) =====================
     /// <summary>
-    /// Records a write operation: both the before-image (for rollback) and after-image (for redo).
-    /// Must be called BEFORE the page is flushed to disk.
+    /// Records a specific TUPLE insertion. [Type:4] [TxnId:16] [PageId:4] [SlotId:4] [DataLen:4] [Data:N]
+    /// </summary>
+    public void LogInsert(Guid txnId, int pageId, int slotId, byte[] data)
+    {
+        if (!_activeTxns.ContainsKey(txnId))
+            _activeTxns[txnId] = new List<long>();
+
+        lock (_writeLock)
+        {
+            _walFile.Seek(0, SeekOrigin.End);
+            long entryOffset = _walFile.Position;
+            using var bw = new BinaryWriter(_walFile, Encoding.UTF8, leaveOpen: true);
+            bw.Write((byte)4);                        // Type: ROW_INSERT
+            bw.Write(txnId.ToByteArray());           // 16 bytes
+            bw.Write(pageId);                         //  4 bytes
+            bw.Write(slotId);                         //  4 bytes
+            bw.Write(data.Length);                    //  4 bytes
+            bw.Write(data);                           //  N bytes
+            _activeTxns[txnId].Add(entryOffset);
+        }
+    }
+
+    // ===================== LOG WRITE (Full Page Diff) =====================
+    /// <summary>
+    /// Records a write operation: both the before-image and after-image.
+    /// Restored for compatibility with catalog components.
     /// </summary>
     public void LogWrite(Guid txnId, int pageId, byte[] beforeImage, byte[] afterImage)
     {
         if (!_activeTxns.ContainsKey(txnId))
-            throw new InvalidOperationException($"Transaction {txnId} not active.");
+            _activeTxns[txnId] = new List<long>();
 
         lock (_writeLock)
         {
+            _walFile.Seek(0, SeekOrigin.End);
             long entryOffset = _walFile.Position;
-
             using var bw = new BinaryWriter(_walFile, Encoding.UTF8, leaveOpen: true);
+            bw.Write((byte)2);                        // Type: PAGE_WRITE
             bw.Write(txnId.ToByteArray());           // 16 bytes
             bw.Write(pageId);                         //  4 bytes
             bw.Write(beforeImage.Length);             //  4 bytes
@@ -68,9 +119,24 @@ public class WalManagerV3 : IDisposable
             bw.Write(afterImage.Length);              //  4 bytes
             bw.Write(afterImage);                     //  N bytes
             bw.Write(false);                          //  1 byte (not yet committed)
-            _walFile.Flush();
-
             _activeTxns[txnId].Add(entryOffset);
+        }
+    }
+
+    /// <summary>
+    /// RECORDS A FULL PAGE IMAGE directly into the WAL .wal file.
+    /// This is the "Full Page Logging" fast-path for dirty page evictions.
+    /// </summary>
+    public void LogFullPage(int pageId, byte[] data)
+    {
+        lock (_writeLock)
+        {
+            _walFile.Seek(0, SeekOrigin.End);
+            using var bw = new BinaryWriter(_walFile, Encoding.UTF8, leaveOpen: true);
+            bw.Write((byte)3);                        // Type: FULL_PAGE_IMAGE
+            bw.Write(pageId);                         // 4 bytes
+            bw.Write(data.Length);                    // 4 bytes
+            bw.Write(data);                           // N bytes
         }
     }
 
@@ -88,24 +154,25 @@ public class WalManagerV3 : IDisposable
             using var bw = new BinaryWriter(_walFile, Encoding.UTF8, leaveOpen: true);
             foreach (var entryOffset in offsets)
             {
-                // Calculate offset of the committed flag within this entry:
-                // 16 (TxnId) + 4 (PageId) + 4 (BeforeLen) + BeforeLen + 4 (AfterLen) + AfterLen
-                // We do a seek-back to update the flag
+                // Seek-back to update the committed flag
                 _walFile.Seek(entryOffset, SeekOrigin.Begin);
                 using var br = new BinaryReader(_walFile, Encoding.UTF8, leaveOpen: true);
+                
+                byte type = br.ReadByte();
+                if (type != 2) continue; // Only PAGE_WRITE entries have committed flags
+                
                 br.ReadBytes(16); // TxnId
                 br.ReadInt32();   // PageId
                 int beforeLen = br.ReadInt32();
-                br.ReadBytes(beforeLen);
+                _walFile.Seek(beforeLen, SeekOrigin.Current);
                 int afterLen = br.ReadInt32();
-                br.ReadBytes(afterLen);
+                _walFile.Seek(afterLen, SeekOrigin.Current);
+                
                 long flagPosition = _walFile.Position;
-
                 _walFile.Seek(flagPosition, SeekOrigin.Begin);
                 bw.Write(true);
             }
-            _walFile.Seek(0, SeekOrigin.End); // Reset to end for next append
-            _walFile.Flush();
+            _walFile.Seek(0, SeekOrigin.End);
         }
     }
 
@@ -180,6 +247,10 @@ public class WalManagerV3 : IDisposable
 
     public void Dispose()
     {
+        _cts.Cancel();
+        try { _syncTask.Wait(2000); } catch { }
+        
+        Flush(true); // Final physical sync
         _walFile?.Close();
         _walFile?.Dispose();
     }

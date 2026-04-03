@@ -10,18 +10,21 @@ public class StorageV3Tests : IDisposable
 {
     private readonly string _testDbPath;
     private readonly DiskManager _diskManager;
+    private readonly WalManagerV3 _wal;
     private readonly BufferPoolManager _bpm;
 
     public StorageV3Tests()
     {
         _testDbPath = Path.Combine(Path.GetTempPath(), $"kbms_v3_test_{Guid.NewGuid()}.db");
         _diskManager = new DiskManager(_testDbPath);
-        _bpm = new BufferPoolManager(_diskManager, poolSize: 5);
+        _wal = new WalManagerV3(_testDbPath);
+        _bpm = new BufferPoolManager(_diskManager, _wal, poolSize: 5);
     }
 
     public void Dispose()
     {
         _bpm.Dispose();
+        _wal.Dispose();
         _diskManager.Dispose();
         if (File.Exists(_testDbPath))
         {

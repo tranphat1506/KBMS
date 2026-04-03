@@ -22,7 +22,7 @@ public class PerformanceBenchmarkV3 : IDisposable
         _output = output;
         _tempDir = Path.Combine(Path.GetTempPath(), "kbms_bench_" + Guid.NewGuid().ToString());
         Directory.CreateDirectory(_tempDir);
-        _storagePool = new StoragePool(_tempDir, 1024); // 1024 pages buffer
+        _storagePool = new StoragePool(_tempDir, 16384); // 256MB buffer (16384 * 16KB)
         _data = new V3DataRouter(_storagePool);
     }
 
@@ -37,8 +37,18 @@ public class PerformanceBenchmarkV3 : IDisposable
     {
         const string kbName = "BenchmarkKB";
         const string conceptName = "BenchmarkItem";
+        // Unique filename to avoid collision with test runner logs
+        string logPath = "/Users/lechautranphat/Desktop/KBMS/storage_v3_results.txt";
+        using var logWriter = new StreamWriter(logPath, false);
+        
+        void Log(string msg) {
+            _output.WriteLine(msg);
+            logWriter.WriteLine(msg);
+            logWriter.Flush(); 
+        }
 
-        _output.WriteLine("=== KBMS V3 COMPREHENSIVE PERFORMANCE REPORT ===");
+        Log("=== KBMS V3 COMPREHENSIVE PERFORMANCE REPORT ===");
+        Log($"Timestamp: {DateTime.Now}");
         
         // 1. NETWORK LAYER (Simulated Handshake & Login) 
         var sw = Stopwatch.StartNew();
@@ -48,7 +58,7 @@ public class PerformanceBenchmarkV3 : IDisposable
             var hash = salt.GetHashCode(); 
         }
         sw.Stop();
-        _output.WriteLine($"[Network] Handshake & Auth Overhead (10k ops): {sw.ElapsedMilliseconds}ms (Avg: {(double)sw.ElapsedMilliseconds/10000:F4}ms)");
+        Log($"[Network] Handshake & Auth Overhead (10k ops): {sw.ElapsedMilliseconds}ms (Avg: {(double)sw.ElapsedMilliseconds/10000:F4}ms)");
 
         // 2. PARSER LAYER (AST Generation)
         sw.Restart();
@@ -61,10 +71,10 @@ public class PerformanceBenchmarkV3 : IDisposable
             };
         }
         sw.Stop();
-        _output.WriteLine($"[Parser] AST Generation (50k ops): {sw.ElapsedMilliseconds}ms (Avg: {(double)sw.ElapsedMilliseconds/50000:F4}ms)");
+        Log($"[Parser] AST Generation (50k ops): {sw.ElapsedMilliseconds}ms (Avg: {(double)sw.ElapsedMilliseconds/50000:F4}ms)");
 
         // 3. STORAGE LAYER (Slotted Page & B+ Tree)
-        _output.WriteLine("\n[Storage] Volume Testing (INSERT 10k, 100k)...");
+        Log("\n[Storage] Volume Testing (INSERT 10k, 100k)...");
         
         // 10k
         sw.Restart();
@@ -73,30 +83,56 @@ public class PerformanceBenchmarkV3 : IDisposable
             _data.InsertObject(kbName, new ObjectInstance { Id = Guid.NewGuid(), ConceptName = conceptName, Values = new Dictionary<string, object> { ["id"] = i, ["data"] = "X" } });
         }
         sw.Stop();
-        _output.WriteLine($"[Storage] INSERT 10,000 objects: {sw.ElapsedMilliseconds}ms ({(10000 * 1000.0 / sw.ElapsedMilliseconds):F2} ops/sec)");
+        Log($"[Storage] INSERT 10,000 objects: {sw.ElapsedMilliseconds}ms ({(10000 * 1000.0 / sw.ElapsedMilliseconds):F2} ops/sec)");
 
-        // 100k
+        // 100k (BULK MODE)
+        var objects100k = new List<ObjectInstance>();
+        for (int i = 10000; i < 110000; i++) {
+            objects100k.Add(new ObjectInstance { Id = Guid.NewGuid(), ConceptName = conceptName, Values = new Dictionary<string, object> { ["id"] = i, ["data"] = "X" } });
+        }
+
         sw.Restart();
-        for (int i = 10000; i < 110000; i++)
+        _data.BulkInsertObjects(kbName, objects100k);
+        sw.Stop();
+        Log($"[Storage] INSERT 100,000 objects (BULK): {sw.ElapsedMilliseconds}ms ({(100000 * 1000.0 / sw.ElapsedMilliseconds):F2} ops/sec)");
+        objects100k.Clear(); // Free RAM
+
+        // 1,000,000 (NORMAL MODE)
+        Log("\n[Storage] Stress Testing 1,000,000 objects (NORMAL)...");
+        sw.Restart();
+        for (int i = 110000; i < 1110000; i++)
         {
             _data.InsertObject(kbName, new ObjectInstance { Id = Guid.NewGuid(), ConceptName = conceptName, Values = new Dictionary<string, object> { ["id"] = i, ["data"] = "X" } });
+            if (i % 250000 == 0) Log($"  ... inserted {i - 110000} objects");
         }
         sw.Stop();
-        var insert100k = sw.ElapsedMilliseconds;
-        _output.WriteLine($"[Storage] INSERT 100,000 objects: {insert100k}ms ({(100000 * 1000.0 / insert100k):F2} ops/sec)");
+        Log($"[Storage] INSERT 1,000,000 objects (NORMAL): {sw.ElapsedMilliseconds}ms ({(1000000 * 1000.0 / sw.ElapsedMilliseconds):F2} ops/sec)");
+
+        // 1,000,000 (BULK MODE)
+        Log("[Storage] Stress Testing 1,000,000 objects (BULK)...");
+        var objects1M = new List<ObjectInstance>();
+        for (int i = 1110000; i < 2110000; i++) {
+            objects1M.Add(new ObjectInstance { Id = Guid.NewGuid(), ConceptName = conceptName, Values = new Dictionary<string, object> { ["id"] = i, ["data"] = "X" } });
+        }
+
+        sw.Restart();
+        _data.BulkInsertObjects(kbName, objects1M);
+        sw.Stop();
+        Log($"[Storage] INSERT 1,000,000 objects (BULK): {sw.ElapsedMilliseconds}ms ({(1000000 * 1000.0 / sw.ElapsedMilliseconds):F2} ops/sec)");
+        objects1M.Clear(); // Free RAM
 
         // Index Search (B+ Tree simulate)
         sw.Restart();
         for (int i = 0; i < 1000; i++)
         {
             var target = (i * 100).ToString();
-            var found = _data.SelectObjects(kbName, conceptName, v => v["id"].ToString() == target);
+            var found = _data.SelectByValue(kbName, conceptName, "id", target);
         }
         sw.Stop();
-        _output.WriteLine($"[Storage] INDEX SEARCH (1,000 ops on 110k records): {sw.ElapsedMilliseconds}ms (Avg: {(double)sw.ElapsedMilliseconds/1000:F4}ms)");
+        Log($"[Storage] INDEX SEARCH (1,000 ops on 110k records): {sw.ElapsedMilliseconds}ms (Avg: {(double)sw.ElapsedMilliseconds/1000:F4}ms)");
 
         // 4. QUERY ENGINE (Join Performance)
-        _output.WriteLine("\n[Engine] JOIN Performance (10k x 10k)...");
+        Log("\n[Engine] JOIN Performance (10k x 10k)...");
         for (int i = 0; i < 10000; i++)
         {
             _data.InsertObject(kbName, new ObjectInstance { Id = Guid.NewGuid(), ConceptName = "TableA", Values = new Dictionary<string, object> { ["key"] = i } });
@@ -110,9 +146,9 @@ public class PerformanceBenchmarkV3 : IDisposable
                      select a;
         var r = joined.Count();
         sw.Stop();
-        _output.WriteLine($"[Engine] JOIN 10k x 10k: {sw.ElapsedMilliseconds}ms");
+        Log($"[Engine] JOIN 10k x 10k: {sw.ElapsedMilliseconds}ms");
 
-        _output.WriteLine("================================================");
+        Log("================================================");
     }
 
     private class SelectNode { public string Source; public List<string> Projections; public string Filter; }

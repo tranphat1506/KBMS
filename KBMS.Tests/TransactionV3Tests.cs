@@ -22,8 +22,8 @@ public class TransactionV3Tests : IDisposable
     {
         _dbPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".kdb");
         _disk = new DiskManager(_dbPath);
-        _bpm = new BufferPoolManager(_disk, 32);
         _wal = new WalManagerV3(_dbPath);
+        _bpm = new BufferPoolManager(_disk, _wal, 32);
     }
 
     public void Dispose()

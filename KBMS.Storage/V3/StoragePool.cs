@@ -17,7 +17,7 @@ public class StoragePool : IDisposable
     private readonly Dictionary<string, (DiskManager Disk, BufferPoolManager Bpm, WalManagerV3 Wal)> _pools = new();
     private readonly object _lock = new();
 
-    public StoragePool(string dataDir, int defaultPoolSize = 100, string masterKey = "KBMS_V3_MASTER_SECRET_2026")
+    public StoragePool(string dataDir, int defaultPoolSize = 16384, string masterKey = "KBMS_V3_MASTER_SECRET_2026")
     {
         _dataDir = dataDir;
         _defaultPoolSize = defaultPoolSize;
@@ -46,8 +46,8 @@ public class StoragePool : IDisposable
             string fullPath = Path.Combine(_dataDir, fileName);
             
             var disk = new DiskManager(fullPath, _masterKey);
-            var bpm = new BufferPoolManager(disk, _defaultPoolSize);
             var wal = new WalManagerV3(fullPath);
+            var bpm = new BufferPoolManager(disk, wal, _defaultPoolSize);
             
             var entry = (disk, bpm, wal);
             _pools[kbName] = entry;

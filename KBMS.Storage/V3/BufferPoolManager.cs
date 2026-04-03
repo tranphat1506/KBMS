@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace KBMS.Storage.V3;
 
@@ -11,6 +14,7 @@ namespace KBMS.Storage.V3;
 public class BufferPoolManager : IDisposable
 {
     private readonly DiskManager _diskManager;
+    private readonly WalManagerV3 _wal;
     private readonly int _poolSize;
     
     // The actual memory frames holding the pages
@@ -26,9 +30,13 @@ public class BufferPoolManager : IDisposable
     // Tracks completely free (never used) frames
     private readonly Queue<int> _freeFrames;
 
-    public BufferPoolManager(DiskManager diskManager, int poolSize = 100)
+    private readonly CancellationTokenSource _cts = new();
+    private readonly Task _checkpointTask;
+
+    public BufferPoolManager(DiskManager diskManager, WalManagerV3 wal, int poolSize = 100)
     {
         _diskManager = diskManager;
+        _wal = wal;
         _poolSize = poolSize;
         
         _pages = new Page[_poolSize];
@@ -42,6 +50,22 @@ public class BufferPoolManager : IDisposable
         _pageTable = new Dictionary<int, int>();
         _lruList = new LinkedList<int>();
         _lruNodes = new Dictionary<int, LinkedListNode<int>>();
+
+        // Start periodic checkpointing
+        _checkpointTask = Task.Run(PeriodicCheckpointAsync);
+    }
+
+    private async Task PeriodicCheckpointAsync()
+    {
+        while (!_cts.Token.IsCancellationRequested)
+        {
+            try
+            {
+                await Task.Delay(5000, _cts.Token); // 5-second heartbeat
+                FlushAllPages();
+            }
+            catch { break; }
+        }
     }
 
     /// <summary>
@@ -50,38 +74,42 @@ public class BufferPoolManager : IDisposable
     /// </summary>
     public Page? FetchPage(int pageId)
     {
-        // 1. If page is already in the buffer pool
-        if (_pageTable.TryGetValue(pageId, out int frameId))
+        lock (this)
         {
-            var page = _pages[frameId];
-            page.PinCount++;
-            
-            // It's pinned, so remove from LRU eviction list (it's actively being used)
-            if (_lruNodes.TryGetValue(frameId, out var node))
+            // 1. If page is already in the buffer pool
+            if (_pageTable.TryGetValue(pageId, out int frameId))
             {
-                _lruList.Remove(node);
-                _lruNodes.Remove(frameId);
+                var page = _pages[frameId];
+                page.PinCount++;
+                
+                // It's pinned, so remove from LRU eviction list (it's actively being used)
+                if (_lruNodes.TryGetValue(frameId, out var node))
+                {
+                    _lruList.Remove(node);
+                    _lruNodes.Remove(frameId);
+                }
+                return page;
             }
-            return page;
+
+            // 2. Page is not in the pool, we must bring it in
+            if (!TryGetAvailableFrame(out frameId))
+            {
+                return null; // All frames are pinned, cache is completely full of active pages!
+            }
+
+            // 3. Read from disk into the allocated frame
+            var newPage = _pages[frameId];
+            newPage.ResetMemory();
+            newPage.PageId = pageId;
+            _diskManager.ReadPage(pageId, newPage);
+            
+            // 4. Update metadata
+            _pageTable[pageId] = frameId;
+            newPage.PinCount = 1;
+            newPage.IsDirty = false;
+
+            return newPage;
         }
-
-        // 2. Page is not in the pool, we must bring it in
-        if (!TryGetAvailableFrame(out frameId))
-        {
-            return null; // All frames are pinned, cache is completely full of active pages!
-        }
-
-        // 3. Read from disk into the allocated frame
-        var newPage = _pages[frameId];
-        newPage.ResetMemory();
-        _diskManager.ReadPage(pageId, newPage);
-        
-        // 4. Update metadata
-        _pageTable[pageId] = frameId;
-        newPage.PinCount = 1;
-        newPage.IsDirty = false;
-
-        return newPage;
     }
 
     /// <summary>
@@ -90,23 +118,26 @@ public class BufferPoolManager : IDisposable
     /// </summary>
     public bool UnpinPage(int pageId, bool isDirty)
     {
-        if (!_pageTable.TryGetValue(pageId, out int frameId))
-            return false;
-
-        var page = _pages[frameId];
-        if (page.PinCount <= 0) return false;
-
-        page.PinCount--;
-        if (isDirty) page.IsDirty = true; // Once dirty, stays dirty until flushed
-
-        // If no one is using it, add it back to the LRU eviction list (Least Recently Used)
-        if (page.PinCount == 0 && !_lruNodes.ContainsKey(frameId))
+        lock (this)
         {
-            var node = _lruList.AddLast(frameId);
-            _lruNodes[frameId] = node;
-        }
+            if (!_pageTable.TryGetValue(pageId, out int frameId))
+                return false;
 
-        return true;
+            var page = _pages[frameId];
+            if (page.PinCount <= 0) return false;
+
+            page.PinCount--;
+            if (isDirty) page.IsDirty = true; // Once dirty, stays dirty until flushed
+
+            // If no one is using it, add it back to the LRU eviction list (Least Recently Used)
+            if (page.PinCount == 0 && !_lruNodes.ContainsKey(frameId))
+            {
+                var node = _lruList.AddLast(frameId);
+                _lruNodes[frameId] = node;
+            }
+
+            return true;
+        }
     }
 
     /// <summary>
@@ -114,16 +145,23 @@ public class BufferPoolManager : IDisposable
     /// </summary>
     public bool FlushPage(int pageId)
     {
-        if (!_pageTable.TryGetValue(pageId, out int frameId))
-            return false;
-
-        var page = _pages[frameId];
-        if (page.IsDirty)
+        lock (this)
         {
-            _diskManager.WritePage(page.PageId, page);
-            page.IsDirty = false;
+            if (!_pageTable.TryGetValue(pageId, out int frameId))
+                return false;
+
+            var page = _pages[frameId];
+            if (page.IsDirty)
+            {
+                // FULL PAGE LOGGING: Write the entire page image to the .wal file
+                _wal.LogFullPage(page.PageId, page.Data);
+
+                // Write to disk manager (data file)
+                _diskManager.WritePage(page.PageId, page);
+                page.IsDirty = false;
+            }
+            return true;
         }
-        return true;
     }
 
     /// <summary>
@@ -131,9 +169,15 @@ public class BufferPoolManager : IDisposable
     /// </summary>
     public void FlushAllPages()
     {
-        foreach (var kvp in _pageTable)
+        List<int> dirtyIds;
+        lock (this)
         {
-            FlushPage(kvp.Key);
+            dirtyIds = _pageTable.Keys.ToList();
+        }
+
+        foreach (var pageId in dirtyIds)
+        {
+            FlushPage(pageId);
         }
     }
 
@@ -142,19 +186,22 @@ public class BufferPoolManager : IDisposable
     /// </summary>
     public Page? NewPage(out int pageId)
     {
-        pageId = -1;
-        if (!TryGetAvailableFrame(out int frameId))
-            return null;
+        lock (this)
+        {
+            pageId = -1;
+            if (!TryGetAvailableFrame(out int frameId))
+                return null;
 
-        pageId = _diskManager.AllocatePage();
-        var newPage = _pages[frameId];
-        newPage.ResetMemory();
-        newPage.PageId = pageId;
-        newPage.PinCount = 1;
-        newPage.IsDirty = false;
+            pageId = _diskManager.AllocatePage();
+            var newPage = _pages[frameId];
+            newPage.ResetMemory();
+            newPage.PageId = pageId;
+            newPage.PinCount = 1;
+            newPage.IsDirty = false;
 
-        _pageTable[pageId] = frameId;
-        return newPage;
+            _pageTable[pageId] = frameId;
+            return newPage;
+        }
     }
 
     private bool TryGetAvailableFrame(out int frameId)
@@ -173,10 +220,14 @@ public class BufferPoolManager : IDisposable
             
             var victimPage = _pages[frameId];
             
-            // If the victim was dirty, flush it to disk before overwriting
+            // If the victim was dirty, flush it to WAL (.wal) before overwriting
             if (victimPage.IsDirty)
             {
+                // FULL PAGE LOGGING: Write the entire page image to the .wal file
+                _wal.LogFullPage(victimPage.PageId, victimPage.Data);
+                
                 _diskManager.WritePage(victimPage.PageId, victimPage);
+                victimPage.IsDirty = false;
             }
 
             // Remove from tracking structures
@@ -194,6 +245,8 @@ public class BufferPoolManager : IDisposable
 
     public void Dispose()
     {
+        _cts.Cancel();
+        try { _checkpointTask.Wait(1000); } catch { }
         FlushAllPages();
     }
 }

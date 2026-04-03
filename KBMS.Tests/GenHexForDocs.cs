@@ -19,8 +19,8 @@ public class GenHexForDocs
 
         // 1. Initialize Storage
         var disk = new DiskManager(testFile, "DOC_KEY_2026");
-        var bpm = new BufferPoolManager(disk, 10);
         var wal = new WalManagerV3(testFile);
+        var bpm = new BufferPoolManager(disk, wal, 10);
 
         // 2. Create a Concept Tuple (Metadata)
         // Concept: Employee (age: INT, experience: INT)

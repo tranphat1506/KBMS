@@ -90,8 +90,8 @@ public class DiskManager : IDisposable
         _dbFile.Seek(offset, SeekOrigin.Begin);
         _dbFile.Write(encrypted, 0, encrypted.Length);
         
-        // Ensure OS flushes to physical media
-        _dbFile.Flush(flushToDisk: true); 
+        // Just push to OS Page Cache
+        _dbFile.Flush(flushToDisk: false); 
     }
 
     /// <summary>
