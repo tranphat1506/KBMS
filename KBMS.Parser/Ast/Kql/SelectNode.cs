@@ -25,6 +25,12 @@ public class SelectNode : KmlNode
     public string? Alias { get; set; }
 
     /// <summary>
+    /// Derived table (sub-query in FROM clause).
+    /// When set, ConceptName should be empty and Alias should be set.
+    /// </summary>
+    public SelectNode? DerivedTable { get; set; }
+
+    /// <summary>
     /// Explicitly selected columns (empty = SELECT *, otherwise specific columns/aliases)
     /// </summary>
     public List<SelectColumn> SelectColumns { get; set; } = new();
@@ -63,4 +69,9 @@ public class SelectNode : KmlNode
     /// Optional LIMIT clause
     /// </summary>
     public LimitClause? Limit { get; set; }
+
+    /// <summary>
+    /// Returns true if this SELECT uses a derived table (sub-query) as source
+    /// </summary>
+    public bool HasDerivedTable => DerivedTable != null;
 }

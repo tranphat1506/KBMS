@@ -1766,14 +1766,40 @@ public class Parser
         {
             Consume(TokenType.FROM);
 
+            // Check for derived table (sub-query): FROM (SELECT ...) AS alias
+            if (Check(TokenType.LPAREN))
+            {
+                Consume(TokenType.LPAREN);
+                var subQuery = ParseSelect();
+                node.DerivedTable = subQuery;
+                if (Consume(TokenType.RPAREN) == null) throw Error("Expected ')' after derived table sub-query");
+
+                // Alias is required for derived tables
+                if (Check(TokenType.AS))
+                {
+                    Consume(TokenType.AS);
+                    var aliasToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected alias for derived table");
+                    node.Alias = aliasToken.Lexeme;
+                }
+                else if (Check(TokenType.IDENTIFIER))
+                {
+                    node.Alias = Consume(TokenType.IDENTIFIER)!.Lexeme;
+                }
+                else
+                {
+                    throw Error("Derived table requires an alias (use AS alias or just alias)");
+                }
+
+                node.TargetType = "DERIVED_TABLE";
+            }
             // Handle SELECT * FROM <ENTITY> <NAME>
-            if (Check(TokenType.CONCEPT) || Check(TokenType.RELATION) || Check(TokenType.RULE) || 
+            else if (Check(TokenType.CONCEPT) || Check(TokenType.RELATION) || Check(TokenType.RULE) ||
                 Check(TokenType.HIERARCHY) || Check(TokenType.OPERATOR) || Check(TokenType.FUNCTION))
             {
                 var entityTypeToken = Advance()!;
                 node.TargetType = entityTypeToken.Type.ToString();
-                
-                // For HIERARCHY, the name might be an identifier or a string, 
+
+                // For HIERARCHY, the name might be an identifier or a string,
                 // but let's assume IDENTIFIER for consistency with other entities.
                 var nameToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected " + node.TargetType + " name");
                 node.ConceptName = nameToken.Lexeme;
@@ -1810,9 +1836,9 @@ public class Parser
         }
 
         // Parse JOIN clauses
-        while (Check(TokenType.JOIN))
+        while (Check(TokenType.JOIN) || Check(TokenType.LEFT) || Check(TokenType.RIGHT) ||
+               Check(TokenType.FULL) || Check(TokenType.INNER))
         {
-            Consume(TokenType.JOIN);
             node.Joins.Add(ParseJoinClause());
         }
 
@@ -1914,6 +1940,35 @@ public class Parser
     private JoinClause ParseJoinClause()
     {
         var join = new JoinClause();
+
+        // Parse join type
+        if (Check(TokenType.LEFT))
+        {
+            Consume(TokenType.LEFT);
+            if (Check(TokenType.OUTER)) Consume(TokenType.OUTER); // Optional OUTER keyword
+            join.JoinType = "LEFT";
+        }
+        else if (Check(TokenType.RIGHT))
+        {
+            Consume(TokenType.RIGHT);
+            if (Check(TokenType.OUTER)) Consume(TokenType.OUTER); // Optional OUTER keyword
+            join.JoinType = "RIGHT";
+        }
+        else if (Check(TokenType.FULL))
+        {
+            Consume(TokenType.FULL);
+            if (Check(TokenType.OUTER)) Consume(TokenType.OUTER); // Optional OUTER keyword
+            join.JoinType = "FULL";
+        }
+        else if (Check(TokenType.INNER))
+        {
+            Consume(TokenType.INNER);
+            join.JoinType = "INNER";
+        }
+        // Default is INNER JOIN
+
+        // Expect JOIN keyword
+        if (Consume(TokenType.JOIN) == null) throw Error("Expected JOIN keyword");
 
         var targetToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected concept or relation name");
         join.Target = targetToken.Lexeme;
@@ -2649,6 +2704,24 @@ public class Parser
 
     private Condition ParseCondition()
     {
+        // Check for EXISTS (SELECT ...)
+        if (Check(TokenType.IDENTIFIER) && Peek()?.Lexeme?.Equals("EXISTS", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            Advance(); // consume EXISTS
+            if (Consume(TokenType.LPAREN) == null) throw Error("Expected '(' after EXISTS");
+
+            var subQuery = ParseSelect();
+
+            if (Consume(TokenType.RPAREN) == null) throw Error("Expected ')' after EXISTS sub-query");
+
+            return new Condition
+            {
+                Field = "EXISTS",
+                Operator = "EXISTS",
+                Value = subQuery
+            };
+        }
+
         var left = ParseExpression();
 
         if (left is VariableNode varNode)
@@ -2677,12 +2750,20 @@ public class Parser
                             if (expr is LiteralNode lit) list.Add(lit.Value);
                             else if (expr is VariableNode vNode) list.Add(vNode.Name);
                             else list.Add(expr.ToString()!);
-                            
+
                             if (Check(TokenType.COMMA)) Advance();
                         }
                         value = list;
                     }
                     Consume(TokenType.RPAREN);
+                }
+                // Handle scalar sub-query: field = (SELECT ...)
+                else if (Check(TokenType.LPAREN) && PeekNext()?.Type == TokenType.SELECT)
+                {
+                    Consume(TokenType.LPAREN);
+                    var subQuery = ParseSelect();
+                    if (Consume(TokenType.RPAREN) == null) throw Error("Expected ')' after scalar sub-query");
+                    value = subQuery;
                 }
                 else
                 {
@@ -2702,6 +2783,32 @@ public class Parser
                     Value = value
                 };
             }
+        }
+        else if (left is FunctionCallNode funcCall)
+        {
+            // Handle SOLVE(field) > value pattern
+            var opToken = Peek() ?? throw Error("Expected operator");
+
+            if (IsComparisonOperator(opToken.Type))
+            {
+                Advance();
+                var right = ParseExpression();
+                object? value = right switch
+                {
+                    LiteralNode lit => lit.Value,
+                    VariableNode v => v.Name,
+                    _ => right.ToString()
+                };
+
+                return new Condition
+                {
+                    Field = funcCall.ToString() ?? "",
+                    Operator = opToken.Lexeme,
+                    Value = value,
+                    LeftExpression = funcCall
+                };
+            }
+            throw Error($"Expected comparison operator after function call {funcCall.FunctionName}");
         }
         else if (left is BinaryExpressionNode binary)
         {

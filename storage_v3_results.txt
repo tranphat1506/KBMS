@@ -1,22 +1,22 @@
 === KBMS V3 COMPREHENSIVE PERFORMANCE REPORT ===
-Timestamp: 3/4/2026 08:19:19
+Timestamp: 3/4/2026 11:34:41
 [Network] Handshake & Auth Overhead (10k ops): 2ms (Avg: 0,0002ms)
-[Parser] AST Generation (50k ops): 2ms (Avg: 0,0000ms)
+[Parser] AST Generation (50k ops): 1ms (Avg: 0,0000ms)
 
 [Storage] Volume Testing (INSERT 10k, 100k)...
-[Storage] INSERT 10,000 objects: 82ms (121951,22 ops/sec)
-[Storage] INSERT 100,000 objects (BULK): 591ms (169204,74 ops/sec)
+[Storage] INSERT 10,000 objects: 75ms (133333,33 ops/sec)
+[Storage] INSERT 100,000 objects (BULK): 687ms (145560,41 ops/sec)
 
 [Storage] Stress Testing 1,000,000 objects (NORMAL)...
   ... inserted 140000 objects
   ... inserted 390000 objects
   ... inserted 640000 objects
   ... inserted 890000 objects
-[Storage] INSERT 1,000,000 objects (NORMAL): 5729ms (174550,53 ops/sec)
+[Storage] INSERT 1,000,000 objects (NORMAL): 6115ms (163532,30 ops/sec)
 [Storage] Stress Testing 1,000,000 objects (BULK)...
-[Storage] INSERT 1,000,000 objects (BULK): 4824ms (207296,85 ops/sec)
-[Storage] INDEX SEARCH (1,000 ops on 110k records): 10ms (Avg: 0,0100ms)
+[Storage] INSERT 1,000,000 objects (BULK): 5482ms (182415,18 ops/sec)
+[Storage] INDEX SEARCH (1,000 ops on 110k records): 13ms (Avg: 0,0130ms)
 
 [Engine] JOIN Performance (10k x 10k)...
-[Engine] JOIN 10k x 10k: 7ms
+[Engine] JOIN 10k x 10k: 9ms
 ================================================

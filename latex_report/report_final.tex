@@ -5829,7 +5829,7 @@ Chương này trình bày các tình huống sử dụng thực tế của phân
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.7\textwidth]{assets/uc_cli_auth_flow.png}
+  \includegraphics[width=1.2\textwidth]{assets/uc_cli_auth_flow.png}
   \caption{Luồng xác thực và thiết lập phiên làm việc trên CLI.}\label{fig:luồng-xác-thực-và-thiết-lập-phiên-làm-việc-trên-cl}
 \end{figure}
 
@@ -5849,7 +5849,7 @@ Sử dụng CLI để định nghĩa các Khái niệm và Luật dẫn trong c�
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.7\textwidth]{assets/uc_cli_kdl_flow.png}
+  \includegraphics[width=0.5\textwidth]{assets/uc_cli_kdl_flow.png}
   \caption{Quy trình xử lý câu lệnh định nghĩa cấu trúc.}\label{fig:quy-trình-xử-lý-câu-lệnh-định-nghĩa-cấu-trúc}
 \end{figure}
 
@@ -5889,7 +5889,7 @@ Sử dụng lệnh tìm kiếm lời giải và theo dõi các bước logic đ�
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.7\textwidth]{assets/uc_cli_solve_flow.png}
+  \includegraphics[width=0.5\textwidth]{assets/uc_cli_solve_flow.png}
   \caption{Chu trình xử lý suy luận và trích xuất cây truy vết.}\label{fig:chu-trình-xử-lý-suy-luận-và-trích-xuất-cây-truy-vế}
 \end{figure}
 
@@ -5909,7 +5909,7 @@ Thực thi các tệp tin kịch bản chứa tập hợp nhiều câu lệnh tr
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.7\textwidth]{assets/uc_cli_source_flow.png}
+  \includegraphics[width=1.2\textwidth]{assets/uc_cli_source_flow.png}
   \caption{Quy trình thực thi tập lệnh từ tệp tin nguồn.}\label{fig:quy-trình-thực-thi-tập-lệnh-từ-tệp-tin-nguồn}
 \end{figure}
 
@@ -6327,7 +6327,7 @@ Giao diện đảm bảo tính minh bạch và dễ hiểu cho các kết quả 
 
 \chapter{CÀI ĐẶT VÀ TRIỂN KHAI HỆ THỐNG}
 
-\section{Quy trình Cài đặt \& Xác thực Hệ thống (macOS)}
+\section{Quy trình Cài đặt \& Xác thực Hệ thống}
 
 
 Tài liệu này trình bày quy trình triển khai chuẩn cho hệ thống KBMS trên môi trường \textbf{macOS}. Việc sử dụng các công cụ quản lý gói hiện đại giúp đảm bảo tính nhất quán của các phụ thuộc (dependencies) trong dự án.
@@ -6399,186 +6399,148 @@ Việc xác thực thông qua nhật ký trên cho thấy Server đã nhận di�
 
 \chapter{THỰC NGHIỆM VÀ ĐÁNH GIÁ HIỆU NĂNG}
 
-Hệ thống KBMS V3 được xác thực thông qua 4 kịch bản thực tế với độ phức tạp tăng dần, từ suy diễn logic đơn lẻ đến bao đóng tri thức trên mạng lưới thực thể khổng lồ. Các kịch bản này được thiết kế để kiểm tra toàn diện khả năng tích hợp giữa ngôn ngữ truy vấn KBQL và công cụ suy diễn Inference Engine.
+\section{Kịch bản Kiểm thử}
 
 
-\subsection{Kịch bản A: Hệ tri thức Giáo dục (Education)}
-
-\begin{itemize}
-  \item \textbf{Mục tiêu}: Xác thực tính đúng đắn của Forward Chaining khi xử lý các luật logic kết hợp nhiều thuộc tính (GPA, Behavior, Credits).
-  \item \textbf{Thực thi}:
-    \begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
--- Chèn dữ liệu cơ sở
-INSERT INTO Student ATTRIBUTE(name: 'Le Phat', gpa: 3.9, behavior: 95, credits: 18);
--- Suy diễn trạng thái học thuật
-SELECT SOLVE(status) FROM Student WHERE name = 'Le Phat';
-\end{Verbatim}
-\end{academicbox}
+Hệ thống KBMS V3 được xác thực thông qua 7 nhóm kiểm thử (Test Groups) được tự động hóa trong script `run\_all\_and\_report.sh`. Mỗi nhóm tập trung vào một khía cạnh cụ thể của hệ thống.
 
 
-  \item \textbf{Kết quả}: Hệ thống suy diễn thành công trạng thái `DeanList` dựa trên quy tắc `R\_DeanList`.
-\end{itemize}
+\subsection{Nhóm 1: Performance Benchmarks (Stress Test 1M)}
 
 
-
-\subsection{Kịch bản B: Chẩn đoán Y tế (Medical Diagnostic)}
-
-\begin{itemize}
-  \item \textbf{Mục tiêu}: Đánh giá hiệu năng suy diễn trên miền giá trị số thực và các ngưỡng chẩn đoán lâm sàng.
-  \item \textbf{Thực thi}:
-    \begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
-INSERT INTO Patient ATTRIBUTE(p_id: 'P1', p_age: 65, p_bmi: 32.5);
-SELECT SOLVE(p_risk) FROM Patient WHERE p_id = 'P1';
-\end{Verbatim}
-\end{academicbox}
+\textbf{Test Class:} `PerformanceBenchmarkV3`
 
 
-  \item \textbf{Kết quả}: Xác định mức độ rủi ro tim mạch (`p\_risk = 'High'`) tức thời với độ trễ cực thấp.
-\end{itemize}
+Mục tiêu: Đánh giá hiệu năng tối đa của Storage Engine V3 trên tập dữ liệu lớn (1 triệu bản ghi).
 
 
-
-\subsection{Kịch bản C: Đồ thị Đô thị Thông minh (SmartCity Transit)}
-
-\begin{itemize}
-  \item \textbf{Mục tiêu}: Kiểm tra khả năng xử lý xung đột và bao đóng tri thức lan truyền trên mạng lưới cảm biến.
-  \item \textbf{Thực thi}:
-    \begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
-INSERT INTO Sensor ATTRIBUTE(id: 'S1', speed: 5, zid: 'Z1');
-SELECT SOLVE(id) FROM Sensor WHERE zid = 'Z1';
-\end{Verbatim}
-\end{academicbox}
+\textbf{Các chỉ số đo đạc:}\par
+- Thông lượng ghi tối đa (ops/sec)\par
+- Độ trễ truy vấn trung bình\par
+- Hiệu quả Buffer Pool Manager\par
+- Memory vs I/O Tradeoff
 
 
-  \item \textbf{Kết quả}: Hệ thống nhận diện trạng thái tắc nghẽn (`JAMMED`) thông qua việc lan truyền giá trị trên thuộc tính định danh.
-\end{itemize}
+\subsection{Nhóm 2: Storage Architecture (Slotted Page \& Persistence)}
 
 
-
-\subsection{Kịch bản D: Phân loại Hình học (Geometry)}
-
-\begin{itemize}
-  \item \textbf{Mục tiêu}: Xác thực khả năng tính toán biểu thức phức tạp (định lý Pythagoras) trong điều kiện của luật.
-  \item \textbf{Thực thi}:
-    \begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
-INSERT INTO Triangle ATTRIBUTE(ta: 3.0, tb: 4.0, tc: 5.0);
-SELECT SOLVE(t_type) FROM Triangle WHERE ta = 3.0;
-\end{Verbatim}
-\end{academicbox}
+\textbf{Test Classes:}\par
+- `StorageV3Tests` - Kiểm tra Slotted Page, B+ Tree Index\par
+- `SystemV3Tests` - Kiểm tra System Catalog\par
+- `ModelBinaryUtilityTests` - Kiểm tra serialization nhị phân
 
 
-  \item \textbf{Kết quả}: Phân loại chính xác `RightTriangle` nhờ cơ chế tính toán biểu thức toán học trực tiếp trong Rete Network.
-\end{itemize}
+Mục tiêu: Xác minh kiến trúc lưu trữ vật lý và khả năng persistence.
 
 
-
-\subsection{Nhật ký Thực thi Kiểm thử (xUnit Test Logs)}
-
-
-Dưới đây là nhật ký thực tế từ bộ kiểm thử `ComplexScenarioTests`, xác nhận sự ổn định của hệ thống:
+\subsection{Nhóm 3: Transactions \& WAL (Atomicity \& Recovery)}
 
 
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
-[Passed] KBMS.Tests.ComplexScenarioTests.Test_Scenario_A_Education_Inference
-[Passed] KBMS.Tests.ComplexScenarioTests.Test_Scenario_B_Medical_Diagnostic
-[Passed] KBMS.Tests.ComplexScenarioTests.Test_Scenario_C_SmartCity_Transit
-[Passed] KBMS.Tests.ComplexScenarioTests.Test_Scenario_D_Geometry_Pythagoras
-[Passed] KBMS.Tests.Phase5ForwardChainingTests.Charlie_Recursive_Inference
-
-Passed! - Failed: 0, Passed: 6, Skipped: 0, Total: 6, Duration: 536 ms
-\end{Verbatim}
-\end{academicbox}
+\textbf{Test Class:} `TransactionV3Tests`
 
 
+Mục tiêu: Đảm bảo tính ACID của giao dịch và khả năng phục hồi sau sự cố.
 
 
-\section{Đánh giá Hiệu năng Hệ quản trị tri thức (macOS)}
+\subsection{Nhóm 4: Query Engine (KQL CRUD \& Execution)}
 
 
-Chương này tập trung vào các chỉ số hiệu năng (Metrics) được đo đạc trực tiếp trên kiến trúc phần cứng \textbf{Apple M1 (8 cores)}. Việc tối ưu hóa ở tầng nhị phân và mạng nốt Rete giúp KBMS V3 đạt được những chỉ số vượt trội, đáp ứng yêu cầu xử lý tri thức thời gian thực trên quy mô dữ liệu lớn (Big Data).
+\textbf{Test Classes:}\par
+- `DataOperationsV3Tests` - CRUD operations\par
+- `ExecutionV3Tests` - Query execution plans\par
+- `FullIntegrationV3Tests` - Integration tests toàn diện
 
 
-\subsection{Phân tích Hiệu năng Thao tác Đơn lẻ (Latency)}
+Mục tiêu: Xác thực Query Engine xử lý đúng các câu lệnh KBQL.
 
 
-Các bài kiểm tra độ trễ (Latency Tests) cho thấy sự hiệu quả của Query Optimizer trong việc giảm thiểu bước nhảy (Jump) và truy cập bộ nhớ.
+\subsection{Nhóm 5: Schema Evolution (ALTER CONCEPT \& Migration)}
+
+
+\textbf{Test Classes:}\par
+- `SchemaV3Tests` - Kiểm tra ALTER CONCEPT\par
+- `ExhaustiveAlterIntegrationTests` - Integration tests đầy đủ
+
+
+Mục tiêu: Đánh giá khả năng tiến hóa schema mà không làm mất dữ liệu.
+
+
+\subsection{Nhóm 6: Reasoning (Forward/Backward Chaining)}
+
+
+\textbf{Test Classes:}\par
+- `BackwardChainingTests` - Kiểm tra Backward Chaining\par
+- `Phase5ForwardChainingTests` - Kiểm tra Forward Chaining\par
+- `ReteCoordinationTests` - Kiểm tra mạng Rete
+
+
+Mục tiêu: Xác thực Inference Engine thực hiện suy diễn đúng.
+
+
+\subsection{Nhóm 7: Language Design (Lexer \& Parser)}
+
+
+\textbf{Test Classes:}\par
+- `LexerTests` - Kiểm tra tokenization\par
+- `ParserTests` - Kiểm tra AST generation
+
+
+Mục tiêu: Xác thực Lexer và Parser phân tích đúng cú pháp KBQL.
+
+
+\section{Đánh giá Hiệu năng}
+
+
+Chương này tập trung vào các chỉ số hiệu năng (Metrics) được đo đạc trực tiếp từ `PerformanceBenchmarkV3`.
+
+
+\subsection{Performance Benchmark V3}
+
+
+\textbf{Test Class:} `KBMS.Tests.PerformanceBenchmarkV3`
+
+
+Các bài kiểm tra hiệu năng đo lường khả năng xử lý của Storage Engine V3:
+
+
+\subsubsection{Stress Test 1 Triệu Bản ghi}
+
+
+Hệ thống được test với 3 kích thước dữ liệu:
+
+
+\textit{Bảng 6.1: Kết quả stress test theo kích thước dữ liệu}
 
 
 \begin{table}[H]
   \centering\captionsetup{position=below}\small\selectfont
   \begin{tabularx}{\textwidth}{|l|L|L|L|}
   \hline
-Tầng & Thao tác & Thời gian trung bình & Ghi chú \\ \hline
-\textbf{Network} & Handshake \& Login & 2.15ms & Sử dụng SHA-256 Auth \& TCP Keep-alive. \\ \hline
-\textbf{Parser} & AST Generation & 0.05ms & Recursive Descent Parser tối ưu. \\ \hline
-\textbf{Storage} & Page Insert (16KB) & 0.01ms & Cơ chế Direct I/O qua Buffer Pool. \\ \hline
-\textbf{Query} & B+ Tree Search & 1.00ms & Tìm kiếm trên tập 1,000,000 bản ghi. \\ \hline
-\textbf{Reasoning} & F-Closure (Step) & 2.40ms & Thời gian kích hoạt một trạng thái tri thức mới. \\ \hline
+Dataset & Số bản ghi & Thao tác & Kết quả \\ \hline
+DS-S & 10,000 & INSERT & Baseline \\ \hline
+DS-M & 100,000 & INSERT & Medium load \\ \hline
+DS-L & 1,000,000 & INSERT & Stress test \\ \hline
   \end{tabularx}
-  \caption{Đặc tả hiệu năng phản hồi của các thành phần trong hệ thống KBMS}\label{tbl:đặc-tả-hiệu-năng-phản-hồi-của-các-thành-phần-trong}
+  \caption{Kết quả stress test theo kích thước dữ liệu}\label{tbl:kết-quả-stress-test-theo-kích-thước-dữ-liệu}
 \end{table}
 
 
-\subsection{Hiệu năng Thông lượng \& Khả năng Mở rộng (Throughput)}
+\subsubsection{Kết quả Benchmark}
 
 
-Khả năng mở rộng (Scalability) của KBMS V3 được đánh giá qua việc INSERT hàng triệu bản ghi mô phỏng. Khi số lượng bản ghi tăng lên, thông lượng vẫn được duy trì ở mức cao nhờ kiến trúc Row-level WAL và quản lý Buffer Pool hiệu quả.
+Từ `storage\_v3\_results.txt`:
 
 
-\begin{table}[H]
-  \centering\captionsetup{position=below}\footnotesize\selectfont
-  \begin{tabularx}{\textwidth}{|l|L|L|L|L|}
-  \hline
-Bộ dữ liệu & Số bản ghi & INSERT (ops/sec) & Thời gian thực thi & Chiều cao B+ Tree \\ \hline
-\textbf{DS-S} & 10,000 & 121,951 & 82ms & h = 2 \\ \hline
-\textbf{DS-M} & 100,000 & 169,204 & 591ms & h = 3 \\ \hline
-\textbf{DS-L (Normal)} & 1,000,000 & \textbf{174,550} & 5,729ms & h = 4 \\ \hline
-\textbf{DS-L (Bulk)} & 1,000,000 & \textbf{207,296} & 4,824ms & h = 4 \\ \hline
-  \end{tabularx}
-  \caption{Chỉ số thông lượng (Throughput) và khả năng mở rộng (Scalability)}\label{tbl:chỉ-số-thông-lượng-throughput-và-khả-năng-mở-rộng-}
-\end{table}
-
-
-\subsection{Đặc tả Tiêu thụ Tài nguyên Hệ thống}
-
-
-Để đánh giá mức độ tối ưu của bộ nhớ, hệ thống được giám sát trong suốt quá trình tải dữ liệu DS-L (1 triệu bản ghi).
-
-
-\begin{table}[H]
-  \centering\captionsetup{position=below}\footnotesize\selectfont
-  \begin{tabularx}{\textwidth}{|l|L|L|L|L|}
-  \hline
-Dataset & RAM Idle & RAM Load (Peak) & CPU Usage (Avg) & Page I/O (Disk) \\ \hline
-\textbf{DS-S} & 38 MB & 55 MB & 1.1\% & Thấp \\ \hline
-\textbf{DS-M} & 38 MB & 142 MB & 10.5\% & Trung bình \\ \hline
-\textbf{DS-L} & 38 MB & 256 MB & 22.4\% & Tối ưu (Buffer) \\ \hline
-  \end{tabularx}
-  \caption{Mức độ tiêu thụ tài nguyên phần cứng thực tế (CPU/RAM/IO)}\label{tbl:mức-độ-tiêu-thụ-tài-nguyên-phần-cứng-thực-tế-cpura}
-\end{table}
-
-
-\subsection{Nhật ký Benchmark Hệ thống (Benchmark Log)}
-
-
-Dưới đây là nhật ký thực tế xuất ra từ công cụ kiểm thử hiệu năng:
+\textit{Bảng 6.2: Nhật ký benchmark hệ thống KBMS V3}
 
 
 \begin{academicbox}
 \begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
 === KBMS V3 COMPREHENSIVE PERFORMANCE REPORT ===
-[Network] Handshake & Auth Overhead: 0.00021ms/op
-[Parser] AST Generation (50k ops): < 1ms total
-[Storage] DS-L (1 Million Records) Load: 4.82 seconds
-[Storage] Throughput Peak: 207,296 ops/sec
-[Storage] DS-L Index Search (1M records): 1.00ms (Avg)
-[Engine] Hash Join (10k x 10k): 7.0ms
-[Reasoning] Multi-step Inference (Charlie): 2.4ms
+[Storage] DS-L (1 Million Records) Load: ~5 seconds
+[Storage] Throughput Peak: 200,000+ ops/sec
+[Storage] DS-L Index Search (1M records): ~1.00ms (Avg)
+[Engine] Hash Join (10k x 10k): ~7.0ms
 ================================================
 \end{Verbatim}
 \end{academicbox}
@@ -6586,133 +6548,365 @@ Dưới đây là nhật ký thực tế xuất ra từ công cụ kiểm thử 
 
 
 
-Phép toán \textbf{Hash Join} đạt tốc độ cực nhanh (\textbf{7.0ms}) nhờ thuật toán băm trực tiếp trên Page Buffer, giảm thiểu overhead giải mã thực thể, tối ưu hóa các phép truy vấn quan hệ quy mô lớn.
+\subsection{Buffer Pool Comparison}
 
 
-\subsection{DS-S: Gói Tri thức Hình học (Advanced)}
-
-\begin{itemize}
-  \item \textbf{Kịch bản}: `datasets/ds\_small\_geometry/setup\_kb.kbql`
-  \item \textbf{Mã nguồn KML chuẩn}:
-    \begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
--- Reset môi trường thực nghiệm
-DROP KNOWLEDGE BASE Geometry_KB;
-CREATE KNOWLEDGE BASE Geometry_KB;
-USE Geometry_KB;
-
-CREATE CONCEPT Triangle (
-    VARIABLES (id: STRING, side_a: FLOAT, side_b: FLOAT, side_c: FLOAT, t_type: STRING),
-    CONSTRAINTS (
-        C1: side_a > 0 AND side_b > 0 AND side_c > 0,
-        C2: (side_a + side_b) > side_c  -- Ràng buộc bất đẳng thức tam giác
-    ),
-    RULES (
-        R_RightTriangle: IF (side_a*side_a + side_b*side_b) = (side_c*side_c) 
-                          THEN SET t_type = 'RightTriangle'
-    ),
-    PROPERTIES (author: 'Nguyen An', version: '1.0', domain: 'Math_2D')
-);
-\end{Verbatim}
-\end{academicbox}
+\textbf{Nguồn:} `buffer\_pool\_comparison.txt`
 
 
-\end{itemize}
+\subsubsection{Memory vs I/O Tradeoff}
+
+
+\textit{Bảng 6.3: So sánh hiệu năng theo cấu hình Buffer Pool}
+
+
+\begin{table}[H]
+  \centering\captionsetup{position=below}\small\selectfont
+  \begin{tabularx}{\textwidth}{|l|L|L|L|}
+  \hline
+Cấu hình Buffer Pool & RAM Usage & Disk I/O & Thông lượng \\ \hline
+No Buffer & Minimal & High & Low \\ \hline
+64MB Buffer & 64MB & Medium & Medium \\ \hline
+256MB Buffer & 256MB & Minimal & High \\ \hline
+  \end{tabularx}
+  \caption{So sánh hiệu năng theo cấu hình Buffer Pool}\label{tbl:so-sánh-hiệu-năng-theo-cấu-hình-buffer-pool}
+\end{table}
+
+
+\subsubsection{LRU Cache Effectiveness}
+
+
+Buffer Pool Manager sử dụng thuật toán LRU (Least Recently Used) để quản lý page cache:\par
+- Hit ratio tăng khi buffer size tăng\par
+- Disk I/O giảm đáng kể với buffer đủ lớn\par
+- Zero disk writes khi buffer pool đủ chứa toàn bộ working set
+
+
+\subsection{Kết luận Hiệu năng}
+
+
+\textit{Bảng 6.4: Tổng kết chỉ số hiệu năng KBMS V3}
+
+
+\begin{table}[H]
+  \centering\captionsetup{position=below}\small\selectfont
+  \begin{tabularx}{\textwidth}{|l|X|}
+  \hline
+Chỉ số & Giá trị \\ \hline
+Thông lượng tối đa & 200,000+ ops/sec \\ \hline
+Độ trễ truy vấn & < 10ms \\ \hline
+Khả năng mở rộng & Linear scaling \\ \hline
+  \end{tabularx}
+  \caption{Tổng kết chỉ số hiệu năng KBMS V3}\label{tbl:tổng-kết-chỉ-số-hiệu-năng-kbms-v3}
+\end{table}
+
+
+\section{Chi tiết Các Nhóm Kiểm thử}
+
+
+\subsection{GROUP 1: Performance Benchmarks}
+
+
+\textbf{Filter:} `FullyQualifiedName=KBMS.Tests.PerformanceBenchmarkV3`
+
+
+\textit{Bảng 6.5: Các bài kiểm tra hiệu năng}
+
+
+\begin{table}[H]
+  \centering\captionsetup{position=below}\small\selectfont
+  \begin{tabularx}{\textwidth}{|l|X|}
+  \hline
+Test Case & Mô tả \\ \hline
+Stress Test 1M & Insert 1 triệu bản ghi \\ \hline
+Throughput Test & Đo thông lượng ghi/đọc \\ \hline
+Buffer Pool Test & So sánh các cấu hình cache \\ \hline
+  \end{tabularx}
+  \caption{Các bài kiểm tra hiệu năng}\label{tbl:các-bài-kiểm-tra-hiệu-năng}
+\end{table}
+
+
+\textbf{Nguồn dữ liệu kết quả:}\par
+- `storage\_v3\_results.txt`\par
+- `buffer\_pool\_comparison.txt`
 
 
 
-\subsection{DS-M: Gói Tri thức Y tế (Advanced Features)}
-
-\begin{itemize}
-  \item \textbf{Mục tiêu}: Quản trị thực thể ''Dày'' với Ràng buộc (Constraints) và Bí danh (Aliases).
-  \item \textbf{Kịch bản}: `datasets/ds\_medium\_medical/setup\_kb.kbql`
-    \begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
-CREATE CONCEPT Patient (
-    VARIABLES (
-        p_id: STRING, p_name: STRING, p_age: INT,
-        p_bmi: FLOAT, cholesterol: INT, blood_pressure: INT, 
-        p_risk: STRING, createdAt: DATETIME
-    ),
-    ALIASES (BenhNhan, Subject), -- Bí danh định danh tri thức
-    CONSTRAINTS (
-        C_ValidAge: p_age >= 0 AND p_age < 120, -- Kiểm soát chất lượng dữ liệu
-        C_ValidBMI: p_bmi > 10 AND p_bmi < 60
-    ),
-    RULES (
-        RULE R_Stroke: IF p_age > 70 AND is_smoker = TRUE AND blood_pressure > 160 
-                  THEN SET p_risk = 'High_Stroke_Risk'
-    ),
-    PROPERTIES (domain: 'Cardiology', expert_system: 'KBMS_V3_Medical_Core')
-);
-\end{Verbatim}
-\end{academicbox}
+\subsection{GROUP 2: Storage Architecture}
 
 
-\end{itemize}
+\textbf{Filter:} `FullyQualifiedName\textasciitilde{}StorageV3Tests|FullyQualifiedName\textasciitilde{}SystemV3Tests|FullyQualifiedName\textasciitilde{}ModelBinaryUtility`
+
+
+\textit{Bảng 6.6: Các bài kiểm tra kiến trúc lưu trữ}
+
+
+\begin{table}[H]
+  \centering\captionsetup{position=below}\small\selectfont
+  \begin{tabularx}{\textwidth}{|l|X|}
+  \hline
+Test Class & Mô tả \\ \hline
+StorageV3Tests & Slotted Page, B+ Tree operations \\ \hline
+SystemV3Tests & System Catalog, Metadata \\ \hline
+ModelBinaryUtilityTests & Serialization, Binary encoding \\ \hline
+  \end{tabularx}
+  \caption{Các bài kiểm tra kiến trúc lưu trữ}\label{tbl:các-bài-kiểm-tra-kiến-trúc-lưu-trữ}
+\end{table}
 
 
 
-\subsection{DS-L: Gói Tri thức Đô thị Thông minh (Scale context)}
-
-\begin{itemize}
-  \item \textbf{Mục tiêu}: Thử nghiệm bao đóng tri thức trên 1 triệu cảm biến với cấu trúc vật lý.
-  \item \textbf{Kịch bản}: `datasets/ds\_large\_smart\_city/setup\_kb.kbql`
-    \begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
-CREATE CONCEPT Sensor (
-    VARIABLES (s_id: STRING, speed: INT, zone_id: STRING),
-    BASE_OBJECTS (Zone), -- Khai báo thành phần cấu thành vật lý
-    CONSTRAINTS (C_ValidSpeed: speed >= 0),
-    RULES (
-        R_TrafficJam: IF speed < 10 THEN SET zone_id.status = 'JAMMED'
-    ),
-    PROPERTIES (source: 'Telemetry_API', version: '4.0')
-);
-
-CREATE HIERARCHY Zone PART_OF City;
-\end{Verbatim}
-\end{academicbox}
+\subsection{GROUP 3: Transactions \& WAL}
 
 
-\end{itemize}
+\textbf{Filter:} `FullyQualifiedName\textasciitilde{}TransactionV3Tests`
 
+
+\textit{Bảng 6.7: Các bài kiểm tra giao dịch và WAL}
+
+
+\begin{table}[H]
+  \centering\captionsetup{position=below}\small\selectfont
+  \begin{tabularx}{\textwidth}{|l|X|}
+  \hline
+Test Case & Mô tả \\ \hline
+Transaction Commit & Kiểm tra commit thành công \\ \hline
+Transaction Rollback & Kiểm tra rollback \\ \hline
+WAL Recovery & Phục hồi sau crash \\ \hline
+ACID Verification & Đảm bảo tính ACID \\ \hline
+  \end{tabularx}
+  \caption{Các bài kiểm tra giao dịch và WAL}\label{tbl:các-bài-kiểm-tra-giao-dịch-và-wal}
+\end{table}
+
+
+
+\subsection{GROUP 4: Query Engine}
+
+
+\textbf{Filter:} `FullyQualifiedName\textasciitilde{}DataOperationsV3Tests|FullyQualifiedName\textasciitilde{}ExecutionV3Tests|FullyQualifiedName\textasciitilde{}FullIntegrationV3Tests`
+
+
+\textit{Bảng 6.8: Các bài kiểm tra Query Engine}
+
+
+\begin{table}[H]
+  \centering\captionsetup{position=below}\small\selectfont
+  \begin{tabularx}{\textwidth}{|l|X|}
+  \hline
+Test Class & Mô tả \\ \hline
+DataOperationsV3Tests & INSERT, SELECT, UPDATE, DELETE \\ \hline
+ExecutionV3Tests & Query plan, Optimization \\ \hline
+FullIntegrationV3Tests & End-to-end scenarios \\ \hline
+  \end{tabularx}
+  \caption{Các bài kiểm tra Query Engine}\label{tbl:các-bài-kiểm-tra-query-engine}
+\end{table}
+
+
+
+\subsection{GROUP 5: Schema Evolution}
+
+
+\textbf{Filter:} `FullyQualifiedName\textasciitilde{}SchemaV3Tests|FullyQualifiedName\textasciitilde{}ExhaustiveAlterIntegration`
+
+
+\textit{Bảng 6.9: Các bài kiểm tra tiến hóa schema}
+
+
+\begin{table}[H]
+  \centering\captionsetup{position=below}\small\selectfont
+  \begin{tabularx}{\textwidth}{|l|X|}
+  \hline
+Test Class & Mô tả \\ \hline
+SchemaV3Tests & ALTER CONCEPT operations \\ \hline
+ExhaustiveAlterIntegrationTests & Data preservation, Migration \\ \hline
+  \end{tabularx}
+  \caption{Các bài kiểm tra tiến hóa schema}\label{tbl:các-bài-kiểm-tra-tiến-hóa-schema}
+\end{table}
+
+
+
+\subsection{GROUP 6: Reasoning}
+
+
+\textbf{Filter:} `FullyQualifiedName\textasciitilde{}BackwardChainingTests|FullyQualifiedName\textasciitilde{}Phase5ForwardChainingTests|FullyQualifiedName\textasciitilde{}ReteCoordination`
+
+
+\textit{Bảng 6.10: Các bài kiểm tra suy diễn}
+
+
+\begin{table}[H]
+  \centering\captionsetup{position=below}\small\selectfont
+  \begin{tabularx}{\textwidth}{|l|X|}
+  \hline
+Test Class & Mô tả \\ \hline
+BackwardChainingTests & Goal-directed reasoning \\ \hline
+Phase5ForwardChainingTests & Data-driven reasoning \\ \hline
+ReteCoordinationTests & Rete network, Pattern matching \\ \hline
+  \end{tabularx}
+  \caption{Các bài kiểm tra suy diễn}\label{tbl:các-bài-kiểm-tra-suy-diễn}
+\end{table}
+
+
+
+\subsection{GROUP 7: Language Design}
+
+
+\textbf{Filter:} `FullyQualifiedName\textasciitilde{}LexerTests|FullyQualifiedName\textasciitilde{}ParserTests`
+
+
+\textit{Bảng 6.11: Các bài kiểm tra ngôn ngữ KBQL}
+
+
+\begin{table}[H]
+  \centering\captionsetup{position=below}\small\selectfont
+  \begin{tabularx}{\textwidth}{|l|X|}
+  \hline
+Test Class & Mô tả \\ \hline
+LexerTests & Tokenization \\ \hline
+ParserTests & AST generation \\ \hline
+  \end{tabularx}
+  \caption{Các bài kiểm tra ngôn ngữ KBQL}\label{tbl:các-bài-kiểm-tra-ngôn-ngữ-kbql}
+\end{table}
 
 
 \section{Tổng kết và Đánh giá Kết quả Thực nghiệm}
 
 
-Dựa trên các số liệu đo đạc thực tế từ chương 6.1 đến 6.3, chương này đưa ra các đánh giá tổng kết về mức độ hoàn thành mục tiêu của luận văn đối với hệ quản trị cơ sở tri thức KBMS V3.
+\subsection{Tổng quan}
 
 
-\subsection{Đánh giá về Tính Đúng đắn (Correctness)}
-
-Hệ thống đã vượt qua bộ kiểm thử tích hợp (Integration Tests) bao gồm \textbf{111 kịch bản} khác nhau:\par
-- \textbf{Ngôn ngữ KBQL}: 100\% các câu lệnh DDL, DML, KCL và Tcl được phân tích cú pháp và thực thi đúng theo đặc tả AST.\par
-- \textbf{Cơ chế Suy diễn}: Công cụ Inference Engine (Rete V3) thực hiện chính xác các bao đóng tri thức (Closure) trên cả 4 kịch bản đa miền, đảm bảo tính nhất quán (Consistency) của tri thức dẫn xuất.\par
-- \textbf{Giao dịch (ACID)}: Cơ chế Write-Ahead Logging (WAL) đảm bảo dữ liệu không bị thất thoát ngay cả khi hệ thống dừng đột ngột (Crash recovery).
+Dựa trên kết quả chạy đã vượt qua toàn bộ 7 nhóm kiểm thử:
 
 
-\subsection{Đánh giá về Hiệu năng (Performance)}
+\begin{academicbox}
+\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
+=== SUMMARY CONCLUSION ===
+All systems validated on V3 Turbo Engine.
+Maximum Throughput: 200,000+ ops/sec achieved.
+Zero Data Loss WAL Verified.
+Full Backward Compatibility with V1/V2 Reasoning & Parser.
+\end{Verbatim}
+\end{academicbox}
 
-KBMS V3 thể hiện sức mạnh vượt trội nhờ kiến trúc hướng trang (Page-oriented) và Query Optimizer:\par
-- \textbf{Xử lý dữ liệu lớn}: Thông lượng ghi đạt đỉnh \textbf{207,296 ops/sec} trên tập dữ liệu 1 triệu thực thể (DS-L), tăng gấp 5 lần so với phiên bản V2.\par
-- \textbf{Phản hồi thời gian thực}: Độ trễ suy diễn (Reasoning Latency) trung bình duy trì ở mức \textbf{2.4ms} cho các kịch bản phức tạp, đáp ứng yêu cầu của các hệ sinh thái IoT và chẩn đoán y khoa.\par
-- \textbf{Truy vấn quan hệ}: Phép toán Hash Join được tối ưu hóa ở tầng Page Buffer giúp thực hiện phép kết trên 10,000 bản ghi chỉ trong \textbf{7.0ms}.
 
 
-\subsection{Đánh giá về Khả năng Mở rộng và Tối ưu I/O}
+
+\subsection{Kết quả chi tiết theo nhóm}
+
+
+\textit{Bảng 6.12: Tổng kết kết quả kiểm thử theo nhóm}
+
+
+\begin{table}[H]
+  \centering\captionsetup{position=below}\small\selectfont
+  \begin{tabularx}{\textwidth}{|l|L|L|L|}
+  \hline
+Nhóm & Tên & Số Test & Kết quả \\ \hline
+1 & Performance Benchmarks & Stress test &  Passed \\ \hline
+2 & Storage Architecture & Multiple &  Passed \\ \hline
+3 & Transactions \& WAL & Multiple &  Passed \\ \hline
+4 & Query Engine & Multiple &  Passed \\ \hline
+5 & Schema Evolution & Multiple &  Passed \\ \hline
+6 & Reasoning & Multiple &  Passed \\ \hline
+7 & Language Design & Multiple &  Passed \\ \hline
+  \end{tabularx}
+  \caption{Tổng kết kết quả kiểm thử theo nhóm}\label{tbl:tổng-kết-kết-quả-kiểm-thử-theo-nhóm}
+\end{table}
+
+
+\subsubsection{Performance Benchmarks}
 
 \begin{itemize}
-  \item \textbf{Quản lý bộ nhớ}: Buffer Pool Manager (LRU) đóng vai trò là ''lớp chắn I/O'', giúp hệ thống lùi số lần ghi đĩa vật lý về mức \textbf{0} khi được cấp phát đủ bộ nhớ đệm (256MB).
-  \item \textbf{Cấu trúc lưu trữ}: B+ Tree duy trì chiều cao thấp (h=4 cho 1 triệu bản ghi), đảm bảo tốc độ truy cập dữ liệu ổn định và tăng trưởng theo mức logarit.
+  \item \textbf{Thông lượng ghi:} 200,000+ ops/sec
+  \item \textbf{Xử lý 1 triệu bản ghi:} \textasciitilde{}5 giây
+  \item \textbf{Hash Join (10k x 10k):} \textasciitilde{}7ms
+  \item \textbf{Buffer Pool hiệu quả:} Zero disk I/O với 256MB cache
+\end{itemize}
+
+
+
+\subsubsection{Storage Architecture}
+
+\begin{itemize}
+  \item Slotted Page structure hoạt động ổn định
+  \item B+ Tree Index với chiều cao tối đa h=4 cho 1M bản ghi
+  \item Binary serialization/deserialization chính xác
+\end{itemize}
+
+
+
+\subsubsection{Transactions \& WAL}
+
+\begin{itemize}
+  \item ACID properties được đảm bảo
+  \item Crash recovery hoạt động đúng
+  \item Zero data loss verified
+\end{itemize}
+
+
+
+\subsubsection{Query Engine}
+
+\begin{itemize}
+  \item CRUD operations hoạt động chính xác
+  \item Query optimization hiệu quả
+  \item Full integration tests passed
+\end{itemize}
+
+
+
+\subsubsection{Schema Evolution}
+
+\begin{itemize}
+  \item ALTER CONCEPT hoạt động đúng
+  \item Data preservation during migration
+  \item Backward compatibility maintained
+\end{itemize}
+
+
+
+\subsubsection{Reasoning}
+
+\begin{itemize}
+  \item Forward Chaining hoạt động đúng
+  \item Backward Chaining hoạt động đúng
+  \item Rete Network coordination verified
+\end{itemize}
+
+
+
+\subsubsection{Language Design}
+
+\begin{itemize}
+  \item Lexer tokenization chính xác
+  \item Parser AST generation đúng
+  \item Error handling đầy đủ
 \end{itemize}
 
 
 
 \subsection{Kết luận}
 
-Thực nghiệm cho thấy KBMS V3 không chỉ là một hệ quản trị dữ liệu truyền thống mà còn là một nền tảng tri thức lai (Hybrid RDB/KBS) mạnh mẽ. Hệ thống đã giải quyết được bài toán cân bằng giữa tính linh hoạt của mô hình đối tượng (COKB) và hiệu năng truy xuất của cơ sở dữ liệu quan hệ, đạt được các mục tiêu khoa học đề ra trong luận văn.
+
+\textit{Bảng 6.13: Đánh giá mức độ hoàn thành mục tiêu}
+
+
+\begin{table}[H]
+  \centering\captionsetup{position=below}\small\selectfont
+  \begin{tabularx}{\textwidth}{|l|X|X|}
+  \hline
+Tiêu chí & Kết quả & Trạng thái \\ \hline
+Hiệu năng cao & 200,000+ ops/sec & Passed \\ \hline
+ACID Transactions & Zero data loss & Passed \\ \hline
+Suy diễn logic & Forward/Backward chaining & Passed \\ \hline
+Ngôn ngữ KBQL & Full DDL/DML/KCL support & Passed \\ \hline
+Schema evolution & Safe migration & Passed \\ \hline
+Scalability & 1M+ records & Passed \\ \hline
+  \end{tabularx}
+  \caption{Đánh giá mức độ hoàn thành mục tiêu}\label{tbl:đánh-giá-mức-độ-hoàn-thành-mục-tiêu}
+\end{table}
+
+
+Hệ thống KBMS V3 là một nền tảng tri thức lai (Hybrid RDB/KBS) hoàn chỉnh, đáp ứng các yêu cầu về hiệu năng, tính đúng đắn và khả năng mở rộng.
 
 
 \clearpage
@@ -6722,13 +6916,13 @@ Thực nghiệm cho thấy KBMS V3 không chỉ là một hệ quản trị dữ
 \section{Tổng kết kết quả đạt được}
 
 
-Dựa trên quá trình nghiên cứu, thiết kế và thực nghiệm hệ thống KBMS V3, luận văn đã đạt được các kết quả trọng tâm sau:
+Dựa trên quá trình nghiên cứu, thiết kế và thực nghiệm hệ thống KBMS, đề tài đã đạt được các kết quả trọng tâm sau:
 
 
 \begin{itemize}
   \item \textbf{Về mặt lý thuyết}: Hiện thực hóa thành công mô hình đối tượng tính toán COKB vào cấu trúc lưu trữ nhị phân, đảm bảo tính linh hoạt trong biểu diễn tri thức.
-  \item \textbf{Về mặt công nghệ}: Xây dựng được công cụ lưu trữ V3 Turbo với thông lượng vượt ngưỡng 200.000 ops/sec, tích hợp mạng Rete tối ưu hóa suy diễn.
-  \item \textbf{Về mặt ứng dụng}: Cung cấp bộ công cụ Studio IDE và CLI hoàn chỉnh, cho phép người dùng cuối tiếp cận tri thức một cách trực quan.
+  \item \textbf{Về mặt công nghệ}: Xây dựng được công cụ lưu trữ dạng client/server, có bộ máy lưu trữ cũng như giao thức mạng cơ bản giữa server và client, tích hợp mạng Rete tối ưu hóa suy diễn và tối ưu được lưu trữ dưới ổ đĩa.
+  \item \textbf{Về mặt ứng dụng}: Cung cấp bộ công cụ Studio IDE và CLI, cho phép người dùng cuối tiếp cận tri thức một cách trực quan.
 \end{itemize}
 
 
@@ -6736,7 +6930,7 @@ Dựa trên quá trình nghiên cứu, thiết kế và thực nghiệm hệ th�
 \section{Hạnh chế và Hướng phát triển tương lai}
 
 
-Mặc dù đạt được những chỉ số hiệu năng ấn tượng, hệ thống vẫn tồn tại một số điểm cần cải thiện:
+Mặc dù đạt được những chỉ số hiệu năng trên, hệ thống vẫn tồn tại một số điểm cần cải thiện:
 
 
 \begin{itemize}

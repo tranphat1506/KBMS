@@ -27,6 +27,24 @@ public class Condition
     /// Optional logical operator for chaining (AND, OR)
     /// </summary>
     public string? LogicalOperator { get; set; }
+
+    /// <summary>
+    /// Left expression (for SOLVE and other function calls in conditions)
+    /// When set, this takes precedence over Field for evaluation
+    /// </summary>
+    public ExpressionNode? LeftExpression { get; set; }
+
+    /// <summary>
+    /// Right expression (for complex value expressions)
+    /// When set, this takes precedence over Value for evaluation
+    /// </summary>
+    public ExpressionNode? RightExpression { get; set; }
+
+    /// <summary>
+    /// Returns true if this condition uses SOLVE function on the left side
+    /// </summary>
+    public bool HasSolveLeft => LeftExpression is FunctionCallNode func &&
+        func.FunctionName.Equals("SOLVE", StringComparison.OrdinalIgnoreCase);
 }
 
 /// <summary>

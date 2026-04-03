@@ -89,4 +89,18 @@ public class ErrorResponse
             Column = column > 0 ? column : null
         };
     }
+
+    /// <summary>
+    /// Create error response for semantic validation errors (e.g., concept not found, variable not in concept)
+    /// </summary>
+    public static ErrorResponse ValidationErrorResponse(string message, string? query = null, Dictionary<string, object?>? details = null)
+    {
+        return new ErrorResponse
+        {
+            Type = "ValidationError",
+            Message = message,
+            Query = query,
+            Details = details
+        };
+    }
 }

@@ -77,6 +77,11 @@ public enum TokenType
     VALUES,         // VALUES
     SET,            // SET
     JOIN,           // JOIN
+    LEFT,           // LEFT (for LEFT JOIN)
+    RIGHT,          // RIGHT (for RIGHT JOIN)
+    FULL,           // FULL (for FULL JOIN)
+    OUTER,          // OUTER (optional keyword)
+    INNER,          // INNER (explicit inner join)
     ON,             // ON
     ORDER,          // ORDER
     BY,             // BY

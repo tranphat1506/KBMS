@@ -12,6 +12,8 @@ using KBMS.Parser.Ast.Expressions;
 using KBMS.Storage;
 using KBMS.Storage.V3;
 using KBMS.Knowledge.V3;
+using KBMS.Knowledge.Validation;
+using KBMS.Reasoning;
 
 namespace KBMS.Knowledge;
 
@@ -71,8 +73,59 @@ public class KnowledgeManager
             return ErrorResponse.PermissionErrorResponse(action, kbName ?? "system");
         }
 
+        // NEW: Semantic validation before execution
+        var validationResult = ValidateAst(ast, kbName);
+        if (!validationResult.IsValid)
+        {
+            return ErrorResponse.ValidationErrorResponse(string.Join("; ", validationResult.Errors));
+        }
+
+        // Log warnings if any
+        if (validationResult.Warnings.Count > 0)
+        {
+            Console.WriteLine($"[WARNINGS] {string.Join("; ", validationResult.Warnings)}");
+        }
+
         // Execute the command
         return ExecuteQuery(ast, kbName);
+    }
+
+    /// <summary>
+    /// Validate AST before execution
+    /// </summary>
+    private ValidationResult ValidateAst(AstNode ast, string? kbName)
+    {
+        if (string.IsNullOrEmpty(kbName))
+            return ValidationResult.Success(); // Skip validation if no KB context
+
+        var validator = new SemanticValidator(_conceptCatalog, _kbCatalog);
+
+        return ast switch
+        {
+            SelectNode select => validator.ValidateSelect(select, kbName),
+            InsertNode insert => validator.ValidateInsert(insert, kbName),
+            InsertBulkNode bulkInsert => ValidateBulkInsert(bulkInsert, kbName, validator),
+            UpdateNode update => validator.ValidateUpdate(update, kbName),
+            CreateRuleNode rule => validator.ValidateRule(rule, kbName),
+            AddHierarchyNode hierarchy => validator.ValidateHierarchy(hierarchy, kbName),
+            CreateRelationNode relation => validator.ValidateRelation(relation, kbName),
+            _ => ValidationResult.Success() // No validation for other node types
+        };
+    }
+
+    private ValidationResult ValidateBulkInsert(InsertBulkNode node, string kbName, SemanticValidator validator)
+    {
+        // Validate first row as sample
+        if (node.Rows.Count > 0)
+        {
+            var sampleInsert = new InsertNode
+            {
+                ConceptName = node.ConceptName,
+                Values = node.Rows[0]
+            };
+            return validator.ValidateInsert(sampleInsert, kbName);
+        }
+        return ValidationResult.Success();
     }
 
     private bool RequiresKb(AstNode ast)
@@ -798,6 +851,12 @@ public class KnowledgeManager
     {
         try
         {
+            // Handle derived table (sub-query in FROM clause)
+            if (node.HasDerivedTable)
+            {
+                return HandleDerivedTableSelect(node, kbName);
+            }
+
             var parts = node.ConceptName.Split('.');
             var entityName = parts[0];
             var subTarget = parts.Length > 1 ? parts[1].ToLower() : null;
@@ -1183,6 +1242,134 @@ public class KnowledgeManager
         }
     }
 
+    /// <summary>
+    /// Handle SELECT with derived table (sub-query in FROM clause)
+    /// Example: SELECT * FROM (SELECT a, b FROM T1) AS sub WHERE ...
+    /// </summary>
+    private object HandleDerivedTableSelect(SelectNode node, string kbName)
+    {
+        // 1. Execute the inner sub-query
+        var innerResult = HandleSelect(node.DerivedTable!, kbName);
+        if (innerResult is ErrorResponse error)
+            return error;
+
+        if (innerResult is not QueryResultSet innerQrs || !innerQrs.Success)
+            return ErrorResponse.ExecutionErrorResponse("Derived table sub-query failed.");
+
+        // 2. Use the sub-query result as the source for the outer query
+        var alias = node.Alias ?? "derived";
+        var derivedObjects = innerQrs.ToObjectInstances(alias);
+
+        // 3. Build schema for the derived table
+        var derivedSchema = innerQrs.Schema ?? new QuerySchema
+        {
+            SourceConcept = alias,
+            Alias = alias,
+            IsComposable = true,
+            Columns = innerQrs.Columns.Select(col => new ColumnSchema
+            {
+                Name = col,
+                Type = "UNKNOWN",
+                SourceTable = alias
+            }).ToList()
+        };
+
+        // 4. Apply WHERE conditions from outer query
+        if (node.Conditions.Count > 0)
+        {
+            derivedObjects = FilterObjects(derivedObjects, node.Conditions, kbName, alias, alias);
+        }
+
+        // 5. Apply projections (SELECT columns)
+        List<ObjectInstance> projectedObjects;
+        List<string> columns;
+
+        if (node.SelectColumns.Count == 0 ||
+            (node.SelectColumns.Count == 1 && node.SelectColumns[0].IsStar))
+        {
+            // SELECT * - keep all columns
+            projectedObjects = derivedObjects;
+            columns = derivedSchema.Columns.Select(c => c.Name).ToList();
+        }
+        else
+        {
+            // Specific columns selected
+            columns = new List<string>();
+            projectedObjects = new List<ObjectInstance>();
+
+            foreach (var obj in derivedObjects)
+            {
+                var newObj = new ObjectInstance
+                {
+                    Id = obj.Id,
+                    KbId = obj.KbId,
+                    ConceptName = alias,
+                    Values = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
+                };
+
+                foreach (var col in node.SelectColumns)
+                {
+                    if (col.IsStar)
+                    {
+                        // Include all columns
+                        foreach (var kv in obj.Values)
+                        {
+                            newObj.Values[kv.Key] = kv.Value;
+                            if (!columns.Contains(kv.Key)) columns.Add(kv.Key);
+                        }
+                    }
+                    else
+                    {
+                        var colName = col.Alias ?? col.Name;
+                        if (obj.Values.TryGetValue(col.Name, out var val) ||
+                            obj.Values.TryGetValue($"{alias}.{col.Name}", out val))
+                        {
+                            newObj.Values[colName] = val;
+                            if (!columns.Contains(colName)) columns.Add(colName);
+                        }
+                    }
+                }
+
+                projectedObjects.Add(newObj);
+            }
+        }
+
+        // 6. Apply ORDER BY
+        if (node.OrderBy.Count > 0)
+        {
+            projectedObjects = ApplyOrderBy(projectedObjects, node.OrderBy);
+        }
+
+        // 7. Apply LIMIT/OFFSET
+        if (node.Limit != null)
+        {
+            var offset = node.Limit.Offset ?? 0;
+            projectedObjects = projectedObjects.Skip(offset).Take(node.Limit.Limit).ToList();
+        }
+
+        // 8. Build final result with schema
+        return new QueryResultSet
+        {
+            Success = true,
+            ConceptName = alias,
+            Columns = columns,
+            Objects = projectedObjects,
+            Count = projectedObjects.Count,
+            Schema = new QuerySchema
+            {
+                SourceConcept = alias,
+                Alias = alias,
+                IsComposable = true,
+                Columns = columns.Select(c => new ColumnSchema
+                {
+                    Name = c,
+                    Type = derivedSchema.GetColumn(c)?.Type ?? "UNKNOWN",
+                    SourceTable = alias
+                }).ToList()
+            }
+        };
+    }
+
     public IEnumerable<ObjectInstance> SelectAllObjects(string kbName)
     {
         var concepts = _conceptCatalog.ListConcepts(kbName);
@@ -1248,10 +1435,91 @@ public class KnowledgeManager
 
     private bool MatchCondition(ObjectInstance obj, Condition condition, string kbName, string? a = null, string? c = null)
     {
+        // Handle EXISTS sub-query
+        if (condition.Operator.Equals("EXISTS", StringComparison.OrdinalIgnoreCase) &&
+            condition.Field.Equals("EXISTS", StringComparison.OrdinalIgnoreCase))
+        {
+            if (condition.Value is SelectNode existsSubQuery)
+            {
+                var existsResult = HandleSelect(existsSubQuery, kbName);
+                if (existsResult is QueryResultSet existsQrs && existsQrs.Success)
+                {
+                    return existsQrs.Count > 0;
+                }
+            }
+            return false;
+        }
+
+        // Handle SOLVE in WHERE clause (e.g., WHERE SOLVE(area) > 100)
+        if (condition.HasSolveLeft && condition.LeftExpression is FunctionCallNode solveFunc)
+        {
+            var targetVar = solveFunc.Arguments.FirstOrDefault()?.ToString();
+            if (!string.IsNullOrEmpty(targetVar))
+            {
+                // Get concept metadata for SOLVE
+                var conceptName = c ?? obj.ConceptName;
+                var concept = _conceptCatalog.LoadConcept(kbName, conceptName);
+
+                if (concept != null)
+                {
+                    // Build evaluation parameters from object values
+                    var evalParams = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var kv in obj.Values)
+                    {
+                        evalParams[kv.Key] = kv.Value ?? 0;
+                    }
+
+                    // Create inference engine and solve
+                    var engine = GetConfiguredEngine(kbName);
+                    var solveResult = engine.FindClosure(concept, evalParams, new List<string> { targetVar });
+
+                    if (solveResult.Success && solveResult.DerivedFacts.TryGetValue(targetVar, out var solvedValue))
+                    {
+                        // Compare solved value with condition value
+                        var solveCompareValue = condition.Value;
+                        return condition.Operator switch
+                        {
+                            "=" => Equals(solvedValue, solveCompareValue) || CompareValues(solvedValue, solveCompareValue) == 0,
+                            "<>" or "!=" => !Equals(solvedValue, solveCompareValue) && CompareValues(solvedValue, solveCompareValue) != 0,
+                            ">" => CompareValues(solvedValue, solveCompareValue) > 0,
+                            "<" => CompareValues(solvedValue, solveCompareValue) < 0,
+                            ">=" => CompareValues(solvedValue, solveCompareValue) >= 0,
+                            "<=" => CompareValues(solvedValue, solveCompareValue) <= 0,
+                            _ => false
+                        };
+                    }
+                }
+            }
+            return false;
+        }
+
         var value = ResolveValue(obj, condition.Field, a, c);
         if (value == null) return false;
 
         var compareValue = condition.Value;
+
+        // Handle scalar sub-query comparison (e.g., id = (SELECT MAX(id) FROM T))
+        if (compareValue is SelectNode scalarSubQuery)
+        {
+            var scalarResult = HandleSelect(scalarSubQuery, kbName);
+            if (scalarResult is QueryResultSet scalarQrs && scalarQrs.Success && scalarQrs.Count > 0)
+            {
+                // Get the first value from the first row
+                var firstObj = scalarQrs.Objects[0];
+                if (firstObj.Values.Count > 0)
+                {
+                    compareValue = firstObj.Values.Values.First();
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                return false;
+            }
+        }
 
         if (condition.Operator.Equals("IN", StringComparison.OrdinalIgnoreCase))
         {
@@ -1337,32 +1605,97 @@ public class KnowledgeManager
     private List<ObjectInstance> ApplyJoin(List<ObjectInstance> objects, string? leftAlias, string? leftConcept, JoinClause join, string kbName)
     {
         var targetConcept = _conceptCatalog.LoadConcept(kbName, join.Target);
-        var joinObjects = _v3Router.SelectObjects(kbName, join.Target, concept: targetConcept);
+        var joinObjects = _v3Router.SelectObjects(kbName, join.Target, concept: targetConcept).ToList();
 
         var result = new List<ObjectInstance>();
+        var joinType = join.JoinType?.ToUpper() ?? "INNER";
+        var rightAlias = join.Alias ?? join.Target;
 
-        foreach (var obj in objects)
+        // Track which right objects matched (for RIGHT and FULL joins)
+        var matchedRightIndices = new HashSet<int>();
+
+        // Process each left object
+        for (int leftIdx = 0; leftIdx < objects.Count; leftIdx++)
         {
-            foreach (var joinObj in joinObjects)
+            var obj = objects[leftIdx];
+            var matchedAny = false;
+
+            for (int rightIdx = 0; rightIdx < joinObjects.Count; rightIdx++)
             {
+                var joinObj = joinObjects[rightIdx];
+
+                bool matches = false;
                 if (join.OnCondition != null)
                 {
-                    if (EvaluateJoinCondition(obj, leftAlias, leftConcept, joinObj, join.Alias, join.Target, join.OnCondition))
-                    {
-                        var merged = MergeObjects(obj, joinObj, join.Alias);
-                        result.Add(merged);
-                    }
+                    matches = EvaluateJoinCondition(obj, leftAlias, leftConcept, joinObj, join.Alias, join.Target, join.OnCondition);
                 }
                 else
                 {
-                    // No ON condition - cross join
-                    var merged = MergeObjects(obj, joinObj, join.Alias);
+                    // No ON condition - cross join (all combinations)
+                    matches = true;
+                }
+
+                if (matches)
+                {
+                    var merged = MergeObjects(obj, joinObj, rightAlias);
+                    result.Add(merged);
+                    matchedAny = true;
+                    matchedRightIndices.Add(rightIdx);
+                }
+            }
+
+            // LEFT JOIN: Include left row even if no match found
+            if (!matchedAny && (joinType == "LEFT" || joinType == "FULL"))
+            {
+                var nullRight = CreateNullObject(join.Target, rightAlias, targetConcept);
+                var merged = MergeObjects(obj, nullRight, rightAlias);
+                result.Add(merged);
+            }
+        }
+
+        // RIGHT/FULL JOIN: Include unmatched right rows
+        if (joinType == "RIGHT" || joinType == "FULL")
+        {
+            for (int rightIdx = 0; rightIdx < joinObjects.Count; rightIdx++)
+            {
+                if (!matchedRightIndices.Contains(rightIdx))
+                {
+                    var joinObj = joinObjects[rightIdx];
+                    var nullLeft = CreateNullObject(leftConcept ?? "left", leftAlias,
+                        leftConcept != null ? _conceptCatalog.LoadConcept(kbName, leftConcept) : null);
+                    var merged = MergeObjects(nullLeft, joinObj, rightAlias);
                     result.Add(merged);
                 }
             }
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Create an object with NULL values for all variables in the concept
+    /// </summary>
+    private ObjectInstance CreateNullObject(string conceptName, string? alias, Concept? concept)
+    {
+        var nullObj = new ObjectInstance
+        {
+            ConceptName = conceptName,
+            Values = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
+        };
+
+        if (concept != null)
+        {
+            foreach (var variable in concept.Variables)
+            {
+                nullObj.Values[variable.Name] = null;
+                if (!string.IsNullOrEmpty(alias))
+                {
+                    nullObj.Values[$"{alias}.{variable.Name}"] = null;
+                }
+            }
+        }
+
+        return nullObj;
     }
 
     private bool EvaluateJoinCondition(ObjectInstance left, string? leftAlias, string? leftConcept, 

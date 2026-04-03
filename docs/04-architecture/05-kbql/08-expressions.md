@@ -377,3 +377,97 @@ EXPLAIN (
 -- Biểu thức sử dụng index (tối ưu)
 -- SELECT * FROM Patient WHERE age > 39;
 ```
+
+### 6.11. Biểu thức Sub-query
+
+Sub-query có thể được sử dụng như một biểu thức trong mệnh đề WHERE:
+
+```kbql
+-- Scalar sub-query: Trả về một giá trị duy nhất
+SELECT name, age FROM Patient
+WHERE age > (SELECT AVG(age) FROM Patient);
+
+-- Sub-query với hàm tổng hợp
+SELECT * FROM Patient
+WHERE sys = (SELECT MAX(sys) FROM Patient);
+
+-- Sub-query tương quan (correlated sub-query)
+SELECT p.name FROM Patient p
+WHERE EXISTS (
+    SELECT 1 FROM Appointment a
+    WHERE a.patientId = p.patientId AND a.status = 'Scheduled'
+);
+
+-- Sub-query với IN
+SELECT * FROM Product
+WHERE categoryId IN (SELECT categoryId FROM Category WHERE active = true);
+
+-- Sub-query lồng nhau
+SELECT * FROM Patient
+WHERE patientId IN (
+    SELECT patientId FROM Appointment
+    WHERE doctorId IN (
+        SELECT doctorId FROM Doctor WHERE specialty = 'Cardiology'
+    )
+);
+```
+
+### 6.12. Biểu thức SOLVE() trong WHERE
+
+Macro `SOLVE()` có thể được sử dụng trong mệnh đề WHERE để lọc dựa trên kết quả suy diễn:
+
+```kbql
+-- Lọc theo kết quả suy diễn
+SELECT * FROM Triangle
+WHERE SOLVE(area) > 100;
+
+-- Kết hợp với các điều kiện khác
+SELECT name, sys, dia FROM Patient
+WHERE SOLVE(is_hypertension) = true AND age > 50;
+
+-- Sử dụng nhiều SOLVE trong WHERE
+SELECT * FROM Triangle
+WHERE SOLVE(area) > 100 AND SOLVE(perimeter) < 50;
+
+-- Kết hợp với JOIN
+SELECT p.name, t.sideA, t.sideB
+FROM Patient p
+JOIN Triangle t ON p.patientId = t.ownerId
+WHERE SOLVE(t.area) > 100;
+```
+
+### 6.13. Biểu thức Phức tạp với Nhiều Tính năng
+
+```kbql
+-- Kết hợp sub-query, SOLVE và biểu thức tính toán
+SELECT
+    p.name,
+    p.age,
+    CALC(p.sys / p.dia) AS pulse_pressure,
+    SOLVE(risk_level) AS predicted_risk
+FROM Patient p
+WHERE p.age > (SELECT AVG(age) FROM Patient)
+  AND EXISTS (SELECT 1 FROM Appointment a WHERE a.patientId = p.patientId)
+  AND SOLVE(is_hypertension) = true;
+
+-- Derived table với SOLVE trong WHERE
+SELECT name, risk_score
+FROM (
+    SELECT name, age, sys, dia, SOLVE(risk_level) AS risk_score
+    FROM Patient
+    WHERE age > 40
+) AS at_risk_patients
+WHERE risk_score = 'high';
+
+-- Biểu thức phức tạp trong derived table
+SELECT category, avg_value, risk_flag
+FROM (
+    SELECT
+        category,
+        AVG(value) AS avg_value,
+        CALC(SUM(CASE WHEN value > 100 THEN 1 ELSE 0 END)) AS high_count
+    FROM Measurements
+    GROUP BY category
+) AS summary
+WHERE high_count > 5 OR avg_value > 50;
+```

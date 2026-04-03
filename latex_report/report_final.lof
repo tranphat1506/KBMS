@@ -39,9 +39,9 @@
 \contentsline {figure}{\numberline {4.31}{\ignorespaces Sơ đồ kiến trúc tầng suy luận và quy trình lan truyền tri thức.}}{113}{figure.caption.60}%
 \contentsline {figure}{\numberline {4.32}{\ignorespaces Quy trình đệ quy và giải quyết tri thức mục tiêu trong KBMS.}}{114}{figure.caption.61}%
 \contentsline {figure}{\numberline {4.33}{\ignorespaces Sơ đồ tuần tự mô tả luồng xử lý câu lệnh và phản hồi từ Server của CLI.}}{118}{figure.caption.63}%
-\contentsline {figure}{\numberline {4.34}{\ignorespaces Luồng xác thực và thiết lập phiên làm việc trên CLI.}}{119}{figure.caption.64}%
+\contentsline {figure}{\numberline {4.34}{\ignorespaces Luồng xác thực và thiết lập phiên làm việc trên CLI.}}{120}{figure.caption.64}%
 \contentsline {figure}{\numberline {4.35}{\ignorespaces Quy trình xử lý câu lệnh định nghĩa cấu trúc.}}{120}{figure.caption.65}%
-\contentsline {figure}{\numberline {4.36}{\ignorespaces Quy trình truy vấn và điều phối hiển thị.}}{120}{figure.caption.66}%
+\contentsline {figure}{\numberline {4.36}{\ignorespaces Quy trình truy vấn và điều phối hiển thị.}}{121}{figure.caption.66}%
 \contentsline {figure}{\numberline {4.37}{\ignorespaces Chu trình xử lý suy luận và trích xuất cây truy vết.}}{122}{figure.caption.67}%
 \contentsline {figure}{\numberline {4.38}{\ignorespaces Quy trình thực thi tập lệnh từ tệp tin nguồn.}}{123}{figure.caption.68}%
 \contentsline {figure}{\numberline {4.39}{\ignorespaces Giao diện khởi tạo và xác lập phiên làm việc trên console.}}{123}{figure.caption.69}%

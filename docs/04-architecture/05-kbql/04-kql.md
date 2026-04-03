@@ -10,10 +10,10 @@ Lệnh `SELECT` trong KBQL tương đương với tiêu chuẩn SQL nhưng đư�
 
 ```kbql
 SELECT [<columns> | * | AGGREGATE(<var>)]
-FROM <concept> [AS <alias>]
-[JOIN <concept> ON <condition>]
+FROM <concept> [AS <alias>] | (<subquery>) [AS <alias>]
+[<join_type> JOIN <concept> [AS <alias>] ON <condition>]
 [WHERE <filter_conditions>]
-[GROUP BY <variables>] 
+[GROUP BY <variables>]
 [HAVING <filter_conditions>]
 [ORDER BY <variables> {ASC | DESC}]
 [LIMIT <n> OFFSET <m>];
@@ -25,35 +25,226 @@ FROM <concept> [AS <alias>]
 *   **Mệnh đề lọc sau nhóm (HAVING):** Cho phép lọc dữ liệu sau khi đã thực hiện gom nhóm tri thức.
 *   **Biểu thức Tính toán CALC():** Hỗ trợ thực thi các công thức toán học ngay trong tiến trình truy vấn.
     *Ví dụ:* `SELECT name, CALC(price * 1.1) AS price_tax FROM Product;`
+*   **Sub-query (Truy vấn con):** Hỗ trợ sub-query trong mệnh đề FROM và WHERE.
+*   **Outer Join:** Hỗ trợ LEFT JOIN, RIGHT JOIN, FULL OUTER JOIN.
 
-## 2. Macro Giải quyết Tri thức SOLVE()
+---
 
-Macro `SOLVE()` được tích hợp trực tiếp vào danh sách truy xuất (projection) của lệnh `SELECT`. Nó kích hoạt bộ máy giải quyết vấn đề (Problem Solver) nội suy các biến số chưa biết ngay tại thời điểm truy vấn (on-the-fly) dựa trên cơ sở tri thức hiện hành (các công thức, luật dẫn, phân cấp).
+## 2. Các Loại JOIN
 
-### 2.1. Cú pháp thực thi
+KQL hỗ trợ đầy đủ các loại JOIN theo tiêu chuẩn SQL:
+
+### 2.1. INNER JOIN (Mặc định)
+
+Trả về các dòng có kết quả khớp ở cả hai bảng:
 
 ```kbql
-SELECT <columns>, SOLVE(<target_variable>) 
+SELECT p.name, a.appointmentDate
+FROM Patient p
+JOIN Appointment a ON p.patientId = a.patientId;
+```
+
+### 2.2. LEFT [OUTER] JOIN
+
+Trả về tất cả các dòng từ bảng bên trái, và các dòng khớp từ bảng bên phải. Nếu không khớp, giá trị bên phải sẽ là NULL:
+
+```kbql
+-- Liệt kê tất cả bệnh nhân, bao gồm cả những người chưa có lịch hẹn
+SELECT p.name, a.appointmentDate
+FROM Patient p
+LEFT JOIN Appointment a ON p.patientId = a.patientId;
+
+-- Sử dụng LEFT OUTER JOIN (tương tự)
+SELECT p.name, a.appointmentDate
+FROM Patient p
+LEFT OUTER JOIN Appointment a ON p.patientId = a.patientId;
+```
+
+### 2.3. RIGHT [OUTER] JOIN
+
+Trả về tất cả các dòng từ bảng bên phải, và các dòng khớp từ bảng bên trái:
+
+```kbql
+-- Liệt kê tất cả lịch hẹn, bao gồm cả những lịch hẹn chưa gán bệnh nhân
+SELECT p.name, a.appointmentDate
+FROM Patient p
+RIGHT JOIN Appointment a ON p.patientId = a.patientId;
+```
+
+### 2.4. FULL [OUTER] JOIN
+
+Trả về tất cả các dòng từ cả hai bảng, điền NULL cho bên không khớp:
+
+```kbql
+-- Liệt kê tất cả bệnh nhân và tất cả lịch hẹn
+SELECT p.name, a.appointmentDate
+FROM Patient p
+FULL OUTER JOIN Appointment a ON p.patientId = a.patientId;
+```
+
+### 2.5. CROSS JOIN
+
+Tạo tích Descartes của hai bảng:
+
+```kbql
+SELECT p1.label AS point1, p2.label AS point2
+FROM Point p1
+CROSS JOIN Point p2
+WHERE p1.label < p2.label;
+```
+
+---
+
+## 3. Sub-query (Truy vấn Con)
+
+### 3.1. Derived Table (Sub-query trong FROM)
+
+Sử dụng kết quả của một truy vấn làm nguồn dữ liệu cho truy vấn bên ngoài:
+
+```kbql
+-- Truy vấn từ một derived table
+SELECT * FROM (
+    SELECT name, age, sys FROM Patient WHERE age > 50
+) AS elderly_patients
+WHERE sys > 140;
+
+-- Kết hợp derived table với JOIN
+SELECT e.name, e.avg_sys
+FROM (
+    SELECT patientId, name, AVG(sys) AS avg_sys
+    FROM Patient
+    GROUP BY patientId, name
+) AS e
+JOIN Appointment a ON e.patientId = a.patientId;
+```
+
+### 3.2. Scalar Sub-query (trong WHERE)
+
+Sử dụng sub-query trả về một giá trị duy nhất để so sánh:
+
+```kbql
+-- Tìm bệnh nhân có huyết áp cao nhất
+SELECT * FROM Patient
+WHERE sys = (SELECT MAX(sys) FROM Patient);
+
+-- Tìm bệnh nhân có tuổi lớn hơn tuổi trung bình
+SELECT name, age FROM Patient
+WHERE age > (SELECT AVG(age) FROM Patient);
+```
+
+### 3.3. EXISTS Sub-query
+
+Kiểm tra sự tồn tại của bản ghi thỏa mãn điều kiện:
+
+```kbql
+-- Tìm bệnh nhân đã có lịch hẹn
+SELECT name FROM Patient p
+WHERE EXISTS (
+    SELECT 1 FROM Appointment a
+    WHERE a.patientId = p.patientId
+);
+
+-- Tìm bệnh nhân chưa có lịch hẹn
+SELECT name FROM Patient p
+WHERE NOT EXISTS (
+    SELECT 1 FROM Appointment a
+    WHERE a.patientId = p.patientId
+);
+```
+
+### 3.4. IN Sub-query
+
+Kiểm tra giá trị có nằm trong tập kết quả của sub-query:
+
+```kbql
+-- Tìm bệnh nhân có trong danh sách lịch hẹn hôm nay
+SELECT * FROM Patient
+WHERE patientId IN (
+    SELECT patientId FROM Appointment
+    WHERE appointmentDate = '2026-04-03'
+);
+
+-- Sử dụng NOT IN
+SELECT * FROM Patient
+WHERE patientId NOT IN (
+    SELECT patientId FROM Appointment
+    WHERE status = 'Cancelled'
+);
+```
+
+---
+
+## 4. Macro Giải quyết Tri thức SOLVE()
+
+Macro `SOLVE()` kích hoạt bộ máy giải quyết vấn đề (Problem Solver) nội suy các biến số chưa biết dựa trên cơ sở tri thức hiện hành.
+
+### 4.1. SOLVE trong Projection (Danh sách truy xuất)
+
+```kbql
+SELECT <columns>, SOLVE(<target_variable>)
 FROM <concept>
 [WHERE <conditions>];
 ```
 
-### 2.2. Phân tích Hoạt động Suy diễn On-the-Fly
-
-1.  **Thu thập dữ liệu (Fetch):** KBMS truy xuất các Sự kiện (**Facts**) từ bộ nhớ lưu trữ dựa trên mệnh đề `FROM` và `WHERE`.
-2.  **Kích hoạt Engine (Trigger):** Macro `SOLVE()` sẽ lấy toàn bộ các thuộc tính của dòng hiện tại (row attributes) làm **Sự kiện ban đầu (Initial Facts)**.
-3.  **Suy diễn (Inference):** Hệ thống áp dụng thuật toán Suy diễn tiến (**Forward Chaining**) kết hợp Giải phương trình (**Equation Solving**) trong bộ nhớ tạm mà không làm biến đổi dữ liệu đĩa vật lý.
-4.  **Tích hợp Kết quả (Projection):** Trả về giá trị của biến `<target_variable>` ngay trong bảng kết quả của lệnh `SELECT`.
-
-*Ví dụ:*
+**Ví dụ:**
 ```kbql
--- Yêu cầu hệ thống chẩn đoán biến 'is_hypertension' dựa trên huyết áp đo được.
-SELECT name, sys, dia, SOLVE(is_hypertension) FROM Patient WHERE age > 60;
+-- Chẩn đoán biến 'is_hypertension' dựa trên huyết áp
+SELECT name, sys, dia, SOLVE(is_hypertension)
+FROM Patient
+WHERE age > 60;
 ```
 
-## 3. Quản trị và Giám sát Hệ thống
+### 4.2. SOLVE trong WHERE Clause
 
-Cung cấp các công cụ để liệt kê và kiểm tra các thành phần trong cơ sở tri thức hiện tại:
+Sử dụng SOLVE để lọc dữ liệu dựa trên kết quả suy diễn:
+
+```kbql
+-- Tìm các tam giác có diện tích > 100
+SELECT * FROM Triangle
+WHERE SOLVE(area) > 100;
+
+-- Tìm bệnh nhân có mức nguy cơ cao
+SELECT * FROM Patient
+WHERE SOLVE(risk_level) = 'high';
+
+-- Kết hợp với các điều kiện khác
+SELECT name, sys, dia FROM Patient
+WHERE SOLVE(is_hypertension) = true AND age > 50;
+```
+
+### 4.3. Phân tích Hoạt động Suy diễn
+
+1.  **Thu thập dữ liệu (Fetch):** KBMS truy xuất các Sự kiện (**Facts**) từ bộ nhớ lưu trữ.
+2.  **Kích hoạt Engine (Trigger):** Macro `SOLVE()` lấy các thuộc tính của dòng hiện tại làm **Sự kiện ban đầu**.
+3.  **Suy diễn (Inference):** Hệ thống áp dụng Forward Chaining kết hợp Equation Solving.
+4.  **Tích hợp Kết quả:** Trả về giá trị của biến mục tiêu.
+
+---
+
+## 5. Semantic Validation
+
+Hệ thống tự động kiểm tra ngữ nghĩa của truy vấn trước khi thực thi:
+
+*   **Kiểm tra Concept tồn tại:** Xác minh concept trong FROM/INSERT/UPDATE có tồn tại.
+*   **Kiểm tra Variable:** Xác minh các biến/cột có thuộc concept đúng.
+*   **Kiểm tra Type Compatibility:** Cảnh báo khi kiểu dữ liệu không tương thích.
+*   **Kiểm tra Hierarchy Cycle:** Phát hiện vòng lặp trong phân cấp.
+*   **Kiểm tra Rule Scope:** Xác minh scope concept của rule tồn tại.
+
+Khi có lỗi validation, hệ thống trả về lỗi `ValidationError` với chi tiết:
+
+```json
+{
+    "Type": "ValidationError",
+    "Message": "Concept 'Patientt' not found in knowledge base 'clinic'."
+}
+```
+
+---
+
+## 6. Quản trị và Giám sát Hệ thống
+
+Cung cấp các công cụ để liệt kê và kiểm tra các thành phần trong cơ sở tri thức:
 
 *   **SHOW CONCEPTS**: Liệt kê danh mục các Khái niệm.
 *   **SHOW RULES**: Hiển thị các luật suy diễn đã định nghĩa.
@@ -61,23 +252,24 @@ Cung cấp các công cụ để liệt kê và kiểm tra các thành phần tr
 *   **SHOW HIERARCHIES**: Hiển thị cấu trúc cây phân cấp tri thức.
 *   **SHOW OPERATORS / FUNCTIONS**: Liệt kê các toán tử và hàm số tùy biến.
 
-## 4. Phân tích và Đặc tả Kỹ thuật
+## 7. Phân tích và Đặc tả Kỹ thuật
 
-Các công cụ hỗ trợ nhà phát triển nắm bắt cấu trúc và phương thức thực thi của hệ thống:
+*   **DESCRIBE {CONCEPT | RULE | ...} <name>**: Hiển thị chi tiết cấu trúc định nghĩa.
+*   **EXPLAIN (<kbql_statement>)**: Đặc tả kế hoạch thực thi (**Execution Plan**).
 
-*   **DESCRIBE {CONCEPT | RULE | ...} <name>**: Hiển thị chi tiết cấu trúc định nghĩa của đối tượng tri thức.
-*   **EXPLAIN (<kbql_statement>)**: Đặc tả kế hoạch thực thi (**Execution Plan**) của câu lệnh, phục vụ việc tối ưu hóa hiệu năng truy vấn.
+## 8. Truy cập Dữ liệu Siêu dữ liệu (Metadata)
 
-## 5. Truy cập Dữ liệu Siêu dữ liệu (Metadata)
+Truy vấn trực tiếp vào danh mục siêu dữ liệu:
 
-Hệ thống cho phép truy vấn trực tiếp vào danh mục siêu dữ liệu để lấy thông tin về cấu trúc:
-*Ví dụ:* `SELECT * FROM <concept_name>.variables;` trả về danh sách thuộc tính và kiểu dữ liệu tương ứng.
+```kbql
+SELECT * FROM <concept_name>.variables;
+```
 
-## 6. Ví dụ Thực tế - Truy vấn Hệ Tri thức
+---
 
-Dưới đây là các ví dụ phức tạp về truy vấn dữ liệu trong KBMS:
+## 9. Ví dụ Thực tế - Truy vấn Hệ Tri thức
 
-### 6.1. Truy vấn Cơ bản
+### 9.1. Truy vấn Cơ bản
 
 ```kbql
 -- Truy vấn tất cả bệnh nhân
@@ -95,7 +287,7 @@ SELECT * FROM Patient WHERE bloodType IN ('A+', 'B+', 'O+');
 SELECT * FROM Patient WHERE name LIKE '%Nguyen%';
 ```
 
-### 6.2. Hàm Tổng hợp (Aggregate Functions)
+### 9.2. Hàm Tổng hợp (Aggregate Functions)
 
 ```kbql
 -- Đếm số lượng bệnh nhân
@@ -124,7 +316,7 @@ FROM Patient
 WHERE age > 50;
 ```
 
-### 6.3. Sắp xếp và Phân trang
+### 9.3. Sắp xếp và Phân trang
 
 ```kbql
 -- Sắp xếp theo tuổi tăng dần
@@ -146,45 +338,36 @@ ORDER BY sys DESC, dia DESC
 LIMIT 5;
 ```
 
-### 6.4. Truy vấn với JOIN
+### 9.4. Truy vấn với JOINs
 
 ```kbql
--- Thiết lập: Tạo Concept Appointment (Lịch hẹn)
-CREATE CONCEPT Appointment (
-    VARIABLES (
-        appointmentId: STRING,
-        patientId: STRING,
-        doctorId: STRING,
-        appointmentDate: DATETIME,
-        reason: STRING,
-        status: STRING
-    )
-);
-
--- Tạo Concept Doctor
-CREATE CONCEPT Doctor (
-    VARIABLES (
-        doctorId: STRING,
-        name: STRING,
-        specialty: STRING,
-        experience: INT
-    )
-);
-
--- JOIN: Lấy danh sách lịch hẹn kèm thông tin bệnh nhân
+-- INNER JOIN: Lấy danh sách lịch hẹn kèm thông tin bệnh nhân
 SELECT
     a.appointmentId,
     p.name AS patient_name,
     d.name AS doctor_name,
-    a.appointmentDate,
-    a.reason
+    a.appointmentDate
 FROM Appointment a
 JOIN Patient p ON a.patientId = p.patientId
 JOIN Doctor d ON a.doctorId = d.doctorId
 WHERE a.appointmentDate >= '2026-04-01'
 ORDER BY a.appointmentDate DESC;
 
--- JOIN với điều kiện lọc
+-- LEFT JOIN: Bao gồm cả bệnh nhân chưa có lịch hẹn
+SELECT
+    p.name,
+    COUNT(a.appointmentId) AS appointment_count
+FROM Patient p
+LEFT JOIN Appointment a ON p.patientId = a.patientId
+GROUP BY p.patientId, p.name
+ORDER BY appointment_count DESC;
+
+-- FULL OUTER JOIN: Tất cả bệnh nhân và tất cả lịch hẹn
+SELECT p.name, a.appointmentDate
+FROM Patient p
+FULL OUTER JOIN Appointment a ON p.patientId = a.patientId;
+
+-- Multiple JOINs với điều kiện phức tạp
 SELECT
     p.name,
     p.sys,
@@ -194,26 +377,44 @@ FROM Patient p
 JOIN Appointment a ON p.patientId = a.patientId
 JOIN Doctor d ON a.doctorId = d.doctorId
 WHERE p.sys > 140 AND a.status = 'Scheduled';
-
--- LEFT JOIN - Bao gồm cả bệnh nhân chưa có lịch hẹn
-SELECT
-    p.name,
-    COUNT(a.appointmentId) AS appointment_count
-FROM Patient p
-LEFT JOIN Appointment a ON p.patientId = a.patientId
-GROUP BY p.patientId, p.name
-ORDER BY appointment_count DESC;
 ```
 
-### 6.5. Hàm Tính toán CALC()
+### 9.5. Sub-query Phức tạp
+
+```kbql
+-- Derived table với filtering
+SELECT name, risk_score
+FROM (
+    SELECT name, SOLVE(risk_level) AS risk_score
+    FROM Patient
+    WHERE age > 40
+) AS at_risk_patients
+WHERE risk_score = 'high';
+
+-- Nested sub-query
+SELECT * FROM Patient
+WHERE patientId IN (
+    SELECT patientId FROM Appointment
+    WHERE doctorId IN (
+        SELECT doctorId FROM Doctor
+        WHERE specialty = 'Cardiology'
+    )
+);
+
+-- Correlated EXISTS
+SELECT p.name FROM Patient p
+WHERE EXISTS (
+    SELECT 1 FROM Appointment a
+    JOIN Doctor d ON a.doctorId = d.doctorId
+    WHERE a.patientId = p.patientId
+    AND d.specialty = 'Cardiology'
+);
+```
+
+### 9.6. Hàm Tính toán CALC()
 
 ```kbql
 -- Tính chỉ số BMI (Body Mass Index)
-CREATE CONCEPT HealthMetrics (
-    VARIABLES (weight: DECIMAL, height: DECIMAL, bmi: DECIMAL)
-);
-
--- Tính BMI khi truy vấn
 SELECT
     weight,
     height,
@@ -221,18 +422,7 @@ SELECT
 FROM HealthMetrics
 WHERE height > 0;
 
--- Tính chi phí khám chữa bệnh
-CREATE CONCEPT MedicalBill (
-    VARIABLES (
-        examinationFee: DECIMAL,
-        medicineFee: DECIMAL,
-        roomFee: DECIMAL,
-        totalFee: DECIMAL,
-        insurance: DECIMAL,
-        patientPay: DECIMAL
-    )
-);
-
+-- Tính chi phí với bảo hiểm
 SELECT
     examinationFee,
     medicineFee,
@@ -252,7 +442,7 @@ CROSS JOIN Point p2
 WHERE p1.label < p2.label;
 ```
 
-### 6.6. Macro SOLVE() - Suy diễn Tri thức
+### 9.7. SOLVE() - Suy diễn Tri thức
 
 ```kbql
 -- Kịch bản: Chẩn đoán bệnh lý từ triệu chứng
@@ -266,24 +456,12 @@ CREATE CONCEPT Symptom (
     )
 );
 
-CREATE CONCEPT Diagnosis (
-    VARIABLES (
-        patientId: STRING,
-        disease: STRING,
-        confidence: DECIMAL
-    )
-);
-
 -- Luật chẩn đoán
 CREATE RULE DiagnoseFlu SCOPE Symptom
 IF fever = true AND cough = true AND fatigue = true
 THEN SET disease = 'Influenza', confidence = 0.85;
 
-CREATE RULE DiagnoseMigraine SCOPE Symptom
-IF headache = true AND fatigue = true AND fever = false
-THEN SET disease = 'Migraine', confidence = 0.75;
-
--- Sử dụng SOLVE() để chẩn đoán tự động
+-- Sử dụng SOLVE() trong projection
 SELECT
     s.patientId,
     p.name AS patient_name,
@@ -293,14 +471,18 @@ FROM Symptom s
 JOIN Patient p ON s.patientId = p.patientId
 WHERE s.fever = true;
 
+-- Sử dụng SOLVE() trong WHERE clause
+SELECT * FROM Symptom
+WHERE SOLVE(disease) = 'Influenza';
+
 -- Kịch bản: Giải bài toán hình học
-CREATE CONCEPT TriangleProblem (
+CREATE CONCEPT Triangle (
     VARIABLES (
         sideA: DECIMAL,
         sideB: DECIMAL,
-        angleC: DECIMAL,  -- Góc giữa sideA và sideB (độ)
-        sideC: DECIMAL,   -- Cần tìm
-        area: DECIMAL     -- Cần tìm
+        angleC: DECIMAL,
+        sideC: DECIMAL,
+        area: DECIMAL
     ),
     EQUATIONS (
         'sideC = Sqrt(sideA^2 + sideB^2 - 2*sideA*sideB*Cos(angleC*3.14159/180))',
@@ -308,21 +490,27 @@ CREATE CONCEPT TriangleProblem (
     )
 );
 
--- Giả sử có sideA = 5, sideB = 7, angleC = 60 độ
-INSERT INTO TriangleProblem ATTRIBUTE (5, 7, 60);
+INSERT INTO Triangle ATTRIBUTE (5, 7, 60);
 
--- Tìm sideC và area bằng SOLVE()
+-- Tìm các tam giác có diện tích > 100
+SELECT sideA, sideB, angleC
+FROM Triangle
+WHERE SOLVE(area) > 100;
+
+-- Hiển thị cả giá trị đã giải
 SELECT
+    sideA,
+    sideB,
+    angleC,
     SOLVE(sideC) AS calculated_side_c,
     SOLVE(area) AS calculated_area
-FROM TriangleProblem;
--- Kết quả: sideC ≈ 6.08, area ≈ 15.31
+FROM Triangle;
 ```
 
-### 6.7. Truy vấn Phức tạp - Kết hợp Nhiều Tính năng
+### 9.8. Truy vấn Phức tạp - Kết hợp Nhiều Tính năng
 
 ```kbql
--- Báo cáo thống kê bệnh nhân高血压
+-- Báo cáo thống kê bệnh nhân với nhiều tính năng
 SELECT
     bloodType,
     COUNT(*) AS patient_count,
@@ -337,7 +525,7 @@ GROUP BY bloodType
 HAVING COUNT(*) >= 3
 ORDER BY hypertension_count DESC;
 
--- Truy vấn với nhiều JOIN và SOLVE()
+-- Truy vấn với JOINs, SOLVE() và derived table
 SELECT
     p.name AS patient_name,
     p.age,
@@ -353,6 +541,14 @@ JOIN Doctor d ON a.doctorId = d.doctorId
 WHERE p.sys > 130 OR p.dia > 85
 ORDER BY p.sys DESC
 LIMIT 20;
+
+-- Truy vấn phức tạp với sub-query và SOLVE trong WHERE
+SELECT name, age, sys, dia
+FROM (
+    SELECT * FROM Patient
+    WHERE age > (SELECT AVG(age) FROM Patient)
+) AS older_patients
+WHERE SOLVE(is_hypertension) = true;
 
 -- Tìm bệnh nhân có chỉ số bất thường
 SELECT

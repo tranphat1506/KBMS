@@ -303,12 +303,12 @@
 \contentsline {subsection}{\numberline {4.8.4}Các Kịch bản Sử dụng CLI}{119}{subsection.4.8.4}%
 \contentsline {subsubsection}{\numberline {4.8.4.1}Kịch bản 1: Đăng nhập và quản lý phiên}{119}{subsubsection.4.8.4.1}%
 \contentsline {subsubsection}{\numberline {4.8.4.2}Kịch bản 2: Thiết kế cấu trúc tri thức}{120}{subsubsection.4.8.4.2}%
-\contentsline {subsubsection}{\numberline {4.8.4.3}Kịch bản 3: Truy vấn và khai thác dữ liệu}{120}{subsubsection.4.8.4.3}%
+\contentsline {subsubsection}{\numberline {4.8.4.3}Kịch bản 3: Truy vấn và khai thác dữ liệu}{121}{subsubsection.4.8.4.3}%
 \contentsline {subsubsection}{\numberline {4.8.4.4}Kịch bản 4: Thực thi và truy vết suy luận}{121}{subsubsection.4.8.4.4}%
 \contentsline {subsubsection}{\numberline {4.8.4.5}Kịch bản 5: Xử lý tập lệnh hàng loạt}{123}{subsubsection.4.8.4.5}%
 \contentsline {subsection}{\numberline {4.8.5}Giao diện ứng dụng KBMS-CLI}{123}{subsection.4.8.5}%
 \contentsline {subsubsection}{\numberline {4.8.5.1}Giao diện khởi tạo và thiết lập phiên}{123}{subsubsection.4.8.5.1}%
-\contentsline {subsubsection}{\numberline {4.8.5.2}Giao diện soạn thảo cấu trúc tri thức}{123}{subsubsection.4.8.5.2}%
+\contentsline {subsubsection}{\numberline {4.8.5.2}Giao diện soạn thảo cấu trúc tri thức}{124}{subsubsection.4.8.5.2}%
 \contentsline {subsubsection}{\numberline {4.8.5.3}Giao diện truy vấn và kết xuất dữ liệu}{124}{subsubsection.4.8.5.3}%
 \contentsline {subsubsection}{\numberline {4.8.5.4}Giao diện truy vết và giải thuật suy luận}{125}{subsubsection.4.8.5.4}%
 \contentsline {subsection}{\numberline {4.8.6}Giao diện Web Quản lý (KBMS STUDIO)}{125}{subsection.4.8.6}%
@@ -332,30 +332,47 @@
 \contentsline {subsubsection}{\numberline {4.8.10.3}Giao diện giám sát hiệu năng hệ thống}{133}{subsubsection.4.8.10.3}%
 \contentsline {subsubsection}{\numberline {4.8.10.4}Giao diện thực thi và trực quan hóa kết quả}{134}{subsubsection.4.8.10.4}%
 \contentsline {chapter}{\numberline {5}CÀI ĐẶT VÀ TRIỂN KHAI HỆ THỐNG}{135}{chapter.5}%
-\contentsline {section}{\numberline {5.1}Quy trình Cài đặt \& Xác thực Hệ thống (macOS)}{135}{section.5.1}%
+\contentsline {section}{\numberline {5.1}Quy trình Cài đặt \& Xác thực Hệ thống}{135}{section.5.1}%
 \contentsline {subsection}{\numberline {5.1.1}Thành phần Yêu cầu}{135}{subsection.5.1.1}%
 \contentsline {subsection}{\numberline {5.1.2}Các bước Triển khai}{135}{subsection.5.1.2}%
 \contentsline {subsection}{\numberline {5.1.3}Nhật ký Xác thực Cài đặt (Verification Log)}{135}{subsection.5.1.3}%
 \contentsline {chapter}{\numberline {6}THỰC NGHIỆM VÀ ĐÁNH GIÁ HIỆU NĂNG}{137}{chapter.6}%
-\contentsline {subsection}{\numberline {6.0.1}Kịch bản A: Hệ tri thức Giáo dục (Education)}{137}{subsection.6.0.1}%
-\contentsline {subsection}{\numberline {6.0.2}Kịch bản B: Chẩn đoán Y tế (Medical Diagnostic)}{137}{subsection.6.0.2}%
-\contentsline {subsection}{\numberline {6.0.3}Kịch bản C: Đồ thị Đô thị Thông minh (SmartCity Transit)}{137}{subsection.6.0.3}%
-\contentsline {subsection}{\numberline {6.0.4}Kịch bản D: Phân loại Hình học (Geometry)}{138}{subsection.6.0.4}%
-\contentsline {subsection}{\numberline {6.0.5}Nhật ký Thực thi Kiểm thử (xUnit Test Logs)}{138}{subsection.6.0.5}%
-\contentsline {section}{\numberline {6.1}Đánh giá Hiệu năng Hệ quản trị tri thức (macOS)}{138}{section.6.1}%
-\contentsline {subsection}{\numberline {6.1.1}Phân tích Hiệu năng Thao tác Đơn lẻ (Latency)}{138}{subsection.6.1.1}%
-\contentsline {subsection}{\numberline {6.1.2}Hiệu năng Thông lượng \& Khả năng Mở rộng (Throughput)}{138}{subsection.6.1.2}%
-\contentsline {subsection}{\numberline {6.1.3}Đặc tả Tiêu thụ Tài nguyên Hệ thống}{139}{subsection.6.1.3}%
-\contentsline {subsection}{\numberline {6.1.4}Nhật ký Benchmark Hệ thống (Benchmark Log)}{139}{subsection.6.1.4}%
-\contentsline {subsection}{\numberline {6.1.5}DS-S: Gói Tri thức Hình học (Advanced)}{139}{subsection.6.1.5}%
-\contentsline {subsection}{\numberline {6.1.6}DS-M: Gói Tri thức Y tế (Advanced Features)}{140}{subsection.6.1.6}%
-\contentsline {subsection}{\numberline {6.1.7}DS-L: Gói Tri thức Đô thị Thông minh (Scale context)}{140}{subsection.6.1.7}%
-\contentsline {section}{\numberline {6.2}Tổng kết và Đánh giá Kết quả Thực nghiệm}{140}{section.6.2}%
-\contentsline {subsection}{\numberline {6.2.1}Đánh giá về Tính Đúng đắn (Correctness)}{141}{subsection.6.2.1}%
-\contentsline {subsection}{\numberline {6.2.2}Đánh giá về Hiệu năng (Performance)}{141}{subsection.6.2.2}%
-\contentsline {subsection}{\numberline {6.2.3}Đánh giá về Khả năng Mở rộng và Tối ưu I/O}{141}{subsection.6.2.3}%
-\contentsline {subsection}{\numberline {6.2.4}Kết luận}{141}{subsection.6.2.4}%
-\contentsline {chapter}{\numberline {7}KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN}{142}{chapter.7}%
-\contentsline {section}{\numberline {7.1}Tổng kết kết quả đạt được}{142}{section.7.1}%
-\contentsline {section}{\numberline {7.2}Hạnh chế và Hướng phát triển tương lai}{142}{section.7.2}%
-\contentsline {chapter}{TÀI LIỆU THAM KHẢO}{143}{section.7.2}%
+\contentsline {section}{\numberline {6.1}Kịch bản Kiểm thử}{137}{section.6.1}%
+\contentsline {subsection}{\numberline {6.1.1}Nhóm 1: Performance Benchmarks (Stress Test 1M)}{137}{subsection.6.1.1}%
+\contentsline {subsection}{\numberline {6.1.2}Nhóm 2: Storage Architecture (Slotted Page \& Persistence)}{137}{subsection.6.1.2}%
+\contentsline {subsection}{\numberline {6.1.3}Nhóm 3: Transactions \& WAL (Atomicity \& Recovery)}{137}{subsection.6.1.3}%
+\contentsline {subsection}{\numberline {6.1.4}Nhóm 4: Query Engine (KQL CRUD \& Execution)}{137}{subsection.6.1.4}%
+\contentsline {subsection}{\numberline {6.1.5}Nhóm 5: Schema Evolution (ALTER CONCEPT \& Migration)}{138}{subsection.6.1.5}%
+\contentsline {subsection}{\numberline {6.1.6}Nhóm 6: Reasoning (Forward/Backward Chaining)}{138}{subsection.6.1.6}%
+\contentsline {subsection}{\numberline {6.1.7}Nhóm 7: Language Design (Lexer \& Parser)}{138}{subsection.6.1.7}%
+\contentsline {section}{\numberline {6.2}Đánh giá Hiệu năng}{138}{section.6.2}%
+\contentsline {subsection}{\numberline {6.2.1}Performance Benchmark V3}{138}{subsection.6.2.1}%
+\contentsline {subsubsection}{\numberline {6.2.1.1}Stress Test 1 Triệu Bản ghi}{138}{subsubsection.6.2.1.1}%
+\contentsline {subsubsection}{\numberline {6.2.1.2}Kết quả Benchmark}{138}{subsubsection.6.2.1.2}%
+\contentsline {subsection}{\numberline {6.2.2}Buffer Pool Comparison}{139}{subsection.6.2.2}%
+\contentsline {subsubsection}{\numberline {6.2.2.1}Memory vs I/O Tradeoff}{139}{subsubsection.6.2.2.1}%
+\contentsline {subsubsection}{\numberline {6.2.2.2}LRU Cache Effectiveness}{139}{subsubsection.6.2.2.2}%
+\contentsline {subsection}{\numberline {6.2.3}Kết luận Hiệu năng}{139}{subsection.6.2.3}%
+\contentsline {section}{\numberline {6.3}Chi tiết Các Nhóm Kiểm thử}{139}{section.6.3}%
+\contentsline {subsection}{\numberline {6.3.1}GROUP 1: Performance Benchmarks}{139}{subsection.6.3.1}%
+\contentsline {subsection}{\numberline {6.3.2}GROUP 2: Storage Architecture}{140}{subsection.6.3.2}%
+\contentsline {subsection}{\numberline {6.3.3}GROUP 3: Transactions \& WAL}{140}{subsection.6.3.3}%
+\contentsline {subsection}{\numberline {6.3.4}GROUP 4: Query Engine}{140}{subsection.6.3.4}%
+\contentsline {subsection}{\numberline {6.3.5}GROUP 5: Schema Evolution}{140}{subsection.6.3.5}%
+\contentsline {subsection}{\numberline {6.3.6}GROUP 6: Reasoning}{140}{subsection.6.3.6}%
+\contentsline {subsection}{\numberline {6.3.7}GROUP 7: Language Design}{141}{subsection.6.3.7}%
+\contentsline {section}{\numberline {6.4}Tổng kết và Đánh giá Kết quả Thực nghiệm}{141}{section.6.4}%
+\contentsline {subsection}{\numberline {6.4.1}Tổng quan}{141}{subsection.6.4.1}%
+\contentsline {subsection}{\numberline {6.4.2}Kết quả chi tiết theo nhóm}{141}{subsection.6.4.2}%
+\contentsline {subsubsection}{\numberline {6.4.2.1}Performance Benchmarks}{141}{subsubsection.6.4.2.1}%
+\contentsline {subsubsection}{\numberline {6.4.2.2}Storage Architecture}{142}{subsubsection.6.4.2.2}%
+\contentsline {subsubsection}{\numberline {6.4.2.3}Transactions \& WAL}{142}{subsubsection.6.4.2.3}%
+\contentsline {subsubsection}{\numberline {6.4.2.4}Query Engine}{142}{subsubsection.6.4.2.4}%
+\contentsline {subsubsection}{\numberline {6.4.2.5}Schema Evolution}{142}{subsubsection.6.4.2.5}%
+\contentsline {subsubsection}{\numberline {6.4.2.6}Reasoning}{142}{subsubsection.6.4.2.6}%
+\contentsline {subsubsection}{\numberline {6.4.2.7}Language Design}{142}{subsubsection.6.4.2.7}%
+\contentsline {subsection}{\numberline {6.4.3}Kết luận}{142}{subsection.6.4.3}%
+\contentsline {chapter}{\numberline {7}KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN}{144}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Tổng kết kết quả đạt được}{144}{section.7.1}%
+\contentsline {section}{\numberline {7.2}Hạnh chế và Hướng phát triển tương lai}{144}{section.7.2}%
+\contentsline {chapter}{TÀI LIỆU THAM KHẢO}{145}{section.7.2}%
