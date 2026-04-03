@@ -415,29 +415,48 @@ Dự án KBMS (Knowledge Base Management System) được xây dựng nhằm thu
 Dựa trên phân tích so sánh với các hệ thống hiện có, chúng tôi nhận thấy các giới hạn sau:
 
 
-\begin{itemize}
-  \item \textbf{CSDL Quan hệ (RDBMS):} Rất mạnh về lưu trữ đĩa (Persistence) và giao dịch (ACID) nhưng hoàn toàn thiếu khả năng suy diễn logic tự động \cite{DatabaseSystems}. Việc xử lý tri thức phải thực hiện ở tầng ứng dụng, gây khó khăn cho việc bảo trì luật.
-  \item \textbf{Hệ thống Logic (Prolog):} Có khả năng suy diễn cực mạnh nhưng chủ yếu hoạt động trên bộ nhớ RAM, thiếu cơ chế quản lý dữ liệu nhị phân quy mô lớn trên đĩa cứng và khả năng quản lý đa người dùng thực thụ \cite{PrologBook}.
-  \item \textbf{Công cụ Ontologies (Protégé):} Hỗ trợ mô hình hóa tri thức tốt nhưng hiệu năng truy vấn và khả năng tích hợp vào các hệ thống phần mềm thương mại còn hạn chế \cite{Musen_Protege}.
-\end{itemize}
+\subsubsection{Jess (Java Expert System Shell)}
+
+Jess \cite{JessInAction} là phiên bản Java của CLIPS. Dự án đã ngừng phát triển tích cực và không còn được cập nhật cho các nền tảng hiện đại.
 
 
+\subsubsection{Drools (JBoss Rules Engine)}
 
-\subsubsection{Bảng so sánh Tính năng Chi tiết}
+Drools \cite{DroolsDoc} sử dụng giải thuật Rete cải tiến (Phreak), được ứng dụng rộng rãi trong quản lý quy tắc kinh doanh (Business Rule Management). Drools được thiết kế chủ yếu cho business logic, không tối ưu cho suy luận toán học.
+
+
+\subsubsection{SWI-Prolog}
+
+SWI-Prolog \cite{SWIProlog} hỗ trợ mạnh suy luận lùi (Backward Chaining) thông qua cơ chế unification. Nhược điểm là thiếu kiến trúc Client-Server và thiếu lưu trữ vĩnh cửu.
+
+
+\subsubsection{Protégé}
+
+Protégé \cite{StanfordProtege} là công cụ của Đại học Stanford dùng để chỉnh sửa Ontology theo chuẩn OWL. Protégé chủ yếu là trình soạn thảo, không phải hệ quản trị tri thức hoàn chỉnh.
+
+
+\subsubsection{Cyc}
+
+Cyc \cite{LenatCyc} là dự án AI tham vọng nhất trong lịch sử, khởi động từ năm 1984 bởi Douglas Lenat nhằm mã hóa toàn bộ tri thức thường thức (common sense). Cyc sử dụng ngôn ngữ CycL dựa trên logic vị từ bậc nhất. Mặc dù quy mô tri thức rất lớn (hơn 1.5 triệu assertions), Cyc thiếu khả năng tính toán định lượng trên đối tượng và không được thiết kế cho các bài toán kỹ thuật có tính toán phức tạp.
+
+
+\subsubsection{Bảng tổng hợp so sánh}
 
 
 \begin{table}[H]
   \centering\captionsetup{position=below}\footnotesize\selectfont
-  \begin{tabularx}{\textwidth}{|l|L|L|L|L|}
+  \begin{tabularx}{\textwidth}{|l|L|L|L|L|L|L|L|}
   \hline
-Đặc tính & CSDL Quan hệ \cite{DatabaseSystems} & Ngôn ngữ Logic \cite{PrologBook} & Công cụ Tri thức \cite{Musen_Protege} & \textbf{KBMS \cite{DoVanNhon1}} \\ \hline
-\textbf{Kiểu dữ liệu} & Structured Tables & Logic Predicates & OWL / RDF & \textbf{Knowledge Concepts} \\ \hline
-\textbf{Suy diễn} & Không (Chỉ Join) & Rất mạnh (Backward) & Reasoner Plugin & \textbf{Mạnh (Mạng Rete)} \\ \hline
-\textbf{Lưu trữ đĩa} & B+ Tree, ACID & Chủ yếu RAM & Files (OWL/XML) & \textbf{B+ Tree nhị phân, WAL} \\ \hline
-\textbf{Đa người dùng} & Rất tốt & Không & Hạn chế & \textbf{Tốt (Socket/Auth)} \\ \hline
-\textbf{Giao diện} & Workbench / CLI & CLI đơn giản & Desktop phức tạp & \textbf{Studio IDE + CLI} \\ \hline
+Tiêu chí & CLIPS \cite{CLIPS_Guide} & Jess \cite{JessInAction} & Drools \cite{DroolsDoc} & SWI-Prolog \cite{SWIProlog} & Protégé \cite{StanfordProtege} & Cyc \cite{LenatCyc} & \textbf{KBMS COKB} \\ \hline
+\textbf{Suy luận tiến} & Có & Có & Có & Không & Hạn chế & Có & \textbf{Có} \\ \hline
+\textbf{Suy luận lùi} & Không & Không & Không & Có & Hạn chế & Có & \textbf{Có} \\ \hline
+\textbf{Tính toán số học} & Hạn chế & Hạn chế & Hạn chế & Hạn chế & Không & Không & \textbf{Mạnh} \\ \hline
+\textbf{Lưu trữ} & Không & Không & DBMS ngoài & Không & File OWL & Có & \textbf{B+ Tree + WAL} \\ \hline
+\textbf{Mã hóa dữ liệu} & Không & Không & Không & Không & Không & Không & \textbf{AES-256} \\ \hline
+\textbf{Client-Server} & Không & Không & Có & Không & Không & Có & \textbf{Có (TCP)} \\ \hline
+\textbf{Ngôn ngữ truy vấn} & CLIPS DSL & Jess DSL & DRL & Prolog & SPARQL & CycL & \textbf{KBQL} \\ \hline
   \end{tabularx}
-  \caption{So sánh đặc tính giữa các hệ quản trị truyền thống và KBMS}\label{tbl:so-sánh-đặc-tính-giữa-các-hệ-quản-trị-truyền-thống}
+  \caption{tổng hợp so sánh}\label{tbl:tổng-hợp-so-sánh}
 \end{table}
 
 

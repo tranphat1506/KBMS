@@ -72,7 +72,13 @@ CITATION_MAP = {
     '[7]': 'Musen_Protege',
     '[8]': 'PrologBook',
     '[9]': 'ReteAlgorithm',
-    '[10]': 'ComerBTree'
+    '[10]': 'ComerBTree',
+    '[21]': 'CLIPS_Guide',
+    '[22]': 'JessInAction',
+    '[23]': 'DroolsDoc',
+    '[24]': 'SWIProlog',
+    '[25]': 'StanfordProtege',
+    '[40]': 'LenatCyc'
 }
 
 def escape_latex(text):

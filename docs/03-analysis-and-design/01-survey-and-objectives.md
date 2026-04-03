@@ -6,20 +6,33 @@ Dự án KBMS (Knowledge Base Management System) được xây dựng nhằm thu
 
 Dựa trên phân tích so sánh với các hệ thống hiện có, chúng tôi nhận thấy các giới hạn sau:
 
-*   **CSDL Quan hệ (RDBMS):** Rất mạnh về lưu trữ đĩa (Persistence) và giao dịch (ACID) nhưng hoàn toàn thiếu khả năng suy diễn logic tự động [5]. Việc xử lý tri thức phải thực hiện ở tầng ứng dụng, gây khó khăn cho việc bảo trì luật.
-*   **Hệ thống Logic (Prolog):** Có khả năng suy diễn cực mạnh nhưng chủ yếu hoạt động trên bộ nhớ RAM, thiếu cơ chế quản lý dữ liệu nhị phân quy mô lớn trên đĩa cứng và khả năng quản lý đa người dùng thực thụ [8].
-*   **Công cụ Ontologies (Protégé):** Hỗ trợ mô hình hóa tri thức tốt nhưng hiệu năng truy vấn và khả năng tích hợp vào các hệ thống phần mềm thương mại còn hạn chế [7].
+### 2.3.2 Jess (Java Expert System Shell)
+Jess [22] là phiên bản Java của CLIPS. Dự án đã ngừng phát triển tích cực và không còn được cập nhật cho các nền tảng hiện đại.
 
-### Bảng so sánh Tính năng Chi tiết
+### 2.3.3 Drools (JBoss Rules Engine)
+Drools [23] sử dụng giải thuật Rete cải tiến (Phreak), được ứng dụng rộng rãi trong quản lý quy tắc kinh doanh (Business Rule Management). Drools được thiết kế chủ yếu cho business logic, không tối ưu cho suy luận toán học.
 
-*Bảng 3.1: So sánh đặc tính giữa các hệ quản trị truyền thống và KBMS*
-| Đặc tính | CSDL Quan hệ [5] | Ngôn ngữ Logic [8] | Công cụ Tri thức [7] | **KBMS [1]** |
-| :--- | :--- | :--- | :--- | :--- |
-| **Kiểu dữ liệu** | Structured Tables | Logic Predicates | OWL / RDF | **Knowledge Concepts** |
-| **Suy diễn** | Không (Chỉ Join) | Rất mạnh (Backward) | Reasoner Plugin | **Mạnh (Mạng Rete)** |
-| **Lưu trữ đĩa** | B+ Tree, ACID | Chủ yếu RAM | Files (OWL/XML) | **B+ Tree nhị phân, WAL** |
-| **Đa người dùng** | Rất tốt | Không | Hạn chế | **Tốt (Socket/Auth)** |
-| **Giao diện** | Workbench / CLI | CLI đơn giản | Desktop phức tạp | **Studio IDE + CLI** |
+### 2.3.4 SWI-Prolog
+SWI-Prolog [24] hỗ trợ mạnh suy luận lùi (Backward Chaining) thông qua cơ chế unification. Nhược điểm là thiếu kiến trúc Client-Server và thiếu lưu trữ vĩnh cửu.
+
+### 2.3.5 Protégé
+Protégé [25] là công cụ của Đại học Stanford dùng để chỉnh sửa Ontology theo chuẩn OWL. Protégé chủ yếu là trình soạn thảo, không phải hệ quản trị tri thức hoàn chỉnh.
+
+### 2.3.6 Cyc
+Cyc [40] là dự án AI tham vọng nhất trong lịch sử, khởi động từ năm 1984 bởi Douglas Lenat nhằm mã hóa toàn bộ tri thức thường thức (common sense). Cyc sử dụng ngôn ngữ CycL dựa trên logic vị từ bậc nhất. Mặc dù quy mô tri thức rất lớn (hơn 1.5 triệu assertions), Cyc thiếu khả năng tính toán định lượng trên đối tượng và không được thiết kế cho các bài toán kỹ thuật có tính toán phức tạp.
+
+### 2.3.7 Bảng tổng hợp so sánh
+
+| Tiêu chí | CLIPS [21] | Jess [22] | Drools [23] | SWI-Prolog [24] | Protégé [25] | Cyc [40] | **KBMS COKB** |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Suy luận tiến** | Có | Có | Có | Không | Hạn chế | Có | **Có** |
+| **Suy luận lùi** | Không | Không | Không | Có | Hạn chế | Có | **Có** |
+| **Tính toán số học** | Hạn chế | Hạn chế | Hạn chế | Hạn chế | Không | Không | **Mạnh** |
+| **Lưu trữ** | Không | Không | DBMS ngoài | Không | File OWL | Có | **B+ Tree + WAL** |
+| **Mã hóa dữ liệu** | Không | Không | Không | Không | Không | Không | **AES-256** |
+| **Client-Server** | Không | Không | Có | Không | Không | Có | **Có (TCP)** |
+| **Ngôn ngữ truy vấn** | CLIPS DSL | Jess DSL | DRL | Prolog | SPARQL | CycL | **KBQL** |
+
 
 ### Ưu thế vượt trội của KBMS
 
