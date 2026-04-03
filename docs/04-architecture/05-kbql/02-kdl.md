@@ -182,7 +182,169 @@ DO ( <kbql_statement> );
 
 *Ví dụ:*
 ```kbql
-CREATE TRIGGER SyncInventory 
-ON (INSERT OF SalesOrder) 
+CREATE TRIGGER SyncInventory
+ON (INSERT OF SalesOrder)
 DO (UPDATE Product ATTRIBUTE (SET stock: stock - 1) WHERE id = new.product_id);
+```
+
+## 9. Ví dụ Thực tế - Xây dựng Hệ Tri thức Hình học
+
+Dưới đây là ví dụ hoàn chỉnh về việc xây dựng một cơ sở tri thức hình học phẳng:
+
+```kbql
+-- Bước 1: Khởi tạo Knowledge Base
+CREATE KNOWLEDGE BASE GeometryDB
+DESCRIPTION "Hệ tri thức Hình học Phẳng - KBMS Demo";
+
+USE GeometryDB;
+
+-- Bước 2: Định nghĩa Khái niệm Điểm (Point)
+CREATE CONCEPT Point (
+    VARIABLES (
+        x: DECIMAL,
+        y: DECIMAL,
+        label: STRING
+    ),
+    ALIASES (p, pt, coordinate),
+    CONSTRAINTS (
+        x IS NOT NULL,
+        y IS NOT NULL
+    )
+);
+
+-- Bước 3: Định nghĩa Khái niệm Đoạn thẳng (LineSegment)
+CREATE CONCEPT LineSegment (
+    VARIABLES (
+        startPoint: Point,
+        endPoint: Point,
+        length: DECIMAL,
+        slope: DECIMAL
+    ),
+    EQUATIONS (
+        'length = Sqrt((endPoint.x - startPoint.x)^2 +
+                      (endPoint.y - startPoint.y)^2)',
+        'slope = (endPoint.y - startPoint.y) /
+                (endPoint.x - startPoint.x)'
+    ),
+    CONSTRAINTS (
+        length > 0,
+        startPoint != endPoint
+    )
+);
+
+-- Bước 4: Định nghĩa Khái niệm Đường tròn (Circle)
+CREATE CONCEPT Circle (
+    VARIABLES (
+        center: Point,
+        radius: DECIMAL,
+        area: DECIMAL,
+        circumference: DECIMAL
+    ),
+    EQUATIONS (
+        'area = 3.14159 * radius^2',
+        'circumference = 2 * 3.14159 * radius'
+    ),
+    CONSTRAINTS (radius > 0)
+);
+
+-- Bước 5: Định nghĩa Khái niệm Tam giác (Triangle)
+CREATE CONCEPT Triangle (
+    VARIABLES (
+        vertexA: Point,
+        vertexB: Point,
+        vertexC: Point,
+        sideA: DECIMAL,
+        sideB: DECIMAL,
+        sideC: DECIMAL,
+        area: DECIMAL,
+        perimeter: DECIMAL
+    ),
+    BASE_OBJECTS (vertexA, vertexB, vertexC),
+    EQUATIONS (
+        'sideA = Sqrt((vertexB.x - vertexC.x)^2 +
+                     (vertexB.y - vertexC.y)^2)',
+        'sideB = Sqrt((vertexA.x - vertexC.x)^2 +
+                     (vertexA.y - vertexC.y)^2)',
+        'sideC = Sqrt((vertexA.x - vertexB.x)^2 +
+                     (vertexA.y - vertexB.y)^2)',
+        'perimeter = sideA + sideB + sideC',
+        'area = Sqrt(perimeter/2 *
+                    (perimeter/2 - sideA) *
+                    (perimeter/2 - sideB) *
+                    (perimeter/2 - sideC))'
+    ),
+    CONSTRAINTS (
+        sideA + sideB > sideC,
+        sideB + sideC > sideA,
+        sideA + sideC > sideB
+    )
+);
+
+-- Bước 6: Thiết lập Phân cấp kế thừa
+CREATE CONCEPT Shape (
+    VARIABLES (color: STRING, filled: BOOLEAN)
+);
+
+ADD HIERARCHY Point IS_A Shape;
+ADD HIERARCHY LineSegment IS_A Shape;
+ADD HIERARCHY Triangle IS_A Shape;
+
+-- Bước 7: Định nghĩa Luật dẫn cho phân loại tam giác
+CREATE RULE ClassifyRightTriangle SCOPE Triangle
+IF ABS(sideA^2 + sideB^2 - sideC^2) < 0.001
+THEN SET type = 'Right';
+
+CREATE RULE ClassifyEquilateral SCOPE Triangle
+IF ABS(sideA - sideB) < 0.001 AND ABS(sideB - sideC) < 0.001
+THEN SET type = 'Equilateral';
+
+CREATE RULE ClassifyIsosceles SCOPE Triangle
+IF ABS(sideA - sideB) < 0.001 OR ABS(sideB - sideC) < 0.001
+THEN SET type = 'Isosceles';
+
+-- Bước 8: Định nghĩa Quan hệ giữa các hình
+CREATE RELATION Tangent FROM Circle TO LineSegment;
+CREATE RELATION Inscribed FROM Triangle TO Circle;
+
+-- Bước 9: Tạo chỉ mục để tối ưu truy vấn
+CREATE INDEX idx_point_label ON Point (label);
+CREATE INDEX idx_triangle_type ON Triangle (type);
+
+-- Bước 10: Tạo Trigger tự động tính toán khi thêm tam giác mới
+CREATE TRIGGER CalculateTriangleMetrics
+ON (INSERT OF Triangle)
+DO (
+    UPDATE Triangle
+    ATTRIBUTE (SET type: 'Scalene')
+    WHERE type IS NULL
+);
+```
+
+### 9.1. Ví dụ Hiệu chỉnh Cấu trúc (ALTER)
+
+```kbql
+-- Thêm thuộc tính mới vào Concept Point
+ALTER CONCEPT Point (
+    ADD (
+        VARIABLE z: DECIMAL,
+        CONSTRAINT z IS NOT NULL
+    )
+);
+
+-- Thêm luật mới vào Triangle
+ALTER CONCEPT Triangle (
+    ADD (
+        RULE IF area > 100 THEN SET size = 'Large'
+    )
+);
+
+-- Xóa ràng buộc cũ
+ALTER CONCEPT LineSegment (
+    DROP (
+        CONSTRAINT length > 0
+    ),
+    ADD (
+        CONSTRAINT length >= 0
+    )
+);
 ```

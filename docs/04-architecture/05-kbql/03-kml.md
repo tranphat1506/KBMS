@@ -95,8 +95,8 @@ EXPORT (
 ### 4.2. Nhập dữ liệu (Import)
 ```kbql
 IMPORT (
-    CONCEPT: <name>, 
-    FILE: '<path>', 
+    CONCEPT: <name>,
+    FILE: '<path>',
     FORMAT: {CSV | JSON | XML}
 );
 ```
@@ -104,8 +104,138 @@ IMPORT (
 *Ví dụ:*
 ```kbql
 IMPORT (
-    CONCEPT: Patient, 
-    FILE: '/var/data/patients_import.json', 
+    CONCEPT: Patient,
+    FILE: '/var/data/patients_import.json',
     FORMAT: JSON
 );
+```
+
+## 5. Ví dụ Thực tế - Quản lý Bệnh nhân
+
+Dưới đây là kịch bản hoàn chỉnh về việc quản lý dữ liệu bệnh nhân trong hệ thống y tế:
+
+```kbql
+-- Thiết lập: Tạo Concept Patient
+CREATE CONCEPT Patient (
+    VARIABLES (
+        patientId: STRING,
+        name: STRING,
+        age: INT,
+        bloodType: STRING,
+        sys: INT,           -- Huyết áp tâm thu
+        dia: INT,           -- Huyết áp tâm trương
+        heartRate: INT,
+        temperature: DECIMAL,
+        lastVisit: DATE,
+        is_critical: BOOLEAN
+    ),
+    CONSTRAINTS (
+        age >= 0 AND age <= 150,
+        sys > 0 AND dia > 0,
+        sys > dia,
+        heartRate > 30 AND heartRate < 220,
+        temperature >= 35.0 AND temperature <= 42.0
+    )
+);
+
+-- Kịch bản 1: Thêm bệnh nhân mới (INSERT đơn lẻ)
+INSERT INTO Patient ATTRIBUTE (
+    'P001', 'Nguyen Van A', 45, 'A+', 120, 80, 72, 36.5, '2026-04-01'
+);
+
+-- Kịch bản 2: Thêm hàng loạt bệnh nhân (BULK INSERT)
+INSERT BULK INTO Patient ATTRIBUTE (
+    ('P002', 'Tran Thi B', 32, 'B+', 115, 75, 68, 36.6, '2026-04-02'),
+    ('P003', 'Le Van C', 58, 'O+', 145, 95, 88, 37.2, '2026-04-02'),
+    ('P004', 'Pham Thi D', 28, 'AB+', 118, 78, 70, 36.4, '2026-04-03'),
+    ('P005', 'Hoang Van E', 67, 'A+', 155, 105, 92, 38.1, '2026-04-03')
+);
+
+-- Kịch bản 3: Cập nhật thông tin bệnh nhân
+-- Cập nhật chỉ số sinh tồn cho bệnh nhân P003
+UPDATE Patient
+ATTRIBUTE (SET sys: 140, dia: 90, heartRate: 85)
+WHERE patientId = 'P003';
+
+-- Cập nhật nhiều thuộc tính cùng lúc
+UPDATE Patient
+ATTRIBUTE (
+    SET sys: 130,
+        dia: 85,
+        heartRate: 75,
+        temperature: 36.7
+)
+WHERE patientId = 'P002';
+
+-- Kịch bản 4: Xóa bệnh nhân khỏi hệ thống
+-- Xóa bệnh nhân có dữ liệu lỗi
+DELETE FROM Patient WHERE age < 0 OR sys < dia;
+
+-- Xóa bệnh nhân đã chuyển đi
+DELETE FROM Patient WHERE patientId = 'P999';
+
+-- Kịch bản 5: Xuất báo cáo bệnh nhân高血压 (Huyết áp cao)
+EXPORT (
+    CONCEPT: Patient,
+    FILE: '/reports/hypertension_patients.csv',
+    FORMAT: CSV
+);
+
+-- Kịch bản 6: Nhập dữ liệu từ file bên ngoài
+IMPORT (
+    CONCEPT: Patient,
+    FILE: '/data/new_patients_batch.json',
+    FORMAT: JSON
+);
+
+-- Kịch bản 7: Cập nhật hàng loạt (Batch Update)
+-- Đánh dấu tất cả bệnh nhân nguy cấp
+UPDATE Patient
+ATTRIBUTE (SET is_critical: true)
+WHERE sys >= 140 OR dia >= 90 OR heartRate > 100 OR temperature >= 38.0;
+
+-- Kịch bản 8: Xóa hàng loạt (Batch Delete)
+-- Xóa các bản ghi cũ hơn 1 năm
+DELETE FROM Patient
+WHERE lastVisit < '2025-04-01';
+```
+
+### 5.1. Ví dụ về Quản lý Kho Hàng
+
+```kbql
+-- Tạo Concept Product
+CREATE CONCEPT Product (
+    VARIABLES (
+        productId: STRING,
+        name: STRING,
+        category: STRING,
+        price: DECIMAL,
+        stock: INT,
+        minStock: INT,
+        supplier: STRING,
+        lastRestock: DATE
+    ),
+    CONSTRAINTS (
+        price > 0,
+        stock >= 0,
+        minStock >= 0
+    )
+);
+
+-- Nhập hàng mới về kho
+INSERT BULK INTO Product ATTRIBUTE (
+    ('PRD001', 'Laptop Dell XPS', 'Electronics', 25000000, 50, 10, 'Dell Vietnam', '2026-04-01'),
+    ('PRD002', 'Mouse Logitech', 'Accessories', 500000, 200, 20, 'Logitech', '2026-04-01'),
+    ('PRD003', 'Keyboard Mechanical', 'Accessories', 1200000, 100, 15, 'Keychron', '2026-04-02')
+);
+
+-- Cập nhật số tồn kho sau khi bán
+UPDATE Product
+ATTRIBUTE (SET stock: stock - 5)
+WHERE productId = 'PRD001';
+
+-- Kiểm tra hàng cần nhập lại
+SELECT productId, name, stock, minStock
+FROM Product
+WHERE stock < minStock;
 ```
