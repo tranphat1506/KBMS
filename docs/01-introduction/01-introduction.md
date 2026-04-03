@@ -28,11 +28,12 @@ Mục tiêu chính của đề tài là xây dựng một hệ thống KBMS hoà
 
 ## 1.1.5. Bố cục đề tài
 
-Báo cáo được tổ chức thành 06 chương trọng tâm với nội dung chi tiết như sau:
+Báo cáo được tổ chức thành 07 chương trọng tâm với nội dung chi tiết như sau:
 
 *   **Chương 1 – Giới thiệu và Đặt vấn đề**: Trình bày lý do chọn đề tài, mục tiêu nghiên cứu, đối tượng, phạm vi và ý nghĩa khoa học của đề tài.
 *   **Chương 2 – Cơ sở lý thuyết COKB**: Phân tích tổng quan về mô hình Đối tượng Tính toán (COKB), các thành phần tri thức và nền tảng logic suy diễn đại số.
 *   **Chương 3 – Phân tích và Thiết kế hệ thống**: Khảo sát hiện trạng, phân tích các yêu cầu chức năng (Truy vấn, Suy diễn) và phi chức năng để phác thảo kiến trúc tổng thể.
 *   **Chương 4 – Kiến trúc hệ thống và các tầng xử lý**: Chương trọng tâm mô tả chi tiết kiến trúc 4 tầng (Mạng, Máy chủ, Suy diễn, Lưu trữ) cùng các thành phần Lexer/Parser và công cụ CLI/Studio.
-*   **Chương 5 – Thử nghiệm và Đánh giá hiệu năng**: Trình bày kết quả triển khai thực tế trên các tập dữ liệu mẫu, thực hiện các bài đo hiệu năng suy diễn và độ trễ truy vấn.
-*   **Chương 6 – Kết luận và Hướng phát triển**: Tổng kết các kết quả đạt được, chỉ ra những hạn chế hiện tại và đề xuất các hướng nghiên cứu, cải tiến trong tương lai.
+*   **Chương 5 – Cài đặt và Triển khai**: Hướng dẫn cài đặt môi trường, triển khai hệ thống và cấu hình các thông số vận hành cơ bản.
+*   **Chương 6 – Thử nghiệm và Đánh giá hiệu năng**: Trình bày kết quả triển khai thực tế trên các tập dữ liệu mẫu, thực hiện các bài đo hiệu năng suy diễn và độ trễ truy vấn.
+*   **Chương 7 – Kết luận và Hướng phát triển**: Tổng kết các kết quả đạt được, chỉ ra những hạn chế hiện tại và đề xuất các hướng nghiên cứu, cải tiến trong tương lai.

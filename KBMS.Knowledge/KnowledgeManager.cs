@@ -715,14 +715,51 @@ public class KnowledgeManager
 
     private object HandleCreateRule(CreateRuleNode node, string kbName)
     {
-        var scope = node.ConceptName;
-        // If scope is not explicitly provided (e.g. in standalone CREATE RULE), 
-        // try to extract it from the first hypothesis: Student(grade > 90) -> Student
-        if (string.IsNullOrEmpty(scope) && node.Hypothesis.Count > 0)
+        // Handle multi-concept scope
+        var scopeConcepts = new List<RuleScopeConcept>();
+        var joinConditions = new List<RuleJoinCondition>();
+
+        if (node.ScopeConcepts.Count > 0)
         {
-            var firstHyp = GetExpressionString(node.Hypothesis[0]);
-            var match = System.Text.RegularExpressions.Regex.Match(firstHyp, @"^(\w+)\(");
-            if (match.Success) scope = match.Groups[1].Value;
+            // Multi-concept rule
+            scopeConcepts = node.ScopeConcepts.Select(sc => new RuleScopeConcept
+            {
+                ConceptName = sc.ConceptName,
+                Alias = sc.Alias,
+                Position = sc.Position
+            }).ToList();
+
+            // Convert join conditions
+            foreach (var jc in node.JoinConditions)
+            {
+                joinConditions.Add(new RuleJoinCondition
+                {
+                    LeftField = jc.Field,
+                    Operator = jc.Operator,
+                    RightField = jc.Value?.ToString() ?? ""
+                });
+            }
+        }
+        else
+        {
+            // Single-concept rule (backward compatibility)
+            var scope = node.ConceptName;
+            if (string.IsNullOrEmpty(scope) && node.Hypothesis.Count > 0)
+            {
+                var firstHyp = GetExpressionString(node.Hypothesis[0]);
+                var match = System.Text.RegularExpressions.Regex.Match(firstHyp, @"^(\w+)\(");
+                if (match.Success) scope = match.Groups[1].Value;
+            }
+
+            if (!string.IsNullOrEmpty(scope))
+            {
+                scopeConcepts.Add(new RuleScopeConcept
+                {
+                    ConceptName = scope,
+                    Alias = null,
+                    Position = 0
+                });
+            }
         }
 
         var rule = new Rule
@@ -730,8 +767,11 @@ public class KnowledgeManager
             Id = Guid.NewGuid(),
             Name = node.RuleName,
             RuleType = node.RuleType.ToString().ToLower(),
-            Scope = scope ?? "",
+            Scope = scopeConcepts.FirstOrDefault()?.ConceptName ?? "",
+            ScopeConcepts = scopeConcepts,
+            JoinConditions = joinConditions,
             Cost = node.Cost ?? 1,
+            Priority = node.Priority,
             Hypothesis = node.Hypothesis.Select(h => ToModelExpression(h)).ToList(),
             Conclusion = node.Conclusions.Select(c => ToModelExpression(c)).ToList()
         };
@@ -740,7 +780,7 @@ public class KnowledgeManager
         if (kb == null) return ErrorResponse.ExecutionErrorResponse("KB not found.");
         kb.Rules.Add(rule);
         return _kbCatalog.SaveKbMetadata(kb)
-            ? new { success = true, message = $"Rule '{node.RuleName}' created successfully (V3 Engine)." }
+            ? new { success = true, message = $"Rule '{node.RuleName}' created successfully (V3 Engine)." + (rule.IsMultiConcept ? $" Multi-concept scope: {string.Join(", ", scopeConcepts.Select(s => s.ConceptName))}" : "") }
             : ErrorResponse.ExecutionErrorResponse("Failed to save KB metadata.");
     }
 
@@ -1186,11 +1226,37 @@ public class KnowledgeManager
                                         var resolvedConcept = engine.ConceptResolver?.Invoke(entityName) ?? conceptMetadata;
                                         if (resolvedConcept != null)
                                         {
-                                            var solveResult = engine.FindClosure(resolvedConcept, evalParams, new List<string> { targetVar });
-                                            if (solveResult.Success && solveResult.DerivedFacts.ContainsKey(targetVar))
-                                                newValues[outName] = solveResult.DerivedFacts[targetVar];
-                                            else if (!solveResult.Success && !string.IsNullOrEmpty(solveResult.ErrorMessage))
-                                                newValues[outName] = $"[ERROR] {solveResult.ErrorMessage}";
+                                            // FAST PATH: Try direct equation solving first (much faster than full Rete)
+                                            bool solved = false;
+                                            foreach (var eq in resolvedConcept.Equations)
+                                            {
+                                                var eqVars = engine.ExtractVariablesFromExpression(eq.Expression);
+                                                if (eqVars.Contains(targetVar, StringComparer.OrdinalIgnoreCase))
+                                                {
+                                                    try
+                                                    {
+                                                        var root = engine.Solve1DEquation(eq.Expression, targetVar, evalParams);
+                                                        if (!double.IsNaN(root))
+                                                        {
+                                                            var variable = resolvedConcept.Variables.FirstOrDefault(v => v.Name.Equals(targetVar, StringComparison.OrdinalIgnoreCase));
+                                                            newValues[outName] = engine.CastToVariableType(root, variable);
+                                                            solved = true;
+                                                            break;
+                                                        }
+                                                    }
+                                                    catch { /* Fall through to full closure */ }
+                                                }
+                                            }
+
+                                            // FALLBACK: Full Rete-based closure if fast path failed
+                                            if (!solved)
+                                            {
+                                                var solveResult = engine.FindClosure(resolvedConcept, evalParams, new List<string> { targetVar });
+                                                if (solveResult.Success && solveResult.DerivedFacts.ContainsKey(targetVar))
+                                                    newValues[outName] = solveResult.DerivedFacts[targetVar];
+                                                else if (!solveResult.Success && !string.IsNullOrEmpty(solveResult.ErrorMessage))
+                                                    newValues[outName] = $"[ERROR] {solveResult.ErrorMessage}";
+                                            }
                                         }
                                     }
                                 }
@@ -3047,15 +3113,28 @@ public class KnowledgeManager
                 c.ConceptRules = matchingRules
                     .Select(r => {
                         var scopeName = r.Scope;
-                        return new Models.ConceptRule { 
-                            Id = r.Id, 
-                            Kind = r.Name ?? r.RuleType ?? "deduction", 
+                        return new Models.ConceptRule {
+                            Id = r.Id,
+                            Kind = r.Name ?? r.RuleType ?? "deduction",
+                            Scope = scopeName,
+                            // Multi-concept scope support
+                            ScopeConcepts = r.ScopeConcepts?.Select(sc => new Models.ConceptRuleScopeConcept {
+                                ConceptName = sc.ConceptName,
+                                Alias = sc.Alias,
+                                Position = sc.Position
+                            }).ToList() ?? new(),
+                            JoinConditions = r.JoinConditions?.Select(jc => new Models.ConceptRuleJoinCondition {
+                                LeftField = jc.LeftField,
+                                Operator = jc.Operator,
+                                RightField = jc.RightField
+                            }).ToList() ?? new(),
+                            Priority = r.Priority,
                             Hypothesis = r.Hypothesis?.Select(h => {
                                 var s = h.Content ?? "";
                                 if (!string.IsNullOrEmpty(scopeName) && s.StartsWith(scopeName + "(", StringComparison.OrdinalIgnoreCase) && s.EndsWith(")"))
                                     return s.Substring(scopeName.Length + 1, s.Length - scopeName.Length - 2);
                                 return s;
-                            }).ToList() ?? new(), 
+                            }).ToList() ?? new(),
                             Conclusion = r.Conclusion?.Select(conc => {
                                 var s = conc.Content ?? "";
                                 if (!string.IsNullOrEmpty(scopeName) && s.StartsWith(scopeName + "(", StringComparison.OrdinalIgnoreCase) && s.EndsWith(")"))

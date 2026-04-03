@@ -57,20 +57,26 @@ public class ReteCompiler
 
     private void CompileRule(Concept concept, ConceptRule rule)
     {
-        // Chain conditions
+        // Check if this is a multi-concept rule
+        if (rule.IsMultiConcept && rule.ScopeConcepts.Count > 1)
+        {
+            CompileMultiConceptRule(concept, rule);
+            return;
+        }
 
+        // Single-concept rule (original logic)
         // Chain conditions
         ReteNode currentParent = _network.Root;
-        
+
         // Simplicity: we assume each hypothesis is a single condition on one or more variables.
         // For each Variable mentioned in the hypothesis, we need an AlphaNode.
-        
+
         // This is a naive implementation: treating the whole hypothesis list as a sequence of facts
         // In reality, Rete is more complex. For this MVP, let's treat variables as facts.
-        
+
         // (RC6.1) Identify vars in hypothesis as triggers
         var neededVars = rule.Hypothesis.SelectMany(h => _engine.ExtractVariablesFromExpression(h)).Distinct().ToList();
-        
+
         if (!neededVars.Any()) return;
         // Build the chain
         ReteNode? lastNode = null;
@@ -78,7 +84,7 @@ public class ReteCompiler
         for (int i = 0; i < neededVars.Count; i++)
         {
             var alpha = _network.GetOrCreateAlphaNode(neededVars[i]);
-            
+
             if (i == 0)
             {
                 lastNode = alpha;
@@ -88,11 +94,11 @@ public class ReteCompiler
                 var beta = new BetaNode();
                 beta.LeftParent = lastNode;
                 beta.RightParent = alpha;
-                
+
                 // Link Beta to its parents
                 lastNode!.AddChild(new LeftDistributor(beta));
                 alpha.AddChild(new RightDistributor(beta));
-                
+
                 lastNode = beta;
             }
         }
@@ -112,7 +118,7 @@ public class ReteCompiler
             // Build fact context for conclusion execution
             // Start with facts that triggered the rule (from Token)
             var facts = token.ToDictionary();
-            
+
             // Supplement with ANY other facts currently in the network's working memory
             // This is essential if the conclusion uses variables not present in the hypothesis chain
             foreach (var f in _network.WorkingMemory)
@@ -134,6 +140,163 @@ public class ReteCompiler
         var terminal = new TerminalNode(ruleName, terminalAction);
         filterNode.AddChild(terminal);
     }
+
+    /// <summary>
+    /// Compiles a multi-concept rule that spans multiple concepts with join conditions
+    /// </summary>
+    private void CompileMultiConceptRule(Concept concept, ConceptRule rule)
+    {
+        // For multi-concept rules, we need to:
+        // 1. Extract variables from hypothesis with alias prefixes
+        // 2. Build Alpha nodes for aliased variables
+        // 3. Add join condition evaluation in the filter
+        // 4. Execute conclusions with proper variable binding
+
+        var ruleName = rule.Kind ?? $"MultiRule_{rule.Id}";
+
+        // Build alias map: alias -> concept name
+        var aliasMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var sc in rule.ScopeConcepts)
+        {
+            var alias = sc.Alias ?? sc.ConceptName;
+            aliasMap[alias] = sc.ConceptName;
+        }
+
+        // Extract all variables from hypothesis (may include dot-notation like p.age)
+        var neededVars = rule.Hypothesis
+            .SelectMany(h => _engine.ExtractVariablesFromExpression(h))
+            .Distinct()
+            .ToList();
+
+        if (!neededVars.Any()) return;
+
+        // Build the chain of Alpha/Beta nodes
+        ReteNode? lastNode = null;
+
+        for (int i = 0; i < neededVars.Count; i++)
+        {
+            var varName = neededVars[i];
+            var alpha = _network.GetOrCreateAlphaNode(varName);
+
+            if (i == 0)
+            {
+                lastNode = alpha;
+            }
+            else
+            {
+                var beta = new BetaNode();
+                beta.LeftParent = lastNode;
+                beta.RightParent = alpha;
+
+                lastNode!.AddChild(new LeftDistributor(beta));
+                alpha.AddChild(new RightDistributor(beta));
+
+                lastNode = beta;
+            }
+        }
+
+        // Filter node: checks hypothesis AND join conditions
+        var filterNode = new FilterNode(token => {
+            var facts = token.ToDictionary();
+
+            // Check all hypothesis conditions
+            if (!rule.Hypothesis.All(h => {
+                try { return _engine.EvaluateConstraint(h, facts); } catch { return false; }
+            }))
+                return false;
+
+            // Check join conditions (if any)
+            foreach (var jc in rule.JoinConditions)
+            {
+                try
+                {
+                    var leftVal = EvaluateFieldValue(jc.LeftField, facts);
+                    var rightVal = EvaluateFieldValue(jc.RightField, facts);
+
+                    if (leftVal == null || rightVal == null) return false;
+
+                    // Simple equality check for join
+                    if (!ValuesEqual(leftVal, rightVal)) return false;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+
+        lastNode!.AddChild(filterNode);
+
+        // Terminal node: execute conclusions
+        var terminalAction = new Action<Token>(token => {
+            var facts = token.ToDictionary();
+
+            // Supplement with working memory
+            foreach (var f in _network.WorkingMemory)
+            {
+                if (!facts.ContainsKey(f.Name)) facts[f.Name] = f.Value;
+            }
+
+            var res = new InferenceEngine.ReasoningResult();
+            foreach (var concl in rule.Conclusion)
+            {
+                _engine.ApplyConclusion(concl, concept, facts, res, ruleName);
+                foreach (var derived in res.DerivedFacts)
+                {
+                    _network.AssertFact(derived.Key, derived.Value);
+                    _network.Logger?.Invoke($"Multi-Concept Rule {ruleName} resolved {derived.Key}");
+                }
+            }
+        });
+
+        var terminal = new TerminalNode(ruleName, terminalAction);
+        filterNode.AddChild(terminal);
+
+        _network.Logger?.Invoke($"Compiled multi-concept rule '{ruleName}' with {rule.ScopeConcepts.Count} concepts");
+    }
+
+    /// <summary>
+    /// Evaluates a field value, supporting dot notation (e.g., "p.age")
+    /// </summary>
+    private object? EvaluateFieldValue(string field, Dictionary<string, object> facts)
+    {
+        // Direct field lookup
+        if (facts.TryGetValue(field, out var directVal))
+            return directVal;
+
+        // Try without prefix (for backward compatibility)
+        var lastDot = field.LastIndexOf('.');
+        if (lastDot > 0)
+        {
+            var shortName = field.Substring(lastDot + 1);
+            if (facts.TryGetValue(shortName, out var shortVal))
+                return shortVal;
+        }
+
+        return null;
+    }
+
+    private bool ValuesEqual(object? v1, object? v2)
+    {
+        if (v1 == null && v2 == null) return true;
+        if (v1 == null || v2 == null) return false;
+
+        // Handle numeric equality
+        if (IsNumeric(v1) && IsNumeric(v2))
+        {
+            try
+            {
+                return Math.Abs(Convert.ToDouble(v1) - Convert.ToDouble(v2)) < 1e-9;
+            }
+            catch { return false; }
+        }
+
+        return v1.Equals(v2) || v1.ToString() == v2.ToString();
+    }
+
+    private bool IsNumeric(object v) => v is int or long or double or decimal or float;
 
     private void CompileEquation(Concept concept, Equation eq)
     {

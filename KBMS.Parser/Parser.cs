@@ -655,12 +655,11 @@ public class Parser
             node.RuleType = Enum.Parse<RuleType>(typeToken.Lexeme, true);
         }
 
-        // Parse SCOPE clause
+        // Parse SCOPE clause (supports single or multi-concept)
         if (Check(TokenType.SCOPE))
         {
             Consume(TokenType.SCOPE);
-            var scopeToken = ConsumeIdentifier() ?? throw Error("Expected scope concept");
-            node.ConceptName = scopeToken.Lexeme;
+            ParseRuleScope(node);
         }
 
         // Parse IF clause (hypothesis)
@@ -680,11 +679,103 @@ public class Parser
         // Parse COST clause
         if (Check(TokenType.COST))
         {
+            Consume(TokenType.COST);
             var costToken = Consume(TokenType.NUMBER) ?? throw Error("Expected cost number");
             node.Cost = (int?)ConvertToDouble(costToken.Literal);
         }
 
+        // Parse PRIORITY clause
+        if (Check(TokenType.IDENTIFIER) && Peek()?.Lexeme?.Equals("PRIORITY", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            Advance(); // consume PRIORITY
+            var priorityToken = Consume(TokenType.NUMBER) ?? throw Error("Expected priority number");
+            node.Priority = (int)ConvertToDouble(priorityToken.Literal);
+        }
+
         return node;
+    }
+
+    /// <summary>
+    /// Parse rule scope - supports single or multi-concept scope
+    /// Examples:
+    ///   SCOPE Patient
+    ///   SCOPE Patient p
+    ///   SCOPE Patient p, LabResult l
+    ///   SCOPE Patient p JOIN LabResult l ON p.id = l.patientId
+    /// </summary>
+    private void ParseRuleScope(CreateRuleNode node)
+    {
+        int position = 0;
+
+        // Parse first concept
+        var firstConcept = ParseRuleScopeConcept(position++);
+        node.ScopeConcepts.Add(firstConcept);
+        node.ConceptName = firstConcept.ConceptName; // Backward compatibility
+
+        // Check for comma-separated concepts or JOIN
+        while (Check(TokenType.COMMA) || Check(TokenType.JOIN))
+        {
+            if (Check(TokenType.COMMA))
+            {
+                // Comma-separated: SCOPE Concept1 a1, Concept2 a2
+                Consume(TokenType.COMMA);
+                var nextConcept = ParseRuleScopeConcept(position++);
+                node.ScopeConcepts.Add(nextConcept);
+            }
+            else if (Check(TokenType.JOIN))
+            {
+                // JOIN syntax: SCOPE Concept1 a1 JOIN Concept2 a2 ON condition
+                Consume(TokenType.JOIN);
+                var joinConcept = ParseRuleScopeConcept(position++);
+                node.ScopeConcepts.Add(joinConcept);
+
+                // Parse ON condition
+                if (Check(TokenType.ON))
+                {
+                    Consume(TokenType.ON);
+                    var joinCondition = ParseCondition();
+                    node.JoinConditions.Add(joinCondition);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Parse a single scope concept with optional alias
+    /// Examples: "Patient", "Patient p"
+    /// </summary>
+    private AstRuleScopeConcept ParseRuleScopeConcept(int position)
+    {
+        var conceptToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected concept name in scope");
+        var scopeConcept = new AstRuleScopeConcept
+        {
+            ConceptName = conceptToken.Lexeme,
+            Position = position
+        };
+
+        // Check for alias (identifier that's not a keyword)
+        if (Check(TokenType.IDENTIFIER) && !IsClauseKeyword(Peek()?.Type ?? TokenType.EOF))
+        {
+            var aliasToken = Advance();
+            scopeConcept.Alias = aliasToken.Lexeme;
+        }
+
+        return scopeConcept;
+    }
+
+    /// <summary>
+    /// Check if token type is a clause keyword that would end scope parsing
+    /// </summary>
+    private bool IsClauseKeyword(TokenType type)
+    {
+        return type == TokenType.IF ||
+               type == TokenType.THEN ||
+               type == TokenType.WHERE ||
+               type == TokenType.COST ||
+               type == TokenType.ON ||
+               type == TokenType.JOIN ||
+               type == TokenType.COMMA ||
+               type == TokenType.SEMICOLON;
     }
 
     private CreateUserNode ParseCreateUser()

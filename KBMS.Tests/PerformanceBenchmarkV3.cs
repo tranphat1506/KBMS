@@ -203,10 +203,6 @@ public class PerformanceBenchmarkV3 : IDisposable
             swr.WriteLine("|------------|-----------|--------------|--------------|---------------|");
             foreach (var line in results) swr.WriteLine(line);
             swr.WriteLine("================================================================");
-            swr.WriteLine("\nCONCLUSION:");
-            swr.WriteLine("1. Larger Buffer Pool (256MB) acts as an I/O shield, absorbing all modifications in RAM.");
-            swr.WriteLine("2. Smaller Buffer Pool (10MB) forces continuous Page Eviction, massive disk write-back overhead.");
-            swr.WriteLine("3. Observe the 'Disk Writes' column: 10MB will have thousands more writes than 256MB.");
         }
     }
 

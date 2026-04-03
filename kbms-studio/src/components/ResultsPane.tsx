@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Terminal, Info, Download, LayoutGrid, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Terminal, Info, Download, LayoutGrid, CheckCircle, ChevronLeft, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
 import { useKbmsStore } from '../store/kbmsStore';
 
 const PaginatedTable = ({ res }: { res: any }) => {
@@ -97,6 +97,7 @@ const PaginatedTable = ({ res }: { res: any }) => {
 
 export default function ResultsPane() {
   const { result, activeTab, setActiveTab } = useKbmsStore();
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const handleExportCSV = () => {
     const firstTabular = result?.find((r: any) => r.rows && r.rows.length > 0);
@@ -123,7 +124,18 @@ export default function ResultsPane() {
     document.body.removeChild(link);
   };
 
-  return (
+  // Handle Escape key for fullscreen
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen]);
+
+  const content = (
     <div className="h-full w-full bg-[var(--bg-surface)] flex flex-col font-sans relative transition-colors duration-200">
       <div className="flex items-center px-4 h-10 bg-[var(--bg-app)] border-b border-[var(--border-subtle)] justify-between select-none">
         <div className="flex items-center space-x-1 relative h-full">
@@ -149,6 +161,13 @@ export default function ResultsPane() {
         </div>
 
         <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="text-[var(--text-muted)] hover:text-[var(--brand-primary)] p-1.5 rounded hover:bg-[var(--brand-primary-light)]/20 transition-colors tooltip cursor-pointer"
+            title={isFullscreen ? "Exit Fullscreen (Esc)" : "Fullscreen Results"}
+          >
+            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          </button>
           <button onClick={handleExportCSV} className="text-[var(--text-muted)] hover:text-[var(--brand-primary)] p-1.5 rounded hover:bg-[var(--brand-primary-light)]/20 transition-colors tooltip cursor-pointer" title="Export to CSV">
             <Download className="w-4 h-4" />
           </button>
@@ -255,4 +274,30 @@ export default function ResultsPane() {
       </div>
     </div>
   );
+
+  // Fullscreen mode - overlay on top of everything (check BEFORE returning content)
+  if (isFullscreen) {
+    return (
+      <div className="fixed inset-0 z-50 bg-[var(--bg-app)] flex flex-col">
+        <div className="flex items-center justify-between px-4 py-2 bg-[var(--bg-surface)] border-b border-[var(--border-subtle)]">
+          <div className="flex items-center space-x-2">
+            <LayoutGrid className="w-4 h-4 text-[var(--brand-primary)]" />
+            <span className="font-semibold text-[var(--text-main)]">Results - Fullscreen Mode</span>
+          </div>
+          <button
+            onClick={() => setIsFullscreen(false)}
+            className="flex items-center space-x-1 px-3 py-1.5 rounded bg-[var(--bg-app)] hover:bg-[var(--bg-surface-alt)] text-[var(--text-sub)] hover:text-[var(--text-main)] transition-colors cursor-pointer"
+          >
+            <Minimize2 className="w-4 h-4" />
+            <span className="text-sm">Exit (Esc)</span>
+          </button>
+        </div>
+        <div className="flex-1 overflow-hidden">
+          {content}
+        </div>
+      </div>
+    );
+  }
+
+  return content;
 }

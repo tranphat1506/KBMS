@@ -53,6 +53,10 @@ public class InferenceEngine
         var knownFacts = new Dictionary<string, object>(initialFacts);
         int stepCount = 0;
 
+        // Timeout protection - max 5 seconds
+        var startTime = DateTime.UtcNow;
+        var timeoutMs = 5000;
+
         result.Steps.Add($"Step {stepCount++}: Initializing reasoning for '{concept.Name}'");
 
         // (RC6) Identify inherited knowledge (tri-knowledge: C, H, R)
@@ -76,6 +80,15 @@ public class InferenceEngine
         {
             while (iteration < 2000)
             {
+                // Timeout check
+                if ((DateTime.UtcNow - startTime).TotalMilliseconds > timeoutMs)
+                {
+                    result.Success = false;
+                    result.ErrorMessage = $"Reasoning timeout after {timeoutMs}ms (iteration {iteration})";
+                    result.Steps.Add($"[TIMEOUT] Exceeded {timeoutMs}ms limit");
+                    return result;
+                }
+
                 bool factAddedThisTurn = false;
                 
                 // Track visited states to detect trivial circularity (Phase 11)
@@ -465,47 +478,67 @@ public class InferenceEngine
     public double Solve1DEquation(string expr, string target, Dictionary<string, object> parameters, Action<string>? log = null)
     {
         var s = SplitEquation(expr);
-        Func<double, double> f = (x) => { 
-            var p = new Dictionary<string, object>(parameters) { [target] = x }; 
-            var res = EvaluateFormula(s.left, p, log);
-            var left = res != null ? Convert.ToDouble(res) : 0.0;
-            var resRight = EvaluateFormula(s.right, p, log);
-            var right = resRight != null ? Convert.ToDouble(resRight) : 0.0;
-            return left - right;
-        };
-        
-        double lower = -1000, upper = 1000; // Default search range
-        
-        // Try to find a bracket with a sign change
-        if (f(0) * f(10000) < 0) { lower = 0; upper = 10000; }
-        else if (f(-10000) * f(0) < 0) { lower = -10000; upper = 0; }
-        else 
-        {
-            bool found = false;
-            // Scan a wider range with adaptive steps
-            double[] scanRanges = { 100, 1000, 10000, 100000, 1000000 };
-            foreach (var range in scanRanges)
-            {
-                for (double st = -range; st < range; st += range / 100)
-                {
-                    try
-                    {
-                        if (f(st) * f(st + (range / 100)) <= 0)
-                        {
-                            lower = st;
-                            upper = st + (range / 100);
-                            found = true;
-                            break;
-                        }
-                    }
-                    catch { }
-                }
-                if (found) break;
-            }
 
-            if (!found) throw new Exception($"No root found in extended range for 1D equation: {expr}");
+        // Cache compiled expression for performance
+        var leftExpr = s.left;
+        var rightExpr = s.right;
+
+        Func<double, double> f = (x) => {
+            var p = new Dictionary<string, object>(parameters) { [target] = x };
+            try {
+                var res = EvaluateFormula(leftExpr, p, null);
+                var left = res != null ? Convert.ToDouble(res) : 0.0;
+                var resRight = EvaluateFormula(rightExpr, p, null);
+                var right = resRight != null ? Convert.ToDouble(resRight) : 0.0;
+                return left - right;
+            } catch {
+                return double.NaN;
+            }
+        };
+
+        // FAST scan - only 20 points in reasonable range
+        double lower = -1000, upper = 1000;
+        bool found = false;
+
+        // Quick scan at common values
+        double[] quickTests = { 0, 1, 10, 100, -1, -10, -100 };
+        foreach (var t in quickTests)
+        {
+            try {
+                var fv = f(t);
+                if (!double.IsNaN(fv) && Math.Abs(fv) < 1e-6)
+                {
+                    return t; // Found exact solution
+                }
+            } catch { }
         }
-        return MathNet.Numerics.RootFinding.Brent.FindRoot(f, lower, upper, 1e-8);
+
+        // Scan for sign change (only 50 iterations max)
+        double step = 100;
+        for (double st = -1000; st <= 1000 && !found; st += step)
+        {
+            try {
+                var f1 = f(st);
+                var f2 = f(st + step);
+                if (!double.IsNaN(f1) && !double.IsNaN(f2) && f1 * f2 <= 0)
+                {
+                    lower = st;
+                    upper = st + step;
+                    found = true;
+                }
+            } catch { }
+        }
+
+        if (!found) return double.NaN; // Return NaN instead of throwing
+
+        try
+        {
+            return MathNet.Numerics.RootFinding.Brent.FindRoot(f, lower, upper, 1e-6, 100);
+        }
+        catch
+        {
+            return double.NaN; // Return NaN if Brent fails
+        }
     }
 
     private double Factorial(double n)

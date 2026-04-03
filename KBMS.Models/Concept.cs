@@ -73,13 +73,45 @@ public class Property
     public object Value { get; set; } = null!;
 }
 
+/// <summary>
+/// Represents a scope concept in a multi-concept rule
+/// </summary>
+public class ConceptRuleScopeConcept
+{
+    public string ConceptName { get; set; } = string.Empty;
+    public string? Alias { get; set; }
+    public int Position { get; set; }
+}
+
+/// <summary>
+/// Represents a join condition between concepts in a multi-concept rule
+/// </summary>
+public class ConceptRuleJoinCondition
+{
+    public string LeftField { get; set; } = string.Empty;
+    public string Operator { get; set; } = "=";
+    public string RightField { get; set; } = string.Empty;
+}
+
 public class ConceptRule
 {
     public Guid Id { get; set; }
     public string Kind { get; set; } = string.Empty;
+
+    // Single concept scope (backward compatibility)
+    public string Scope { get; set; } = string.Empty;
+
+    // Multi-concept scope support
+    public List<ConceptRuleScopeConcept> ScopeConcepts { get; set; } = new();
+    public List<ConceptRuleJoinCondition> JoinConditions { get; set; } = new();
+
+    // Returns true if this is a multi-concept rule
+    public bool IsMultiConcept => ScopeConcepts.Count > 1;
+
     public List<Variable> Variables { get; set; } = new();
     public List<string> Hypothesis { get; set; } = new();
     public List<string> Conclusion { get; set; } = new();
+    public int Priority { get; set; } = 50;
 }
 
 public enum AlterActionType
