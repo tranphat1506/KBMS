@@ -103,7 +103,7 @@ export default function ConnectModal() {
                 <div className="px-3 py-2 rounded flex items-center space-x-2 cursor-pointer border bg-[var(--bg-surface)] border-[var(--brand-primary)]/40 shadow-sm text-[var(--brand-primary-text)]">
                    <ServerIcon className="w-3.5 h-3.5 shrink-0 text-[var(--brand-primary)]" />
                    <div className="flex flex-col overflow-hidden">
-                     <span className="text-[12px] font-medium truncate italic text-[var(--text-muted)]">Unregistered...</span>
+                     <span className="text-[12px] font-medium truncate italic text-[var(--text-muted)]">New Server</span>
                    </div>
                 </div>
              )}
@@ -119,7 +119,7 @@ export default function ConnectModal() {
                  </div>
                  <div>
                     <h2 className="text-[15px] font-bold text-[var(--text-main)] tracking-tight uppercase">{selectedId === 'new' ? 'Initialize Connection' : 'Modify Configuration'}</h2>
-                    <p className="text-[11px] font-thin text-[var(--text-muted)] mt-0.5 uppercase tracking-widest">Direct TCP Endpoint Protocol</p>
+                    <p className="text-[11px] font-thin text-[var(--text-muted)] mt-0.5 uppercase tracking-widest">Connection Settings</p>
                  </div>
               </div>
               <button title="Close (Escape)" onClick={() => setConnectModalOpen(false)} className="text-[var(--text-muted)] hover:text-[var(--text-main)] p-1 hover:bg-[var(--bg-surface-alt)] rounded transition-all -mt-3 -mr-1 cursor-pointer">
@@ -170,7 +170,7 @@ export default function ConnectModal() {
 
                 <div className="flex space-x-4">
                    <div className="flex-1 space-y-1.5 focus-within:text-[var(--brand-primary)] transition-colors">
-                     <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Auth Identity</label>
+                     <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Auth Username</label>
                      <input 
                        type="text" 
                        value={user}
@@ -180,7 +180,7 @@ export default function ConnectModal() {
                      />
                    </div>
                    <div className="flex-1 space-y-1.5 focus-within:text-[var(--brand-primary)] transition-colors">
-                     <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Secret Token</label>
+                     <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Auth Password</label>
                      <input 
                        type="password" 
                        value={pass}
@@ -198,7 +198,7 @@ export default function ConnectModal() {
                 {selectedId !== 'new' && (
                    <button onClick={handleDelete} className="flex items-center space-x-1 px-4 py-1.5 text-[11px] font-medium text-rose-500 hover:bg-rose-500/10 rounded transition-all cursor-pointer font-thin uppercase tracking-widest">
                       <Trash2 className="w-3.5 h-3.5" />
-                      <span>Purge Profile</span>
+                      <span>Remove Server</span>
                    </button>
                 )}
              </div>
@@ -207,7 +207,7 @@ export default function ConnectModal() {
                   onClick={handleSave} 
                   className="px-5 py-1.5 text-[11px] font-medium text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-[var(--bg-surface-alt)] rounded transition-all cursor-pointer font-thin uppercase tracking-widest"
                 >
-                   Persist
+                     Save
                 </button>
                 <button 
                   onClick={handleConnect}
@@ -215,7 +215,7 @@ export default function ConnectModal() {
                   className="flex items-center space-x-2 px-6 py-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white text-[11px] font-bold rounded shadow-md hover:shadow-emerald-500/20 transition-all focus:ring-2 focus:ring-[var(--brand-primary)] focus:ring-offset-1 disabled:bg-[var(--bg-surface-alt)] disabled:text-[var(--text-muted)] disabled:shadow-none cursor-pointer disabled:cursor-not-allowed uppercase tracking-widest"
                 >
                    {isExecuting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wifi className="w-4 h-4" />}
-                   <span>{isExecuting ? 'Handshaking...' : 'Establish Link'}</span>
+                   <span>{isExecuting ? 'Handshaking...' : 'Connect'}</span>
                 </button>
              </div>
           </div>

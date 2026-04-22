@@ -68,7 +68,7 @@ public class ReteNetwork
         // Handle numeric equality across types (int, long, double, decimal)
         if (IsNumeric(v1) && IsNumeric(v2))
         {
-            return Math.Abs(Convert.ToDouble(v1) - Convert.ToDouble(v2)) < 1e-9;
+            return Math.Abs(Convert.ToDouble(v1) - Convert.ToDouble(v2)) < 1e-7;
         }
 
         return v1.Equals(v2);

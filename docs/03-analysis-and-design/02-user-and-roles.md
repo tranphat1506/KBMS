@@ -4,17 +4,17 @@ Hệ thống KBMS được thiết kế để phục vụ các nhu cầu khác n
 
 ## 1. Phân loại Người dùng
 
-### a. Học viên / Nghiên cứu sinh
+### Học viên / Nghiên cứu sinh
 *   **Nhu cầu**: Thiết kế các mô hình tri thức lý thuyết (Hình học, Y học, Hóa học).
 *   **Công cụ**: Sử dụng **KBMS Studio** làm môi trường chính để vẽ đồ thị tri thức và định nghĩa tập luật.
 *   **Hành động**: CREATE CONCEPT, INSERT FACT, SOLVE bài toán.
 
-### b. Quản trị viên
+### Quản trị viên
 *   **Nhu cầu**: Giám sát sức khỏe hệ thống và duy trì tính toàn vẹn của dữ liệu lớn.
 *   **Công cụ**: Sử dụng **System Dashboard** trong Studio và **CLI Management commands**.
 *   **Hành động**: REINDEX, CHECKPOINT, Quản lý Roles (GRANT/REVOKE), Giám sát RAM/Disk.
 
-### c. Nhà phát triển
+### Nhà phát triển
 *   **Nhu cầu**: Tích hợp KBMS làm lõi thông minh cho các ứng dụng Expert System khác.
 *   **Công cụ**: Sử dụng **KBMS CLI** và tương tác trực tiếp qua **Binary Protocol**.
 *   **Hành động**: Bulk Insert, Tự động hóa qua Script (.kbql), Xử lý luồng kết quả Streaming.

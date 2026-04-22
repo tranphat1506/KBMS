@@ -35,7 +35,7 @@ Khi một lệnh được gửi đến, luồng xử lý diễn ra theo các bư
 
 Bên cạnh các luồng xử lý tri thức chính, hệ thống triển khai các phân hệ phụ trợ để đảm bảo an ninh và chẩn đoán trạng thái vận hành.
 
-![Quy trình Chẩn đoán và Bảo mật](../assets/diagrams/kbms_security_diagnostics_flow.png)
+![Quy trình Chẩn đoán và Bảo mật | width=1.1](../assets/diagrams/kbms_security_diagnostics_flow.png)
 *Hình 4.3: Sơ đồ luồng chẩn đoán và kiểm soát an ninh hệ thống.*
 
 Các phân hệ này bao gồm:

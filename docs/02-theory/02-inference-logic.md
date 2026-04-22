@@ -12,22 +12,3 @@ Hệ thống KBMS vận hành dựa trên 6 loại quy tắc suy luận chính (
 *   **RC4 (Luật dẫn)**: Thực thi các luật logic dạng mệnh đề thông qua cấu trúc nốt Terminal.
 *   **RC5 (Giải hệ phương trình)**: Phối hợp các ràng buộc toán học để giải quyết các hệ phương trình phi tuyến đa biến.
 *   **RC6 (Hành vi nội bộ)**: Suy diễn dựa trên cấu trúc thành phần (PART-OF) và phân bậc tri thức.
-
-## 2. Thuật toán Bao đóng Rete (Rete-based Closure Algorithm) [9]
-
-Đây là cơ chế thực thi trọng tâm của KBMS, thay thế phương pháp lặp tuần tự bằng mô hình lan truyền Token trên đồ thị có hướng nhằm tìm kiếm tập bao đóng tri thức lớn nhất từ tập giả thiết **GT**.
-
-**Nguyên lý vận hành**:
-1.  **Biên dịch Mạng (Rete Compilation)**: Toàn bộ tri thức (Rules, Equations, Constraints) được chuyển đổi thành cấu trúc nốt Alpha (Lọc đơn) và nốt Beta (So khớp liên hợp).
-2.  **Lan truyền Dữ kiện (Token Propagation)**: Khi một dữ kiện mới được nạp vào, một Token sẽ được tạo ra và lan truyền qua mạng lưới. Chỉ những nhánh chịu ảnh hưởng trực tiếp mới được kích hoạt tính toán.
-3.  **Quản lý Agenda**: Các luật đã thỏa mãn điều kiện sẽ được đưa vào Agenda. Engine thực hiện kích hoạt các luật này cho đến khi mạng lưới đạt trạng thái điểm dừng (Fixed-point).
-
-## 3. Chiến lược Tối ưu hóa Hình học Mạng
-
-Để tối ưu hóa hiệu năng suy diễn trong các không gian tri thức quy mô lớn, KBMS áp dụng các kỹ thuật tối ưu hóa hình học mạng lưới:
-
-*   **Chia sẻ nốt Alpha (Alpha Node Sharing)**: Gom nhóm các kiểm tra điều kiện trùng lặp để giảm thiểu chi phí tính toán dư thừa.
-*   **Tối ưu hóa thứ tự tham gia (Join Ordering)**: Sắp xếp các nốt Beta dựa trên độ chọn lọc của dữ liệu nhằm giảm kích thước bộ nhớ trung gian.
-*   **Kích hoạt Gia tăng (Incremental Activation)**: Chỉ thực hiện tính toán trên những phần của mạng lưới thực sự có sự thay đổi dữ liệu đầu vào.
-
-Việc áp dụng kiến trúc mạng Rete giúp hệ thống đạt được tốc độ phản hồi thời gian thực và đảm bảo tính nhất quán của tri thức dẫn xuất ngay cả với các mô hình ràng buộc cực kỳ phức tạp.

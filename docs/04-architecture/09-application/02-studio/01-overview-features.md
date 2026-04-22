@@ -1,6 +1,6 @@
 # Đặc tả Giao diện Quản trị (KBMS Studio)
 
-**KBMS Studio** là môi trường phát triển tích hợp dành cho việc quản trị tri thức. Giao diện được xây dựng trên nền tảng công nghệ web hiện đại, cung cấp khả năng điều phối hệ thống thông qua các công cụ trực quan.
+**KBMS Studio** là môi trường phát triển dành cho việc quản trị tri thức. Giao diện được xây dựng trên nền tảng Web, cung cấp khả năng điều phối hệ thống thông qua công cụ trực quan.
 
 Dưới đây là các phân hệ chức năng và bố cục giao diện chính trong Studio:
 
@@ -8,7 +8,7 @@ Dưới đây là các phân hệ chức năng và bố cục giao diện chính
 
 Cấu trúc Studio được phân bổ thành các khu vực chức năng chính, giúp người dùng quản lý dự án tri thức:
 
--   **Trình Duyệt Đối tượng**: Quản lý cấu trúc cây phả hệ của tất cả các Khái niệm, Quan hệ và Luật dẫn.
+-   **Cây Đối tượng**: Quản lý cấu trúc cây của tất cả các Khái niệm, Quan hệ và Luật dẫn.
 -   **Trình Biên tập**: Khu vực làm việc chính để soạn thảo mã nguồn tri thức.
 -   **Bảng Giám sát**: Theo dõi trạng thái hoạt động của hệ thống như CPU, tài nguyên bộ nhớ và hoạt động vào/ra dữ liệu.
 

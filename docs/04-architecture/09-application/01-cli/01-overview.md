@@ -1,8 +1,8 @@
 # Đặc tả Giao diện Dòng lệnh (KBMS CLI)
 
-Trong hệ sinh thái ứng dụng của **KBMS**, phân hệ **KBMS-CLI** đóng vai trò là công cụ quản trị và khai thác tri thức trực tiếp dành cho kỹ sư phần mềm và quản trị viên hệ thống. Thay vì thông qua giao diện đồ họa phức hợp, CLI thiết lập kết nối trực tiếp với máy chủ thông qua giao thức nhị phân, cung cấp khả năng kiểm soát hệ thống với độ trễ tối thiểu.
+**KBMS-CLI** là công cụ quản trị và khai thác tri thức trực tiếp dành cho kỹ sư phần mềm và quản trị viên hệ thống. Thay vì thông qua giao diện đồ họa phức hợp, CLI thiết lập kết nối trực tiếp với máy chủ thông qua giao thức nhị phân, cung cấp khả năng kiểm soát hệ thống với độ trễ tối thiểu.
 
-## 1. Các Tính năng Điều khiển Hạt nhân
+## 1. Các Tính năng
 
 Giao diện dòng lệnh được thiết kế với các cơ chế tương tác nhằm tối ưu hóa hiệu quả làm việc của người dùng trong môi trường console:
 
@@ -32,6 +32,6 @@ Bên cạnh ngôn ngữ truy vấn tri thức, CLI cung cấp tập hợp các l
 
 Để đảm bảo hiệu quả vận hành, CLI được tích hợp các cơ chế tự động hóa:
 
--   **Chế độ Thực thi Kịch bản**: Xử lý các tệp tin chứa nhiều lệnh tri thức một cách tự động, chỉ báo lỗi chính xác khi phát sinh sự cố tại bất kỳ dòng lệnh nào.
--   **Tái thiết lập Kết nối**: CLI duy trì cơ chế giám sát trạng thái kết nối và tự động thử lại tiến trình kết nối khi phát hiện sự gián đoạn mạng.
--   **Phân tích Phản hồi**: Hệ thống bóc tách các gói tin lỗi từ máy chủ để chỉ ra vị trí dòng và cột phát sinh sai lệch cú pháp trong mã nguồn tri thức.
+-   **Thực thi Kịch bản**: Xử lý các tệp tin chứa nhiều lệnh tri thức, báo lỗi chính xác tại dòng lệnh phát sinh sự cố.
+-   **Kết nối tự động**: CLI duy trì cơ chế giám sát trạng thái kết nối và tự động thử lại tiến trình kết nối khi phát hiện sự gián đoạn mạng.
+-   **Phân tích Phản hồi**: Hệ thống bóc tách các gói tin lỗi từ máy chủ để chỉ ra vị trí dòng và cột phát sinh lỗi.

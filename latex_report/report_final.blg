@@ -1,56 +1,14 @@
-This is BibTeX, Version 0.99e (TeX Live 2026)
-Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
-The top-level auxiliary file: report_final.aux
-The style file: IEEEtran.bst
-Reallocated singl_function (elt_size=4) to 100 items from 50.
-Reallocated singl_function (elt_size=4) to 100 items from 50.
-Reallocated singl_function (elt_size=4) to 100 items from 50.
-Reallocated wiz_functions (elt_size=4) to 6000 items from 3000.
-Reallocated singl_function (elt_size=4) to 100 items from 50.
-Database file #1: references.bib
--- IEEEtran.bst version 1.14 (2015/08/26) by Michael Shell.
--- http://www.michaelshell.org/tex/ieeetran/bibtex/
--- See the "IEEEtran_bst_HOWTO.pdf" manual for usage information.
-
-Done.
-You've used 10 entries,
-            4087 wiz_defined-function locations,
-            888 strings with 8962 characters,
-and the built_in function-call counts, 5381 in all, are:
-= -- 428
-> -- 87
-< -- 34
-+ -- 43
-- -- 15
-* -- 250
-:= -- 904
-add.period$ -- 20
-call.type$ -- 10
-change.case$ -- 8
-chr.to.int$ -- 69
-cite$ -- 10
-duplicate$ -- 419
-empty$ -- 498
-format.name$ -- 19
-if$ -- 1230
-int.to.chr$ -- 0
-int.to.str$ -- 10
-missing$ -- 68
-newline$ -- 55
-num.names$ -- 10
-pop$ -- 160
-preamble$ -- 1
-purify$ -- 0
-quote$ -- 2
-skip$ -- 422
-stack$ -- 0
-substring$ -- 152
-swap$ -- 283
-text.length$ -- 11
-text.prefix$ -- 0
-top$ -- 5
-type$ -- 10
-warning$ -- 0
-while$ -- 24
-width$ -- 12
-write$ -- 112
+[0] Config.pm:328> INFO - This is Biber 2.21
+[0] Config.pm:331> INFO - Logfile is 'report_final.blg'
+[23] biber-darwin:342> INFO - === Thu Apr 23, 2026, 04:48:26
+[28] Biber.pm:421> INFO - Reading 'report_final.bcf'
+[66] Biber.pm:1002> INFO - Found 18 citekeys in bib section 0
+[79] Biber.pm:4487> INFO - Processing section 0
+[84] Biber.pm:4678> INFO - Looking for bibtex file 'references.bib' for section 0
+[85] bibtex.pm:1713> INFO - LaTeX decoding ...
+[96] bibtex.pm:1519> INFO - Found BibTeX data source 'references.bib'
+[136] UCollate.pm:68> INFO - Overriding locale 'vi-VN' defaults 'variable = shifted' with 'variable = non-ignorable'
+[136] UCollate.pm:68> INFO - Overriding locale 'vi-VN' defaults 'normalization = NFD' with 'normalization = prenormalized'
+[136] Biber.pm:4307> INFO - Sorting list 'none/global//global/global/global' of type 'entry' with template 'none' and locale 'vi-VN'
+[142] bbl.pm:676> INFO - Writing 'report_final.bbl' with encoding 'UTF-8'
+[144] bbl.pm:779> INFO - Output to report_final.bbl

@@ -36,6 +36,8 @@ Ví dụ thực tế trên cho thấy quá trình bóc tách tri thức từ vă
 2.  **Lớp Lọc Cú pháp (Parsing - Bước 3-5)**: `Parser` áp dụng các quy tắc văn phạm của ngôn ngữ KBQL để nhóm các Token thành các cụm chức năng. Ở bước 5, một đối tượng `SelectStatementNode` được khởi tạo, chứa tất cả thông tin về các trường cần lấy và các điều kiện lọc. 
 
 Cây AST sau khi hoàn thành là một cấu trúc dữ liệu tường minh, cho phép hệ thống thực hiện các phép tối ưu hóa logic trước khi truy xuất dữ liệu từ đĩa hoặc đưa vào mạng suy diễn Rete.
+| Từ vựng (Token) | Loại (Type) | Vị trí (Pos) | Vai trò ngữ nghĩa |
+| :--- | :--- | :--- | :--- |
 | `FROM` | Keyword | 12:16 | Xác định nguồn dữ liệu tri thức. |
 | `Emp` | Identifier | 17:20 | Tên khái niệm (Concept) mục tiêu. |
 | `WHERE` | Keyword | 21:26 | Bắt đầu mệnh đề điều kiện lọc. |

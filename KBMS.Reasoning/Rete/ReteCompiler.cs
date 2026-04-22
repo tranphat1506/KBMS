@@ -329,7 +329,9 @@ public class ReteCompiler
 
             var terminalAction = new Action<Token>(token => {
                 var facts = token.ToDictionary();
-                if (!facts.ContainsKey(target))
+                // ONLY solve if target is not in local token facts AND not in global WorkingMemory
+                bool isKnownGlobally = _network.WorkingMemory.Any(f => f.Name.Equals(target, StringComparison.OrdinalIgnoreCase));
+                if (!facts.ContainsKey(target) && !isKnownGlobally)
                 {
                     // Target is unknown, solve it using the engine's solver
                     try
@@ -375,7 +377,8 @@ public class ReteCompiler
 
         var terminalAction = new Action<Token>(token => {
             var facts = token.ToDictionary();
-            if (!facts.ContainsKey(rel.ResultVariable))
+            bool isKnownGlobally = _network.WorkingMemory.Any(f => f.Name.Equals(rel.ResultVariable, StringComparison.OrdinalIgnoreCase));
+            if (!facts.ContainsKey(rel.ResultVariable) && !isKnownGlobally)
             {
                 try
                 {
@@ -406,7 +409,7 @@ public class ReteCompiler
         var a2 = _network.GetOrCreateAlphaNode(sv.Variable2);
         var t2 = new TerminalNode($"SameVar:{sv.Variable2}->{sv.Variable1}", token => {
             var val = token.GetValue(sv.Variable2);
-            if (val != null) _network.AssertFact(sv.Variable1, val);
+                    if (val != null) _network.AssertFact(sv.Variable1, val);
         });
         a2.AddChild(t2);
     }
@@ -416,20 +419,20 @@ public class ReteCompiler
         var vars = _engine.ExtractVariablesFromExpression(constraint.Expression);
         if (vars == null || vars.Count == 0) return;
 
-        // If it's a condition (all vars known), it could be a filter.
-        // But COKB often treats constraints as equations if 1 var is missing.
-        if (vars.Count >= 1)
+        bool isEquation = constraint.Expression.Contains("=") && 
+                         !constraint.Expression.Contains(">") && 
+                         !constraint.Expression.Contains("<") && 
+                         !constraint.Expression.Contains("!");
+
+        if (isEquation)
         {
+            // Treat as equation root-finding
             foreach (var target in vars)
             {
                 var inputs = vars.Where(v => v != target).ToList();
                 ReteNode? lastNode = null;
                 
-                if (inputs.Count == 0)
-                {
-                    // Constant constraint? handle as entry check
-                }
-                else
+                if (inputs.Count > 0)
                 {
                     for (int i = 0; i < inputs.Count; i++)
                     {
@@ -455,7 +458,6 @@ public class ReteCompiler
                     {
                         try
                         {
-                            // Treat as equation root-finding
                             var root = _engine.Solve1DEquation(constraint.Expression, target, facts);
                             if (!double.IsNaN(root))
                             {
@@ -470,6 +472,42 @@ public class ReteCompiler
 
                 var terminal = new TerminalNode($"ConstraintSolve:{constraint.Expression}->{target}", terminalAction);
                 lastNode.AddChild(terminal);
+            }
+        }
+        else
+        {
+            // Inequality constraint: treat as a FilterNode validation
+            ReteNode? lastNode = null;
+            for (int i = 0; i < vars.Count; i++)
+            {
+                var alpha = _network.GetOrCreateAlphaNode(vars[i]);
+                if (i == 0) lastNode = alpha;
+                else
+                {
+                    var beta = new BetaNode();
+                    beta.LeftParent = lastNode;
+                    beta.RightParent = alpha;
+                    lastNode!.AddChild(new LeftDistributor(beta));
+                    alpha.AddChild(new RightDistributor(beta));
+                    lastNode = beta;
+                }
+            }
+
+            if (lastNode != null)
+            {
+                var filter = new FilterNode(token => {
+                    var facts = token.ToDictionary();
+                    try {
+                        return _engine.EvaluateConstraint(constraint.Expression, facts);
+                    } catch { return true; } // Ignore errors in validation during propagation
+                });
+                lastNode.AddChild(filter);
+                
+                // Add a terminal node just to log/trace the constraint check
+                var terminal = new TerminalNode($"ConstraintCheck:{constraint.Expression}", token => {
+                    _network.Logger?.Invoke($"Constraint satisfied: {constraint.Expression}");
+                });
+                filter.AddChild(terminal);
             }
         }
     }

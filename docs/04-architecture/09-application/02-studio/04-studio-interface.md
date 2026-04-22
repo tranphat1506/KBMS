@@ -38,7 +38,7 @@ Cung cấp các thông số vận hành thời gian thực của máy chủ KBMS
 
 Giao diện Dashboard giúp quản trị viên chủ động trong việc duy trì độ ổn định của hạ tầng tri thức.
 
-![Giao diện giám sát tài nguyên hệ thống Studio](../../../assets/diagrams/studio_interface_monitor.png)
+![Giao diện giám sát tài nguyên hệ thống Studio | width=1.1](../../../assets/diagrams/studio_interface_monitor.png)
 *Hình 4.41: Giao diện Dashboard giám sát sức khỏe và hiệu năng máy chủ.*
 
 ## 4. Giao diện thực thi và trực quan hóa kết quả
@@ -51,5 +51,5 @@ Khu vực hiển thị phản hồi từ máy chủ sau khi thực thi các yêu
 
 Giao diện đảm bảo tính minh bạch và dễ hiểu cho các kết quả trả về từ bộ máy suy diễn.
 
-![Giao diện kết quả truy vấn và truy vết suy luận Studio](../../../assets/diagrams/studio_interface_results.png)
+![Giao diện kết quả truy vấn và truy vết suy luận Studio | width=1.1](../../../assets/diagrams/studio_interface_results.png)
 *Hình 4.42: Giao diện hiển thị kết quả và trực quan hóa tiến trình suy cứu.*

@@ -15,16 +15,14 @@ Hệ thống được thiết kế để đáp ứng các nhóm chức năng ch�
 
 ---
 
-## 2. Đề xuất Khung Công nghệ (Proposed Tech Stack)
+## 2. Công nghệ sử dụng
 
-Để đạt được hiệu năng và độ ổn định cao nhất, hệ thống KBMS được đề xuất triển khai dựa trên các nền tảng công nghệ hiện đại sau:
+Để đạt được hiệu năng và độ ổn định cao nhất, hệ thống KBMS được triển khai dựa trên các nền tảng công nghệ hiện đại sau:
 
-*   **Ngôn ngữ Hệ thống (Server Core)**: Đề xuất sử dụng **C# (.NET Core/Standard)** hoặc **C++** để tận dụng khả năng quản lý bộ nhớ hiệu quả, hỗ trợ đa luồng và các thư viện xử lý socket mạnh mẽ.
-*   **Giao diện Người dùng (Application)**: 
-    *   **KBMS Studio**: Khuyến nghị sử dụng **React/TypeScript** kết hợp với **Monaco Editor** để xây dựng môi trường lập trình tri thức giàu tính năng.
-    *   **CLI**: Sử dụng các thư viện quản lý dòng lệnh tiêu chuẩn để hỗ trợ lịch sử lệnh và định dạng kết quả động.
-*   **Giao thức Mạng**: Hiện thực hóa giao thức nhị phân tùy chỉnh trên nền **TCP Socket** để giảm thiểu độ trễ và băng thông truyền tải.
-*   **Quản lý Dữ liệu**: Xây dựng bộ máy lưu trữ tự quản (In-house Storage Engine) thay vì sử dụng các hệ quản trị bên thứ ba, nhằm tối ưu hóa riêng cho cấu trúc dữ liệu tri thức COKB.
+-   **Lõi hệ thống (Server Engine)**: Sử dụng nền tảng **.NET Core** [41] của Microsoft. Đây là khung làm việc đa nền tảng, hỗ trợ các tính năng hiện đại như Garbage Collection (GC) tối ưu, quản lý bộ nhớ an toàn và thư viện lập trình bất đồng bộ (Async/Await) mạnh mẽ, giúp hệ thống xử lý hàng ngàn kết nối đồng thời với độ trễ tối thiểu.
+-   **Giao diện Quản trị (KBMS Studio)**: Được phát triển dựa trên thư viện **React** [42] kết hợp với ngôn ngữ **TypeScript**. Việc sử dụng mô hình Component-based giúp giao diện Studio có tính linh hoạt cao và dễ dàng mở rộng. Đặc biệt, hệ thống tích hợp **Monaco Editor** [43] (bộ lõi của VS Code) để cung cấp môi trường soạn thảo tri thức chuyên nghiệp với các tính năng như Highlight cú pháp và IntelliSense.
+-   **Giao thức Truyền tải (Network Protocol)**: Hệ thống hiện thực hóa giao thức nhị phân tùy chỉnh trên nền **TCP Socket** dựa trên các nguyên lý mạng máy tính tiêu chuẩn [44]. Giao thức này được thiết kế để tối giản hóa kích thước gói tin, giảm thiểu chi phí Overhead so với các giao thức dạng văn bản như JSON hay XML, từ đó tối ưu hóa băng thông truyền tải tri thức.
+-   **Lưu trữ và Truy xuất (Storage Engine)**: Xây dựng bộ máy lưu trữ tự quản dựa trên cấu trúc **Cây B+** (B+ Tree) [5, 10] và cơ chế ghi nhật ký trước (**WAL**) [5] để đảm bảo tính bền vững (Durability) và tuân thủ các tính chất ACID trong giao dịch tri thức.
 
 ---
 
@@ -32,7 +30,7 @@ Hệ thống được thiết kế để đáp ứng các nhóm chức năng ch�
 
 Bên cạnh các chức năng nghiệp vụ, hệ thống cần hướng tới các mục tiêu chất lượng sau:
 
-*   **Tính toàn vẹn (ACID Compliance)**: Đảm bảo mọi thao tác trên tri thức đều tuân thủ các tính chất Nguyên tố, Nhất quán, Cô lập và Bền vững.
+*   **Tính toàn vẹn**: Đảm bảo mọi thao tác trên tri thức đều tuân thủ các tính chất Nguyên tố, Nhất quán, Cô lập và Bền vững.
 *   **Hiệu năng cao**: Tối ưu hóa tốc độ suy luận và truy xuất dữ liệu với độ trễ thấp, hỗ trợ xử lý đồng thời hàng trăm kết nối.
 *   **Bảo mật**: Triển khai cơ chế phân quyền (RBAC) và mã hóa dữ liệu tĩnh (Encryption at Rest) để bảo vệ tài sản tri thức.
 *   **Khả năng mở rộng**: Kiến trúc được thiết kế dạng module hóa, cho phép dễ dàng tích hợp thêm các bộ máy suy luận hoặc giao thức lưu trữ mới trong tương lai.

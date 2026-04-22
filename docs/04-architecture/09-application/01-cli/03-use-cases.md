@@ -6,7 +6,7 @@ Chương này trình bày các tình huống sử dụng thực tế của phân
 
 Đây là bước khởi đầu để thiết lập kết nối an toàn tới máy chủ.
 
-![Luồng logic: Xác thực hệ thống | width=1.2](../../../assets/diagrams/uc_cli_auth_flow.png)
+![Luồng logic: Xác thực hệ thống | width=1.1](../../../assets/diagrams/uc_cli_auth_flow.png)
 *Hình 4.26: Luồng xác thực và thiết lập phiên làm việc trên CLI.*
 
 -   **Mục tiêu**: Xác thực quyền truy cập của người dùng.
@@ -26,7 +26,7 @@ Sử dụng CLI để định nghĩa các Khái niệm và Luật dẫn trong c�
 
 Thực hiện các câu lệnh tìm kiếm dữ kiện và lựa chọn hình thức hiển thị kết quả.
 
-![Luồng logic: Truy vấn dữ liệu](../../../assets/diagrams/uc_cli_kql_flow.png)
+![Luồng logic: Truy vấn dữ liệu | width=0.8](../../../assets/diagrams/uc_cli_kql_flow.png)
 *Hình 4.28: Quy trình truy vấn và điều phối hiển thị.*
 
 -   **Mục tiêu**: Truy xuất các đối tượng tri thức có trong hệ thống.
@@ -36,7 +36,7 @@ Thực hiện các câu lệnh tìm kiếm dữ kiện và lựa chọn hình th
 
 Sử dụng lệnh tìm kiếm lời giải và theo dõi các bước logic đã thực hiện.
 
-![Luồng logic: Truy vết suy luận | width=0.5](../../../assets/diagrams/uc_cli_solve_flow.png)
+![Luồng logic: Truy vết suy luận | width=0.4](../../../assets/diagrams/uc_cli_solve_flow.png)
 *Hình 4.29: Chu trình xử lý suy luận và trích xuất cây truy vết.*
 
 -   **Mục tiêu**: Giải quyết bài toán tri thức dựa trên các luật dẫn có sẵn.

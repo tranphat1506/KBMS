@@ -2,22 +2,22 @@
 
 Giao diện dòng lệnh (CLI) thực thi chu trình điều phối dữ liệu khép kín, từ giai đoạn thu thập dữ liệu đầu vào tới giai đoạn truyền tải nhị phân và kết xuất kết quả trực quan cho người dùng cuối.
 
-## 1. Chu trình Truyền nhận và Điều phối Lệnh
+## 1. Quy trình Nhận lệnh và Truyền tải
 
-Khi người dùng thực thi một câu lệnh, CLI thực hiện quy trình nội suy chuẩn hóa theo các giai đoạn sau:
+Khi người dùng thực thi một câu lệnh, CLI thực hiện quy trình theo các giai đoạn sau:
 
 ![Sơ đồ Luồng Xử lý CLI | width=1.05](../../../assets/diagrams/cli_processing_flow.png)
 *Hình 4.29: Sơ đồ tuần tự mô tả luồng xử lý câu lệnh và phản hồi từ Server của CLI.*
 
-1.  **Đệm Dữ liệu Đầu vào (Input Buffering)**: Hệ thống thực hiện tích lũy các dòng nội dung cho đến khi tiếp nhận ký hiệu kết thúc câu lệnh (dấu `;`).
-2.  **Kiến tạo Gói tin (Request Construction)**: Đóng gói nội dung lệnh thành cấu trúc `Message` nhị phân theo định dạng `QUERY` hoặc `LOGIN` phù hợp với tầng mạng.
-3.  **Truyền tải Nhị phân (Binary Transport)**: Gửi gói tin qua Socket (`KBMS.Network`) và duy trì trạng thái chờ đợi phản hồi bất đồng bộ từ máy chủ.
+1.  **Kiểm tra và Thu thập Dữ liệu Đầu vào**: Hệ thống thực hiện kiểm tra và thu thập các dòng nội dung của câu lệnh từ người dùng cho đến khi tiếp nhận ký hiệu kết thúc câu lệnh (dấu `;`).
+2.  **Tạo Gói tin**: Đóng gói nội dung lệnh thành cấu trúc nhị phân `Message` theo định dạng `QUERY` hoặc `LOGIN` phù hợp với tầng mạng.
+3.  **Truyền tải Nhị phân**: Gửi gói tin qua Socket (`KBMS.Network`) và duy trì trạng thái chờ đợi phản hồi từ máy chủ.
 
-## 2. Bộ máy Phân tích và Kết xuất Phản hồi
+## 2. Phân tích và Kết xuất Phản hồi
 
-Thành phần trọng yếu nhất của CLI nằm ở lớp `ResponseParser.cs`. Do kết quả từ máy chủ có thể là một luồng dữ liệu liên tục (**Streaming Rows**), CLI phải thực hiện xử lý tách biệt từng khung tin nhị phân:
+Thành phần trọng yếu của CLI nằm ở lớp `ResponseParser.cs`. Do kết quả từ máy chủ có thể là một luồng dữ liệu liên tục (**Streaming Rows**), CLI phải thực hiện xử lý và phân tách từng gói tin nhị phân để hiển thị ra màn hình điều khiển:
 
--   **Siêu dữ liệu (METADATA)**: Xác lập định nghĩa các cột dữ liệu (bao gồm tên và kiểu dữ liệu).
+-   **Siêu dữ liệu (METADATA)**: Xác lập định nghĩa các cột dữ liệu.
 -   **Dữ liệu Bản ghi (ROW)**: Chứa dữ liệu thực tế cho từng thực thể tri thức trong tập kết quả.
 -   **Kết quả Tổng quát (RESULT)**: Các thông báo xác nhận trạng thái thực thi thành công.
 -   **Thông báo Lỗi (ERROR)**: Chứa thông tin chẩn đoán bao gồm nội dung lỗi và tọa độ phát sinh sai lệch (Dòng, Cột).

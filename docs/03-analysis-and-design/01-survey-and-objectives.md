@@ -21,7 +21,7 @@ Protégé [25] là công cụ của Đại học Stanford dùng để chỉnh s�
 ### 2.3.6 Cyc
 Cyc [40] là dự án AI tham vọng nhất trong lịch sử, khởi động từ năm 1984 bởi Douglas Lenat nhằm mã hóa toàn bộ tri thức thường thức (common sense). Cyc sử dụng ngôn ngữ CycL dựa trên logic vị từ bậc nhất. Mặc dù quy mô tri thức rất lớn (hơn 1.5 triệu assertions), Cyc thiếu khả năng tính toán định lượng trên đối tượng và không được thiết kế cho các bài toán kỹ thuật có tính toán phức tạp.
 
-### 2.3.7 Bảng tổng hợp so sánh
+### 2.3.7 Bảng Tổng hợp So sánh Các Hệ thống Quản trị Tri thức
 
 | Tiêu chí | CLIPS [21] | Jess [22] | Drools [23] | SWI-Prolog [24] | Protégé [25] | Cyc [40] | **KBMS COKB** |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |

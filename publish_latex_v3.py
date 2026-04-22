@@ -64,9 +64,9 @@ CITATIONS_TOTAL = 8 # Default
 
 CITATION_MAP = {
     '[1]': 'DoVanNhon1',
-    '[2]': 'HIUJS_Article',
+    '[2]': 'Dvn_Ijcsi',
     '[3]': 'Dvn_Somet',
-    '[4]': 'Dvn_Ijcsi',
+    '[4]': 'HIUJS_Article',
     '[5]': 'DatabaseSystems',
     '[6]': 'RussellNorvig',
     '[7]': 'Musen_Protege',
@@ -78,7 +78,11 @@ CITATION_MAP = {
     '[23]': 'DroolsDoc',
     '[24]': 'SWIProlog',
     '[25]': 'StanfordProtege',
-    '[40]': 'LenatCyc'
+    '[40]': 'LenatCyc',
+    '[41]': 'MicrosoftDotNet',
+    '[42]': 'ReactJS',
+    '[43]': 'MonacoEditor',
+    '[44]': 'TanenbaumNetwork'
 }
 
 def escape_latex(text):
@@ -477,6 +481,24 @@ def main():
     main_tex = r'''\documentclass[13pt,a4paper,oneside]{extreport}
 \usepackage{fontspec}
 \usepackage[vietnamese]{babel}
+\usepackage[backend=biber,style=numeric,sorting=none,maxbibnames=99]{biblatex}
+\addbibresource{references.bib}
+
+% Remove labels like "in", "volume", "number", "pages", "edition", "URL"
+\renewbibmacro{in:}{}
+\DeclareFieldFormat{pages}{#1}
+\DeclareFieldFormat{volume}{#1}
+\DeclareFieldFormat{number}{#1}
+\DeclareFieldFormat{series}{#1}
+\DeclareFieldFormat{edition}{#1}
+\DeclareFieldFormat{url}{\url{#1}}
+
+% Remove the "URL" prefix string
+\DefineBibliographyStrings{vietnamese}{
+  url = {},
+  andothers = {và cộng sự},
+}
+
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{graphicx}
@@ -726,9 +748,7 @@ Em xin cam kết rằng báo cáo khóa luận tốt nghiệp này được hoà
     main_tex += "\n".join(report_content)
     main_tex += r'''
 \clearpage
-\addcontentsline{toc}{chapter}{TÀI LIỆU THAM KHẢO}
-\bibliographystyle{IEEEtran}
-\bibliography{references}
+\printbibliography[heading=bibintoc, title={TÀI LIỆU THAM KHẢO}]
 \end{document}
 '''
     with open(OUTPUT_TEX, 'w', encoding='utf-8') as f: f.write(main_tex)

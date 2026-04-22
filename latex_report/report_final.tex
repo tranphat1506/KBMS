@@ -1,6 +1,24 @@
 \documentclass[13pt,a4paper,oneside]{extreport}
 \usepackage{fontspec}
 \usepackage[vietnamese]{babel}
+\usepackage[backend=biber,style=numeric,sorting=none,maxbibnames=99]{biblatex}
+\addbibresource{references.bib}
+
+% Remove labels like "in", "volume", "number", "pages", "edition", "URL"
+\renewbibmacro{in:}{}
+\DeclareFieldFormat{pages}{#1}
+\DeclareFieldFormat{volume}{#1}
+\DeclareFieldFormat{number}{#1}
+\DeclareFieldFormat{series}{#1}
+\DeclareFieldFormat{edition}{#1}
+\DeclareFieldFormat{url}{\url{#1}}
+
+% Remove the "URL" prefix string
+\DefineBibliographyStrings{vietnamese}{
+  url = {},
+  andothers = {và cộng sự},
+}
+
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{graphicx}
@@ -255,7 +273,7 @@ Việc tích hợp trí tuệ nhân tạo, cụ thể là các hệ thống dự
 
 Mục tiêu chính của đề tài là xây dựng một hệ thống KBMS hoàn chỉnh, có khả năng:\par
 1.  \textbf{Biểu diễn tri thức chuyên sâu}: Sử dụng mô hình COKB \cite{DoVanNhon1}, \cite{Dvn_Somet} để định nghĩa các thực thể có khả năng tính toán.\par
-2.  \textbf{Suy diễn tự động hiệu năng cao}: Áp dụng thuật toán F-Closure để tìm tập đóng tri thức một cách tối ưu \cite{HIUJS_Article}, \cite{Dvn_Ijcsi}.\par
+2.  \textbf{Suy diễn tự động hiệu năng cao}: Áp dụng thuật toán F-Closure để tìm tập đóng tri thức một cách tối ưu \cite{Dvn_Ijcsi}, \cite{HIUJS_Article}.\par
 3.  \textbf{Lưu trữ bền vững và an toàn}: Phát triển công cụ lưu trữ nhị phân hỗ trợ chỉ mục B+ Tree \cite{DatabaseSystems}, \cite{ComerBTree} và nhật ký Write-Ahead Logging (WAL) \cite{DatabaseSystems}.\par
 4.  \textbf{Giao diện phát triển trực quan}: Cung cấp Studio IDE giúp người dùng thiết kế và kiểm chứng tri thức.
 
@@ -303,35 +321,35 @@ Mô hình \textbf{COKB (Computational Objects Knowledge Base)} \cite{DoVanNhon1}
 \subsection{Thành phần Hệ thống tri thức}
 
 
-Một cơ sở tri thức COKB được xác định bởi bộ 6 thành phần [1, 3]:\par
+Một cơ sở tri thức COKB được xác định bởi bộ 6 thành phần \cite{DoVanNhon1}, \cite{Dvn_Somet}:\par
 \begin{equation}
 COKB = (C, H, R, Ops, Funcs, Rules)
 \end{equation}
 
 
 Trong đó:\par
-* \textbf{C (Concepts)}: Tập hợp các khái niệm hoặc lớp đối tượng tính toán.\par
-* \textbf{H (Hierarchy)}: Các quan hệ phân cấp đặc biệt hóa giữa các khái niệm (quan hệ IS-A).\par
-* \textbf{R (Relations)}: Tập các quan hệ ngữ nghĩa giữa các lớp đối tượng (ví dụ: song song, vuông góc).\par
-* \textbf{Ops (Operators)}: Các toán tử tính toán trên các miền giá trị (Số thực, Vector, Ma trận).\par
-* \textbf{Funcs (Functions)}: Các hàm xác định ánh xạ giữa các thuộc tính.\par
-* \textbf{Rules (Rules)}: Tập hợp các luật dẫn để suy diễn ra tri thức mới.
+- \textbf{C (Concepts)}: Tập hợp các khái niệm hoặc lớp đối tượng tính toán.\par
+- \textbf{H (Hierarchy)}: Các quan hệ phân cấp đặc biệt hóa giữa các khái niệm (quan hệ IS-A).\par
+- \textbf{R (Relations)}: Tập các quan hệ ngữ nghĩa giữa các lớp đối tượng (ví dụ: song song, vuông góc).\par
+- \textbf{Ops (Operators)}: Các toán tử tính toán trên các miền giá trị (Số thực, Vector, Ma trận).\par
+- \textbf{Funcs (Functions)}: Các hàm xác định ánh xạ giữa các thuộc tính.\par
+- \textbf{Rules (Rules)}: Tập hợp các luật dẫn để suy diễn ra tri thức mới.
 
 
 \subsection{Mô hình Đối tượng Tính toán}
 
 
-Mỗi thực thể (Object) trong hệ thống được biểu diễn bởi bộ ba thành phần \cite{HIUJS_Article}:\par
+Mỗi thực thể (Object) trong hệ thống được biểu diễn bởi bộ ba thành phần \cite{Dvn_Ijcsi}:\par
 \begin{equation}
 O = (Attrs, Facts, Rules)
 \end{equation}
 
 
-\begin{enumerate}
-  \item \textbf{Attrs (Attributes)}: Tập các thuộc tính của đối tượng. Mỗi thuộc tính bản thân nó cũng có thể là một đối tượng tính toán khác (cấu trúc đệ quy) \cite{Dvn_Ijcsi}.
+\begin{itemize}
+  \item \textbf{Attrs (Attributes)}: Tập các thuộc tính của đối tượng. Mỗi thuộc tính bản thân nó cũng có thể là một đối tượng tính toán khác (cấu trúc đệ quy) \cite{HIUJS_Article}.
   \item \textbf{Facts}: Các sự thật, giá trị hoặc tính chất vốn có của đối tượng đã được xác định.
   \item \textbf{Rules (Internal Rules)}: Các quy tắc, phương trình nội tại ràng buộc mối quan hệ giữa các Attrs bên trong đối tượng đó.
-\end{enumerate}
+\end{itemize}
 
 
 
@@ -339,9 +357,9 @@ O = (Attrs, Facts, Rules)
 
 
 Trong mô hình COKB, các khái niệm được phân tầng dựa theo độ phức tạp của cấu trúc attributes:\par
-* \textbf{Cấp 0 (Base Concepts)}: Các kiểu dữ liệu cơ sở (Số thực - , Điểm - Point).\par
-* \textbf{Cấp 1}: Các khái niệm xây dựng trực tiếp từ cấp 0 (Đoạn thẳng, Góc).\par
-* \textbf{Cấp n}: Các khái niệm phức tạp hình thành từ các lớp thấp hơn (Tam giác, Tứ giác, Động cơ).
+- \textbf{Cấp 0 (Base Concepts)}: Các kiểu dữ liệu cơ sở (Số thực - , Điểm - Point).\par
+- \textbf{Cấp 1}: Các khái niệm xây dựng trực tiếp từ cấp 0 (Đoạn thẳng, Góc).\par
+- \textbf{Cấp n}: Các khái niệm phức tạp hình thành từ các lớp thấp hơn (Tam giác, Tứ giác, Động cơ).
 
 
 Việc phân cấp này giúp hệ thống quản lý tri thức theo hướng mô-đun hóa và hỗ trợ lan truyền kế thừa tri thức một cách tự động.
@@ -368,35 +386,6 @@ Hệ thống KBMS vận hành dựa trên 6 loại quy tắc suy luận chính (
   \item \textbf{RC6 (Hành vi nội bộ)}: Suy diễn dựa trên cấu trúc thành phần (PART-OF) và phân bậc tri thức.
 \end{itemize}
 
-
-
-\subsection{Thuật toán Bao đóng Rete (Rete-based Closure Algorithm) \cite{ReteAlgorithm}}
-
-
-Đây là cơ chế thực thi trọng tâm của KBMS, thay thế phương pháp lặp tuần tự bằng mô hình lan truyền Token trên đồ thị có hướng nhằm tìm kiếm tập bao đóng tri thức lớn nhất từ tập giả thiết \textbf{GT}.
-
-
-\textbf{Nguyên lý vận hành}:\par
-1.  \textbf{Biên dịch Mạng (Rete Compilation)}: Toàn bộ tri thức (Rules, Equations, Constraints) được chuyển đổi thành cấu trúc nốt Alpha (Lọc đơn) và nốt Beta (So khớp liên hợp).\par
-2.  \textbf{Lan truyền Dữ kiện (Token Propagation)}: Khi một dữ kiện mới được nạp vào, một Token sẽ được tạo ra và lan truyền qua mạng lưới. Chỉ những nhánh chịu ảnh hưởng trực tiếp mới được kích hoạt tính toán.\par
-3.  \textbf{Quản lý Agenda}: Các luật đã thỏa mãn điều kiện sẽ được đưa vào Agenda. Engine thực hiện kích hoạt các luật này cho đến khi mạng lưới đạt trạng thái điểm dừng (Fixed-point).
-
-
-\subsection{Chiến lược Tối ưu hóa Hình học Mạng}
-
-
-Để tối ưu hóa hiệu năng suy diễn trong các không gian tri thức quy mô lớn, KBMS áp dụng các kỹ thuật tối ưu hóa hình học mạng lưới:
-
-
-\begin{itemize}
-  \item \textbf{Chia sẻ nốt Alpha (Alpha Node Sharing)}: Gom nhóm các kiểm tra điều kiện trùng lặp để giảm thiểu chi phí tính toán dư thừa.
-  \item \textbf{Tối ưu hóa thứ tự tham gia (Join Ordering)}: Sắp xếp các nốt Beta dựa trên độ chọn lọc của dữ liệu nhằm giảm kích thước bộ nhớ trung gian.
-  \item \textbf{Kích hoạt Gia tăng (Incremental Activation)}: Chỉ thực hiện tính toán trên những phần của mạng lưới thực sự có sự thay đổi dữ liệu đầu vào.
-\end{itemize}
-
-
-
-Việc áp dụng kiến trúc mạng Rete giúp hệ thống đạt được tốc độ phản hồi thời gian thực và đảm bảo tính nhất quán của tri thức dẫn xuất ngay cả với các mô hình ràng buộc cực kỳ phức tạp.
 
 
 \clearpage
@@ -440,7 +429,7 @@ Protégé \cite{StanfordProtege} là công cụ của Đại học Stanford dùn
 Cyc \cite{LenatCyc} là dự án AI tham vọng nhất trong lịch sử, khởi động từ năm 1984 bởi Douglas Lenat nhằm mã hóa toàn bộ tri thức thường thức (common sense). Cyc sử dụng ngôn ngữ CycL dựa trên logic vị từ bậc nhất. Mặc dù quy mô tri thức rất lớn (hơn 1.5 triệu assertions), Cyc thiếu khả năng tính toán định lượng trên đối tượng và không được thiết kế cho các bài toán kỹ thuật có tính toán phức tạp.
 
 
-\subsubsection{Bảng tổng hợp so sánh}
+\subsubsection{Bảng Tổng hợp So sánh Các Hệ thống Quản trị Tri thức}
 
 
 \begin{table}[H]
@@ -456,7 +445,7 @@ Tiêu chí & CLIPS \cite{CLIPS_Guide} & Jess \cite{JessInAction} & Drools \cite{
 \textbf{Client-Server} & Không & Không & Có & Không & Không & Có & \textbf{Có (TCP)} \\ \hline
 \textbf{Ngôn ngữ truy vấn} & CLIPS DSL & Jess DSL & DRL & Prolog & SPARQL & CycL & \textbf{KBQL} \\ \hline
   \end{tabularx}
-  \caption{tổng hợp so sánh}\label{tbl:tổng-hợp-so-sánh}
+  \caption{Tổng hợp So sánh Các Hệ thống Quản trị Tri thức}\label{tbl:tổng-hợp-so-sánh-các-hệ-thống-quản-trị-tri-thức}
 \end{table}
 
 
@@ -494,7 +483,7 @@ Hệ thống KBMS được thiết kế để phục vụ các nhu cầu khác n
 \subsection{Phân loại Người dùng}
 
 
-\subsubsection{a. Học viên / Nghiên cứu sinh}
+\subsubsection{Học viên / Nghiên cứu sinh}
 
 \begin{itemize}
   \item \textbf{Nhu cầu}: Thiết kế các mô hình tri thức lý thuyết (Hình học, Y học, Hóa học).
@@ -504,7 +493,7 @@ Hệ thống KBMS được thiết kế để phục vụ các nhu cầu khác n
 
 
 
-\subsubsection{b. Quản trị viên}
+\subsubsection{Quản trị viên}
 
 \begin{itemize}
   \item \textbf{Nhu cầu}: Giám sát sức khỏe hệ thống và duy trì tính toàn vẹn của dữ liệu lớn.
@@ -514,7 +503,7 @@ Hệ thống KBMS được thiết kế để phục vụ các nhu cầu khác n
 
 
 
-\subsubsection{c. Nhà phát triển}
+\subsubsection{Nhà phát triển}
 
 \begin{itemize}
   \item \textbf{Nhu cầu}: Tích hợp KBMS làm lõi thông minh cho các ứng dụng Expert System khác.
@@ -545,28 +534,6 @@ Hệ thống sử dụng cơ chế \textbf{Role-Based Access Control} để bả
 Tài liệu này trình bày cấu trúc chi tiết và quy trình vận hành phân tầng của hệ thống KBMS.
 
 
-\subsection{Kiến trúc Hệ thống Chi tiết (Detailed System Architecture)}
-
-
-Hệ thống KBMS được xây dựng dựa trên kiến trúc 4 tầng logic với các module thành phần được thiết kế để hoạt động độc lập và phối hợp chặt chẽ:
-
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.7\textwidth]{assets/kbms_4layer_architecture.png}
-  \caption{Sơ đồ cấu trúc thành phần chi tiết của hệ thống KBMS Server.}\label{fig:sơ-đồ-cấu-trúc-thành-phần-chi-tiết-của-hệ-thống-kb}
-\end{figure}
-
-
-\begin{itemize}
-  \item \textbf{Application Layer}: Cung cấp giao diện tương tác qua KBMS Studio (IDE với Monaco Editor, VGE) và CLI (REPL).
-  \item \textbf{Network Layer}: Quản lý giao thức nhị phân (PacketManager) và luồng dữ liệu (StreamEngine) qua Socket TCP.
-  \item \textbf{Server Engine Layer}: ''Bộ não'' điều phối (KnowledgeManager), phân tích (Compiler), tối ưu (Optimizer) và thực thi (Reasoning/Volcano Engine).
-  \item \textbf{Storage Layer}: Đảm bảo an toàn dữ liệu qua BufferPool, SlottedPage, B+ Tree và WalManager (ACID).
-\end{itemize}
-
-
-
 \subsection{Sơ đồ Use Case Hệ thống}
 
 
@@ -578,39 +545,6 @@ Mô tả sự tương tác giữa tác nhân người dùng và các module ch�
   \includegraphics[width=1.0\textwidth]{assets/kbms_general_use_case.png}
   \caption{Sơ đồ Use Case tổng quát sự tương tác giữa người dùng và các dịch vụ lõi.}\label{fig:sơ-đồ-use-case-tổng-quát-sự-tương-tác-giữa-người-d}
 \end{figure}
-
-
-Quy trình tương tác được chuẩn hóa từ lớp ứng dụng (App Layer) thông qua bộ điều phối (KnowledgeManager) để kích hoạt các dịch vụ tri thức (Compiler/Engine) và lưu trữ bền vững (Storage Layer).
-
-
-\subsection{Sơ đồ Sequence Hệ thống (Request Life Cycle)}
-
-
-Mô tả luồng ''sinh mệnh'' (Life cycle) của một yêu cầu truy vấn tri thức, từ khi xuất phát tại lớp ứng dụng cho tới khi được lưu trữ và phản hồi:
-
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=1.0\textwidth]{assets/kbms_general_system_sequence.png}
-  \caption{Sơ đồ Sequence mô tả quy trình xử lý yêu cầu phân tầng trong KBMS V3.}\label{fig:sơ-đồ-sequence-mô-tả-quy-trình-xử-lý-yêu-cầu-phân-}
-\end{figure}
-
-
-\subsubsection{Các giai đoạn xử lý kĩ thuật:}
-
-
-\begin{enumerate}
-  \item \textbf{Giai đoạn Tiếp nhận (Request Stage)}: Ứng dụng khách tuần tự hóa câu lệnh KBQL thành gói tin nhị phân và gửi qua Custom Binary Protocol.
-  \item \textbf{Giai đoạn Tính toán \& Suy diễn (Computing Stage)}:
-\begin{itemize}
-  \item \textbf{Parsing}: Chuyển đổi byte stream thành AST thông qua Compiler.
-  \item \textbf{Optimization}: Áp dụng mô hình \textbf{CBO} để thiết lập kế hoạch thực thi tối ưu.
-  \item \textbf{Execution Engine}: Vận hành toán tử theo mô hình \textbf{Volcano Iterator} và bộ máy suy diễn Rete.
-\end{itemize}
-  \item \textbf{Giai đoạn Tương tác Lưu trữ (I/O Stage)}: Truy xuất trang dữ liệu qua `BufferPoolManager` và ghi nhật ký \textbf{WAL} để đảm bảo tính bền vững ACID.
-  \item \textbf{Giai đoạn Phản hồi (Response Stage)}: Trả kết quả về client dưới dạng \textbf{Data Streaming} nhị phân.
-\end{enumerate}
-
 
 
 \section{Đặc tả Yêu cầu Hệ thống KBMS}
@@ -636,21 +570,17 @@ Hệ thống được thiết kế để đáp ứng các nhóm chức năng ch�
 
 
 
-\subsection{Đề xuất Khung Công nghệ (Proposed Tech Stack)}
+\subsection{Công nghệ sử dụng}
 
 
-Để đạt được hiệu năng và độ ổn định cao nhất, hệ thống KBMS được đề xuất triển khai dựa trên các nền tảng công nghệ hiện đại sau:
+Để đạt được hiệu năng và độ ổn định cao nhất, hệ thống KBMS được triển khai dựa trên các nền tảng công nghệ hiện đại sau:
 
 
 \begin{itemize}
-  \item \textbf{Ngôn ngữ Hệ thống (Server Core)}: Đề xuất sử dụng \textbf{C\# (.NET Core/Standard)} hoặc \textbf{C++} để tận dụng khả năng quản lý bộ nhớ hiệu quả, hỗ trợ đa luồng và các thư viện xử lý socket mạnh mẽ.
-  \item \textbf{Giao diện Người dùng (Application)}:
-\begin{itemize}
-  \item \textbf{KBMS Studio}: Khuyến nghị sử dụng \textbf{React/TypeScript} kết hợp với \textbf{Monaco Editor} để xây dựng môi trường lập trình tri thức giàu tính năng.
-  \item \textbf{CLI}: Sử dụng các thư viện quản lý dòng lệnh tiêu chuẩn để hỗ trợ lịch sử lệnh và định dạng kết quả động.
-\end{itemize}
-  \item \textbf{Giao thức Mạng}: Hiện thực hóa giao thức nhị phân tùy chỉnh trên nền \textbf{TCP Socket} để giảm thiểu độ trễ và băng thông truyền tải.
-  \item \textbf{Quản lý Dữ liệu}: Xây dựng bộ máy lưu trữ tự quản (In-house Storage Engine) thay vì sử dụng các hệ quản trị bên thứ ba, nhằm tối ưu hóa riêng cho cấu trúc dữ liệu tri thức COKB.
+  \item \textbf{Lõi hệ thống (Server Engine)}: Sử dụng nền tảng \textbf{.NET Core} \cite{MicrosoftDotNet} của Microsoft. Đây là khung làm việc đa nền tảng, hỗ trợ các tính năng hiện đại như Garbage Collection (GC) tối ưu, quản lý bộ nhớ an toàn và thư viện lập trình bất đồng bộ (Async/Await) mạnh mẽ, giúp hệ thống xử lý hàng ngàn kết nối đồng thời với độ trễ tối thiểu.
+  \item \textbf{Giao diện Quản trị (KBMS Studio)}: Được phát triển dựa trên thư viện \textbf{React} \cite{ReactJS} kết hợp với ngôn ngữ \textbf{TypeScript}. Việc sử dụng mô hình Component-based giúp giao diện Studio có tính linh hoạt cao và dễ dàng mở rộng. Đặc biệt, hệ thống tích hợp \textbf{Monaco Editor} \cite{MonacoEditor} (bộ lõi của VS Code) để cung cấp môi trường soạn thảo tri thức chuyên nghiệp với các tính năng như Highlight cú pháp và IntelliSense.
+  \item \textbf{Giao thức Truyền tải (Network Protocol)}: Hệ thống hiện thực hóa giao thức nhị phân tùy chỉnh trên nền \textbf{TCP Socket} dựa trên các nguyên lý mạng máy tính tiêu chuẩn \cite{TanenbaumNetwork}. Giao thức này được thiết kế để tối giản hóa kích thước gói tin, giảm thiểu chi phí Overhead so với các giao thức dạng văn bản như JSON hay XML, từ đó tối ưu hóa băng thông truyền tải tri thức.
+  \item \textbf{Lưu trữ và Truy xuất (Storage Engine)}: Xây dựng bộ máy lưu trữ tự quản dựa trên cấu trúc \textbf{Cây B+} (B+ Tree) [5, 10] và cơ chế ghi nhật ký trước (\textbf{WAL}) \cite{DatabaseSystems} để đảm bảo tính bền vững (Durability) và tuân thủ các tính chất ACID trong giao dịch tri thức.
 \end{itemize}
 
 
@@ -663,7 +593,7 @@ Bên cạnh các chức năng nghiệp vụ, hệ thống cần hướng tới c
 
 
 \begin{itemize}
-  \item \textbf{Tính toàn vẹn (ACID Compliance)}: Đảm bảo mọi thao tác trên tri thức đều tuân thủ các tính chất Nguyên tố, Nhất quán, Cô lập và Bền vững.
+  \item \textbf{Tính toàn vẹn}: Đảm bảo mọi thao tác trên tri thức đều tuân thủ các tính chất Nguyên tố, Nhất quán, Cô lập và Bền vững.
   \item \textbf{Hiệu năng cao}: Tối ưu hóa tốc độ suy luận và truy xuất dữ liệu với độ trễ thấp, hỗ trợ xử lý đồng thời hàng trăm kết nối.
   \item \textbf{Bảo mật}: Triển khai cơ chế phân quyền (RBAC) và mã hóa dữ liệu tĩnh (Encryption at Rest) để bảo vệ tài sản tri thức.
   \item \textbf{Khả năng mở rộng}: Kiến trúc được thiết kế dạng module hóa, cho phép dễ dàng tích hợp thêm các bộ máy suy luận hoặc giao thức lưu trữ mới trong tương lai.
@@ -737,7 +667,7 @@ Bên cạnh các luồng xử lý tri thức chính, hệ thống triển khai c
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.7\textwidth]{assets/kbms_security_diagnostics_flow.png}
+  \includegraphics[width=1.1\textwidth]{assets/kbms_security_diagnostics_flow.png}
   \caption{Sơ đồ luồng chẩn đoán và kiểm soát an ninh hệ thống.}\label{fig:sơ-đồ-luồng-chẩn-đoán-và-kiểm-soát-an-ninh-hệ-thốn}
 \end{figure}
 
@@ -900,7 +830,7 @@ Bộ máy suy diễn sử dụng các luật dẫn toàn cục để thực hi�
 \subsubsection{Thực thể Đối tượng (Object Instances)}
 
 
-Thực thể (\textbf{ObjectInstance}) là các thể hiện cụ thể mang giá trị dữ liệu thực tế của một khái niệm trong quá trình vận hành thực tế \cite{Dvn_Ijcsi}:
+Thực thể (\textbf{ObjectInstance}) là các thể hiện cụ thể mang giá trị dữ liệu thực tế của một khái niệm trong quá trình vận hành thực tế \cite{HIUJS_Article}:
 
 
 \begin{figure}[H]
@@ -5453,13 +5383,20 @@ Ví dụ thực tế trên cho thấy quá trình bóc tách tri thức từ vă
 
 
 
-Cây AST sau khi hoàn thành là một cấu trúc dữ liệu tường minh, cho phép hệ thống thực hiện các phép tối ưu hóa logic trước khi truy xuất dữ liệu từ đĩa hoặc đưa vào mạng suy diễn Rete.\par
-| `FROM` | Keyword | 12:16 | Xác định nguồn dữ liệu tri thức. |\par
-| `Emp` | Identifier | 17:20 | Tên khái niệm (Concept) mục tiêu. |\par
-| `WHERE` | Keyword | 21:26 | Bắt đầu mệnh đề điều kiện lọc. |\par
-| `salary` | Identifier | 27:33 | Thuộc tính dùng để so sánh. |\par
-| `>` | Operator | 34:35 | Toán tử so sánh lớn hơn. |\par
-| `70000` | Literal | 36:41 | Giá trị hằng số để đối soát. |
+\begin{table}[H]
+  \centering\captionsetup{position=below}\small\selectfont
+  \begin{tabularx}{\textwidth}{|l|L|L|L|}
+  \hline
+Từ vựng (Token) & Loại (Type) & Vị trí (Pos) & Vai trò ngữ nghĩa \\ \hline
+`FROM` & Keyword & 12:16 & Xác định nguồn dữ liệu tri thức. \\ \hline
+`Emp` & Identifier & 17:20 & Tên khái niệm (Concept) mục tiêu. \\ \hline
+`WHERE` & Keyword & 21:26 & Bắt đầu mệnh đề điều kiện lọc. \\ \hline
+`salary` & Identifier & 27:33 & Thuộc tính dùng để so sánh. \\ \hline
+`>` & Operator & 34:35 & Toán tử so sánh lớn hơn. \\ \hline
+`70000` & Literal & 36:41 & Giá trị hằng số để đối soát. \\ \hline
+  \end{tabularx}
+  \caption{Phân tích dữ liệu thực nghiệm 16}\label{tbl:phân-tích-dữ-liệu-thực-nghiệm-16}
+\end{table}
 
 
 \noindent\textbf{\textit{Quá trình Khởi tạo Cây AST}}
@@ -6105,10 +6042,10 @@ Các kịch bản trên chứng minh rằng KBMS có thể xử lý các lớp t
 \subsection{Đặc tả Giao diện Dòng lệnh (KBMS CLI)}
 
 
-Trong hệ sinh thái ứng dụng của \textbf{KBMS}, phân hệ \textbf{KBMS-CLI} đóng vai trò là công cụ quản trị và khai thác tri thức trực tiếp dành cho kỹ sư phần mềm và quản trị viên hệ thống. Thay vì thông qua giao diện đồ họa phức hợp, CLI thiết lập kết nối trực tiếp với máy chủ thông qua giao thức nhị phân, cung cấp khả năng kiểm soát hệ thống với độ trễ tối thiểu.
+\textbf{KBMS-CLI} là công cụ quản trị và khai thác tri thức trực tiếp dành cho kỹ sư phần mềm và quản trị viên hệ thống. Thay vì thông qua giao diện đồ họa phức hợp, CLI thiết lập kết nối trực tiếp với máy chủ thông qua giao thức nhị phân, cung cấp khả năng kiểm soát hệ thống với độ trễ tối thiểu.
 
 
-\subsubsection{Các Tính năng Điều khiển Hạt nhân}
+\subsubsection{Các Tính năng}
 
 
 Giao diện dòng lệnh được thiết kế với các cơ chế tương tác nhằm tối ưu hóa hiệu quả làm việc của người dùng trong môi trường console:
@@ -6159,9 +6096,9 @@ Lệnh điều khiển & Đặc tả Chức năng \\ \hline
 
 
 \begin{itemize}
-  \item \textbf{Chế độ Thực thi Kịch bản}: Xử lý các tệp tin chứa nhiều lệnh tri thức một cách tự động, chỉ báo lỗi chính xác khi phát sinh sự cố tại bất kỳ dòng lệnh nào.
-  \item \textbf{Tái thiết lập Kết nối}: CLI duy trì cơ chế giám sát trạng thái kết nối và tự động thử lại tiến trình kết nối khi phát hiện sự gián đoạn mạng.
-  \item \textbf{Phân tích Phản hồi}: Hệ thống bóc tách các gói tin lỗi từ máy chủ để chỉ ra vị trí dòng và cột phát sinh sai lệch cú pháp trong mã nguồn tri thức.
+  \item \textbf{Thực thi Kịch bản}: Xử lý các tệp tin chứa nhiều lệnh tri thức, báo lỗi chính xác tại dòng lệnh phát sinh sự cố.
+  \item \textbf{Kết nối tự động}: CLI duy trì cơ chế giám sát trạng thái kết nối và tự động thử lại tiến trình kết nối khi phát hiện sự gián đoạn mạng.
+  \item \textbf{Phân tích Phản hồi}: Hệ thống bóc tách các gói tin lỗi từ máy chủ để chỉ ra vị trí dòng và cột phát sinh lỗi.
 \end{itemize}
 
 
@@ -6172,10 +6109,10 @@ Lệnh điều khiển & Đặc tả Chức năng \\ \hline
 Giao diện dòng lệnh (CLI) thực thi chu trình điều phối dữ liệu khép kín, từ giai đoạn thu thập dữ liệu đầu vào tới giai đoạn truyền tải nhị phân và kết xuất kết quả trực quan cho người dùng cuối.
 
 
-\subsubsection{Chu trình Truyền nhận và Điều phối Lệnh}
+\subsubsection{Quy trình Nhận lệnh và Truyền tải}
 
 
-Khi người dùng thực thi một câu lệnh, CLI thực hiện quy trình nội suy chuẩn hóa theo các giai đoạn sau:
+Khi người dùng thực thi một câu lệnh, CLI thực hiện quy trình theo các giai đoạn sau:
 
 
 \begin{figure}[H]
@@ -6186,21 +6123,21 @@ Khi người dùng thực thi một câu lệnh, CLI thực hiện quy trình n�
 
 
 \begin{enumerate}
-  \item \textbf{Đệm Dữ liệu Đầu vào (Input Buffering)}: Hệ thống thực hiện tích lũy các dòng nội dung cho đến khi tiếp nhận ký hiệu kết thúc câu lệnh (dấu `;`).
-  \item \textbf{Kiến tạo Gói tin (Request Construction)}: Đóng gói nội dung lệnh thành cấu trúc `Message` nhị phân theo định dạng `QUERY` hoặc `LOGIN` phù hợp với tầng mạng.
-  \item \textbf{Truyền tải Nhị phân (Binary Transport)}: Gửi gói tin qua Socket (`KBMS.Network`) và duy trì trạng thái chờ đợi phản hồi bất đồng bộ từ máy chủ.
+  \item \textbf{Kiểm tra và Thu thập Dữ liệu Đầu vào}: Hệ thống thực hiện kiểm tra và thu thập các dòng nội dung của câu lệnh từ người dùng cho đến khi tiếp nhận ký hiệu kết thúc câu lệnh (dấu `;`).
+  \item \textbf{Tạo Gói tin}: Đóng gói nội dung lệnh thành cấu trúc nhị phân `Message` theo định dạng `QUERY` hoặc `LOGIN` phù hợp với tầng mạng.
+  \item \textbf{Truyền tải Nhị phân}: Gửi gói tin qua Socket (`KBMS.Network`) và duy trì trạng thái chờ đợi phản hồi từ máy chủ.
 \end{enumerate}
 
 
 
-\subsubsection{Bộ máy Phân tích và Kết xuất Phản hồi}
+\subsubsection{Phân tích và Kết xuất Phản hồi}
 
 
-Thành phần trọng yếu nhất của CLI nằm ở lớp `ResponseParser.cs`. Do kết quả từ máy chủ có thể là một luồng dữ liệu liên tục (\textbf{Streaming Rows}), CLI phải thực hiện xử lý tách biệt từng khung tin nhị phân:
+Thành phần trọng yếu của CLI nằm ở lớp `ResponseParser.cs`. Do kết quả từ máy chủ có thể là một luồng dữ liệu liên tục (\textbf{Streaming Rows}), CLI phải thực hiện xử lý và phân tách từng gói tin nhị phân để hiển thị ra màn hình điều khiển:
 
 
 \begin{itemize}
-  \item \textbf{Siêu dữ liệu (METADATA)}: Xác lập định nghĩa các cột dữ liệu (bao gồm tên và kiểu dữ liệu).
+  \item \textbf{Siêu dữ liệu (METADATA)}: Xác lập định nghĩa các cột dữ liệu.
   \item \textbf{Dữ liệu Bản ghi (ROW)}: Chứa dữ liệu thực tế cho từng thực thể tri thức trong tập kết quả.
   \item \textbf{Kết quả Tổng quát (RESULT)}: Các thông báo xác nhận trạng thái thực thi thành công.
   \item \textbf{Thông báo Lỗi (ERROR)}: Chứa thông tin chẩn đoán bao gồm nội dung lỗi và tọa độ phát sinh sai lệch (Dòng, Cột).
@@ -6247,7 +6184,7 @@ Chương này trình bày các tình huống sử dụng thực tế của phân
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=1.2\textwidth]{assets/uc_cli_auth_flow.png}
+  \includegraphics[width=1.1\textwidth]{assets/uc_cli_auth_flow.png}
   \caption{Luồng xác thực và thiết lập phiên làm việc trên CLI.}\label{fig:luồng-xác-thực-và-thiết-lập-phiên-làm-việc-trên-cl}
 \end{figure}
 
@@ -6287,7 +6224,7 @@ Thực hiện các câu lệnh tìm kiếm dữ kiện và lựa chọn hình th
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.7\textwidth]{assets/uc_cli_kql_flow.png}
+  \includegraphics[width=0.8\textwidth]{assets/uc_cli_kql_flow.png}
   \caption{Quy trình truy vấn và điều phối hiển thị.}\label{fig:quy-trình-truy-vấn-và-điều-phối-hiển-thị}
 \end{figure}
 
@@ -6307,7 +6244,7 @@ Sử dụng lệnh tìm kiếm lời giải và theo dõi các bước logic đ�
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.5\textwidth]{assets/uc_cli_solve_flow.png}
+  \includegraphics[width=0.4\textwidth]{assets/uc_cli_solve_flow.png}
   \caption{Chu trình xử lý suy luận và trích xuất cây truy vết.}\label{fig:chu-trình-xử-lý-suy-luận-và-trích-xuất-cây-truy-vế}
 \end{figure}
 
@@ -6447,7 +6384,7 @@ Giao diện cung cấp cái nhìn minh bạch về quy trình xử lý bên tron
 \subsection{Đặc tả Giao diện Quản trị (KBMS Studio)}
 
 
-\textbf{KBMS Studio} là môi trường phát triển tích hợp dành cho việc quản trị tri thức. Giao diện được xây dựng trên nền tảng công nghệ web hiện đại, cung cấp khả năng điều phối hệ thống thông qua các công cụ trực quan.
+\textbf{KBMS Studio} là môi trường phát triển dành cho việc quản trị tri thức. Giao diện được xây dựng trên nền tảng Web, cung cấp khả năng điều phối hệ thống thông qua công cụ trực quan.
 
 
 Dưới đây là các phân hệ chức năng và bố cục giao diện chính trong Studio:
@@ -6460,7 +6397,7 @@ Cấu trúc Studio được phân bổ thành các khu vực chức năng chính
 
 
 \begin{itemize}
-  \item \textbf{Trình Duyệt Đối tượng}: Quản lý cấu trúc cây phả hệ của tất cả các Khái niệm, Quan hệ và Luật dẫn.
+  \item \textbf{Cây Đối tượng}: Quản lý cấu trúc cây của tất cả các Khái niệm, Quan hệ và Luật dẫn.
   \item \textbf{Trình Biên tập}: Khu vực làm việc chính để soạn thảo mã nguồn tri thức.
   \item \textbf{Bảng Giám sát}: Theo dõi trạng thái hoạt động của hệ thống như CPU, tài nguyên bộ nhớ và hoạt động vào/ra dữ liệu.
 \end{itemize}
@@ -6712,7 +6649,7 @@ Giao diện Dashboard giúp quản trị viên chủ động trong việc duy tr
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.7\textwidth]{assets/studio_interface_monitor.png}
+  \includegraphics[width=1.1\textwidth]{assets/studio_interface_monitor.png}
   \caption{Giao diện Dashboard giám sát sức khỏe và hiệu năng máy chủ.}\label{fig:giao-diện-dashboard-giám-sát-sức-khỏe-và-hiệu-năng}
 \end{figure}
 
@@ -6736,7 +6673,7 @@ Giao diện đảm bảo tính minh bạch và dễ hiểu cho các kết quả 
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.7\textwidth]{assets/studio_interface_results.png}
+  \includegraphics[width=1.1\textwidth]{assets/studio_interface_results.png}
   \caption{Giao diện hiển thị kết quả và trực quan hóa tiến trình suy cứu.}\label{fig:giao-diện-hiển-thị-kết-quả-và-trực-quan-hóa-tiến-t}
 \end{figure}
 
@@ -7361,7 +7298,5 @@ Mặc dù đạt được những chỉ số hiệu năng trên, hệ thống v�
 \clearpage
 
 \clearpage
-\addcontentsline{toc}{chapter}{TÀI LIỆU THAM KHẢO}
-\bibliographystyle{IEEEtran}
-\bibliography{references}
+\printbibliography[heading=bibintoc, title={TÀI LIỆU THAM KHẢO}]
 \end{document}
