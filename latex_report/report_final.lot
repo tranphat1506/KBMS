@@ -12,29 +12,26 @@
 \contentsline {table}{\numberline {4.6}{\ignorespaces Danh mục các kiểu dữ liệu nguyên thủy được hỗ trợ trong KBQL}}{41}{table.caption.32}%
 \contentsline {table}{\numberline {4.7}{\ignorespaces Phân tích dữ liệu thực nghiệm 8}}{42}{table.caption.33}%
 \contentsline {table}{\numberline {4.8}{\ignorespaces Phân tích dữ liệu thực nghiệm 9}}{67}{table.caption.34}%
-\contentsline {table}{\numberline {4.9}{\ignorespaces Phân tích dữ liệu thực nghiệm 10}}{78}{table.caption.35}%
-\contentsline {table}{\numberline {4.10}{\ignorespaces Danh mục Hàm số Tích hợp (Built-in Functions) trong KBQL}}{79}{table.caption.36}%
-\contentsline {table}{\numberline {4.11}{\ignorespaces Quy trình biến đổi và giải cấu trúc gói tin tại Tầng Mạng}}{91}{table.caption.38}%
-\contentsline {table}{\numberline {4.12}{\ignorespaces Phân rã cấu trúc nhị phân của một khung tin (Frame) truy vấn KBQL}}{93}{table.caption.40}%
-\contentsline {table}{\numberline {4.13}{\ignorespaces Nhật ký cấp phát và quản trị phiên làm việc trên máy chủ}}{95}{table.caption.41}%
-\contentsline {table}{\numberline {4.14}{\ignorespaces Phân tích dữ liệu thực nghiệm 15}}{100}{table.caption.45}%
-\contentsline {table}{\numberline {4.15}{\ignorespaces Phân tích dữ liệu thực nghiệm 16}}{101}{table.caption.46}%
-\contentsline {table}{\numberline {4.16}{\ignorespaces Nhật ký điều phối vòng đời một kết nối bất đồng bộ trên Server}}{105}{table.caption.52}%
-\contentsline {table}{\numberline {4.17}{\ignorespaces Đặc tả hiệu năng điều phối tác vụ tại Tầng Server}}{108}{table.caption.55}%
-\contentsline {table}{\numberline {4.18}{\ignorespaces dưới đây mô tả trình tự thực thi của pipeline sau khi đã được tối ưu:}}{113}{table.caption.58}%
-\contentsline {table}{\numberline {4.19}{\ignorespaces Danh mục các lệnh điều khiển trong giao diện CLI}}{119}{table.caption.61}%
+\contentsline {table}{\numberline {4.9}{\ignorespaces Quy trình biến đổi và giải cấu trúc gói tin tại Tầng Mạng}}{76}{table.caption.36}%
+\contentsline {table}{\numberline {4.10}{\ignorespaces Phân rã cấu trúc nhị phân của một khung tin (Frame) truy vấn KBQL}}{78}{table.caption.38}%
+\contentsline {table}{\numberline {4.11}{\ignorespaces Nhật ký cấp phát và quản trị phiên làm việc trên máy chủ}}{80}{table.caption.39}%
+\contentsline {table}{\numberline {4.12}{\ignorespaces Phân tích dữ liệu thực nghiệm 13}}{85}{table.caption.43}%
+\contentsline {table}{\numberline {4.13}{\ignorespaces Phân tích dữ liệu thực nghiệm 14}}{86}{table.caption.44}%
+\contentsline {table}{\numberline {4.14}{\ignorespaces Nhật ký điều phối vòng đời một kết nối bất đồng bộ trên Server}}{90}{table.caption.50}%
+\contentsline {table}{\numberline {4.15}{\ignorespaces Đặc tả hiệu năng điều phối tác vụ tại Tầng Server}}{93}{table.caption.53}%
+\contentsline {table}{\numberline {4.16}{\ignorespaces dưới đây mô tả trình tự thực thi của pipeline sau khi đã được tối ưu:}}{98}{table.caption.56}%
+\contentsline {table}{\numberline {4.17}{\ignorespaces Danh mục các lệnh điều khiển trong giao diện CLI}}{104}{table.caption.59}%
 \addvspace {10\p@ }
-\addvspace {10\p@ }
-\contentsline {table}{\numberline {6.1}{\ignorespaces Kết quả stress test theo kích thước dữ liệu}}{138}{table.caption.81}%
-\contentsline {table}{\numberline {6.2}{\ignorespaces So sánh hiệu năng theo cấu hình Buffer Pool}}{139}{table.caption.82}%
-\contentsline {table}{\numberline {6.3}{\ignorespaces Tổng kết chỉ số hiệu năng KBMS V3}}{139}{table.caption.83}%
-\contentsline {table}{\numberline {6.4}{\ignorespaces Các bài kiểm tra hiệu năng}}{139}{table.caption.84}%
-\contentsline {table}{\numberline {6.5}{\ignorespaces Các bài kiểm tra kiến trúc lưu trữ}}{140}{table.caption.85}%
-\contentsline {table}{\numberline {6.6}{\ignorespaces Các bài kiểm tra giao dịch và WAL}}{140}{table.caption.86}%
-\contentsline {table}{\numberline {6.7}{\ignorespaces Các bài kiểm tra Query Engine}}{140}{table.caption.87}%
-\contentsline {table}{\numberline {6.8}{\ignorespaces Các bài kiểm tra tiến hóa schema}}{140}{table.caption.88}%
-\contentsline {table}{\numberline {6.9}{\ignorespaces Các bài kiểm tra suy diễn}}{141}{table.caption.89}%
-\contentsline {table}{\numberline {6.10}{\ignorespaces Các bài kiểm tra ngôn ngữ KBQL}}{141}{table.caption.90}%
-\contentsline {table}{\numberline {6.11}{\ignorespaces Tổng kết kết quả kiểm thử theo nhóm}}{141}{table.caption.91}%
-\contentsline {table}{\numberline {6.12}{\ignorespaces Đánh giá mức độ hoàn thành mục tiêu}}{143}{table.caption.92}%
+\contentsline {table}{\numberline {5.1}{\ignorespaces Kết quả stress test theo kích thước dữ liệu}}{121}{table.caption.79}%
+\contentsline {table}{\numberline {5.2}{\ignorespaces So sánh hiệu năng theo cấu hình Buffer Pool}}{122}{table.caption.80}%
+\contentsline {table}{\numberline {5.3}{\ignorespaces Tổng kết chỉ số hiệu năng KBMS V3}}{122}{table.caption.81}%
+\contentsline {table}{\numberline {5.4}{\ignorespaces Các bài kiểm tra hiệu năng}}{122}{table.caption.82}%
+\contentsline {table}{\numberline {5.5}{\ignorespaces Các bài kiểm tra kiến trúc lưu trữ}}{123}{table.caption.83}%
+\contentsline {table}{\numberline {5.6}{\ignorespaces Các bài kiểm tra giao dịch và WAL}}{123}{table.caption.84}%
+\contentsline {table}{\numberline {5.7}{\ignorespaces Các bài kiểm tra Query Engine}}{123}{table.caption.85}%
+\contentsline {table}{\numberline {5.8}{\ignorespaces Các bài kiểm tra tiến hóa schema}}{123}{table.caption.86}%
+\contentsline {table}{\numberline {5.9}{\ignorespaces Các bài kiểm tra suy diễn}}{123}{table.caption.87}%
+\contentsline {table}{\numberline {5.10}{\ignorespaces Các bài kiểm tra ngôn ngữ KBQL}}{124}{table.caption.88}%
+\contentsline {table}{\numberline {5.11}{\ignorespaces Tổng kết kết quả kiểm thử theo nhóm}}{124}{table.caption.89}%
+\contentsline {table}{\numberline {5.12}{\ignorespaces Đánh giá mức độ hoàn thành mục tiêu}}{125}{table.caption.90}%
 \addvspace {10\p@ }

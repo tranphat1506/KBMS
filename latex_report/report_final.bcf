@@ -2425,12 +2425,11 @@
     <bcf:citekey order="70" intorder="1">DatabaseSystems</bcf:citekey>
     <bcf:citekey order="71" intorder="1">ComerBTree</bcf:citekey>
     <bcf:citekey order="72" intorder="1">RussellNorvig</bcf:citekey>
-    <bcf:citekey order="73" intorder="1">RussellNorvig</bcf:citekey>
-    <bcf:citekey order="74" intorder="1">DatabaseSystems</bcf:citekey>
-    <bcf:citekey order="75" intorder="1">DoVanNhon1</bcf:citekey>
-    <bcf:citekey order="76" intorder="1">RussellNorvig</bcf:citekey>
+    <bcf:citekey order="73" intorder="1">DatabaseSystems</bcf:citekey>
+    <bcf:citekey order="74" intorder="1">DoVanNhon1</bcf:citekey>
+    <bcf:citekey order="75" intorder="1">RussellNorvig</bcf:citekey>
+    <bcf:citekey order="76" intorder="1">DoVanNhon1</bcf:citekey>
     <bcf:citekey order="77" intorder="1">DoVanNhon1</bcf:citekey>
-    <bcf:citekey order="78" intorder="1">DoVanNhon1</bcf:citekey>
   </bcf:section>
   <!-- SORTING TEMPLATES -->
   <bcf:sortingtemplate name="none">

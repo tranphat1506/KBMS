@@ -293,7 +293,7 @@ Mục tiêu chính của đề tài là xây dựng một hệ thống KBMS hoà
 Đề tài góp phần chuẩn hóa phương pháp xây dựng hệ thống tri thức có khả năng mở rộng (Scale-out) và tính linh hoạt cao trong việc thay đổi luật mà không cần can thiệp vào mã nguồn ứng dụng. Đây là nền tảng quan trọng cho việc phát triển các hệ chuyên gia và hệ trợ giúp quyết định thông minh.
 
 
-Báo cáo được tổ chức thành 07 chương trọng tâm với nội dung chi tiết như sau:
+Báo cáo được tổ chức thành 06 chương trọng tâm với nội dung chi tiết như sau:
 
 
 \begin{itemize}
@@ -301,9 +301,8 @@ Báo cáo được tổ chức thành 07 chương trọng tâm với nội dung 
   \item \textbf{Chương 2  Cơ sở lý thuyết COKB}: Phân tích tổng quan về mô hình Đối tượng Tính toán (COKB), các thành phần tri thức và nền tảng logic suy diễn đại số.
   \item \textbf{Chương 3  Phân tích và Thiết kế hệ thống}: Khảo sát hiện trạng, phân tích các yêu cầu chức năng (Truy vấn, Suy diễn) và phi chức năng để phác thảo kiến trúc tổng thể.
   \item \textbf{Chương 4  Kiến trúc hệ thống và các tầng xử lý}: Chương trọng tâm mô tả chi tiết kiến trúc 4 tầng (Mạng, Máy chủ, Suy diễn, Lưu trữ) cùng các thành phần Lexer/Parser và công cụ CLI/Studio.
-  \item \textbf{Chương 5  Cài đặt và Triển khai}: Hướng dẫn cài đặt môi trường, triển khai hệ thống và cấu hình các thông số vận hành cơ bản.
-  \item \textbf{Chương 6  Thử nghiệm và Đánh giá hiệu năng}: Trình bày kết quả triển khai thực tế trên các tập dữ liệu mẫu, thực hiện các bài đo hiệu năng suy diễn và độ trễ truy vấn.
-  \item \textbf{Chương 7  Kết luận và Hướng phát triển}: Tổng kết các kết quả đạt được, chỉ ra những hạn chế hiện tại và đề xuất các hướng nghiên cứu, cải tiến trong tương lai.
+  \item \textbf{Chương 5  Cài đặt và Kiểm thử hệ thống}: Hướng dẫn triển khai môi trường, cài đặt các phân hệ và trình bày kết quả thực nghiệm, đánh giá hiệu năng vận hành thực tế.
+  \item \textbf{Chương 6  Kết luận và Hướng phát triển}: Tổng kết các kết quả đạt được, chỉ ra những hạn chế hiện tại và đề xuất lộ trình nâng cấp hệ thống trong tương lai.
 \end{itemize}
 
 
@@ -3893,1089 +3892,6 @@ COMMIT;
 
 
 
-\subsection{Quản trị và Bảo trì Cơ sở Tri thức}
-
-
-\textbf{MAINTENANCE} là một lệnh chuyên biệt trong \textbf{KBQL}, được thiết kế để thực thi các tác vụ dọn dẹp, tối ưu hóa hiệu năng lưu trữ và kiểm chứng tính nhất quán của hệ thống tri thức.
-
-
-\subsubsection{Đặc tả Lệnh Bảo trì}
-
-
-Lệnh `MAINTENANCE` được thiết kế để thực thi các tác vụ dọn dẹp và sửa đổi hệ thống ở cấp độ vật lý:
-
-
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
-MAINTENANCE (
-    {VACUUM | REINDEX | CHECK CONSISTENCY} [ON CONCEPT <name>],
-    ...
-);
-\end{Verbatim}
-\end{academicbox}
-
-
-
-
-\textit{Ví dụ:}\par
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
-MAINTENANCE (VACUUM ON CONCEPT Patient, CHECK CONSISTENCY);
-\end{Verbatim}
-\end{academicbox}
-
-
-
-
-\subsubsection{Đặc tả các Hoạt động Quản trị}
-
-
-\paragraph{Giải phóng và Tối ưu hóa Bộ nhớ (VACUUM)}
-
-
-Khi một Sự kiện (\textbf{Fact}) bị xóa, không gian lưu trữ trong cấu trúc cây \textbf{B+ Tree} sẽ không được giải phóng ngay lập tức để tiết kiệm chi phí I/O. Lệnh `VACUUM` thực hiện việc tái cơ cấu các Trang dữ liệu (\textbf{Page}) và thu hồi dung lượng đĩa cứng dư thừa.
-
-
-\paragraph{Tái thiết lập Chỉ mục (REINDEX)}
-
-
-Hoạt động cập nhật toàn diện các cấu trúc chỉ mục (\textbf{Index}) liên kết với Khái niệm (\textbf{Concept}). Hoạt động này được khuyến nghị thực hiện sau khi hệ thống gặp sự cố mất điện hoặc phát hiện dấu hiệu sai lệch dữ liệu chỉ mục.
-
-
-\paragraph{Kiểm tra Tính nhất quán Tri thức (CHECK CONSISTENCY)}
-
-
-Tiến trình kiểm chứng các liên kết logic giữa Sự kiện, Luật dẫn (\textbf{Rule}) và Hệ thống Phân cấp (\textbf{Hierarchy}). Hoạt động này đảm bảo mạng lưới tri thức không tồn tại các mâu thuẫn hình thức hoặc đứt gãy tham chiếu.
-
-
-\subsubsection{Khuyến nghị Về Chu kỳ Bảo trì}
-
-
-\begin{enumerate}
-  \item \textbf{VACUUM:} Thực thi sau các đợt xóa dữ liệu hàng loạt (Batch deletion) để tối ưu hóa không gian lưu trữ.
-  \item \textbf{REINDEX:} Thực thi định kỳ hoặc sau các thao tác thay đổi Siêu dữ liệu (Metadata) phức tạp.
-  \item \textbf{CHECK CONSISTENCY:} Thực thi bắt buộc trước khi triển khai hệ thống suy diễn vào các kịch bản kiểm thử hoặc môi trường vận hành thực tế.
-\end{enumerate}
-
-
-
-\subsubsection{Ví dụ Thực tế - Quy trình Bảo trì Hệ thống}
-
-
-Dưới đây là các kịch bản thực tế về bảo trì hệ thống KBMS:
-
-
-\paragraph{Bảo trì Hàng ngày}
-
-
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
--- Kịch bản: Bảo trì hàng ngày vào lúc 2:00 AM
-
--- Bước 1: Kiểm tra tính nhất quán của dữ liệu
-MAINTENANCE (CHECK CONSISTENCY);
-
--- Bước 2: Tối ưu hóa các Concept hoạt động nhiều
-MAINTENANCE (VACUUM ON CONCEPT Patient);
-MAINTENANCE (VACUUM ON CONCEPT Appointment);
-MAINTENANCE (VACUUM ON CONCEPT Diagnosis);
-
--- Bước 3: Cập nhật thống kê hệ thống
-MAINTENANCE (UPDATE STATISTICS ON CONCEPT Patient);
-MAINTENANCE (UPDATE STATISTICS ON CONCEPT Billing);
-\end{Verbatim}
-\end{academicbox}
-
-
-
-
-\paragraph{Bảo trì Tuần hoàn}
-
-
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
--- Kịch bản: Bảo trì định kỳ vào Chủ nhật hàng tuần
-
--- Bước 1: Dọn dẹp tất cả các Concept
-MAINTENANCE (
-    VACUUM ON CONCEPT Patient,
-    VACUUM ON CONCEPT Appointment,
-    VACUUM ON CONCEPT Diagnosis,
-    VACUUM ON CONCEPT Billing,
-    VACUUM ON CONCEPT Pharmacy,
-    VACUUM ON CONCEPT Inventory
-);
-
--- Bước 2: Tái tạo chỉ mục
-MAINTENANCE (
-    REINDEX ON CONCEPT Patient,
-    REINDEX ON CONCEPT Appointment,
-    REINDEX ON CONCEPT Diagnosis
-);
-
--- Bước 3: Kiểm tra toàn bộ tính nhất quán
-MAINTENANCE (CHECK CONSISTENCY);
-
--- Bước 4: Tối ưu hóa không gian bảng điều khiển (Catalog)
-MAINTENANCE (VACUUM FULL);
-\end{Verbatim}
-\end{academicbox}
-
-
-
-
-\paragraph{Bảo trì Sau Xóa dữ liệu Lớn}
-
-
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
--- Kịch bản: Sau khi xóa dữ liệu bệnh nhân cũ (hồ sơ > 10 năm)
-
--- Xóa dữ liệu cũ
-DELETE FROM Patient WHERE lastVisit < '2016-04-01';
-DELETE FROM Appointment WHERE appointmentDate < '2016-04-01';
-DELETE FROM Diagnosis WHERE diagnosisDate < '2016-04-01';
-
--- Dọn dẹp không gian lưu trữ
-MAINTENANCE (VACUUM FULL ON CONCEPT Patient);
-MAINTENANCE (VACUUM FULL ON CONCEPT Appointment);
-MAINTENANCE (VACUUM FULL ON CONCEPT Diagnosis);
-
--- Tái tạo chỉ mục sau khi xóa
-MAINTENANCE (REINDEX ON CONCEPT Patient);
-MAINTENANCE (REINDEX ON CONCEPT Appointment);
-
--- Kiểm tra tính nhất quán
-MAINTENANCE (CHECK CONSISTENCY);
-\end{Verbatim}
-\end{academicbox}
-
-
-
-
-\paragraph{Bảo trì Sau Sự cố Hệ thống}
-
-
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
--- Kịch bản: Khôi phục sau khi mất điện
-
--- Bước 1: Kiểm tra tính toàn vẹn dữ liệu
-MAINTENANCE (CHECK CONSISTENCY);
-
--- Bước 2: Tái tạo tất cả chỉ mục (có thể bị hỏng)
-MAINTENANCE (
-    REINDEX ON CONCEPT Patient,
-    REINDEX ON CONCEPT Appointment,
-    REINDEX ON CONCEPT Diagnosis,
-    REINDEX ON CONCEPT Billing,
-    REINDEX ON CONCEPT Pharmacy,
-    REINDEX ON CONCEPT Inventory
-);
-
--- Bước 3: Dọn dẹp các transaction chưa hoàn thành
-MAINTENANCE (CLEANUP TRANSACTIONS);
-
--- Bước 4: Tối ưu hóa toàn bộ
-MAINTENANCE (VACUUM FULL);
-\end{Verbatim}
-\end{academicbox}
-
-
-
-
-\paragraph{Bảo trì Trước khi Triển khai Production}
-
-
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
--- Kịch bản: Chuẩn bị triển khai hệ thống vào môi trường production
-
--- Bước 1: Kiểm tra toàn bộ tính nhất quán
-MAINTENANCE (CHECK CONSISTENCY);
-
--- Bước 2: Dọn dẹp và tối ưu hóa
-MAINTENANCE (
-    VACUUM FULL ON CONCEPT Patient,
-    VACUUM FULL ON CONCEPT Appointment,
-    VACUUM FULL ON CONCEPT Diagnosis,
-    VACUUM FULL ON CONCEPT Billing,
-    VACUUM FULL ON CONCEPT Pharmacy,
-    VACUUM FULL ON CONCEPT Inventory
-);
-
--- Bước 3: Tạo lại tất cả chỉ mục
-MAINTENANCE (REBUILD ALL INDEXES);
-
--- Bước 4: Cập nhật thống kê cho trình tối ưu hóa
-MAINTENANCE (UPDATE ALL STATISTICS);
-
--- Bước 5: Xác minh cấu trúc database
-MAINTENANCE (VALIDATE SCHEMA);
-
--- Bước 6: Tạo bản sao lưu (backup)
--- (external command, not KBQL)
-\end{Verbatim}
-\end{academicbox}
-
-
-
-
-\paragraph{Bảo trì Theo dõi Hiệu năng}
-
-
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
--- Kịch bản: Theo dõi và tối ưu hóa hiệu năng
-
--- Tạo Concept để theo dõi hiệu năng
-CREATE CONCEPT PerformanceMetrics (
-    VARIABLES (
-        metricId: STRING,
-        metricName: STRING,
-        metricValue: DECIMAL,
-        recordedAt: DATETIME
-    )
-);
-
--- Theo dõi kích thước các Concept
-INSERT INTO PerformanceMetrics ATTRIBUTE (
-    'PM001', 'Patient_Concept_Size_MB',
-    (SELECT CALC(size/1024/1024) FROM system.catalog WHERE name = 'Patient'),
-    '2026-04-03 10:00'
-);
-
--- Theo dõi số lượng records
-INSERT INTO PerformanceMetrics ATTRIBUTE (
-    'PM002', 'Patient_Record_Count',
-    (SELECT COUNT(*) FROM Patient),
-    '2026-04-03 10:00'
-);
-
--- Bảo trì dựa trên metrics
-MAINTENANCE (
-    VACUUM ON CONCEPT Patient,
-    REINDEX ON CONCEPT Patient
-);
-\end{Verbatim}
-\end{academicbox}
-
-
-
-
-\paragraph{Kịch bản Bảo trì Tự động}
-
-
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
--- Tạo stored procedure cho bảo trì tự động
-CREATE PROCEDURE DailyMaintenance()
-BEGIN
-    -- Bước 1: Ghi log bắt đầu
-    INSERT INTO MaintenanceLog ATTRIBUTE (
-        'LOG001', 'Daily Maintenance', 'Started', '2026-04-03 02:00'
-    );
-
-    -- Bước 2: Thực hiện bảo trì
-    MAINTENANCE (
-        VACUUM ON CONCEPT Patient,
-        VACUUM ON CONCEPT Appointment,
-        VACUUM ON CONCEPT Diagnosis,
-        CHECK CONSISTENCY
-    );
-
-    -- Bước 3: Ghi log hoàn thành
-    INSERT INTO MaintenanceLog ATTRIBUTE (
-        'LOG002', 'Daily Maintenance', 'Completed', '2026-04-03 02:15'
-    );
-END;
-
--- Gọi stored procedure
--- EXECUTE DailyMaintenance();
-\end{Verbatim}
-\end{academicbox}
-
-
-
-
-\paragraph{Lịch Bảo trì Khuyến nghị}
-
-
-\begin{table}[H]
-  \centering\captionsetup{position=below}\small\selectfont
-  \begin{tabularx}{\textwidth}{|l|X|X|}
-  \hline
-Tần suất & Hoạt động & Command \\ \hline
-\textbf{Hàng ngày} & VACUUM các Concept hoạt động nhiều & `MAINTENANCE (VACUUM ON CONCEPT Patient)` \\ \hline
-\textbf{Hàng tuần} & VACUUM tất cả, REINDEX & `MAINTENANCE (VACUUM, REINDEX)` \\ \hline
-\textbf{Hàng tháng} & CHECK CONSISTENCY đầy đủ & `MAINTENANCE (CHECK CONSISTENCY)` \\ \hline
-\textbf{Sau xóa lớn} & VACUUM FULL, REINDEX & `MAINTENANCE (VACUUM FULL, REINDEX)` \\ \hline
-\textbf{Sau sự cố} & REBUILD ALL INDEXES & `MAINTENANCE (REBUILD ALL INDEXES)` \\ \hline
-\textbf{Trước deploy} & VALIDATE SCHEMA & `MAINTENANCE (VALIDATE SCHEMA)` \\ \hline
-  \end{tabularx}
-  \caption{Phân tích dữ liệu thực nghiệm 10}\label{tbl:phân-tích-dữ-liệu-thực-nghiệm-10}
-\end{table}
-
-
-\subsection{Đặc tả Biểu thức và Hệ thống Hàm số}
-
-
-Biểu thức là tập hợp các đơn vị tính toán cốt lõi trong các mệnh đề `WHERE`, `IF`, `SET` và hàm `CALC()`. \textbf{KBQL} tích hợp bộ máy đánh giá biểu thức hỗ trợ đầy đủ các phép toán học thuật và hàm số hình thức \cite{RussellNorvig}.
-
-
-\subsubsection{Hệ thống Toán tử Cơ sở}
-
-
-Hệ thống toán tử trong KBQL bao gồm các phép toán tiêu chuẩn cho các kiểu dữ liệu số, chuỗi và logic.
-
-
-\paragraph{Toán tử Số học}
-
-\begin{itemize}
-  \item `+`, `-`, `*`, `/`: Các phép toán cơ sở.
-  \item `\textasciicircum{}`: Lũy thừa.
-  \item `\%`: Chia lấy dư.
-\end{itemize}
-
-
-
-\paragraph{Toán tử So sánh}
-
-\begin{itemize}
-  \item `=`, `!=` (hoặc `<>`): So sánh tương đương và phi tương đương.
-  \item `<`, `<=`, `>`, `>=`: Các phép so sánh thứ tự.
-\end{itemize}
-
-
-
-\paragraph{Toán tử Logic (Boolean)}
-
-\begin{itemize}
-  \item `AND`, `OR`, `NOT`: Các phép logic Boolean phục vụ việc tổ hợp các điều kiện ràng buộc.
-\end{itemize}
-
-
-
-\subsubsection{Danh mục Hàm số Tích hợp}
-
-
-Hệ thống \textbf{KBMS} tích hợp sẵn các hàm toán học chuyên sâu để phục vụ việc tính toán tri thức:
-
-
-\begin{table}[H]
-  \centering\captionsetup{position=below}\small\selectfont
-  \begin{tabularx}{\textwidth}{|l|X|X|}
-  \hline
-Hàm & Đặc tả Chức năng & Ví dụ Thực thi \\ \hline
-`Abs(x)` & Giá trị tuyệt đối & `Abs(-10)` $\rightarrow$ 10 \\ \hline
-`Sqrt(x)` & Căn bậc hai & `Sqrt(16)` $\rightarrow$ 4 \\ \hline
-`Pow(x, y)` & Lũy thừa & `Pow(2, 3)` $\rightarrow$ 8 \\ \hline
-`Round(x, n)` & Làm tròn đến n chữ số thập phân & `Round(3.1415, 2)` $\rightarrow$ 3.14 \\ \hline
-`Floor(x)` / `Ceiling(x)` & Làm tròn xuống / Làm tròn lên & `Floor(2.9)` $\rightarrow$ 2 \\ \hline
-`Sin`, `Cos`, `Tan` & Các hàm lượng giác & `Sin(0)` $\rightarrow$ 0 \\ \hline
-`Factorial(n)` & Tính giai thừa & `Factorial(5)` $\rightarrow$ 120 \\ \hline
-  \end{tabularx}
-  \caption{Danh mục Hàm số Tích hợp (Built-in Functions) trong KBQL}\label{tbl:danh-mục-hàm-số-tích-hợp-built-in-functions-trong-}
-\end{table}
-
-
-\subsubsection{Ứng dụng trong Hàm Truy vấn CALC()}
-
-
-Hàm `CALC()` cho phép nhúng trực tiếp biểu thức vào kết quả của lệnh `SELECT` để thực hiện tính toán tại thời điểm truy xuất:
-
-
-\textit{Ví dụ:} `SELECT name, CALC(Sqrt(a\textasciicircum{}2 + b\textasciicircum{}2)) AS hypotenuse FROM Triangles;`
-
-
-\subsubsection{Tương tác với Thuộc tính và Biến số}
-
-
-Bên trong các biểu thức, người dùng có thể tham chiếu trực tiếp đến định danh của các biến thuộc \textbf{Concept} hiện tại. Đối với các truy vấn liên kết (\textbf{JOIN}), cần sử dụng bí danh (\textbf{Alias}) để phân định rõ ràng các thực thể liên quan.
-
-
-\subsubsection{Tối ưu hóa Hiệu năng Thực thi}
-
-
-Các biểu thức logic phức tạp trong mệnh đề `WHERE` có thể ảnh hưởng đến tốc độ truy vấn nếu không có chỉ mục (\textbf{Index}) hỗ trợ phù hợp. Nhà phát triển được khuyến nghị sử dụng lệnh `EXPLAIN` để kiểm tra kế hoạch đánh giá biểu thức của hệ thống.
-
-
-\subsubsection{Ví dụ Thực tế - Biểu thức và Hàm số trong KBQL}
-
-
-Dưới đây là các ví dụ chi tiết về sử dụng biểu thức và hàm số trong KBMS:
-
-
-\paragraph{Biểu thức Số học Cơ bản}
-
-
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
--- Các phép toán cơ bản
-SELECT
-    price,
-    CALC(price * 1.1) AS price_with_tax,
-    CALC(price * 0.9) AS discounted_price
-FROM Product;
-
--- Phép toán lũy thừa
-SELECT
-    base,
-    exponent,
-    CALC(base ^ exponent) AS power_result
-FROM MathTable;
-
--- Chia lấy dư
-SELECT
-    value,
-    CALC(value % 2) AS is_even
-FROM Numbers;
-
--- Kết hợp nhiều phép toán
-SELECT
-    length,
-    width,
-    height,
-    CALC(length * width * height) AS volume,
-    CALC(2 * (length*width + width*height + height*length)) AS surface_area
-FROM BoxDimensions;
-\end{Verbatim}
-\end{academicbox}
-
-
-
-
-\paragraph{Hàm số Toán học}
-
-
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
--- Giá trị tuyệt đối
-SELECT
-    temperature,
-    CALC(Abs(temperature - 37)) AS deviation_from_normal
-FROM VitalSigns;
-
--- Căn bậc hai
-SELECT
-    sideA,
-    sideB,
-    CALC(Sqrt(sideA^2 + sideB^2)) AS hypotenuse
-FROM Triangle;
-
--- Làm tròn
-SELECT
-    price,
-    CALC(Round(price, 2)) AS price_rounded,
-    CALC(Floor(price)) AS price_floor,
-    CALC(Ceiling(price)) AS price_ceiling
-FROM Product;
-
--- Hàm lượng giác
-SELECT
-    angle_degrees,
-    CALC(Sin(angle_degrees * 3.14159/180)) AS sin_value,
-    CALC(Cos(angle_degrees * 3.14159/180)) AS cos_value,
-    CALC(Tan(angle_degrees * 3.14159/180)) AS tan_value
-FROM AngleTable;
-
--- Giai thừa
-SELECT
-    n,
-    CALC(Factorial(n)) AS factorial
-FROM Numbers
-WHERE n <= 10;
-\end{Verbatim}
-\end{academicbox}
-
-
-
-
-\paragraph{Biểu thức Logic trong WHERE}
-
-
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
--- Toán tử AND
-SELECT * FROM Patient
-WHERE age >= 18 AND age <= 65;
-
--- Toán tử OR
-SELECT * FROM Patient
-WHERE sys >= 140 OR dia >= 90;
-
--- Toán tử NOT
-SELECT * FROM Patient
-WHERE NOT (is_critical = true);
-
--- Kết hợp phức tạp
-SELECT * FROM Patient
-WHERE (age >= 40 AND (sys > 140 OR dia > 90))
-   OR (age >= 60 AND heartRate > 100);
-
--- Sử dụng NOT với các điều kiện phức tạp
-SELECT * FROM Patient
-WHERE NOT ((sys < 120 AND dia < 80) AND heartRate < 100);
-\end{Verbatim}
-\end{academicbox}
-
-
-
-
-\paragraph{Biểu thức So sánh}
-
-
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
--- So sánh bằng
-SELECT * FROM Patient WHERE bloodType = 'A+';
-
--- So sánh khác
-SELECT * FROM Patient WHERE bloodType != 'O+';
-
--- So sánh lớn hơn/bé hơn
-SELECT * FROM Patient
-WHERE age > 30 AND age < 50;
-
--- So sánh lớn hơn hoặc bằng
-SELECT * FROM Product
-WHERE stock >= minStock;
-
--- So sánh chuỗi (theo thứ tự bảng chữ cái)
-SELECT name FROM Patient
-WHERE name >= 'Nguyen' AND name < 'Tran';
-
--- Kết hợp nhiều điều kiện so sánh
-SELECT * FROM Patient
-WHERE sys BETWEEN 110 AND 140
-  AND dia BETWEEN 70 AND 90
-  AND age >= 18;
-\end{Verbatim}
-\end{academicbox}
-
-
-
-
-\paragraph{Biểu thức trong UPDATE}
-
-
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
--- Cập nhật với biểu thức tính toán
-UPDATE Product
-ATTRIBUTE (SET price: price * 1.05)
-WHERE category = 'Electronics';
-
--- Cập nhật nhiều thuộc tính với biểu thức
-UPDATE Patient
-ATTRIBUTE (
-    SET bmi: CALC(weight / (height/100)^2),
-        healthRisk: CALC(CASE WHEN age > 60 AND sys > 140 THEN 'High' ELSE 'Normal' END)
-)
-WHERE patientId = 'P001';
-
--- Cập nhật với biểu thức phức tạp
-UPDATE Inventory
-ATTRIBUTE (
-    SET totalValue: CALC(quantity * unitPrice),
-        taxAmount: CALC(quantity * unitPrice * 0.1),
-        finalValue: CALC(quantity * unitPrice * 1.1)
-);
-\end{Verbatim}
-\end{academicbox}
-
-
-
-
-\paragraph{Biểu thức trong Constraints}
-
-
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
--- Ràng buộc với biểu thức số học
-CREATE CONCEPT Triangle (
-    VARIABLES (a: DECIMAL, b: DECIMAL, c: DECIMAL),
-    CONSTRAINTS (
-        a + b > c,
-        b + c > a,
-        a + c > b
-    )
-);
-
--- Ràng buộc với biểu thức logic
-CREATE CONCEPT Employee (
-    VARIABLES (
-        hireDate: DATE,
-        birthDate: DATE,
-        retirementDate: DATE
-    ),
-    CONSTRAINTS (
-        hireDate >= birthDate + 18*365,
-        retirementDate > hireDate,
-        retirementDate <= birthDate + 65*365
-    )
-);
-
--- Ràng buộc với hàm số
-CREATE CONCEPT Circle (
-    VARIABLES (radius: DECIMAL, area: DECIMAL),
-    CONSTRAINTS (
-        radius > 0,
-        area = CALC(3.14159 * radius^2)
-    )
-);
-\end{Verbatim}
-\end{academicbox}
-
-
-
-
-\paragraph{Biểu thức trong Equations}
-
-
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
--- Phương trình bậc 1
-CREATE CONCEPT LinearEquation (
-    VARIABLES (x: DECIMAL, m: DECIMAL, c: DECIMAL, y: DECIMAL),
-    EQUATIONS ('y = m * x + c')
-);
-
--- Phương trình bậc 2
-CREATE CONCEPT QuadraticEquation (
-    VARIABLES (a: DECIMAL, b: DECIMAL, c: DECIMAL, x: DECIMAL, y: DECIMAL),
-    EQUATIONS ('y = a*x^2 + b*x + c')
-);
-
--- Hệ phương trình
-CREATE CONCEPT PhysicsProblem (
-    VARIABLES (
-        velocity: DECIMAL,
-        time: DECIMAL,
-        acceleration: DECIMAL,
-        distance: DECIMAL
-    ),
-    EQUATIONS (
-        'velocity = acceleration * time',
-        'distance = 0.5 * acceleration * time^2'
-    )
-);
-
--- Phương trình lượng giác
-CREATE CONCEPT TrigonometryProblem (
-    VARIABLES (angle: DECIMAL, sin_val: DECIMAL, cos_val: DECIMAL, tan_val: DECIMAL),
-    EQUATIONS (
-        'sin_val = Sin(angle)',
-        'cos_val = Cos(angle)',
-        'tan_val = sin_val / cos_val'
-    )
-);
-\end{Verbatim}
-\end{academicbox}
-
-
-
-
-\paragraph{Biểu thức với Hàm Tự định nghĩa}
-
-
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
--- Tạo hàm tính chỉ số khối cơ thể (BMI)
-CREATE FUNCTION CalculateBMI
-PARAMS (DECIMAL weight, DECIMAL height)
-RETURNS DECIMAL
-BODY '(weight * 10000) / (height * height)';
-
--- Sử dụng hàm trong truy vấn
-SELECT
-    name,
-    weight,
-    height,
-    CALC(CalculateBMI(weight, height)) AS bmi
-FROM Patient;
-
--- Tạo hàm tính chi phí vận chuyển
-CREATE FUNCTION CalculateShippingCost
-PARAMS (DECIMAL weight, DECIMAL distance)
-RETURNS DECIMAL
-BODY '(weight * 5000) + (distance * 2000) + 50000';
-
--- Sử dụng trong UPDATE
-UPDATE Order
-ATTRIBUTE (SET shippingCost: CALC(CalculateShippingCost(packageWeight, shippingDistance)))
-WHERE orderId = 'ORD001';
-\end{Verbatim}
-\end{academicbox}
-
-
-
-
-\paragraph{Biểu thức Phức tạp - Kết hợp Nhiều Hàm}
-
-
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
--- Tính khoảng cách giữa hai điểm trong không gian 3D
-SELECT
-    p1.x AS x1, p1.y AS y1, p1.z AS z1,
-    p2.x AS x2, p2.y AS y2, p2.z AS z2,
-    CALC(Sqrt((p2.x-p1.x)^2 + (p2.y-p1.y)^2 + (p2.z-p1.z)^2)) AS distance_3d
-FROM Point3D p1
-CROSS JOIN Point3D p2
-WHERE p1.pointId < p2.pointId;
-
--- Tính độ lệch chuẩn
-SELECT
-    category,
-    COUNT(*) AS sample_count,
-    AVG(value) AS mean_value,
-    CALC(Sqrt(SUM((value - AVG(value))^2) / COUNT(*))) AS std_deviation
-FROM Measurements
-GROUP BY category;
-
--- Biểu thức CASE phức tạp
-SELECT
-    patientId,
-    name,
-    sys,
-    dia,
-    CALC(CASE
-        WHEN sys < 120 AND dia < 80 THEN 'Normal'
-        WHEN sys >= 140 OR dia >= 90 THEN 'Hypertension Stage 2'
-        WHEN sys >= 130 OR dia >= 85 THEN 'Hypertension Stage 1'
-        ELSE 'Elevated'
-    END) AS bp_category
-FROM Patient;
-
--- Tính điểm tín dụng
-SELECT
-    customerId,
-    income,
-    debt,
-    paymentHistory,
-    CALC(
-        (income / 10000000 * 30) +
-        ((1 - debt/income) * 40) +
-        (paymentHistory * 30)
-    ) AS credit_score
-FROM CreditApplication;
-\end{Verbatim}
-\end{academicbox}
-
-
-
-
-\paragraph{Tối ưu hóa Biểu thức với Index}
-
-
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
--- Tạo chỉ mục cho các cột thường dùng trong biểu thức
-CREATE INDEX idx_patient_age ON Patient (age);
-CREATE INDEX idx_patient_sys ON Patient (sys);
-CREATE INDEX idx_product_price ON Product (price);
-
--- Sử dụng EXPLAIN để kiểm tra kế hoạch thực thi
-EXPLAIN (
-    SELECT * FROM Patient
-    WHERE age >= 40 AND (sys > 140 OR dia > 90)
-);
-
--- Biểu thức không sử dụng index (không tối ưu)
--- SELECT * FROM Patient WHERE CALC(age + 1) > 40;
-
--- Biểu thức sử dụng index (tối ưu)
--- SELECT * FROM Patient WHERE age > 39;
-\end{Verbatim}
-\end{academicbox}
-
-
-
-
-\paragraph{Biểu thức Sub-query}
-
-
-Sub-query có thể được sử dụng như một biểu thức trong mệnh đề WHERE:
-
-
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
--- Scalar sub-query: Trả về một giá trị duy nhất
-SELECT name, age FROM Patient
-WHERE age > (SELECT AVG(age) FROM Patient);
-
--- Sub-query với hàm tổng hợp
-SELECT * FROM Patient
-WHERE sys = (SELECT MAX(sys) FROM Patient);
-
--- Sub-query tương quan (correlated sub-query)
-SELECT p.name FROM Patient p
-WHERE EXISTS (
-    SELECT 1 FROM Appointment a
-    WHERE a.patientId = p.patientId AND a.status = 'Scheduled'
-);
-
--- Sub-query với IN
-SELECT * FROM Product
-WHERE categoryId IN (SELECT categoryId FROM Category WHERE active = true);
-
--- Sub-query lồng nhau
-SELECT * FROM Patient
-WHERE patientId IN (
-    SELECT patientId FROM Appointment
-    WHERE doctorId IN (
-        SELECT doctorId FROM Doctor WHERE specialty = 'Cardiology'
-    )
-);
-\end{Verbatim}
-\end{academicbox}
-
-
-
-
-\paragraph{Biểu thức SOLVE() trong WHERE}
-
-
-Macro `SOLVE()` có thể được sử dụng trong mệnh đề WHERE để lọc dựa trên kết quả suy diễn:
-
-
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
--- Lọc theo kết quả suy diễn
-SELECT * FROM Triangle
-WHERE SOLVE(area) > 100;
-
--- Kết hợp với các điều kiện khác
-SELECT name, sys, dia FROM Patient
-WHERE SOLVE(is_hypertension) = true AND age > 50;
-
--- Sử dụng nhiều SOLVE trong WHERE
-SELECT * FROM Triangle
-WHERE SOLVE(area) > 100 AND SOLVE(perimeter) < 50;
-
--- Kết hợp với JOIN
-SELECT p.name, t.sideA, t.sideB
-FROM Patient p
-JOIN Triangle t ON p.patientId = t.ownerId
-WHERE SOLVE(t.area) > 100;
-\end{Verbatim}
-\end{academicbox}
-
-
-
-
-\paragraph{Biểu thức Phức tạp với Nhiều Tính năng}
-
-
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
--- Kết hợp sub-query, SOLVE và biểu thức tính toán
-SELECT
-    p.name,
-    p.age,
-    CALC(p.sys / p.dia) AS pulse_pressure,
-    SOLVE(risk_level) AS predicted_risk
-FROM Patient p
-WHERE p.age > (SELECT AVG(age) FROM Patient)
-  AND EXISTS (SELECT 1 FROM Appointment a WHERE a.patientId = p.patientId)
-  AND SOLVE(is_hypertension) = true;
-
--- Derived table với SOLVE trong WHERE
-SELECT name, risk_score
-FROM (
-    SELECT name, age, sys, dia, SOLVE(risk_level) AS risk_score
-    FROM Patient
-    WHERE age > 40
-) AS at_risk_patients
-WHERE risk_score = 'high';
-
--- Biểu thức phức tạp trong derived table
-SELECT category, avg_value, risk_flag
-FROM (
-    SELECT
-        category,
-        AVG(value) AS avg_value,
-        CALC(SUM(CASE WHEN value > 100 THEN 1 ELSE 0 END)) AS high_count
-    FROM Measurements
-    GROUP BY category
-) AS summary
-WHERE high_count > 5 OR avg_value > 50;
-\end{Verbatim}
-\end{academicbox}
-
-
-
-
-\subsection{Đặc tả Kịch bản Thực thi Tri thức Nâng cao}
-
-
-Tài liệu này trình bày các tình huống vận dụng ngôn ngữ \textbf{KBQL} ở mức độ chuyên sâu, khai thác tối đa sức mạnh của bộ máy suy diễn và giải toán tích hợp trong hệ quản trị \textbf{KBMS}.
-
-
-\subsubsection{Cơ chế Giải toán Ngược (Inverse Problem Solving)}
-
-
-Hệ thống KBMS không chỉ thực hiện tính toán thuận mà còn có khả năng giải ngược các tham số đầu vào khi biết kết quả đầu ra, thông qua các thuật toán \textbf{Newton-Raphson} và \textbf{Brent}.
-
-
-\paragraph{Kịch bản: Phân tích Mạch điện hình thức}
-
-
-Dựa trên Định luật Ohm: `U = I * R`.
-
-
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
-CREATE CONCEPT Resistor (
-    VARIABLES (u: DECIMAL, i: DECIMAL, r: DECIMAL),
-    EQUATIONS (u = i * r)
-);
-
--- Kịch bản 1: Biết I và R, xác định U (Tính toán thuận)
-INSERT INTO Resistor ATTRIBUTE (i: 2, r: 10);
-SELECT SOLVE(u) FROM Resistor; -- Kết quả: u = 20
-
--- Kịch bản 2: Biết U và I, xác định R (Tính toán nghịch)
-INSERT INTO Resistor ATTRIBUTE (u: 220, i: 2);
-SELECT SOLVE(r) FROM Resistor; -- Kết quả: r = 110
-\end{Verbatim}
-\end{academicbox}
-
-
-
-
-\subsubsection{Suy diễn Chùm và Lan truyền Tri thức (Chain Reasoning)}
-
-
-Kịch bản thể hiện khả năng lan truyền tri thức thông qua nhiều phân lớp luật dẫn (\textbf{Forward Chaining}).
-
-
-\paragraph{Kịch bản: Hệ thống Cảnh báo và Phản ứng Sự cố}
-
-
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
-CREATE RULE R1 SCOPE Sensor IF temp > 100 THEN SET status = 'Overheat';
-CREATE RULE R2 SCOPE Sensor IF status = 'Overheat' AND pressure > 50 THEN SET alert = 'Critical';
-CREATE RULE R3 SCOPE Sensor IF alert = 'Critical' THEN SET system_action = 'EMERGENCY_SHUTDOWN';
-
--- Thực thi nạp dữ liệu:
-INSERT INTO Sensor ATTRIBUTE (110, 60);
-
--- Phản ứng chuỗi: R1 kích hoạt -> status='Overheat' -> R2 kích hoạt -> alert='Critical' -> R3 kích hoạt -> system_action='EMERGENCY_SHUTDOWN'.
-\end{Verbatim}
-\end{academicbox}
-
-
-
-
-\subsubsection{Cơ chế Kế thừa Tri thức Đa tầng}
-
-
-Khi thiết lập hệ thống Phân cấp (\textbf{Hierarchy}), các luật dẫn tại Khái niệm (\textbf{Concept}) cha sẽ tự động được kế thừa và áp dụng cho toàn bộ các thực thể thuộc các khái niệm con và cháu.
-
-
-\paragraph{Kịch bản: Phân loại Hình học và Đặc tính Kế thừa}
-
-
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
-CREATE CONCEPT Shape (VARIABLES (color: STRING));
-CREATE CONCEPT Polygon (...);
-CREATE CONCEPT Triangle (...);
-
-ADD HIERARCHY Polygon IS_A Shape;
-ADD HIERARCHY Triangle IS_A Polygon;
-
-CREATE RULE ShapeColor SCOPE Shape IF color = 'Red' THEN SET is_hot = true;
-
--- Thực thi nạp dữ liệu cho Triangle:
-INSERT INTO Triangle ATTRIBUTE ('Red', ...);
-
--- Kết quả: Triangle kế thừa luật từ Shape và tự động gán is_hot = true.
-\end{Verbatim}
-\end{academicbox}
-
-
-
-
-\subsubsection{Ràng buộc Logic Toàn vẹn (Complex Constraints)}
-
-
-Sử dụng khối `CONSTRAINTS` để bảo vệ tính toàn vẹn của dữ liệu ở mức độ tri thức hình thức, ngăn chặn việc nạp các Sự kiện (\textbf{Fact}) mâu thuẫn.
-
-
-\paragraph{Kịch bản: Quản lý Quy tắc Nhân sự}
-
-
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
-CREATE CONCEPT Employee (
-    VARIABLES (age: INT, experience: INT),
-    CONSTRAINTS (
-        age >= experience + 18
-    )
-);
-
--- Lệnh thực thi thất bại do vi phạm ràng buộc logic:
-INSERT INTO Employee ATTRIBUTE (20, 5); -- (20 >= 5 + 18) => FALSE => Lỗi hệ thống.
-\end{Verbatim}
-\end{academicbox}
-
-
-
-
-\subsubsection{Giải Hệ phương trình Đa biến (Newton-Raphson 2D)}
-
-
-KBMS hỗ trợ giải đồng thời các hệ thức toán học phức tạp để xác định các biến số chưa biết.
-
-
-\paragraph{Kịch bản: Xác định Giao điểm Hình học}
-
-
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
-CREATE CONCEPT Intersection (
-    VARIABLES (x: DECIMAL, y: DECIMAL),
-    EQUATIONS (
-        y = 2 * x + 1,
-        y = -x + 4
-    )
-);
-
-INSERT INTO Intersection ATTRIBUTE ();  -- Cấu trúc trống để bắt đầu quá trình nội suy
-SELECT SOLVE(x), SOLVE(y) FROM Intersection;
--- Kết quả: x = 1, y = 3 (Hệ thống tự động giải hệ phương trình đa biến).
-\end{Verbatim}
-\end{academicbox}
-
-
-
-
-\subsubsection{Phối hợp Trigger và Luật dẫn (The Chain Reaction)}
-
-
-Sử dụng cơ chế \textbf{Trigger} để kích hoạt luồng suy diễn tri thức tại các Khái niệm liên quan khác.
-
-
-\paragraph{Kịch bản: Đồng bộ Kho vận và Kiểm soát Tồn kho}
-
-
-\begin{academicbox}
-\begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
-CREATE TRIGGER SyncStock ON (INSERT OF Order) 
-DO (UPDATE Product ATTRIBUTE (SET stock: stock - 1) WHERE id = new.product_id);
-
--- Cập nhật tồn kho tự động kích hoạt luật kiểm tra trạng thái:
-CREATE RULE OutOfStock SCOPE Product IF stock < 0 THEN SET status = 'Refill';
-\end{Verbatim}
-\end{academicbox}
-
-
-
-
 \section{Giao thức kết nối và kiến trúc Tầng Mạng}
 
 
@@ -5366,7 +4282,7 @@ Từ vựng (Token) & Loại (Type) & Vị trí (Pos) & Vai trò ngữ nghĩa \\
 \textbf{4. Nodes} & `BinaryExpressionNode` & Tạo nút biểu thức logic (vế trái, phép toán, vế phải). &  \\ \hline
 \textbf{5. Root} & `SelectStatementNode` & Hoàn thiện nút gốc của cây (Gốc của AST). &  \\ \hline
   \end{tabularx}
-  \caption{Phân tích dữ liệu thực nghiệm 15}\label{tbl:phân-tích-dữ-liệu-thực-nghiệm-15}
+  \caption{Phân tích dữ liệu thực nghiệm 13}\label{tbl:phân-tích-dữ-liệu-thực-nghiệm-13}
 \end{table}
 
 
@@ -5395,7 +4311,7 @@ Từ vựng (Token) & Loại (Type) & Vị trí (Pos) & Vai trò ngữ nghĩa \\
 `>` & Operator & 34:35 & Toán tử so sánh lớn hơn. \\ \hline
 `70000` & Literal & 36:41 & Giá trị hằng số để đối soát. \\ \hline
   \end{tabularx}
-  \caption{Phân tích dữ liệu thực nghiệm 16}\label{tbl:phân-tích-dữ-liệu-thực-nghiệm-16}
+  \caption{Phân tích dữ liệu thực nghiệm 14}\label{tbl:phân-tích-dữ-liệu-thực-nghiệm-14}
 \end{table}
 
 
@@ -6036,9 +4952,6 @@ Các kịch bản trên chứng minh rằng KBMS có thể xử lý các lớp t
 \section{Tầng Giao diện và Ứng dụng}
 
 
-\subsection{Giao diện Dòng lệnh (CLI)}
-
-
 \subsection{Đặc tả Giao diện Dòng lệnh (KBMS CLI)}
 
 
@@ -6103,13 +5016,13 @@ Lệnh điều khiển & Đặc tả Chức năng \\ \hline
 
 
 
-\subsection{Luồng Xử lý và Phân tích Phản hồi của CLI}
+\subsubsection{Luồng Xử lý và Phân tích Phản hồi của CLI}
 
 
-Giao diện dòng lệnh (CLI) thực thi chu trình điều phối dữ liệu khép kín, từ giai đoạn thu thập dữ liệu đầu vào tới giai đoạn truyền tải nhị phân và kết xuất kết quả trực quan cho người dùng cuối.
+Giao diện dòng lệnh (CLI) thực hiện chu trình điều phối dữ liệu khép kín, từ giai đoạn thu thập dữ liệu đầu vào tới giai đoạn truyền tải nhị phân và kết xuất kết quả trực quan cho người dùng cuối.
 
 
-\subsubsection{Quy trình Nhận lệnh và Truyền tải}
+\paragraph{Quy trình Nhận lệnh và Truyền tải}
 
 
 Khi người dùng thực thi một câu lệnh, CLI thực hiện quy trình theo các giai đoạn sau:
@@ -6130,7 +5043,7 @@ Khi người dùng thực thi một câu lệnh, CLI thực hiện quy trình th
 
 
 
-\subsubsection{Phân tích và Kết xuất Phản hồi}
+\paragraph{Phân tích và Kết xuất Phản hồi}
 
 
 Thành phần trọng yếu của CLI nằm ở lớp `ResponseParser.cs`. Do kết quả từ máy chủ có thể là một luồng dữ liệu liên tục (\textbf{Streaming Rows}), CLI phải thực hiện xử lý và phân tách từng gói tin nhị phân để hiển thị ra màn hình điều khiển:
@@ -6170,13 +5083,13 @@ CLI hỗ trợ thực thi khối lượng lớn lệnh thông qua tệp tin kị
 -   \textbf{Luồng Giám sát (Heartbeat Thread)}: Duy trì tín hiệu định kỳ tới máy chủ để đảm bảo kết nối không bị ngắt quãng do các chính sách về thời gian chờ (Timeout).
 
 
-\subsection{Các Kịch bản Sử dụng CLI}
+\subsubsection{Các Kịch bản Sử dụng CLI}
 
 
 Chương này trình bày các tình huống sử dụng thực tế của phân hệ CLI, minh họa quy trình tương tác giữa người dùng và hệ thống thông qua các sơ đồ luồng dữ liệu.
 
 
-\subsubsection{Kịch bản 1: Đăng nhập và quản lý phiên}
+\paragraph{Kịch bản 1: Đăng nhập và quản lý phiên}
 
 
 Đây là bước khởi đầu để thiết lập kết nối an toàn tới máy chủ.
@@ -6196,7 +5109,7 @@ Chương này trình bày các tình huống sử dụng thực tế của phân
 
 
 
-\subsubsection{Kịch bản 2: Thiết kế cấu trúc tri thức}
+\paragraph{Kịch bản 2: Thiết kế cấu trúc tri thức}
 
 
 Sử dụng CLI để định nghĩa các Khái niệm và Luật dẫn trong cơ sở tri thức.
@@ -6216,7 +5129,7 @@ Sử dụng CLI để định nghĩa các Khái niệm và Luật dẫn trong c�
 
 
 
-\subsubsection{Kịch bản 3: Truy vấn và khai thác dữ liệu}
+\paragraph{Kịch bản 3: Truy vấn và khai thác dữ liệu}
 
 
 Thực hiện các câu lệnh tìm kiếm dữ kiện và lựa chọn hình thức hiển thị kết quả.
@@ -6236,7 +5149,7 @@ Thực hiện các câu lệnh tìm kiếm dữ kiện và lựa chọn hình th
 
 
 
-\subsubsection{Kịch bản 4: Thực thi và truy vết suy luận}
+\paragraph{Kịch bản 4: Thực thi và truy vết suy luận}
 
 
 Sử dụng lệnh tìm kiếm lời giải và theo dõi các bước logic đã thực hiện.
@@ -6256,7 +5169,7 @@ Sử dụng lệnh tìm kiếm lời giải và theo dõi các bước logic đ�
 
 
 
-\subsubsection{Kịch bản 5: Xử lý tập lệnh hàng loạt}
+\paragraph{Kịch bản 5: Xử lý tập lệnh hàng loạt}
 
 
 Thực thi các tệp tin kịch bản chứa tập hợp nhiều câu lệnh tri thức.
@@ -6276,13 +5189,13 @@ Thực thi các tệp tin kịch bản chứa tập hợp nhiều câu lệnh tr
 
 
 
-\subsection{Giao diện ứng dụng KBMS-CLI}
+\subsubsection{Giao diện ứng dụng KBMS-CLI}
 
 
 Phân hệ giao diện dòng lệnh (\textbf{KBMS-CLI}) được thiết kế để cung cấp khả năng tương tác trực tiếp với máy chủ tri thức. Dưới đây là đặc tả chi tiết cho từng khu vực giao diện và các chế độ hoạt động chính:
 
 
-\subsubsection{Giao diện khởi tạo và thiết lập phiên}
+\paragraph{Giao diện khởi tạo và thiết lập phiên}
 
 
 Đây là giao diện đầu tiên người dùng tiếp cận khi khởi động công cụ. Hệ thống cung cấp cơ chế đăng nhập bảo mật và xác lập kết nối nhị phân. Giao diện bao gồm:
@@ -6296,9 +5209,6 @@ Phân hệ giao diện dòng lệnh (\textbf{KBMS-CLI}) được thiết kế đ
 
 
 
-Giao diện sử dụng tông màu tối tối giản, làm nổi bật các thông điệp trạng thái hệ thống.
-
-
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.7\textwidth]{assets/cli_interface_init.png}
@@ -6306,7 +5216,7 @@ Giao diện sử dụng tông màu tối tối giản, làm nổi bật các th�
 \end{figure}
 
 
-\subsubsection{Giao diện soạn thảo cấu trúc tri thức}
+\paragraph{Giao diện soạn thảo cấu trúc tri thức}
 
 
 Hỗ trợ chuyên gia tri thức định nghĩa các Khái niệm và Luật dẫn thông qua cơ chế nhập liệu đa dòng. Giao diện bao gồm:
@@ -6320,9 +5230,6 @@ Hỗ trợ chuyên gia tri thức định nghĩa các Khái niệm và Luật d�
 
 
 
-Bố cục đơn giản, trực quan giúp việc xây dựng các luật logic phức tạp trở nên chính xác hơn.
-
-
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.7\textwidth]{assets/cli_interface_designer.png}
@@ -6330,7 +5237,7 @@ Bố cục đơn giản, trực quan giúp việc xây dựng các luật logic 
 \end{figure}
 
 
-\subsubsection{Giao diện truy vấn và kết xuất dữ liệu}
+\paragraph{Giao diện truy vấn và kết xuất dữ liệu}
 
 
 Hiển thị kết quả khai thác tri thức dưới các hình thức chuẩn hóa. Giao diện bao gồm:
@@ -6344,9 +5251,6 @@ Hiển thị kết quả khai thác tri thức dưới các hình thức chuẩn
 
 
 
-Giao diện kết xuất theo phong cách các hệ quản trị cơ sở dữ liệu chuyên nghiệp, dễ dàng quan sát và đối soát.
-
-
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.7\textwidth]{assets/cli_interface_query.png}
@@ -6354,7 +5258,7 @@ Giao diện kết xuất theo phong cách các hệ quản trị cơ sở dữ l
 \end{figure}
 
 
-\subsubsection{Giao diện truy vết và giải thuật suy luận}
+\paragraph{Giao diện truy vết và giải thuật suy luận}
 
 
 Hiển thị quy trình tư duy của hệ thống khi giải quyết một mục tiêu tri thức. Giao diện bao gồm:
@@ -6368,9 +5272,6 @@ Hiển thị quy trình tư duy của hệ thống khi giải quyết một mụ
 
 
 
-Giao diện cung cấp cái nhìn minh bạch về quy trình xử lý bên trong của công cụ suy diễn.
-
-
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.7\textwidth]{assets/cli_interface_solve.png}
@@ -6378,107 +5279,49 @@ Giao diện cung cấp cái nhìn minh bạch về quy trình xử lý bên tron
 \end{figure}
 
 
-\subsection{Giao diện Web Quản lý (KBMS STUDIO)}
+\subsection{Giao diện Quản trị tri thức (KBMS Studio)}
 
 
-\subsection{Đặc tả Giao diện Quản trị (KBMS Studio)}
+\textbf{KBMS Studio} được phát triển như một môi trường phát triển tích hợp (IDE) hiện đại, giúp chuyên gia tri thức có thể thiết kế, kiểm thử và giám sát cơ sở tri thức một cách trực quan.
 
 
-\textbf{KBMS Studio} là môi trường phát triển dành cho việc quản trị tri thức. Giao diện được xây dựng trên nền tảng Web, cung cấp khả năng điều phối hệ thống thông qua công cụ trực quan.
-
-
-Dưới đây là các phân hệ chức năng và bố cục giao diện chính trong Studio:
-
-
-\subsubsection{Bố cục Giao diện Tổng thể}
-
-
-Cấu trúc Studio được phân bổ thành các khu vực chức năng chính, giúp người dùng quản lý dự án tri thức:
+\subsubsection{Các Tính năng Chính}
 
 
 \begin{itemize}
-  \item \textbf{Cây Đối tượng}: Quản lý cấu trúc cây của tất cả các Khái niệm, Quan hệ và Luật dẫn.
-  \item \textbf{Trình Biên tập}: Khu vực làm việc chính để soạn thảo mã nguồn tri thức.
-  \item \textbf{Bảng Giám sát}: Theo dõi trạng thái hoạt động của hệ thống như CPU, tài nguyên bộ nhớ và hoạt động vào/ra dữ liệu.
+  \item \textbf{Trình soạn thảo Tri thức Thông minh}: Tích hợp Monaco Editor với khả năng hỗ trợ cú pháp KBQL.
+  \item \textbf{Trực quan hóa Phả hệ Tri thức}: Hiển thị cấu trúc cây của các Concepts và Rules.
+  \item \textbf{Giám sát Hệ thống}: Dashboard hiển thị tài nguyên CPU, RAM và trạng thái kết nối thời gian thực.
+  \item \textbf{Trình truy vết Suy luận}: Minh bạch hóa quá trình suy luận thông qua sơ đồ cây logic.
 \end{itemize}
 
 
 
-\subsubsection{Trình Thiết kế Tri thức}
+\subsubsection{Kiến trúc và Các tầng Xử lý của Studio}
 
 
-Đây là khu vực định nghĩa mô hình tri thức thông qua ngôn ngữ KBQL:
-
-
-\begin{itemize}
-  \item \textbf{Trình soạn thảo mã nguồn}: Tích hợp tính năng tô màu cú pháp và gợi ý từ khóa dựa trên lược đồ tri thức hiện hành.
-  \item \textbf{Kiểm tra Lỗi}: Các sai sót về cú pháp được hệ thống phản hồi và chỉ thị trực tiếp trên giao diện soạn thảo.
-\end{itemize}
-
-
-
-\subsubsection{Phân hệ Truy vấn và Phân tích}
-
-
-Dành cho việc thực thi các lệnh khai thác và theo dõi kết quả:
-
-
-\begin{itemize}
-  \item \textbf{Lưới Dữ liệu}: Kết quả truy vấn được trình bày dưới dạng bảng dữ liệu, hỗ trợ các thao tác xem và phân loại cơ bản.
-  \item \textbf{Bảng Truy vết Suy luận}: Hiển thị chi tiết các bước logic giải quyết vấn đề đối với các lệnh tìm kiếm lời giải.
-\end{itemize}
-
-
-
-\subsubsection{Đặc điểm Giao diện và Tương tác}
-
-
-Studio được thiết kế nhằm tối ưu hóa hiệu suất làm việc của chuyên gia tri thức:
-
-
-\begin{itemize}
-  \item \textbf{Thiết kế Đồng nhất}: Sử dụng giao diện tối màu giúp tập trung vào các cấu trúc logic và giảm mỏi mắt khi làm việc kéo dài.
-  \item \textbf{Cập nhật Dữ liệu Luồng}: Kết quả truy vấn từ máy chủ được cập nhật trực tiếp vào lưới dữ liệu ngay khi tiếp nhận các gói tin, đảm bảo tính phản hồi tức thời của ứng dụng.
-  \item \textbf{Bố cục Linh hoạt}: Tự động điều chỉnh không gian hiển thị khi người dùng mở hoặc đóng các bảng điều phối dữ liệu.
-\end{itemize}
-
-
-
-\subsection{Kiến trúc Phân lớp và Luồng Điều phối Studio}
-
-
-\textbf{KBMS Studio} vận hành dựa trên một kiến trúc phân tầng chặt chẽ, từ giao diện người dứng tới các khối dữ liệu nhị phân tại tầng lưu trữ vật lý.
-
-
-\subsubsection{Sơ đồ Luồng Xử lý Hợp nhất 4 Tầng}
-
-
-Sơ đồ dưới đây mô tả cách thức một yêu cầu tri thức hình thức (như lệnh \textbf{`SOLVE`}) được điều hướng xuyên suốt hệ thống:
+Ứng dụng Studio được xây dựng trên nền tảng React, tuân thủ kiến trúc phân lớp để đảm bảo tính mở rộng và khả năng bảo trì:
 
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.7\textwidth]{assets/4_tier_studio_flow.png}
-  \caption{Quy trình điều phối yêu cầu tri thức xuyên suốt 4 tầng chức năng từ giao diện Studio.}\label{fig:quy-trình-điều-phối-yêu-cầu-tri-thức-xuyên-suốt-4-}
+  \fbox{Thiếu ảnh: studio\_internal\_arch.png}
+  \caption{Kiến trúc thành phần và luồng dữ liệu nội bộ của KBMS Studio.}\label{fig:kiến-trúc-thành-phần-và-luồng-dữ-liệu-nội-bộ-của-k}
 \end{figure}
 
 
-\paragraph{Phân tầng Chiến lược}
-
-
 \begin{itemize}
-  \item \textbf{Tầng 1: Giao diện Ứng dụng (React/Electron)}: Thành phần frontend (React) quản lý trạng thái luồng dữ liệu thông qua cơ chế Redux. Khi người dùng xác nhận thực thi, yêu cầu được chuyển tải tới tiến trình chính của Electron để xử lý hạ tầng.
-  \item \textbf{Tầng 2: Truyền vận và Giao thức (Network \& Protocol)}: Chuyển đổi yêu cầu thành các gói tin nhị phân chuẩn hóa. Hệ thống duy trì các tín hiệu nhịp tim (\textbf{Heartbeat}) định kỳ để đảm bảo sự ổn định của kết nối Socket giữa Studio và Máy chủ.
-  \item \textbf{Tầng 3: Bộ máy Tri thức (Knowledge Engine)}: Thành phần `KnowledgeManager` điều phối việc phân tích mã nguồn tri thức. Nếu là lệnh suy diễn, bộ máy thực thi giải thuật F-Closure trên các trang dữ liệu được nạp vào bộ nhớ tạm thời.
-  \item \textbf{Tầng 4: Lưu trữ Vật lý (Storage Layer)}: Sử dụng các cấu trúc chỉ mục \textbf{B+ Tree} để định vị dữ liệu thực thể. Cơ chế \textbf{WAL} (Write-Ahead Logging) đảm bảo tính toàn vẹn của tri thức ngay cả khi xảy ra các sự cố ngắt quãng nguồn điện.
+  \item \textbf{Tầng Giao diện (Presentation Layer)}: Sử dụng mô hình Component-based của React để xây dựng các khu vực chức năng như Editor, Explorer, và Monitor.
+  \item \textbf{Tầng Điều phối (Coordination Layer)}: Quản lý trạng thái ứng dụng thông qua các Context và Reducers, điều phối dữ liệu giữa giao diện và các dịch vụ mạng.
+  \item \textbf{Tầng Giao tiếp (Communication Layer)}: Hiện thực hóa giao thức nhị phân trên WebSocket hoặc TCP Proxy để trao đổi dữ liệu với máy chủ KBMS.
 \end{itemize}
 
 
 
-\subsubsection{Cơ chế Thông báo Thời gian thực (Real-time Notification)}
+\paragraph{Cơ chế Cập nhật Dữ liệu Thời gian thực}
 
 
-Hệ thống thông báo của Studio sử dụng mô hình đẩy dữ liệu từ phía máy chủ (\textbf{Server Push}) thay vì mô hình yêu cầu - phản hồi truyền thống:
+Studio sử dụng cơ chế truyền tải bất đồng bộ để cập nhật trạng thái hệ thống mà không làm gián đoạn trải nghiệm người dùng:
 
 
 \begin{figure}[H]
@@ -6496,7 +5339,7 @@ Hệ thống thông báo của Studio sử dụng mô hình đẩy dữ liệu t
 
 
 
-\subsubsection{Quy trình Xác lập Phiên làm việc (Authentication Flow)}
+\paragraph{Quy trình Xác lập Phiên làm việc (Authentication Flow)}
 
 
 Tiến trình đăng nhập bảo mật được thực hiện qua chuỗi các bước xác thực hình thức:
@@ -6510,13 +5353,13 @@ Tiến trình đăng nhập bảo mật được thực hiện qua chuỗi các 
 
 
 
-\subsection{Các Kịch bản Sử dụng Studio}
+\subsubsection{Các Kịch bản Sử dụng Studio}
 
 
 Chương này trình bày các tình huống sử dụng thực tế của phân hệ Studio, minh họa quy trình tương tác phối hợp giữa các công cụ đồ họa thông qua các sơ đồ luồng dữ liệu.
 
 
-\subsubsection{Kịch bản 1: Thiết kế cấu trúc tri thức}
+\paragraph{Kịch bản 1: Thiết kế cấu trúc tri thức}
 
 
 Sử dụng trình thiết kế tri thức để xây dựng cấu trúc các Khái niệm và Luật dẫn.
@@ -6536,7 +5379,7 @@ Sử dụng trình thiết kế tri thức để xây dựng cấu trúc các Kh
 
 
 
-\subsubsection{Kịch bản 2: Giải quyết bài toán và truy vết suy luận}
+\paragraph{Kịch bản 2: Giải quyết bài toán và truy vết suy luận}
 
 
 Tìm kiếm lời giải cho mục tiêu tri thức và theo dõi sơ đồ suy luận.
@@ -6556,7 +5399,7 @@ Tìm kiếm lời giải cho mục tiêu tri thức và theo dõi sơ đồ suy 
 
 
 
-\subsubsection{Kịch bản 3: Giám sát và bảo trì hệ thống}
+\paragraph{Kịch bản 3: Giám sát và bảo trì hệ thống}
 
 
 Theo dõi trạng thái vận hành và thực hiện các thao tác bảo trì cơ sở tri thức.
@@ -6576,13 +5419,13 @@ Theo dõi trạng thái vận hành và thực hiện các thao tác bảo trì 
 
 
 
-\subsection{Giao diện ứng dụng KBMS Studio}
+\subsubsection{Giao diện ứng dụng KBMS Studio}
 
 
 Phân hệ giao diện đồ họa (\textbf{KBMS Studio}) được thiết kế như một môi trường tích hợp (IDE) giúp tối ưu hóa quy trình quản trị và phát triển tri thức. Dưới đây là đặc tả chi tiết các khu vực chức năng chính của ứng dụng:
 
 
-\subsubsection{Giao diện quản lý dự án và phả hệ tri thức}
+\paragraph{Giao diện quản lý dự án và phả hệ tri thức}
 
 
 Cung cấp cái nhìn tổng quát về cấu trúc tổ chức của cơ sở tri thức hiện hành. Giao diện bao gồm:
@@ -6596,9 +5439,6 @@ Cung cấp cái nhìn tổng quát về cấu trúc tổ chức của cơ sở t
 
 
 
-Bố cục được sắp xếp khoa học ở phía bên trái màn hình, giúp chuyên gia tri thức luôn nắm bắt được quy mô của dự án.
-
-
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.7\textwidth]{assets/studio_interface_explorer.png}
@@ -6606,7 +5446,7 @@ Bố cục được sắp xếp khoa học ở phía bên trái màn hình, giú
 \end{figure}
 
 
-\subsubsection{Giao diện soạn thảo mã nguồn tích hợp}
+\paragraph{Giao diện soạn thảo mã nguồn tích hợp}
 
 
 Đây là khu vực tương tác trọng tâm dành cho việc định nghĩa tri thức hình thức. Giao diện bao gồm:
@@ -6620,9 +5460,6 @@ Bố cục được sắp xếp khoa học ở phía bên trái màn hình, giú
 
 
 
-Giao diện sử dụng tông màu hiện đại, tối ưu cho việc làm việc cường độ cao với văn bản logic.
-
-
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.7\textwidth]{assets/studio_interface_designer.png}
@@ -6630,7 +5467,7 @@ Giao diện sử dụng tông màu hiện đại, tối ưu cho việc làm vi�
 \end{figure}
 
 
-\subsubsection{Giao diện giám sát hiệu năng hệ thống}
+\paragraph{Giao diện giám sát hiệu năng hệ thống}
 
 
 Cung cấp các thông số vận hành thời gian thực của máy chủ KBMS. Giao diện bao gồm:
@@ -6644,9 +5481,6 @@ Cung cấp các thông số vận hành thời gian thực của máy chủ KBMS
 
 
 
-Giao diện Dashboard giúp quản trị viên chủ động trong việc duy trì độ ổn định của hạ tầng tri thức.
-
-
 \begin{figure}[H]
   \centering
   \includegraphics[width=1.1\textwidth]{assets/studio_interface_monitor.png}
@@ -6654,7 +5488,7 @@ Giao diện Dashboard giúp quản trị viên chủ động trong việc duy tr
 \end{figure}
 
 
-\subsubsection{Giao diện thực thi và trực quan hóa kết quả}
+\paragraph{Giao diện thực thi và trực quan hóa kết quả}
 
 
 Khu vực hiển thị phản hồi từ máy chủ sau khi thực thi các yêu cầu tri thức. Giao diện bao gồm:
@@ -6668,9 +5502,6 @@ Khu vực hiển thị phản hồi từ máy chủ sau khi thực thi các yêu
 
 
 
-Giao diện đảm bảo tính minh bạch và dễ hiểu cho các kết quả trả về từ bộ máy suy diễn.
-
-
 \begin{figure}[H]
   \centering
   \includegraphics[width=1.1\textwidth]{assets/studio_interface_results.png}
@@ -6680,7 +5511,7 @@ Giao diện đảm bảo tính minh bạch và dễ hiểu cho các kết quả 
 
 \clearpage
 
-\chapter{CÀI ĐẶT VÀ TRIỂN KHAI HỆ THỐNG}
+\chapter{CÀI ĐẶT VÀ KIỂM THỬ HỆ THỐNG}
 
 \section{Quy trình Cài đặt \& Xác thực Hệ thống}
 
@@ -6749,10 +5580,6 @@ $ cd KBMS.Server && dotnet run
 
 Việc xác thực thông qua nhật ký trên cho thấy Server đã nhận diện được cơ sở tri thức hệ thống (`system KB`) và sẵn sàng tiếp nhận các yêu cầu từ Client.
 
-
-\clearpage
-
-\chapter{THỰC NGHIỆM VÀ ĐÁNH GIÁ HIỆU NĂNG}
 
 \section{Kịch bản Kiểm thử}
 
@@ -6896,7 +5723,6 @@ Từ `storage\_v3\_results.txt`:
 [Storage] Throughput Peak: 200,000+ ops/sec
 [Storage] DS-L Index Search (1M records): ~1.00ms (Avg)
 [Engine] Hash Join (10k x 10k): ~7.0ms
-================================================
 \end{Verbatim}
 \end{academicbox}
 
@@ -7259,9 +6085,6 @@ Scalability & 1M+ records & Passed \\ \hline
   \end{tabularx}
   \caption{Đánh giá mức độ hoàn thành mục tiêu}\label{tbl:đánh-giá-mức-độ-hoàn-thành-mục-tiêu}
 \end{table}
-
-
-Hệ thống KBMS V3 là một nền tảng tri thức lai (Hybrid RDB/KBS) hoàn chỉnh, đáp ứng các yêu cầu về hiệu năng, tính đúng đắn và khả năng mở rộng.
 
 
 \clearpage

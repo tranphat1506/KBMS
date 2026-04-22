@@ -27,9 +27,8 @@ CHAPTER_NAMES = {
     '02-theory': 'CƠ SỞ LÝ THUYẾT VÀ MÔ HÌNH TRI THỨC DẠNG COKB', 
     '03-analysis-and-design': 'PHÂN TÍCH VÀ THIẾT KẾ HỆ THỐNG', 
     '04-architecture': 'KIẾN TRÚC HỆ THỐNG',
-    '05-implementation': 'CÀI ĐẶT VÀ TRIỂN KHAI HỆ THỐNG',
-    '06-evaluation': 'THỰC NGHIỆM VÀ ĐÁNH GIÁ HIỆU NĂNG',
-    '07-conclusion': 'KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN',
+    '05-implementation': 'CÀI ĐẶT VÀ KIỂM THỬ HỆ THỐNG',
+    '06-conclusion': 'KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN',
 }
 
 MAP_ACADEMIC = {
@@ -39,8 +38,8 @@ MAP_ACADEMIC = {
     'kbql': 'Ngôn ngữ Truy vấn Tri thức (KBQL)',
     'reasoning-layer': 'Kiến trúc Tầng Suy luận',
     'application': 'Tầng Giao diện và Ứng dụng',
-    'cli': 'Giao diện Dòng lệnh (CLI)',
-    'studio': 'Giao diện Web Quản lý (KBMS STUDIO)',
+    'cli': 'Đặc tả Giao diện Dòng lệnh (KBMS CLI)',
+    'studio': 'Giao diện Quản trị tri thức (KBMS Studio)',
     'overview': 'Tổng quan và Mục tiêu Hệ thống',
     'models': 'Mô hình Hệ quản trị Cơ sở Tri thức',
     'network-layer': 'Giao thức kết nối và kiến trúc Tầng Mạng',

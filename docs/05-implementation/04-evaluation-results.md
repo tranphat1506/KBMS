@@ -74,5 +74,3 @@ Full Backward Compatibility with V1/V2 Reasoning & Parser.
 | Ngôn ngữ KBQL | Full DDL/DML/KCL support | Passed |
 | Schema evolution | Safe migration | Passed |
 | Scalability | 1M+ records | Passed |
-
-Hệ thống KBMS V3 là một nền tảng tri thức lai (Hybrid RDB/KBS) hoàn chỉnh, đáp ứng các yêu cầu về hiệu năng, tính đúng đắn và khả năng mở rộng.

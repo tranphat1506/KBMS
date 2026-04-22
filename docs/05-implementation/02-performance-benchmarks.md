@@ -32,7 +32,6 @@ Từ `storage_v3_results.txt`:
 [Storage] Throughput Peak: 200,000+ ops/sec
 [Storage] DS-L Index Search (1M records): ~1.00ms (Avg)
 [Engine] Hash Join (10k x 10k): ~7.0ms
-================================================
 ```
 
 ## 2. Buffer Pool Comparison
