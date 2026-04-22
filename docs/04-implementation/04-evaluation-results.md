@@ -14,7 +14,7 @@ Full Backward Compatibility with V1/V2 Reasoning & Parser.
 
 ## 2. Kết quả chi tiết theo nhóm
 
-*Bảng 6.12: Tổng kết kết quả kiểm thử theo nhóm*
+*Bảng: Tổng kết kết quả kiểm thử theo nhóm*
 
 | Nhóm | Tên | Số Test | Kết quả |
 |------|-----|---------|---------|
@@ -64,7 +64,7 @@ Full Backward Compatibility with V1/V2 Reasoning & Parser.
 
 ## 3. Kết luận
 
-*Bảng 6.13: Đánh giá mức độ hoàn thành mục tiêu*
+*Bảng: Đánh giá mức độ hoàn thành mục tiêu*
 
 | Tiêu chí | Kết quả | Trạng thái |
 |----------|---------|------------|

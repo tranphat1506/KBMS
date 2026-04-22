@@ -2,9 +2,9 @@
 
 ## 1. GROUP 1: Performance Benchmarks
 
-**Filter:** `FullyQualifiedName=KBMS.Tests.PerformanceBenchmarkV3`
+*Filter:* `FullyQualifiedName=KBMS.Tests.PerformanceBenchmarkV3`
 
-*Bảng 6.5: Các bài kiểm tra hiệu năng*
+*Bảng: Các bài kiểm tra hiệu năng*
 
 | Test Case | Mô tả |
 |-----------|-------|
@@ -12,7 +12,7 @@
 | Throughput Test | Đo thông lượng ghi/đọc |
 | Buffer Pool Test | So sánh các cấu hình cache |
 
-**Nguồn dữ liệu kết quả:**
+*Bảng: *Nguồn dữ liệu kết quả:**
 - `storage_v3_results.txt`
 - `buffer_pool_comparison.txt`
 
@@ -20,9 +20,9 @@
 
 ## 2. GROUP 2: Storage Architecture
 
-**Filter:** `FullyQualifiedName~StorageV3Tests|FullyQualifiedName~SystemV3Tests|FullyQualifiedName~ModelBinaryUtility`
+*Filter:* `FullyQualifiedName~StorageV3Tests|FullyQualifiedName~SystemV3Tests|FullyQualifiedName~ModelBinaryUtility`
 
-*Bảng 6.6: Các bài kiểm tra kiến trúc lưu trữ*
+*Bảng: Các bài kiểm tra kiến trúc lưu trữ*
 
 | Test Class | Mô tả |
 |------------|-------|
@@ -34,9 +34,9 @@
 
 ## 3. GROUP 3: Transactions & WAL
 
-**Filter:** `FullyQualifiedName~TransactionV3Tests`
+*Filter:* `FullyQualifiedName~TransactionV3Tests`
 
-*Bảng 6.7: Các bài kiểm tra giao dịch và WAL*
+*Bảng: Các bài kiểm tra giao dịch và WAL*
 
 | Test Case | Mô tả |
 |-----------|-------|
@@ -49,9 +49,9 @@
 
 ## 4. GROUP 4: Query Engine
 
-**Filter:** `FullyQualifiedName~DataOperationsV3Tests|FullyQualifiedName~ExecutionV3Tests|FullyQualifiedName~FullIntegrationV3Tests`
+*Filter:* `FullyQualifiedName~DataOperationsV3Tests|FullyQualifiedName~ExecutionV3Tests|FullyQualifiedName~FullIntegrationV3Tests`
 
-*Bảng 6.8: Các bài kiểm tra Query Engine*
+*Bảng: Các bài kiểm tra Query Engine*
 
 | Test Class | Mô tả |
 |------------|-------|
@@ -63,9 +63,9 @@
 
 ## 5. GROUP 5: Schema Evolution
 
-**Filter:** `FullyQualifiedName~SchemaV3Tests|FullyQualifiedName~ExhaustiveAlterIntegration`
+*Filter:* `FullyQualifiedName~SchemaV3Tests|FullyQualifiedName~ExhaustiveAlterIntegration`
 
-*Bảng 6.9: Các bài kiểm tra tiến hóa schema*
+*Bảng: Các bài kiểm tra tiến hóa schema*
 
 | Test Class | Mô tả |
 |------------|-------|
@@ -76,9 +76,9 @@
 
 ## 6. GROUP 6: Reasoning
 
-**Filter:** `FullyQualifiedName~BackwardChainingTests|FullyQualifiedName~Phase5ForwardChainingTests|FullyQualifiedName~ReteCoordination`
+*Filter:* `FullyQualifiedName~BackwardChainingTests|FullyQualifiedName~Phase5ForwardChainingTests|FullyQualifiedName~ReteCoordination`
 
-*Bảng 6.10: Các bài kiểm tra suy diễn*
+*Bảng: Các bài kiểm tra suy diễn*
 
 | Test Class | Mô tả |
 |------------|-------|
@@ -90,9 +90,9 @@
 
 ## 7. GROUP 7: Language Design
 
-**Filter:** `FullyQualifiedName~LexerTests|FullyQualifiedName~ParserTests`
+*Filter:* `FullyQualifiedName~LexerTests|FullyQualifiedName~ParserTests`
 
-*Bảng 6.11: Các bài kiểm tra ngôn ngữ KBQL*
+*Bảng: Các bài kiểm tra ngôn ngữ KBQL*
 
 | Test Class | Mô tả |
 |------------|-------|

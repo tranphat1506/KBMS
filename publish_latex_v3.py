@@ -23,12 +23,11 @@ def clean_title(s):
 
 # --- Chapter Vietnamese Mapping ---
 CHAPTER_NAMES = {
-    '01-introduction': 'GIỚI THIỆU ĐỀ TÀI', 
-    '02-theory': 'CƠ SỞ LÝ THUYẾT VÀ MÔ HÌNH TRI THỨC DẠNG COKB', 
-    '03-analysis-and-design': 'PHÂN TÍCH VÀ THIẾT KẾ HỆ THỐNG', 
-    '04-architecture': 'KIẾN TRÚC HỆ THỐNG',
-    '05-implementation': 'CÀI ĐẶT VÀ KIỂM THỬ HỆ THỐNG',
-    '06-conclusion': 'KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN',
+    '01-introduction': 'GIỚI THIỆU VÀ CƠ SỞ LÝ THUYẾT',
+    '02-analysis-and-design': 'PHÂN TÍCH VÀ THIẾT KẾ HỆ THỐNG', 
+    '03-architecture': 'KIẾN TRÚC HỆ THỐNG',
+    '04-implementation': 'CÀI ĐẶT VÀ KIỂM THỬ HỆ THỐNG',
+    '05-conclusion': 'KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN',
 }
 
 MAP_ACADEMIC = {
@@ -98,6 +97,14 @@ def process_inline_formatting(text):
     # Bold: **text**
     text = re.sub(r'\*\*(.*?)\*\*', r'\\textbf{\1}', text)
     text = re.sub(r'\*(.*?)\*', r'\\textit{\1}', text)
+    
+    # Inline Code: `text` -> \texttt{text} (with allowbreak for long filters)
+    def code_repl(m):
+        content = m.group(1)
+        # Allow breaking at |, ., ~, / inside code
+        broken = content.replace('|', '|\\allowbreak{}').replace('.', '.\\allowbreak{}').replace('~', '~\\allowbreak{}').replace('/', '/\\allowbreak{}')
+        return f'\\texttt{{{broken}}}'
+    text = re.sub(r'`([^`]+)`', code_repl, text)
     
     def link_repl(m):
         label, url = m.groups()
@@ -200,6 +207,13 @@ def md_block_to_latex(block, af_id, at_id, prev_block='', next_block='', level=0
             post_tex, af_id, at_id, _ = md_block_to_latex(post_text, af_id, at_id, level=level)
             processed_tex += post_tex
         return processed_tex, af_id, at_id, consumed_next
+
+    # --- 0. Standalone Table Caption Check (v4.06) ---
+    # If this block is just a table caption and the NEXT block is a table, skip rendering it here
+    # as the table block will handle it.
+    if re.match(r'^[\*_]*(?:Bảng|Table|Bang|Table|Danh mục)[:\s\.\d\-\[\]\(\)]*\s*.*?[\*_]*$', block, re.IGNORECASE):
+        if next_block and '|' in next_block and '-' in next_block:
+            return "", af_id, at_id, False
 
     # 3. Tables (Strict capture)
     if '|' in block and '-' in block and '\n' in block:
@@ -618,6 +632,9 @@ def main():
   {}
   {0pt}
   {}
+
+\titlespacing*{\chapter}{0pt}{-20pt}{20pt}
+\titlespacing*{name=\chapter,numberless}{0pt}{-20pt}{20pt}
 
 
 
