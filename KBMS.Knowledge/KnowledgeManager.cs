@@ -68,7 +68,7 @@ public class KnowledgeManager
 
         // Check privileges
         var action = DetermineAction(ast);
-        if (!CheckPrivilege(user, action, kbName))
+        if (!CheckPrivilege(user, action, kbName, ast))
         {
             return ErrorResponse.PermissionErrorResponse(action, kbName ?? "system");
         }
@@ -89,7 +89,7 @@ public class KnowledgeManager
         try
         {
             // Execute the command
-            return ExecuteQuery(ast, kbName);
+            return ExecuteQuery(ast, kbName, user);
         }
         catch (Exception ex)
         {
@@ -199,7 +199,7 @@ public class KnowledgeManager
         };
     }
 
-    private bool CheckPrivilege(User user, string action, string? kbName)
+    private bool CheckPrivilege(User user, string action, string? kbName, AstNode ast)
     {
         // ROOT has all privileges
         if (user.Role == UserRole.ROOT)
@@ -207,8 +207,10 @@ public class KnowledgeManager
 
         return action switch
         {
-            "CREATE" when kbName == null => user.SystemAdmin, // CREATE KNOWLEDGE BASE
-            "DROP" when kbName == null => user.SystemAdmin,   // DROP KNOWLEDGE BASE
+            // RC17: CREATE/DROP KNOWLEDGE BASE requires SystemAdmin role if not ROOT
+            "CREATE" when ast is CreateKbNode => user.SystemAdmin,
+            "DROP" when ast is DropKbNode => user.SystemAdmin,
+
             "CREATE" => user.KbPrivileges.TryGetValue(kbName!, out var p1) && p1 == Privilege.ADMIN,
             "DROP" => user.KbPrivileges.TryGetValue(kbName!, out var p2) && p2 == Privilege.ADMIN,
             "SELECT" => user.KbPrivileges.ContainsKey(kbName!),
@@ -223,12 +225,12 @@ public class KnowledgeManager
         };
     }
 
-    private object ExecuteQuery(AstNode ast, string? kbName)
+    private object ExecuteQuery(AstNode ast, string? kbName, Models.User user)
     {
         return ast.Type switch
         {
             // DDL - Knowledge Base
-            "CREATE_KNOWLEDGE_BASE" => HandleCreateKnowledgeBase((CreateKbNode)ast),
+            "CREATE_KNOWLEDGE_BASE" => HandleCreateKnowledgeBase((CreateKbNode)ast, user),
             "DROP_KNOWLEDGE_BASE" => HandleDropKnowledgeBase((DropKbNode)ast),
             "USE" => HandleUse((UseKbNode)ast),
 
@@ -363,17 +365,28 @@ public class KnowledgeManager
         }
     }
 
-    private object HandleCreateKnowledgeBase(CreateKbNode node)
+    private object HandleCreateKnowledgeBase(CreateKbNode node, Models.User creator)
     {
-        var kb = _kbCatalog.CreateKb(node.KbName, Guid.Empty, node.Description ?? "");
+        var kb = _kbCatalog.CreateKb(node.KbName, creator.Id, node.Description ?? "");
         if (kb == null)
             return ErrorResponse.ExecutionErrorResponse($"Knowledge base '{node.KbName}' already exists.");
+
+        // Grant ADMIN privilege to the creator
+        if (creator.Role != UserRole.ROOT)
+        {
+            _userCatalog.GrantPrivilege(creator.Username, node.KbName, Privilege.ADMIN);
+        }
 
         return new { success = true, message = $"Knowledge base '{node.KbName}' created successfully (V3 Catalog)." };
     }
 
     private object HandleDropKnowledgeBase(DropKbNode node)
     {
+        // RC16: Protect system knowledge base from being deleted
+        if (node.KbName.Equals("system", StringComparison.OrdinalIgnoreCase))
+        {
+            return ErrorResponse.ExecutionErrorResponse("Cannot drop system knowledge base. It is required for server operation.");
+        }
         if (node.KbName.Equals("system", StringComparison.OrdinalIgnoreCase))
         {
             return ErrorResponse.ExecutionErrorResponse("The 'system' knowledge base is protected and cannot be dropped.");
