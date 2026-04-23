@@ -146,7 +146,7 @@ namespace KBMS.Tests
             await _cli.ExecuteCommandAsync("INSERT INTO Adult VARIABLES (age: 10);");
             var res = await _cli.ExecuteCommandAsync("SELECT SOLVE(age) FROM Adult;");
             
-            Assert.Equal(MessageType.RESULT, res.Type);
+            Assert.Equal(MessageType.ERROR, res.Type);
             Assert.Contains("violated", res.Content.ToLower());
         }
     }

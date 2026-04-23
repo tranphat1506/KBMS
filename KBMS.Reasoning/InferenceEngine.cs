@@ -29,7 +29,7 @@ public class InferenceEngine
     public class ReasoningResult
     {
         public bool Success { get; set; } = true;
-        public Dictionary<string, object> DerivedFacts { get; set; } = new();
+        public Dictionary<string, object> DerivedFacts { get; set; } = new(StringComparer.OrdinalIgnoreCase);
         public List<string> Steps { get; set; } = new();
         public List<DerivationTrace> Traces { get; set; } = new();
         public string? ErrorMessage { get; set; }
@@ -82,8 +82,13 @@ public class InferenceEngine
                 bool factAddedThisTurn = false;
                 var stateKey = string.Join("|", knownFacts.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}"));
                 if (iteration > 0 && visited.Contains(stateKey)) {
-                    var goalVar = targetVariables.FirstOrDefault(v => !knownFacts.ContainsKey(v));
-                    throw new Exception($"Circular dependency: {goalVar ?? "unknown"}");
+                    // If all target variables are already satisfied, we reached stability and can stop.
+                    if (targetVariables.Count > 0 && targetVariables.All(v => knownFacts.ContainsKey(v))) break;
+                    
+                    // Otherwise, it's an unresolved circular loop
+                    result.Success = false;
+                    result.ErrorMessage = "Circular dependency or reasoning loop detected without progress.";
+                    return result;
                 }
                 visited.Add(stateKey);
 
@@ -97,7 +102,16 @@ public class InferenceEngine
                 }
 
                 int countBefore = network.WorkingMemory.Count;
-                while (network.FireNext()) { }
+                try
+                {
+                    while (network.FireNext()) { }
+                }
+                catch (Exception ex)
+                {
+                    result.Success = false;
+                    result.ErrorMessage = ex.Message;
+                    return result;
+                }
                 if (network.WorkingMemory.Count > countBefore) factAddedThisTurn = true;
 
                 foreach (var fact in network.WorkingMemory.ToList())
@@ -390,15 +404,28 @@ public class InferenceEngine
         }
 
         foreach (var p in parameters) {
-            if (p.Value is decimal d) e.Parameters[p.Key] = (double)d;
-            else if (p.Value is long l) e.Parameters[p.Key] = (double)l;
-            else if (p.Value is int i) e.Parameters[p.Key] = (double)i;
-            else e.Parameters[p.Key] = p.Value;
+            var val = p.Value;
+            if (val is System.Text.Json.JsonElement je)
+            {
+                switch (je.ValueKind)
+                {
+                    case System.Text.Json.JsonValueKind.Number: val = je.GetDouble(); break;
+                    case System.Text.Json.JsonValueKind.True: val = true; break;
+                    case System.Text.Json.JsonValueKind.False: val = false; break;
+                    case System.Text.Json.JsonValueKind.String: val = je.GetString(); break;
+                    case System.Text.Json.JsonValueKind.Null: val = null; break;
+                }
+            }
+
+            if (val is decimal dec) e.Parameters[p.Key] = (double)dec;
+            else if (val is long l) e.Parameters[p.Key] = (double)l;
+            else if (val is int i) e.Parameters[p.Key] = (double)i;
+            else e.Parameters[p.Key] = val;
         }
 
         var res = e.Evaluate();
-        if (res is double dv && (double.IsInfinity(dv) || double.IsNaN(dv)))
-            throw new Exception("Mathematical error: Infinity or NaN produced.");
+        if (res is double d && (double.IsInfinity(d) || double.IsNaN(d)))
+            throw new Exception("Mathematical error: infinity produced.");
         return (res is int or long or double or float or decimal) ? Convert.ToDouble(res) : res;
     }
 
@@ -426,8 +453,27 @@ public class InferenceEngine
     {
         if (v1 == null && v2 == null) return true;
         if (v1 == null || v2 == null) return false;
-        if (IsNumeric(v1) && IsNumeric(v2)) return Math.Abs(Convert.ToDouble(v1) - Convert.ToDouble(v2)) < 1e-7;
-        return v1.ToString() == v2.ToString();
+
+        object? val1 = v1;
+        if (val1 is System.Text.Json.JsonElement je1) {
+            if (je1.ValueKind == System.Text.Json.JsonValueKind.True) val1 = true;
+            else if (je1.ValueKind == System.Text.Json.JsonValueKind.False) val1 = false;
+            else if (je1.ValueKind == System.Text.Json.JsonValueKind.Number) val1 = je1.GetDouble();
+            else val1 = je1.ToString();
+        }
+
+        object? val2 = v2;
+        if (val2 is System.Text.Json.JsonElement je2) {
+            if (je2.ValueKind == System.Text.Json.JsonValueKind.True) val2 = true;
+            else if (je2.ValueKind == System.Text.Json.JsonValueKind.False) val2 = false;
+            else if (je2.ValueKind == System.Text.Json.JsonValueKind.Number) val2 = je2.GetDouble();
+            else val2 = je2.ToString();
+        }
+
+        if (val1 is bool b1 && val2 is bool b2) return b1 == b2;
+        if (IsNumeric(val1) && IsNumeric(val2)) return Math.Abs(Convert.ToDouble(val1) - Convert.ToDouble(val2)) < 1e-7;
+        
+        return val1.ToString().Equals(val2.ToString(), StringComparison.OrdinalIgnoreCase);
     }
     private bool IsNumeric(object v) => v is int or long or double or decimal or float;
 
@@ -439,10 +485,22 @@ public class InferenceEngine
         
         var e = new NCalc.Expression(safe);
         foreach (var p in parameters) {
-            if (p.Value is decimal d) e.Parameters[p.Key] = (double)d;
-            else if (p.Value is long l) e.Parameters[p.Key] = (double)l;
-            else if (p.Value is int i) e.Parameters[p.Key] = (double)i;
-            else e.Parameters[p.Key] = p.Value;
+            var val = p.Value;
+            if (val is System.Text.Json.JsonElement je)
+            {
+                switch (je.ValueKind)
+                {
+                    case System.Text.Json.JsonValueKind.Number: val = je.GetDouble(); break;
+                    case System.Text.Json.JsonValueKind.True: val = true; break;
+                    case System.Text.Json.JsonValueKind.False: val = false; break;
+                    case System.Text.Json.JsonValueKind.String: val = je.GetString(); break;
+                    case System.Text.Json.JsonValueKind.Null: val = null; break;
+                }
+            }
+            if (val is decimal dec) e.Parameters[p.Key] = (double)dec;
+            else if (val is long l) e.Parameters[p.Key] = (double)l;
+            else if (val is int i) e.Parameters[p.Key] = (double)i;
+            else e.Parameters[p.Key] = val;
         }
 
         e.EvaluateFunction += (name, args) => {
@@ -498,7 +556,7 @@ public class InferenceEngine
         foreach (Match m in Regex.Matches(cleaned, @"\b[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*\b"))
         {
             var val = m.Value;
-            if (funcs.Contains(val) || val.Equals("true") || val.Equals("false") || double.TryParse(val, out _)) continue;
+            if (funcs.Contains(val) || val.Equals("true", StringComparison.OrdinalIgnoreCase) || val.Equals("false", StringComparison.OrdinalIgnoreCase) || double.TryParse(val, out _)) continue;
             int peekIdx = m.Index + m.Length;
             while (peekIdx < cleaned.Length && char.IsWhiteSpace(cleaned[peekIdx])) peekIdx++;
             if (peekIdx < cleaned.Length && cleaned[peekIdx] == '(') continue;

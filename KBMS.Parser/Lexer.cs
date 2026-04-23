@@ -50,7 +50,6 @@ public class Lexer
         { "UPDATE", TokenType.UPDATE },
         { "DELETE", TokenType.DELETE },
         { "SHOW", TokenType.SHOW },
-        { "ATTRIBUTE", TokenType.VARIABLES },
 
         { "INDEX", TokenType.INDEX },
         { "EXPLAIN", TokenType.EXPLAIN },
@@ -97,6 +96,8 @@ public class Lexer
         // Concept Definition Keywords
         { "VARIABLE", TokenType.VARIABLE },
         { "VARIABLES", TokenType.VARIABLES },
+        { "ATTRIBUTE", TokenType.ATTRIBUTE },
+        { "ATTRIBUTES", TokenType.ATTRIBUTES },
         { "ALIASES", TokenType.ALIASES },
         { "BASE_OBJECTS", TokenType.BASE_OBJECTS },
         { "CONSTRAINT", TokenType.CONSTRAINTS },
@@ -165,6 +166,9 @@ public class Lexer
         { "ASC", TokenType.ASC },
         { "DESC", TokenType.DESC },
         { "RENAME", TokenType.RENAME },
+        { "LIKE", TokenType.LIKE },
+        { "CONTAINS", TokenType.CONTAINS },
+        { "SEARCH", TokenType.SEARCH },
 
         // Data Types - Numeric
         { "TINYINT", TokenType.TINYINT },

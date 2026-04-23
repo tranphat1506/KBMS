@@ -105,9 +105,8 @@ public class BackwardChainingTests : IAsyncLifetime
         // Goal cannot be met because grade is too low
         var res = await _cli.ExecuteCommandAsync("SELECT SOLVE(gifted) FROM Student WHERE name = 'Bob';");
         
-        Assert.Equal(MessageType.RESULT, res!.Type);
-        // Should not contain true
-        Assert.DoesNotContain("true", res.Content.ToLower());
+        Assert.Equal(MessageType.ERROR, res!.Type);
+        Assert.Contains("Could not resolve goals", res.Content);
     }
 
     [Fact]

@@ -117,7 +117,24 @@ public class Parser
             TokenType.BEGIN => ParseBeginTransaction(),
             TokenType.COMMIT => ParseCommit(),
             TokenType.ROLLBACK => ParseRollback(),
+            TokenType.SEARCH => ParseSearch(),
             _ => throw Error($"Unexpected token: {token.Lexeme}", token)
+        };
+    }
+
+    private SearchNode ParseSearch()
+    {
+        var token = Peek() ?? throw Error("Unexpected end of input");
+        Consume(TokenType.SEARCH);
+
+        var patternToken = Consume(TokenType.STRING) ?? throw Error("Expected search pattern string");
+
+        return new SearchNode
+        {
+            Type = "SEARCH",
+            Pattern = patternToken.Literal?.ToString() ?? "",
+            Line = token.Line,
+            Column = token.Column
         };
     }
 
@@ -216,9 +233,9 @@ public class Parser
         while (!IsAtEnd() && !Check(TokenType.RPAREN))
         {
             var nextType = Peek()?.Type;
-            if (nextType == TokenType.VARIABLES)
+            if (nextType == TokenType.VARIABLES || nextType == TokenType.ATTRIBUTES)
             {
-                Consume(TokenType.VARIABLES);
+                Consume(nextType.Value);
                 if (!Check(TokenType.LPAREN))
                     throw Error("Expected '(' after VARIABLES");
                 Consume(TokenType.LPAREN);
@@ -876,7 +893,7 @@ public class Parser
                     while (!Check(TokenType.RPAREN) && !IsAtEnd())
                     {
                         var target = Peek() ?? throw Error("Expected ADD target (VARIABLE, CONSTRAINT, RULE)");
-                        if (target.Type == TokenType.VARIABLE || target.Type == TokenType.VARIABLES)
+                        if (target.Type == TokenType.VARIABLE || target.Type == TokenType.VARIABLES || target.Type == TokenType.ATTRIBUTE || target.Type == TokenType.ATTRIBUTES)
                         {
                             Consume(target.Type);
                             Consume(TokenType.LPAREN);
@@ -1887,7 +1904,9 @@ public class Parser
             }
             // Handle SELECT * FROM <ENTITY> <NAME>
             else if (Check(TokenType.CONCEPT) || Check(TokenType.RELATION) || Check(TokenType.RULE) ||
-                Check(TokenType.HIERARCHY) || Check(TokenType.OPERATOR) || Check(TokenType.FUNCTION))
+                Check(TokenType.HIERARCHY) || Check(TokenType.OPERATOR) || Check(TokenType.FUNCTION) ||
+                Check(TokenType.VARIABLE) || Check(TokenType.VARIABLES) || 
+                Check(TokenType.ATTRIBUTE) || Check(TokenType.ATTRIBUTES))
             {
                 var entityTypeToken = Advance()!;
                 node.TargetType = entityTypeToken.Type.ToString();
@@ -1909,8 +1928,15 @@ public class Parser
             {
                 Consume(TokenType.DOT);
                 var subTargetToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected sub-target after dot");
-                node.ConceptName += "." + subTargetToken.Lexeme;
+            node.ConceptName += "." + subTargetToken.Lexeme;
             }
+        }
+        else if (node.SelectColumns.Count == 1 && node.SelectColumns[0].Name != "*" && node.Aggregates.Count == 0)
+        {
+            // Shorthand: SELECT Person -> SELECT * FROM Person
+            node.ConceptName = node.SelectColumns[0].Name;
+            node.SelectColumns.Clear();
+            node.TargetType = "CONCEPT";
         }
 
         // Parse optional AS alias or shorthand alias
@@ -3463,7 +3489,9 @@ public class Parser
                type == TokenType.LESS ||
                type == TokenType.GREATER_EQUAL ||
                type == TokenType.LESS_EQUAL ||
-               type == TokenType.IN;
+               type == TokenType.IN ||
+               type == TokenType.LIKE ||
+               type == TokenType.CONTAINS;
     }
 
     private static bool IsOperatorToken(TokenType type)

@@ -86,8 +86,15 @@ public class KnowledgeManager
             Console.WriteLine($"[WARNINGS] {string.Join("; ", validationResult.Warnings)}");
         }
 
-        // Execute the command
-        return ExecuteQuery(ast, kbName);
+        try
+        {
+            // Execute the command
+            return ExecuteQuery(ast, kbName);
+        }
+        catch (Exception ex)
+        {
+            return ErrorResponse.ExecutionErrorResponse(ex.Message, ast.OriginalQuery, ast.Line, ast.Column);
+        }
     }
 
     /// <summary>
@@ -295,6 +302,7 @@ public class KnowledgeManager
             "BEGIN_TRANSACTION" => HandleBeginTransaction(),
             "COMMIT" => HandleCommit(kbName),
             "ROLLBACK" => HandleRollback(),
+            "SEARCH" => HandleSearch((SearchNode)ast, kbName!),
 
             _ => ErrorResponse.ExecutionErrorResponse($"Unknown command type: {ast.Type}")
         };
@@ -1083,6 +1091,115 @@ public class KnowledgeManager
                 };
             }
 
+            // Handle RELATION SELECT
+            if (targetType == "RELATION")
+            {
+                var relList = ListRelations(kbName);
+                if (!string.IsNullOrEmpty(entityName) && entityName != "*" && !entityName.Equals("RELATION", StringComparison.OrdinalIgnoreCase))
+                {
+                    relList = relList.Where(r => r.Name.Equals(entityName, StringComparison.OrdinalIgnoreCase)).ToList();
+                }
+
+                var relObjects = relList.Select(r => new ObjectInstance
+                {
+                    Id = r.Id,
+                    ConceptName = "RELATION",
+                    Values = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        ["Name"]      = r.Name,
+                        ["Domain"]    = r.Domain,
+                        ["Range"]     = r.Range,
+                        ["Params"]    = string.Join(", ", r.ParamNames),
+                        ["Equations"] = string.Join("; ", r.Equations.Select(e => e.Expression))
+                    }
+                }).ToList();
+
+                return new QueryResultSet { Success = true, ConceptName = "RELATION", Columns = new List<string> { "Name", "Domain", "Range", "Params", "Equations" }, Objects = relObjects, Count = relObjects.Count };
+            }
+
+            // Handle FUNCTION SELECT
+            if (targetType == "FUNCTION")
+            {
+                var funcList = ListFunctions(kbName);
+                if (!string.IsNullOrEmpty(entityName) && entityName != "*" && !entityName.Equals("FUNCTION", StringComparison.OrdinalIgnoreCase))
+                {
+                    funcList = funcList.Where(f => f.Name.Equals(entityName, StringComparison.OrdinalIgnoreCase)).ToList();
+                }
+
+                var funcObjects = funcList.Select(f => new ObjectInstance
+                {
+                    Id = f.Id,
+                    ConceptName = "FUNCTION",
+                    Values = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        ["Name"]       = f.Name,
+                        ["ReturnType"] = f.ReturnType,
+                        ["Params"]     = string.Join(", ", f.Parameters.Select(p => $"{p.Name}: {p.Type}")),
+                        ["Body"]       = f.Body
+                    }
+                }).ToList();
+
+                return new QueryResultSet { Success = true, ConceptName = "FUNCTION", Columns = new List<string> { "Name", "ReturnType", "Params", "Body" }, Objects = funcObjects, Count = funcObjects.Count };
+            }
+
+            // Handle OPERATOR SELECT
+            if (targetType == "OPERATOR")
+            {
+                var opList = ListOperators(kbName);
+                if (!string.IsNullOrEmpty(entityName) && entityName != "*" && !entityName.Equals("OPERATOR", StringComparison.OrdinalIgnoreCase))
+                {
+                    opList = opList.Where(o => o.Symbol.Equals(entityName, StringComparison.OrdinalIgnoreCase)).ToList();
+                }
+
+                var opObjects = opList.Select(o => new ObjectInstance
+                {
+                    Id = o.Id,
+                    ConceptName = "OPERATOR",
+                    Values = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        ["Symbol"]     = o.Symbol,
+                        ["ReturnType"] = o.ReturnType,
+                        ["ParamTypes"] = string.Join(", ", o.ParamTypes),
+                        ["Body"]       = o.Body
+                    }
+                }).ToList();
+
+                return new QueryResultSet { Success = true, ConceptName = "OPERATOR", Columns = new List<string> { "Symbol", "ReturnType", "ParamTypes", "Body" }, Objects = opObjects, Count = opObjects.Count };
+            }
+
+            // Handle VARIABLE/ATTRIBUTE SELECT
+            if (targetType == "VARIABLE" || targetType == "ATTRIBUTE")
+            {
+                var concepts = _conceptCatalog.ListConcepts(kbName);
+                var varObjects = new List<ObjectInstance>();
+                foreach (var c in concepts)
+                {
+                    foreach (var v in c.Variables)
+                    {
+                        varObjects.Add(new ObjectInstance
+                        {
+                            Id = Guid.NewGuid(),
+                            ConceptName = "VARIABLE",
+                            Values = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+                            {
+                                ["Name"]    = v.Name,
+                                ["Type"]    = v.Type,
+                                ["Concept"] = c.Name,
+                                ["Length"]  = v.Length,
+                                ["Scale"]   = v.Scale
+                            }
+                        });
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(entityName) && entityName != "*" && !entityName.Equals("VARIABLE", StringComparison.OrdinalIgnoreCase) && !entityName.Equals("ATTRIBUTE", StringComparison.OrdinalIgnoreCase))
+                {
+                    varObjects = varObjects.Where(v => v.Values["Name"].ToString()!.Equals(entityName, StringComparison.OrdinalIgnoreCase)).ToList();
+                }
+
+                return new QueryResultSet { Success = true, ConceptName = "VARIABLE", Columns = new List<string> { "Name", "Type", "Concept", "Length", "Scale" }, Objects = varObjects, Count = varObjects.Count };
+            }
+
             // 3. Handle sub-targets for CONCEPTs
             if (!string.IsNullOrEmpty(subTarget) && subTarget != "instances" && subTarget != "data")
             {
@@ -1104,7 +1221,7 @@ public class KnowledgeManager
             {
                 if (_v3Router != null)
                 {
-                    // ✅ V3 Route: Uses the Optimizer and Execution Pipeline (Pushdown + Joins)
+                    // V3 Route: Uses the Optimizer and Execution Pipeline (Pushdown + Joins)
                     objects = _v3Router.ExecuteSelect(kbName, node, conceptMetadata);
                 }
                 
@@ -1209,7 +1326,7 @@ public class KnowledgeManager
                         foreach (var col in colsToInclude)
                         {
                             var sourceName = col.Expression?.ToString() ?? col.Name;
-                            var outName = col.Alias ?? (col.Expression != null ? col.Expression.ToString() : col.Name);
+                            var outName = col.Alias ?? col.Name;
 
                             // 1. Try direct resolution (for simple field names)
                             var val = ResolveValue(obj, sourceName, tableAlias, entityName);
@@ -1240,12 +1357,14 @@ public class KnowledgeManager
                                                         var root = engine.Solve1DEquation(eq.Expression, targetVar, evalParams);
                                                         if (!double.IsNaN(root))
                                                         {
+                                                            if (double.IsInfinity(root)) throw new Exception("Mathematical error: infinity produced.");
                                                             var variable = resolvedConcept.Variables.FirstOrDefault(v => v.Name.Equals(targetVar, StringComparison.OrdinalIgnoreCase));
                                                             newValues[outName] = engine.CastToVariableType(root, variable);
                                                             solved = true;
                                                             break;
                                                         }
                                                     }
+                                                    catch (Exception ex) when (ex.Message.Contains("infinity")) { throw; }
                                                     catch { /* Fall through to full closure */ }
                                                 }
                                             }
@@ -1253,16 +1372,23 @@ public class KnowledgeManager
                                             // FALLBACK: Full Rete-based closure if fast path failed
                                             if (!solved)
                                             {
-                                                var solveResult = engine.FindClosure(resolvedConcept, evalParams, new List<string> { targetVar });
-                                                Console.WriteLine($"[SOLVE] target={targetVar} success={solveResult.Success} derived={string.Join(",",solveResult.DerivedFacts.Select(k=>k.Key+"="+k.Value))} err={solveResult.ErrorMessage}");
-                                                if (solveResult.Success && solveResult.DerivedFacts.ContainsKey(targetVar))
-                                                    newValues[outName] = solveResult.DerivedFacts[targetVar];
-                                                else if (!solveResult.Success && !string.IsNullOrEmpty(solveResult.ErrorMessage))
-                                                    newValues[outName] = $"[ERROR] {solveResult.ErrorMessage}";
+                                                    var solveResult = engine.FindClosure(resolvedConcept, evalParams, new List<string> { targetVar });
+                                                    if (solveResult.Success && solveResult.DerivedFacts.TryGetValue(targetVar, out var solvedVal))
+                                                    {
+                                                        if (solvedVal is double d && (double.IsInfinity(d) || double.IsNaN(d)))
+                                                            throw new Exception("Mathematical error: infinity produced.");
+
+                                                        newValues[outName] = solvedVal;
+                                                        solved = true;
+                                                    }
+                                                    else if (!solveResult.Success && !string.IsNullOrEmpty(solveResult.ErrorMessage))
+                                                    {
+                                                        throw new Exception(solveResult.ErrorMessage);
+                                                    }
+                                                }
                                             }
                                         }
                                     }
-                                }
                                 else
                                 {
                                     // 2. Try evaluating as NCalc expression (for math/aggregate functions)
@@ -1625,6 +1751,9 @@ public class KnowledgeManager
             ">" => CompareValues(value, compareValue) > 0,
             "<" => CompareValues(value, compareValue) < 0,
             ">=" => CompareValues(value, compareValue) >= 0,
+            "<=" => CompareValues(value, compareValue) <= 0,
+            "LIKE" => System.Text.RegularExpressions.Regex.IsMatch(value?.ToString() ?? "", "^" + System.Text.RegularExpressions.Regex.Escape(compareValue?.ToString() ?? "").Replace("%", ".*").Replace("_", ".") + "$", System.Text.RegularExpressions.RegexOptions.IgnoreCase),
+            "CONTAINS" => (value?.ToString() ?? "").Contains(compareValue?.ToString() ?? "", StringComparison.OrdinalIgnoreCase),
             _ => false
         };
 
@@ -3176,5 +3305,61 @@ public class KnowledgeManager
         engine.RelationResolver = (name) => relations.FirstOrDefault(r => r.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
 
         return engine;
+    }
+
+    private object HandleSearch(SearchNode node, string kbName)
+    {
+        var pattern = node.Pattern.ToLower();
+        var results = new List<ObjectInstance>();
+
+        // 1. Search Concepts
+        var concepts = _conceptCatalog.ListConcepts(kbName);
+        foreach (var c in concepts)
+        {
+            if (c.Name.Contains(pattern, StringComparison.OrdinalIgnoreCase))
+            {
+                results.Add(new ObjectInstance { Id = Guid.NewGuid(), ConceptName = "SEARCH_RESULT", Values = new Dictionary<string, object> { ["type"] = "CONCEPT", ["name"] = c.Name, ["match"] = "Name match" } });
+            }
+            foreach (var v in c.Variables)
+            {
+                if (v.Name.Contains(pattern, StringComparison.OrdinalIgnoreCase))
+                {
+                    results.Add(new ObjectInstance { Id = Guid.NewGuid(), ConceptName = "SEARCH_RESULT", Values = new Dictionary<string, object> { ["type"] = "VARIABLE", ["name"] = $"{c.Name}.{v.Name}", ["match"] = $"Attribute '{v.Name}' in concept '{c.Name}'" } });
+                }
+            }
+        }
+
+        // 2. Search Rules
+        var rules = ListRules(kbName);
+        foreach (var r in rules)
+        {
+            if (r.Name.Contains(pattern, StringComparison.OrdinalIgnoreCase) ||
+                r.Hypothesis.Any(h => h.Content.Contains(pattern, StringComparison.OrdinalIgnoreCase)) ||
+                r.Conclusion.Any(cl => cl.Content.Contains(pattern, StringComparison.OrdinalIgnoreCase)))
+            {
+                results.Add(new ObjectInstance { Id = Guid.NewGuid(), ConceptName = "SEARCH_RESULT", Values = new Dictionary<string, object> { ["type"] = "RULE", ["name"] = r.Name, ["match"] = $"Found in rule content/hypothesis/conclusion" } });
+            }
+        }
+
+        // 3. Search Relations
+        var relations = ListRelations(kbName);
+        foreach (var rel in relations)
+        {
+            if (rel.Name.Contains(pattern, StringComparison.OrdinalIgnoreCase) ||
+                rel.Domain.Contains(pattern, StringComparison.OrdinalIgnoreCase) ||
+                rel.Range.Contains(pattern, StringComparison.OrdinalIgnoreCase))
+            {
+                results.Add(new ObjectInstance { Id = Guid.NewGuid(), ConceptName = "SEARCH_RESULT", Values = new Dictionary<string, object> { ["type"] = "RELATION", ["name"] = rel.Name, ["match"] = $"Found in relation metadata" } });
+            }
+        }
+
+        return new QueryResultSet
+        {
+            Success = true,
+            ConceptName = "SEARCH_RESULT",
+            Columns = new List<string> { "type", "name", "match" },
+            Objects = results,
+            Count = results.Count
+        };
     }
 }

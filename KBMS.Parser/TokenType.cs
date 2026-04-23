@@ -99,6 +99,8 @@ public enum TokenType
     SAME_VARIABLES, // SAME_VARIABLES
     VARIABLE,       // VARIABLE (singular)
     CONSTRUCT_RELATIONS, // CONSTRUCT_RELATIONS
+    ATTRIBUTE,      // ATTRIBUTE (alias for VARIABLE)
+    ATTRIBUTES,     // ATTRIBUTES (alias for VARIABLES)
 
     // Keywords - Hierarchy
     IS_A,           // IS_A
@@ -160,6 +162,9 @@ public enum TokenType
     ASC,            // ASC
     DESC,           // DESC
     RENAME,         // RENAME
+    LIKE,           // LIKE
+    CONTAINS,       // CONTAINS
+    SEARCH,         // SEARCH
 
     // Data Types - Numeric
     TINYINT,
