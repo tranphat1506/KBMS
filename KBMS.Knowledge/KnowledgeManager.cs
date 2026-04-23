@@ -385,6 +385,9 @@ public class KnowledgeManager
             _conceptCatalog.DropAllConcepts(node.KbName);
             _v3Router.DropAllMappings(node.KbName);
             _userCatalog.RevokeAllPrivileges(node.KbName);
+            
+            // RC12: Physically delete the .kdb file and clear manager cache
+            _storagePool.DeleteKbFile(node.KbName);
         }
         return success
             ? new { success = true, message = $"Knowledge base '{node.KbName}' dropped successfully." }

@@ -737,12 +737,25 @@ public class V3DataRouter
     {
         lock (_catalogLock)
         {
-            var keysToRemove = _pageCatalog.Keys.Where(k => k.StartsWith(kbName + ":")).ToList();
+            var keysToRemove = _pageCatalog.Keys.Where(k => k.StartsWith(kbName + ":", StringComparison.OrdinalIgnoreCase)).ToList();
             foreach (var key in keysToRemove)
             {
                 _pageCatalog.Remove(key);
             }
             
+            // Clear Optimizers
+            lock (_kbOptimizers)
+            {
+                _kbOptimizers.Remove(kbName);
+            }
+
+            // Clear Value Index entries for this KB
+            var indexKeysToRemove = _valueIndex.Keys.Where(k => k.StartsWith(kbName + ":", StringComparison.OrdinalIgnoreCase)).ToList();
+            foreach (var key in indexKeysToRemove)
+            {
+                _valueIndex.Remove(key);
+            }
+
             // Persist the empty state for this KB (tombstone)
             SaveCatalog(kbName);
             return true;

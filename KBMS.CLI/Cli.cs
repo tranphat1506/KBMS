@@ -103,7 +103,17 @@ public class Cli
                     Content = command
                 };
                 await Protocol.SendMessageAsync(_stream, message);
-                return await Protocol.ReceiveMessageAsync(_stream);
+                var response = await Protocol.ReceiveMessageAsync(_stream);
+                
+                if (response?.Type == MessageType.RESULT && response.Content.StartsWith("LOGIN_SUCCESS"))
+                {
+                    var resultParts = response.Content.Split(':');
+                    if (resultParts.Length > 3)
+                    {
+                        _sessionId = resultParts[3]; // Store session ID
+                    }
+                }
+                return response;
             }
 
             // Other commands are QUERY

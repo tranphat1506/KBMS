@@ -208,10 +208,13 @@ public class ConceptCatalog
         {
             if (_pageMap.ContainsKey(kbName))
             {
+                // We keep the entry but clear the IDs to mark it as empty
+                // This allows SavePageIds to write a 0-count to the file
+                _pageMap[kbName] = new List<int>(); 
+                SavePageIds(kbName);
+                
+                // Now remove it completely so it's reloaded if the KB is recreated
                 _pageMap.Remove(kbName);
-                _pageMap[kbName] = new List<int>(); // Empty state
-                SavePageIds(kbName);                // Persist tombstone to Page 0
-                _pageMap.Remove(kbName);             // Final cleanup from memory
             }
         }
     }
