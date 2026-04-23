@@ -28,6 +28,7 @@ public static class ModelBinaryUtility
         tuple.Fields.Add(SerializeList(kb.Operators, WriteOperator));
         tuple.Fields.Add(SerializeList(kb.Functions, WriteFunction));
         tuple.Fields.Add(SerializeList(kb.Hierarchies, WriteHierarchy));
+        tuple.Fields.Add(SerializeList(kb.Triggers, WriteTrigger));
         return tuple.Serialize();
     }
 
@@ -50,7 +51,8 @@ public static class ModelBinaryUtility
                 Relations = DeserializeList(tuple.Fields[8], ReadRelation),
                 Operators = DeserializeList(tuple.Fields[9], ReadOperator),
                 Functions = DeserializeList(tuple.Fields[10], ReadFunction),
-                Hierarchies = DeserializeList(tuple.Fields[11], ReadHierarchy)
+                Hierarchies = DeserializeList(tuple.Fields[11], ReadHierarchy),
+                Triggers = tuple.Fields.Count > 12 ? DeserializeList(tuple.Fields[12], ReadTrigger) : new List<Trigger>()
             };
         }
         catch { return null; }
@@ -665,4 +667,24 @@ public static class ModelBinaryUtility
         for(int i=0; i<count; i++) e.Variables.Add(br.ReadString());
         return e;
     }
+
+    private static void WriteTrigger(BinaryWriter bw, Trigger t)
+    {
+        bw.Write(t.Id.ToByteArray());
+        bw.Write(t.KbId.ToByteArray());
+        bw.Write(t.Name ?? string.Empty);
+        bw.Write(t.Event ?? string.Empty);
+        bw.Write(t.TargetConcept ?? string.Empty);
+        bw.Write(t.OriginalQuery ?? string.Empty);
+    }
+
+    private static Trigger ReadTrigger(BinaryReader br) => new Trigger
+    {
+        Id = new Guid(br.ReadBytes(16)),
+        KbId = new Guid(br.ReadBytes(16)),
+        Name = br.ReadString(),
+        Event = br.ReadString(),
+        TargetConcept = br.ReadString(),
+        OriginalQuery = br.ReadString()
+    };
 }

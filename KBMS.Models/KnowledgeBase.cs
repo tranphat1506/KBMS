@@ -17,4 +17,5 @@ public class KnowledgeBase
     public List<Operator> Operators { get; set; } = new();
     public List<Function> Functions { get; set; } = new();
     public List<Hierarchy> Hierarchies { get; set; } = new();
+    public List<Trigger> Triggers { get; set; } = new();
 }

@@ -1305,15 +1305,30 @@ public class Parser
         var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.EXPORT);
         if (Consume(TokenType.LPAREN) == null) throw Error("Expected '(' after EXPORT");
-        
-        if (Consume(TokenType.CONCEPT) == null) throw Error("Expected 'CONCEPT' in EXPORT parameters");
-        if (Consume(TokenType.COLON) == null) throw Error("Expected ':' after 'CONCEPT'");
-        string name = Check(TokenType.STAR) ? Advance().Lexeme : (ConsumeIdentifier()?.Lexeme ?? throw Error("Expected concept name or '*'"));
-        
-        if (Consume(TokenType.COMMA) == null) throw Error("Expected ',' after concept parameter");
+
+        // Accept either CONCEPT or KNOWLEDGE (KNOWLEDGE_BASE) as target type
+        string targetType;
+        string name = "*";
+        if (Check(TokenType.CONCEPT))
+        {
+            Consume(TokenType.CONCEPT);
+            targetType = "CONCEPT";
+        }
+        else if (Check(TokenType.KNOWLEDGE))
+        {
+            Consume(TokenType.KNOWLEDGE);
+            if (Consume(TokenType.BASE) == null) throw Error("Expected 'BASE' after 'KNOWLEDGE'");
+            targetType = "KNOWLEDGE_BASE";
+        }
+        else throw Error("Expected 'CONCEPT' or 'KNOWLEDGE BASE' in EXPORT parameters");
+
+        if (Consume(TokenType.COLON) == null) throw Error("Expected ':' after target type");
+        name = Check(TokenType.STAR) ? Advance().Lexeme : (ConsumeIdentifier()?.Lexeme ?? throw Error("Expected name or '*'"));
+
+        if (Consume(TokenType.COMMA) == null) throw Error("Expected ',' after target parameter");
         if (Consume(TokenType.FORMAT) == null) throw Error("Expected 'FORMAT' in EXPORT parameters");
         if (Consume(TokenType.COLON) == null) throw Error("Expected ':' after 'FORMAT'");
-        var formatToken = Advance() ?? throw Error("Expected format (JSON)");
+        var formatToken = Advance() ?? throw Error("Expected format (JSON or KQL)");
 
         if (Consume(TokenType.COMMA) == null) throw Error("Expected ',' after format parameter");
         if (Consume(TokenType.FILE) == null) throw Error("Expected 'FILE' in EXPORT parameters");
@@ -1324,7 +1339,7 @@ public class Parser
         
         return new KBMS.Parser.Ast.Kml.ExportNode 
         { 
-            TargetType = "CONCEPT",
+            TargetType = targetType,
             TargetName = name,
             Format = formatToken.Lexeme,
             FilePath = fileToken.Literal?.ToString() ?? fileToken.Lexeme.Trim('\\', '$', '"'),
@@ -1338,15 +1353,30 @@ public class Parser
         var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.IMPORT);
         if (Consume(TokenType.LPAREN) == null) throw Error("Expected '(' after IMPORT");
-        
-        if (Consume(TokenType.CONCEPT) == null) throw Error("Expected 'CONCEPT' in IMPORT parameters");
-        if (Consume(TokenType.COLON) == null) throw Error("Expected ':' after 'CONCEPT'");
-        string name = Check(TokenType.STAR) ? Advance().Lexeme : (ConsumeIdentifier()?.Lexeme ?? throw Error("Expected concept name or '*'"));
-        
-        if (Consume(TokenType.COMMA) == null) throw Error("Expected ',' after concept parameter");
+
+        // Accept either CONCEPT or KNOWLEDGE (KNOWLEDGE_BASE) as target type
+        string targetType;
+        string name = "*";
+        if (Check(TokenType.CONCEPT))
+        {
+            Consume(TokenType.CONCEPT);
+            targetType = "CONCEPT";
+        }
+        else if (Check(TokenType.KNOWLEDGE))
+        {
+            Consume(TokenType.KNOWLEDGE);
+            if (Consume(TokenType.BASE) == null) throw Error("Expected 'BASE' after 'KNOWLEDGE'");
+            targetType = "KNOWLEDGE_BASE";
+        }
+        else throw Error("Expected 'CONCEPT' or 'KNOWLEDGE BASE' in IMPORT parameters");
+
+        if (Consume(TokenType.COLON) == null) throw Error("Expected ':' after target type");
+        name = Check(TokenType.STAR) ? Advance().Lexeme : (ConsumeIdentifier()?.Lexeme ?? throw Error("Expected name or '*'"));
+
+        if (Consume(TokenType.COMMA) == null) throw Error("Expected ',' after target parameter");
         if (Consume(TokenType.FORMAT) == null) throw Error("Expected 'FORMAT' in IMPORT parameters");
         if (Consume(TokenType.COLON) == null) throw Error("Expected ':' after 'FORMAT'");
-        var formatToken = Advance() ?? throw Error("Expected format (CSV|JSON)");
+        var formatToken = Advance() ?? throw Error("Expected format (JSON or KQL)");
 
         if (Consume(TokenType.COMMA) == null) throw Error("Expected ',' after format parameter");
         if (Consume(TokenType.FILE) == null) throw Error("Expected 'FILE' in IMPORT parameters");
@@ -1357,7 +1387,7 @@ public class Parser
         
         return new KBMS.Parser.Ast.Kml.ImportNode 
         { 
-            TargetType = "CONCEPT",
+            TargetType = targetType,
             TargetName = name,
             Format = formatToken.Lexeme,
             FilePath = fileToken.Literal?.ToString() ?? fileToken.Lexeme.Trim('\\', '$', '"'),
@@ -1408,11 +1438,23 @@ public class Parser
         var token = Peek() ?? throw Error("Unexpected end of input");
         Consume(TokenType.CONCEPT);
 
+        // Support: DROP CONCEPT IF EXISTS <name>
+        bool ifExists = false;
+        if (Check(TokenType.IF))
+        {
+            Consume(TokenType.IF);
+            var existsToken = Advance(); // consume 'EXISTS' as identifier/keyword
+            if (existsToken?.Lexeme.Equals("EXISTS", StringComparison.OrdinalIgnoreCase) != true)
+                throw Error("Expected 'EXISTS' after 'IF' in DROP CONCEPT statement");
+            ifExists = true;
+        }
+
         var nameToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected concept name");
         return new DropConceptNode
         {
             Type = "DROP_CONCEPT",
             ConceptName = nameToken.Lexeme,
+            IfExists = ifExists,
             Line = token.Line,
             Column = token.Column
         };

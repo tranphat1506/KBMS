@@ -59,7 +59,7 @@ public class KnowledgeUpdateTests
 
         // Execute update
         var result = km.GetType().GetMethod("HandleUpdate", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-            .Invoke(km, new object[] { updateNode, kbName });
+            .Invoke(km, new object[] { updateNode, kbName, new User { Role = UserRole.ROOT } });
 
         // Assert success using reflection
         var successProp = result.GetType().GetProperty("success");

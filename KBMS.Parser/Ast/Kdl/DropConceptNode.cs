@@ -11,4 +11,9 @@ public class DropConceptNode : KdlNode
     /// Name of Concept to drop
     /// </summary>
     public string ConceptName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// If true, suppresses error if the Concept does not exist (IF EXISTS clause)
+    /// </summary>
+    public bool IfExists { get; set; } = false;
 }

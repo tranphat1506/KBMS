@@ -178,6 +178,7 @@ public class KnowledgeManager
             "MAINTENANCE" => "ADMIN",
             "EXPORT" => "ADMIN",
             "IMPORT" => "ADMIN",
+            "DESCRIBE" => "SELECT",
             "BEGIN" => "USE",    // TCL - allow any authenticated user
             "COMMIT" => "USE",
             "ROLLBACK" => "USE",
@@ -205,6 +206,15 @@ public class KnowledgeManager
         if (user.Role == UserRole.ROOT)
             return true;
 
+        if (string.IsNullOrEmpty(kbName))
+        {
+            // Global commands (kbName is null)
+            // SHOW commands (mapped to SELECT) and USE are allowed for all authenticated users
+            if (action == "SELECT" || action == "USE") return true;
+            // Everything else (CREATE USER, ALTER USER, DROP USER, etc.) requires SystemAdmin
+            return user.SystemAdmin;
+        }
+
         return action switch
         {
             // RC17: CREATE/DROP KNOWLEDGE BASE requires SystemAdmin role if not ROOT
@@ -220,10 +230,13 @@ public class KnowledgeManager
             "DELETE" => user.KbPrivileges.TryGetValue(kbName!, out var p5) && (p5 == Privilege.WRITE || p5 == Privilege.ADMIN),
             "GRANT" => user.SystemAdmin,
             "REVOKE" => user.SystemAdmin,
+            "ADMIN" => user.KbPrivileges.TryGetValue(kbName!, out var p6) && p6 == Privilege.ADMIN,
             "USE" => true,
             _ => false
         };
     }
+
+    public List<Models.KnowledgeBase> ListKbs() => _kbCatalog.ListKbs();
 
     private object ExecuteQuery(AstNode ast, string? kbName, Models.User user)
     {
@@ -248,7 +261,7 @@ public class KnowledgeManager
             "EXPLAIN" => HandleExplain((ExplainNode)ast, kbName),
             "DESCRIBE" => HandleDescribe((KBMS.Parser.Ast.Kql.DescribeNode)ast, kbName!),
             "EXPORT" => HandleExport((KBMS.Parser.Ast.Kml.ExportNode)ast, kbName!),
-            "IMPORT" => HandleImport((KBMS.Parser.Ast.Kml.ImportNode)ast, kbName!),
+            "IMPORT" => HandleImport((KBMS.Parser.Ast.Kml.ImportNode)ast, kbName!, user),
             "ADD_VARIABLE" => HandleAddVariable((AddVariableNode)ast, kbName!),
 
             // DDL - Hierarchy
@@ -284,10 +297,10 @@ public class KnowledgeManager
 
             // DML
             "SELECT" => HandleSelect((SelectNode)ast, kbName!),
-            "INSERT" => HandleInsert((InsertNode)ast, kbName!),
-            "INSERT_BULK" => HandleInsertBulk((InsertBulkNode)ast, kbName!),
-            "UPDATE" => HandleUpdate((UpdateNode)ast, kbName!),
-            "DELETE" => HandleDelete((DeleteNode)ast, kbName!),
+            "INSERT" => HandleInsert((InsertNode)ast, kbName!, user),
+            "INSERT_BULK" => HandleInsertBulk((InsertBulkNode)ast, kbName!, user),
+            "UPDATE" => HandleUpdate((UpdateNode)ast, kbName!, user),
+            "DELETE" => HandleDelete((DeleteNode)ast, kbName!, user),
             "SHOW_KNOWLEDGE_BASES" => HandleShowKnowledgeBases(),
             "SHOW_CONCEPTS" => HandleShowConcepts((ShowNode)ast, kbName!),
             "SHOW_CONCEPT" => HandleShowConcept((ShowNode)ast, kbName!),
@@ -342,17 +355,68 @@ public class KnowledgeManager
     // In-memory trigger registry (keyed by kbName:concept:event)
     private readonly Dictionary<string, List<KBMS.Parser.Ast.Kdl.CreateTriggerNode>> _triggers = new();
 
+    private void LoadTriggersIfNecessary(string kbName)
+    {
+        if (_triggers.ContainsKey(kbName)) return;
+
+        var kb = _kbCatalog.LoadKb(kbName);
+        if (kb == null) return;
+
+        var list = new List<KBMS.Parser.Ast.Kdl.CreateTriggerNode>();
+        foreach (var t in kb.Triggers)
+        {
+            try
+            {
+                var parser = new KBMS.Parser.Parser(t.OriginalQuery);
+                var stmts = parser.ParseAll();
+                if (stmts.Count > 0 && stmts[0] is KBMS.Parser.Ast.Kdl.CreateTriggerNode node)
+                {
+                    list.Add(node);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[WARNING] Failed to parse trigger '{t.Name}' in KB '{kbName}': {ex.Message}");
+            }
+        }
+        
+        _triggers[kbName] = list;
+    }
+
     private object HandleCreateTrigger(KBMS.Parser.Ast.Kdl.CreateTriggerNode node, string kbName)
     {
-        var key = kbName;
-        if (!_triggers.ContainsKey(key)) _triggers[key] = new();
-        _triggers[key].Add(node);
+        var kb = _kbCatalog.LoadKb(kbName);
+        if (kb == null) return ErrorResponse.ExecutionErrorResponse($"Knowledge base '{kbName}' not found.");
+
+        // Check if trigger with same name already exists
+        if (kb.Triggers.Any(t => t.Name.Equals(node.TriggerName, StringComparison.OrdinalIgnoreCase)))
+        {
+            return ErrorResponse.ExecutionErrorResponse($"Trigger '{node.TriggerName}' already exists.");
+        }
+
+        var triggerModel = new Models.Trigger
+        {
+            Name = node.TriggerName,
+            Event = node.Event.ToString(),
+            TargetConcept = node.TargetConcept,
+            OriginalQuery = node.OriginalQuery
+        };
+
+        kb.Triggers.Add(triggerModel);
+        if (!_kbCatalog.SaveKbMetadata(kb))
+            return ErrorResponse.ExecutionErrorResponse("Failed to save trigger to KB metadata.");
+
+        LoadTriggersIfNecessary(kbName);
+        _triggers[kbName].Add(node);
+
         return new { success = true, message = $"Trigger '{node.TriggerName}' created on {node.Event} OF {node.TargetConcept} in KB '{kbName}'" };
     }
 
     // Called internally after INSERT/UPDATE/DELETE to fire matching triggers
     private void FireTriggers(string kbName, string conceptName, string eventType, Models.User executor)
     {
+        LoadTriggersIfNecessary(kbName);
+        
         var key = kbName;
         if (!_triggers.TryGetValue(key, out var list)) return;
         var matched = list.Where(t =>
@@ -398,6 +462,10 @@ public class KnowledgeManager
             _conceptCatalog.DropAllConcepts(node.KbName);
             _v3Router.DropAllMappings(node.KbName);
             _userCatalog.RevokeAllPrivileges(node.KbName);
+            
+            // RC18: Clear in-memory triggers and transaction buffers for this KB
+            _triggers.Remove(node.KbName);
+            _txBuffer.RemoveAll(tx => tx.kbName.Equals(node.KbName, StringComparison.OrdinalIgnoreCase));
             
             // RC12: Physically delete the .kdb file and clear manager cache
             _storagePool.DeleteKbFile(node.KbName);
@@ -559,7 +627,12 @@ public class KnowledgeManager
 
     private object HandleDropConcept(DropConceptNode node, string kbName)
     {
+        // First delete all data associated with the concept in V3 storage
+        _v3Router.DeleteObjects(kbName, node.ConceptName, null, null);
+
         var success = _conceptCatalog.DropConcept(kbName, node.ConceptName);
+        if (!success && node.IfExists)
+            return new { success = true, message = $"Concept '{node.ConceptName}' does not exist, skipping (IF EXISTS)." };
         return success
             ? new { success = true, message = $"Concept '{node.ConceptName}' dropped successfully." }
             : ErrorResponse.ExecutionErrorResponse($"Concept '{node.ConceptName}' not found or is in use.");
@@ -2092,7 +2165,7 @@ public class KnowledgeManager
         return sortedObjects;
     }
 
-    private object HandleInsert(InsertNode node, string kbName)
+    private object HandleInsert(InsertNode node, string kbName, Models.User executor)
     {
         var kb = _kbCatalog.LoadKb(kbName);
         if (kb == null)
@@ -2153,12 +2226,17 @@ public class KnowledgeManager
         }
 
         var success = _v3Router.InsertObject(kbName, obj);
+        if (success)
+        {
+            FireTriggers(kbName, node.ConceptName, "INSERT", executor);
+        }
+        
         return success
             ? new { success = true, message = $"Object inserted successfully with ID: {obj.Id}", data = obj.Values }
             : ErrorResponse.ExecutionErrorResponse("Failed to insert object.");
     }
 
-    private object HandleInsertBulk(InsertBulkNode node, string kbName)
+    private object HandleInsertBulk(InsertBulkNode node, string kbName, Models.User executor)
     {
         var kb = _kbCatalog.LoadKb(kbName);
         if (kb == null)
@@ -2215,6 +2293,10 @@ public class KnowledgeManager
         }
 
         inserted = _v3Router.BulkInsertObjects(kbName, objectsToInsert);
+        if (inserted > 0)
+        {
+            FireTriggers(kbName, node.ConceptName, "INSERT", executor);
+        }
         failed = objectsToInsert.Count - inserted;
 
         return new
@@ -2275,7 +2357,7 @@ public class KnowledgeManager
         return rawValue;
     }
 
-    private object HandleUpdate(UpdateNode node, string kbName)
+    private object HandleUpdate(UpdateNode node, string kbName, Models.User executor)
     {
         // Optimized V3 update: push conditions down
         var concept = _conceptCatalog.LoadConcept(kbName, node.ConceptName);
@@ -2323,6 +2405,7 @@ public class KnowledgeManager
             if (_v3Router.UpdateObject(kbName, node.ConceptName, obj.Id, obj.Values, concept))
             {
                 updatedCount++;
+                FireTriggers(kbName, node.ConceptName, "UPDATE", executor);
             }
             else
             {
@@ -2335,11 +2418,16 @@ public class KnowledgeManager
             : ErrorResponse.ExecutionErrorResponse("Failed to update some object(s).");
     }
 
-    private object HandleDelete(DeleteNode node, string kbName)
+    private object HandleDelete(DeleteNode node, string kbName, Models.User executor)
     {
         // Optimized V3 delete: push conditions down
         var concept = _conceptCatalog.LoadConcept(kbName, node.ConceptName);
         int deletedCount = _v3Router.DeleteObjects(kbName, node.ConceptName, values => EvaluatePredicate(values, node.Conditions, kbName, null, node.ConceptName), concept);
+
+        if (deletedCount > 0)
+        {
+            FireTriggers(kbName, node.ConceptName, "DELETE", executor);
+        }
 
         if (deletedCount == 0)
         {
@@ -3039,6 +3127,14 @@ public class KnowledgeManager
     {
         try
         {
+            // Full Knowledge Base dump (MySQL-style .kql script)
+            if (node.TargetType.Equals("KNOWLEDGE_BASE", StringComparison.OrdinalIgnoreCase) ||
+                node.Format.Equals("KQL", StringComparison.OrdinalIgnoreCase))
+            {
+                return ExportKnowledgeBaseAsKql(node, kbName);
+            }
+
+            // Legacy: Export concept data as JSON
             var objects = SelectAllObjects(kbName)
                 .Where(o => node.TargetName == "*" || o.ConceptName.Equals(node.TargetName, StringComparison.OrdinalIgnoreCase))
                 .ToList();
@@ -3056,33 +3152,235 @@ public class KnowledgeManager
         }
     }
 
-    private object HandleImport(KBMS.Parser.Ast.Kml.ImportNode node, string kbName)
+    private object ExportKnowledgeBaseAsKql(KBMS.Parser.Ast.Kml.ExportNode node, string kbName)
+    {
+        var kb = _kbCatalog.LoadKb(kbName);
+        if (kb == null) return ErrorResponse.ExecutionErrorResponse($"Knowledge base '{kbName}' not found.");
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"-- KBMS Knowledge Base Dump");
+        sb.AppendLine($"-- KB: {kbName}");
+        sb.AppendLine($"-- Exported: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+        sb.AppendLine();
+
+        // ============ CONCEPTS (DDL) ============
+        sb.AppendLine("-- -------------------------");
+        sb.AppendLine("-- CONCEPTS");
+        sb.AppendLine("-- -------------------------");
+        var concepts = _conceptCatalog.ListConcepts(kbName);
+        foreach (var c in concepts)
+        {
+            sb.AppendLine($"DROP CONCEPT IF EXISTS {c.Name};");
+            var varList = string.Join(", ", c.Variables
+                .Where(v => !v.Name.Contains('.')) // skip expanded dot-vars
+                .Select(v =>
+                {
+                    string typePart = v.Length.HasValue && v.Length > 0
+                        ? $"{v.Type}({v.Length}{(v.Scale.HasValue && v.Scale > 0 ? $",{v.Scale}" : "")})"
+                        : v.Type;
+                    return $"{v.Name}: {typePart}";
+                }));
+            sb.AppendLine($"CREATE CONCEPT {c.Name} (VARIABLES ({varList}));");
+        }
+        sb.AppendLine();
+
+        // ============ HIERARCHIES (DDL) ============
+        var hierarchies = ListHierarchies(kbName);
+        if (hierarchies.Count > 0)
+        {
+            sb.AppendLine("-- -------------------------");
+            sb.AppendLine("-- HIERARCHIES");
+            sb.AppendLine("-- -------------------------");
+            foreach (var h in hierarchies)
+            {
+                string typeStr = h.HierarchyType == Models.HierarchyType.IsA ? "ISA" : "PART_OF";
+                sb.AppendLine($"ADD HIERARCHY {h.ChildConcept} {typeStr} {h.ParentConcept};");
+            }
+            sb.AppendLine();
+        }
+
+        // ============ RELATIONS (DDL) ============
+        var relations = ListRelations(kbName);
+        if (relations.Count > 0)
+        {
+            sb.AppendLine("-- -------------------------");
+            sb.AppendLine("-- RELATIONS");
+            sb.AppendLine("-- -------------------------");
+            foreach (var r in relations)
+                sb.AppendLine($"CREATE RELATION {r.Name} DOMAIN {r.Domain} RANGE {r.Range};");
+            sb.AppendLine();
+        }
+
+        // ============ RULES (DDL) ============
+        var rules = ListRules(kbName);
+        if (rules.Count > 0)
+        {
+            sb.AppendLine("-- -------------------------");
+            sb.AppendLine("-- RULES");
+            sb.AppendLine("-- -------------------------");
+            foreach (var r in rules)
+            {
+                var hyp = string.Join(", ", r.Hypothesis.Select(h => h.Content));
+                var con = string.Join(", ", r.Conclusion.Select(c => c.Content));
+                sb.AppendLine($"CREATE RULE {r.Name} SCOPE {r.Scope} IF {hyp} THEN {con};");
+            }
+            sb.AppendLine();
+        }
+
+        // ============ TRIGGERS (DDL) ============
+        if (kb.Triggers.Count > 0)
+        {
+            sb.AppendLine("-- -------------------------");
+            sb.AppendLine("-- TRIGGERS");
+            sb.AppendLine("-- -------------------------");
+            foreach (var t in kb.Triggers)
+                if (!string.IsNullOrEmpty(t.OriginalQuery))
+                    sb.AppendLine(t.OriginalQuery.TrimEnd(';') + ";");
+            sb.AppendLine();
+        }
+
+        // ============ DATA (DML) ============
+        sb.AppendLine("-- -------------------------");
+        sb.AppendLine("-- DATA");
+        sb.AppendLine("-- -------------------------");
+        var allObjects = SelectAllObjects(kbName).ToList();
+        var grouped = allObjects.GroupBy(o => o.ConceptName);
+        foreach (var group in grouped)
+        {
+            var objectsInGroup = group.ToList();
+            int batchSize = 100;
+            for (int i = 0; i < objectsInGroup.Count; i += batchSize)
+            {
+                var batch = objectsInGroup.Skip(i).Take(batchSize).ToList();
+                sb.Append($"INSERT BULK INTO {group.Key} VARIABLES ");
+                
+                var rows = new List<string>();
+                foreach (var obj in batch)
+                {
+                    var vals = string.Join(", ", obj.Values.Select(kvp =>
+                    {
+                        var v = kvp.Value;
+                        string valStr = "NULL";
+                        if (v != null)
+                        {
+                            if (v is string s) valStr = $"'{s.Replace("'", "''")}'";
+                            else if (v is bool b) valStr = b.ToString().ToUpper();
+                            else valStr = v.ToString() ?? "NULL";
+                        }
+                        return $"{kvp.Key}: {valStr}";
+                    }));
+                    rows.Add($"({vals})");
+                }
+                sb.Append(string.Join(", ", rows));
+                sb.AppendLine(";");
+            }
+        }
+        sb.AppendLine();
+
+        var outDir = Path.GetDirectoryName(node.FilePath);
+        if (!string.IsNullOrEmpty(outDir)) Directory.CreateDirectory(outDir);
+        File.WriteAllText(node.FilePath, sb.ToString());
+
+        return new { success = true, exported_concepts = concepts.Count, exported_objects = allObjects.Count, file = node.FilePath };
+    }
+
+    private object HandleImport(KBMS.Parser.Ast.Kml.ImportNode node, string kbName, Models.User executor)
     {
         try
         {
             if (!File.Exists(node.FilePath))
                 return ErrorResponse.ExecutionErrorResponse($"File not found: {node.FilePath}");
 
+            // Full KB restore from a KQL dump script
+            if (node.TargetType.Equals("KNOWLEDGE_BASE", StringComparison.OrdinalIgnoreCase) ||
+                node.Format.Equals("KQL", StringComparison.OrdinalIgnoreCase))
+            {
+                return ImportKnowledgeBaseFromKql(node, kbName, executor);
+            }
+
+            // Legacy: Import concept data from a JSON file
+            var kb = _kbCatalog.LoadKb(kbName);
+            if (kb == null)
+                return ErrorResponse.ExecutionErrorResponse($"Knowledge base '{kbName}' not found.");
+
             var json = File.ReadAllText(node.FilePath);
             var imported = System.Text.Json.JsonSerializer.Deserialize<List<KBMS.Models.ObjectInstance>>(json);
             if (imported == null) return ErrorResponse.ExecutionErrorResponse("Failed to deserialize import file");
 
-            int count = 0;
+            var objectsToInsert = new List<KBMS.Models.ObjectInstance>();
             foreach (var obj in imported)
             {
                 if (node.TargetName != "*" && !obj.ConceptName.Equals(node.TargetName, StringComparison.OrdinalIgnoreCase))
                     continue;
-                obj.Id = Guid.NewGuid(); // Assign new ID to avoid collisions
-                _v3Router.InsertObject(kbName, obj);
-                count++;
+                obj.Id = Guid.NewGuid();
+                obj.KbId = kb.Id;
+                objectsToInsert.Add(obj);
             }
 
-            return new { success = true, imported = count, concept = node.TargetName, file = node.FilePath };
+            var inserted = _v3Router.BulkInsertObjects(kbName, objectsToInsert);
+            
+            if (inserted > 0)
+            {
+                var conceptsAffected = objectsToInsert.Select(o => o.ConceptName).Distinct();
+                foreach (var concept in conceptsAffected)
+                    FireTriggers(kbName, concept, "INSERT", executor);
+            }
+
+            return new { success = true, imported = inserted, concept = node.TargetName, file = node.FilePath };
         }
         catch (Exception ex)
         {
             return ErrorResponse.ExecutionErrorResponse(ex.Message);
         }
+    }
+
+    private object ImportKnowledgeBaseFromKql(KBMS.Parser.Ast.Kml.ImportNode node, string kbName, Models.User executor)
+    {
+        var script = File.ReadAllText(node.FilePath);
+        var parser = new KBMS.Parser.Parser(script);
+        List<KBMS.Parser.Ast.AstNode> statements;
+        try
+        {
+            statements = parser.ParseAll();
+        }
+        catch (Exception ex)
+        {
+            return ErrorResponse.ExecutionErrorResponse($"Failed to parse KQL dump: {ex.Message}");
+        }
+
+        int successCount = 0, errorCount = 0;
+        var errors = new List<string>();
+
+        foreach (var stmt in statements)
+        {
+            // Ensure the statement targets the current KB
+            stmt.KbName ??= kbName;
+            try
+            {
+                var result = ExecuteQuery(stmt, kbName, executor);
+                if (result is ErrorResponse err)
+                    errors.Add($"[Line {stmt.Line}] {err.Message}");
+                else
+                    successCount++;
+            }
+            catch (Exception ex)
+            {
+                errorCount++;
+                errors.Add($"[Line {stmt.Line}] {ex.Message}");
+            }
+        }
+
+        // Evict cached triggers to force a reload from new metadata
+        _triggers.Remove(kbName);
+
+        return new
+        {
+            success = errorCount == 0,
+            statements_executed = successCount,
+            errors = errorCount,
+            error_details = errors,
+            file = node.FilePath
+        };
     }
 
     private List<string> GetAncestors(string conceptName, List<Models.Hierarchy> hierarchies)
