@@ -1,9 +1,0 @@
-=== KBMS V3 BUFFER POOL I/O COMPARISON REPORT ===
-Timestamp: 23/4/2026 14:30:40
-Workload: 500000 objects (~65MB serialized data)
-
-| Config     | Time (ms) | Throughput   | Disk Reads   | Disk Writes   |
-|------------|-----------|--------------|--------------|---------------|
-| 256MB      |      2467ms |    202675,31 |         1738 |             0 |
-| 10MB       |      2069ms |    241662,64 |         1738 |          1098 |
-================================================================

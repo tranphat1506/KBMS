@@ -105,3 +105,13 @@ kbms-studio/dist-electron/
 
 .venv/
 papers/
+# Irrelevant files and folders
+docs/
+data/
+kbms.ini
+script/
+latex_report/
+docs_backup/
+datasets/
+*.txt
+!README.md
