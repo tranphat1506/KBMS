@@ -115,3 +115,5 @@ docs_backup/
 datasets/
 *.txt
 !README.md
+*.pdf
+*.docx
