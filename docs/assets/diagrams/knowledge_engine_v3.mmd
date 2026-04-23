@@ -1,0 +1,57 @@
+graph TD
+    subgraph ClientLayer ["Lớp Ứng dụng & Giao diện"]
+        CLI[KBMS CLI]
+        STU[KBMS Studio Hub]
+        API[Binary API Connectors]
+    end
+
+    subgraph KnowledgeEngine ["Hạt nhân Điều phối Tri thức (V3 Engine)"]
+        KM[KnowledgeManager]
+        AST["Bộ cây AST (Phân tích)"]
+        AU["AuthManager (RBAC Check)"]
+        RT["Knowledge Router Logic"]
+        
+        subgraph Exec_Modules ["Mô-đun Thực thi Chuyên biệt"]
+            DDL["DDL Processor"]
+            DML["DML Processor"]
+            INF["Inference Engine (Rete)"]
+            TCL["TCL Manager"]
+        end
+    end
+
+    subgraph StorageLayer ["Lớp Lưu trữ Vật lý (Storage Layer)"]
+        VR["V3 Data Router"]
+        BP["Buffer Pool Manager"]
+        BT["B+ Tree Index"]
+        WL["WAL Persistence"]
+    end
+
+    %% Flow
+    CLI --> KM
+    STU --> KM
+    API --> KM
+    KM --> AST
+    AST --> AU
+    AU --> RT
+    RT --> DDL
+    RT --> DML
+    RT --> INF
+    RT --> TCL
+    
+    DDL --> VR
+    DML --> VR
+    INF --> VR
+    TCL --> VR
+    
+    VR --> BP
+    BP --> BT
+    BP --> WL
+
+    %% Styling
+    style KnowledgeEngine fill:#fff4dd,stroke:#333
+    style AST fill:#f96,stroke:#333
+    style VR fill:#aaf,stroke:#333
+    style DDL fill:#eee,stroke:#333
+    style DML fill:#eee,stroke:#333
+    style INF fill:#eee,stroke:#333
+    style TCL fill:#eee,stroke:#333

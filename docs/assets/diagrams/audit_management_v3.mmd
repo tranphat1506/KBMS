@@ -1,0 +1,38 @@
+graph TD
+    subgraph Management_Center ["Hạt nhân Quản trị và Giám sát (System Core)"]
+        RT["Router (Central Dispatch)"]
+        LG["SystemLogger (Self-Logging)"]
+        AM["AuthenticationManager (RBAC)"]
+        MM["ManagementManager (Telemetery)"]
+    end
+
+    subgraph Log_Storage ["Cơ chế Lưu trữ Nhật ký Tri thức"]
+        DB[(Knowledge Base `system`)]
+        AUD{"Audit Logs (User Actions)"}
+        SYS{"System Logs (Operations)"}
+    end
+
+    %% Event Flow
+    INP[Sự kiện: Mạng/Lệnh/Lỗi] --> RT
+    RT --> AM
+    AM -- Thỏa điều kiện --> RT
+    RT --> LG
+
+    %% Transformation
+    LG -- "Tri thức hóa" --> DB
+    DB --> AUD
+    DB --> SYS
+
+    %% Management/Telemetery
+    RT --> MM
+    MM -- "Stream Logs" --> HUB[KBMS Studio Hub]
+    MM -- "API Stats" --> HUB
+    
+    %% User Action
+    USER((Quản trị viên)) -- "Truy vấn KBQL" --> HUB
+    HUB -- "Cấu hình Server" --> RT
+
+    %% Styling
+    style Management_Center fill:#f9f,stroke:#333,stroke-width:2px
+    style DB fill:#00ff00,stroke:#333
+    style LG fill:#ff9900,stroke:#333

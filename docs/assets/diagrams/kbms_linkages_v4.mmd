@@ -1,0 +1,25 @@
+classDiagram
+    class Hierarchy {
+        +Guid Id
+        +Guid KbId
+        +string ParentConcept
+        +string ChildConcept
+        +HierarchyType HierarchyType
+    }
+    class Relation {
+        +Guid Id
+        +Guid KbId
+        +string Name
+        +string Domain
+        +string Range
+        +List~string~ Properties
+        +List~string~ ParamNames
+        +List~Equation~ Equations
+        +List~ConceptRule~ Rules
+    }
+    class HierarchyType {
+        <<Enumeration>>
+        IsA
+        PartOf
+    }
+    Hierarchy o-- HierarchyType

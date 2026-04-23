@@ -1,0 +1,13 @@
+graph TD
+    Root[EntryNode] -->|Fact 1 & 2| AlphaType[AlphaNode: Filter Type]
+    AlphaType -->|Token: R1, v1| AlphaMem[(Alpha Memory)]
+    
+    Root -->|Fact 3 & 4| AlphaNode[AlphaNode: Filter NodeID]
+    AlphaNode -->|Token: R1.node1, v1.node1| AlphaMem2[(Alpha Memory)]
+    
+    AlphaMem --> BetaJoin{BetaNode: Join Connect}
+    AlphaMem2 --> BetaJoin
+    
+    BetaJoin -->|Match: R1 & v1 connected| BetaMem[(Beta Memory)]
+    BetaMem --> Terminal[TerminalNode: Applied Rule]
+    Terminal -->|Derive| Result[R1.u = 220V]

@@ -1,0 +1,14 @@
+classDiagram
+    class Hierarchy {
+        +HierarchyType Type
+        +string Parent
+        +string Child
+    }
+    class Inheritance {
+        <<Is-A>>
+    }
+    class Aggregation {
+        <<Part-Of>>
+    }
+    Hierarchy <|-- Inheritance
+    Hierarchy <|-- Aggregation

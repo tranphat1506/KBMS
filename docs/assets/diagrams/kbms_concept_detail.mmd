@@ -1,0 +1,13 @@
+classDiagram
+    class Concept {
+        +string Name
+        +List~Variable~ Attributes
+        +List~Constraint~ Constraints
+        +List~Equation~ Equations
+        +List~ConceptRule~ InternalRules
+    }
+    class Variable {
+        +string Name
+        +string Type
+    }
+    Concept *-- Variable

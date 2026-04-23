@@ -1,0 +1,13 @@
+classDiagram
+    class Hierarchy {
+        +Guid Id
+        +Guid KbId
+        +string ParentConcept
+        +string ChildConcept
+        +HierarchyType HierarchyType
+    }
+    class HierarchyType {
+        <<Enumeration>>
+        IsA
+        PartOf
+    }

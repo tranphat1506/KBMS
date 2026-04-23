@@ -1,0 +1,40 @@
+sequenceDiagram
+    autonumber
+    
+    box rgb(225, 245, 254) "Execution Layer"
+        participant ST as KBMS.Storage.Engine
+    end
+    box rgb(241, 248, 233) "Memory Layer (RAM)"
+        participant BP as BufferPoolManager
+        participant WAL as WalManager (Buffer)
+    end
+    box rgb(255, 243, 224) "Hard Disk Layer (SSD)"
+        participant DM as DiskManager (.kdb / .klf)
+    end
+
+    ST->>WAL: 1. Ghi nhật ký (LogRecord)
+    WAL->>DM: 2. Flush WAL log (Sync to .klf)
+    
+    ST->>BP: 3. Yêu cầu trang (FetchPage)
+    
+    rect rgb(255, 255, 255)
+        alt Cache Miss (Trang chưa có trong RAM)
+            BP->>DM: 4. Đọc trang vật lý (ReadPage)
+            DM-->>BP: 5. Trả về nhị phân (AES Decrypted)
+        end
+    end
+    
+    BP->>BP: 6. Cập nhật Tuple nội bộ
+    BP->>BP: 7. Đánh dấu Dirty = true
+    
+    Note over BP,DM: Quy trình giải phóng (Eviction)
+    rect rgb(252, 228, 236)
+        opt Nếu Buffer Pool đầy
+            BP->>BP: 8. Chọn trang LRU (Victim)
+            alt Nếu Victim.IsDirty == true
+                BP->>DM: 9. Ghi xuống đĩa (Physical Flush)
+            end
+        end
+    end
+
+    BP-->>ST: 10. Hoàn tất thao tác (Success)

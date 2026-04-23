@@ -1,0 +1,28 @@
+graph TD
+    subgraph Raw_Input [Nhập liệu văn bản]
+        Raw["SELECT name FROM Emp WHERE salary > 70000"]
+    end
+
+    subgraph Lexer_Process [Bóc tách Từ vựng]
+        L1[SELECT]
+        L2[IDENTIFIER: name]
+        L3[FROM]
+        L4[IDENTIFIER: Emp]
+        L5[WHERE]
+        L6[IDENTIFIER: salary]
+        L7[OPERATOR: >]
+        L8[LITERAL: 70000]
+    end
+
+    subgraph Parser_Process [Dựng cây AST]
+        Node1[SelectQueryNode]
+        Node2[SelectClause: 'name']
+        Node3[FromClause: 'Emp']
+        Node4[WhereClause: 'salary > 70000']
+    end
+
+    Raw --> L1 & L2 & L3 & L4 & L5 & L6 & L7 & L8
+    L1 & L2 --> Node2
+    L3 & L4 --> Node3
+    L5 & L6 & L7 & L8 --> Node4
+    Node2 & Node3 & Node4 --> Node1

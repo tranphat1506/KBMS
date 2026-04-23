@@ -1,0 +1,7 @@
+graph TD
+    Rule[Concept Rule/Equation] --> Extract[Extract Needed Variables]
+    Extract --> AlphaNodes[Create/Get AlphaNodes]
+    AlphaNodes --> Chain[Build BetaNode Chain]
+    Chain --> Sync[Left/Right Distributors]
+    Sync --> Filter[FilterNode: Check Hypothesis]
+    Filter --> Terminal[TerminalNode: engine.ApplyConclusion]

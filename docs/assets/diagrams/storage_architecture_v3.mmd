@@ -1,0 +1,25 @@
+graph TD
+    subgraph RAM_Layer [Bộ nhớ đệm - RAM]
+        BPM[Buffer Pool Manager]
+        Page16K[Buffer Page: 16,384 bytes]
+    end
+
+    subgraph Core_Layer [Xử lý Hệ thống]
+        Logic[Truy xuất PageId]
+        Encrypt[Phân hệ Mã hóa AES-256]
+    end
+
+    subgraph Disk_Layer [Lưu trữ Vật lý - Disk]
+        DM[Disk Manager]
+        File[Tệp tin .kdb: N x 16,416 bytes]
+    end
+
+    Logic --> BPM
+    BPM --> Page16K
+    Page16K <--> Encrypt
+    Encrypt <--> DM
+    DM <--> File
+
+    style BPM fill:#e3f2fd,stroke:#1565c0
+    style Encrypt fill:#fff3e0,stroke:#e65100
+    style DM fill:#f1f8e9,stroke:#33691e

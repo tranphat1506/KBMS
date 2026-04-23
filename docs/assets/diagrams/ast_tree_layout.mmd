@@ -1,0 +1,16 @@
+graph TD
+    Root["SelectNode (DML Type)"]
+    
+    Root --- F["Fields: List&lt;Expression&gt;"]
+    Root --- S["Source: ConceptName"]
+    Root --- W["Where: BinaryExpressionNode"]
+    
+    F --- F1["VariableNode: name"]
+    F --- F2["VariableNode: age"]
+    
+    W --- L["VariableNode: age"]
+    W --- Op["Operator: GT (>)"]
+    W --- R["LiteralNode: 18"]
+    
+    style Root fill:#f9f,stroke:#333,stroke-width:4px
+    style F,S,W fill:#bbf,stroke:#333
