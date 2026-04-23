@@ -106,7 +106,6 @@ kbms-studio/dist-electron/
 .venv/
 papers/
 # Irrelevant files and folders
-docs/
 data/
 kbms.ini
 script/
@@ -117,3 +116,4 @@ datasets/
 !README.md
 *.pdf
 *.docx
+*.py
