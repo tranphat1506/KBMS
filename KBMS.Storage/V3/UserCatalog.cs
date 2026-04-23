@@ -346,9 +346,10 @@ public class UserCatalog
         bool modified = false;
         foreach (var user in users)
         {
-            if (user.KbPrivileges.ContainsKey(kbName))
+            var key = user.KbPrivileges.Keys.FirstOrDefault(k => k.Equals(kbName, StringComparison.OrdinalIgnoreCase));
+            if (key != null)
             {
-                user.KbPrivileges.Remove(kbName);
+                user.KbPrivileges.Remove(key);
                 UpdateUser(user);
                 modified = true;
             }

@@ -83,6 +83,13 @@ public class StoragePool : IDisposable
         {
             File.Delete(fullPath);
         }
+
+        // Also delete the WAL file (.wal)
+        string walPath = fullPath + ".wal";
+        if (File.Exists(walPath))
+        {
+            File.Delete(walPath);
+        }
     }
 
     public void Dispose()

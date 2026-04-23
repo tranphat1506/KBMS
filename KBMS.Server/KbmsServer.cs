@@ -459,6 +459,17 @@ public class KbmsServer
                     {
                         _connectionManager.SetSessionKb(clientId, useNode.KbName);
                     }
+                    else if (ast is DropKbNode dropNode)
+                    {
+                        // RC15: If the dropped KB was active in any session, reset it to null
+                        foreach (var s in _connectionManager.GetActiveSessions())
+                        {
+                            if (s.CurrentKb != null && s.CurrentKb.Equals(dropNode.KbName, StringComparison.OrdinalIgnoreCase))
+                            {
+                                s.CurrentKb = null;
+                            }
+                        }
+                    }
                     statementsExecuted++;
                 }
                 catch (Exception ex)
