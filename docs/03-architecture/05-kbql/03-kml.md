@@ -9,12 +9,12 @@ Hành vi chèn sự kiện cho phép nạp các thực thể cụ thể vào m�
 ### 1.1. Chèn thực thể đơn lẻ
 
 ```kbql
-INSERT INTO <concept_name> ATTRIBUTE (<val1>, <val2>, ...);
+INSERT INTO <concept_name> VARIABLES (<val1>, <val2>, ...);
 ```
 
 *Ví dụ:*
 ```kbql
-INSERT INTO Patient ATTRIBUTE ('John Doe', 65, 150, 95);
+INSERT INTO Patient VARIABLES ('John Doe', 65, 150, 95);
 ```
 
 ### 1.2. Chèn thực thể hàng loạt (Bulk Insert)
@@ -22,7 +22,7 @@ INSERT INTO Patient ATTRIBUTE ('John Doe', 65, 150, 95);
 Cơ chế `INSERT BULK` được tối ưu hóa để nạp tập dữ liệu lớn vào hệ thống một cách hiệu quả:
 
 ```kbql
-INSERT BULK INTO <concept_name> ATTRIBUTE (
+INSERT BULK INTO <concept_name> VARIABLES (
     (<val1a>, <val2a>, ...),
     (<val1b>, <val2b>, ...),
     ...
@@ -31,7 +31,7 @@ INSERT BULK INTO <concept_name> ATTRIBUTE (
 
 *Ví dụ:*
 ```kbql
-INSERT BULK INTO Patient ATTRIBUTE (
+INSERT BULK INTO Patient VARIABLES (
     ('Alice', 45, 120, 80),
     ('Bob', 50, 130, 85)
 );
@@ -43,14 +43,14 @@ Lệnh `UPDATE` cho phép sửa đổi giá trị các thuộc tính của các 
 
 ```kbql
 UPDATE <concept_name> 
-ATTRIBUTE (SET <var1>: <new_val1>, <var2>: <new_val2>) 
+VARIABLES (SET <var1>: <new_val1>, <var2>: <new_val2>) 
 WHERE <filter_conditions>;
 ```
 
 *Ví dụ:*
 ```kbql
 UPDATE Patient 
-ATTRIBUTE (SET sys: 125, dia: 82) 
+VARIABLES (SET sys: 125, dia: 82) 
 WHERE name = 'Alice';
 ```
 
@@ -139,12 +139,12 @@ CREATE CONCEPT Patient (
 );
 
 -- Kịch bản 1: Thêm bệnh nhân mới (INSERT đơn lẻ)
-INSERT INTO Patient ATTRIBUTE (
+INSERT INTO Patient VARIABLES (
     'P001', 'Nguyen Van A', 45, 'A+', 120, 80, 72, 36.5, '2026-04-01'
 );
 
 -- Kịch bản 2: Thêm hàng loạt bệnh nhân (BULK INSERT)
-INSERT BULK INTO Patient ATTRIBUTE (
+INSERT BULK INTO Patient VARIABLES (
     ('P002', 'Tran Thi B', 32, 'B+', 115, 75, 68, 36.6, '2026-04-02'),
     ('P003', 'Le Van C', 58, 'O+', 145, 95, 88, 37.2, '2026-04-02'),
     ('P004', 'Pham Thi D', 28, 'AB+', 118, 78, 70, 36.4, '2026-04-03'),
@@ -154,12 +154,12 @@ INSERT BULK INTO Patient ATTRIBUTE (
 -- Kịch bản 3: Cập nhật thông tin bệnh nhân
 -- Cập nhật chỉ số sinh tồn cho bệnh nhân P003
 UPDATE Patient
-ATTRIBUTE (SET sys: 140, dia: 90, heartRate: 85)
+VARIABLES (SET sys: 140, dia: 90, heartRate: 85)
 WHERE patientId = 'P003';
 
 -- Cập nhật nhiều thuộc tính cùng lúc
 UPDATE Patient
-ATTRIBUTE (
+VARIABLES (
     SET sys: 130,
         dia: 85,
         heartRate: 75,
@@ -191,7 +191,7 @@ IMPORT (
 -- Kịch bản 7: Cập nhật hàng loạt (Batch Update)
 -- Đánh dấu tất cả bệnh nhân nguy cấp
 UPDATE Patient
-ATTRIBUTE (SET is_critical: true)
+VARIABLES (SET is_critical: true)
 WHERE sys >= 140 OR dia >= 90 OR heartRate > 100 OR temperature >= 38.0;
 
 -- Kịch bản 8: Xóa hàng loạt (Batch Delete)
@@ -223,7 +223,7 @@ CREATE CONCEPT Product (
 );
 
 -- Nhập hàng mới về kho
-INSERT BULK INTO Product ATTRIBUTE (
+INSERT BULK INTO Product VARIABLES (
     ('PRD001', 'Laptop Dell XPS', 'Electronics', 25000000, 50, 10, 'Dell Vietnam', '2026-04-01'),
     ('PRD002', 'Mouse Logitech', 'Accessories', 500000, 200, 20, 'Logitech', '2026-04-01'),
     ('PRD003', 'Keyboard Mechanical', 'Accessories', 1200000, 100, 15, 'Keychron', '2026-04-02')
@@ -231,7 +231,7 @@ INSERT BULK INTO Product ATTRIBUTE (
 
 -- Cập nhật số tồn kho sau khi bán
 UPDATE Product
-ATTRIBUTE (SET stock: stock - 5)
+VARIABLES (SET stock: stock - 5)
 WHERE productId = 'PRD001';
 
 -- Kiểm tra hàng cần nhập lại

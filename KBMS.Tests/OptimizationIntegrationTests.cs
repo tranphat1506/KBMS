@@ -59,8 +59,8 @@ public class OptimizationIntegrationTests : IDisposable
         Exec("CREATE CONCEPT Person ( VARIABLES ( age: int, name: string ) );");
 
         // 2. Insert Data
-        Exec("INSERT INTO Person ATTRIBUTE ( name: 'Alice', age: 25 );");
-        Exec("INSERT INTO Person ATTRIBUTE ( name: 'Bob', age: 30 );");
+        Exec("INSERT INTO Person VARIABLES ( name: 'Alice', age: 25 );");
+        Exec("INSERT INTO Person VARIABLES ( name: 'Bob', age: 30 );");
 
         // 3. Create Index
         var idxRes = Exec("CREATE INDEX idx_person_age ON Person ( age );");

@@ -490,7 +490,7 @@ CREATE CONCEPT Triangle (
     )
 );
 
-INSERT INTO Triangle ATTRIBUTE (5, 7, 60);
+INSERT INTO Triangle VARIABLES (5, 7, 60);
 
 -- Tìm các tam giác có diện tích > 100
 SELECT sideA, sideB, angleC

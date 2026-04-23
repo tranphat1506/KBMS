@@ -88,7 +88,7 @@ namespace KBMS.Tests
             
             for (int i = 0; i < count; i++)
             {
-                await cli.ExecuteCommandAsync($"INSERT INTO Data ATTRIBUTE ({i}, 'Value_{i}');");
+                await cli.ExecuteCommandAsync($"INSERT INTO Data VARIABLES ({i}, 'Value_{i}');");
             }
             
             watch.Stop();

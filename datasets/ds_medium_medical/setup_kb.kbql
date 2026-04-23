@@ -63,7 +63,7 @@ CREATE RELATION Exhibits FROM Patient TO Symptom;
 
 -- [Data]
 -- Dataset contains 10000 rich patient profiles (20 features).
-INSERT BULK INTO Patient ATTRIBUTE
+INSERT BULK INTO Patient VARIABLES
 ('PAT00000', 'Allison Hill', 'Female', 36, 20.9, 345, 115, 89, 121.3, FALSE, FALSE, 1, 8, 7.7, 65.8, TRUE, 'Basic', 'Normal', '2021-05-24 15:14:07', '2026-03-09 03:59:30'),
 ('PAT00001', 'Stephanie Miller', 'Female', 29, 30.9, 291, 96, 58, 151.8, FALSE, FALSE, 0, 1, 7.5, 117.2, FALSE, 'Basic', 'Normal', '2022-08-21 07:58:03', '2026-01-03 17:13:13'),
 ('PAT00002', 'Jonathan Johnson', 'Female', 60, 20.1, 165, 136, 82, 100.0, TRUE, FALSE, 0, 5, 4.8, 92.3, FALSE, 'Premium', 'Normal', '2021-03-29 23:40:04', '2026-03-01 06:28:13'),

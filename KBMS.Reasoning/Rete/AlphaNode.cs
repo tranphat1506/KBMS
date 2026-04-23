@@ -19,12 +19,13 @@ public class AlphaNode : ReteNode
 
     public override void ReceiveToken(Token token, ReteNode? sender)
     {
-        // Alpha nodes usually receive single-fact tokens from EntryNode
         var fact = token.Facts.LastOrDefault();
+        if (fact != null) Console.WriteLine($"[RETE] AlphaNode({VariableName}) checking fact {fact.Name}={fact.Value}");
         if (fact != null && fact.Name.Equals(VariableName, StringComparison.OrdinalIgnoreCase))
         {
             if (Condition == null || Condition(fact.Value))
             {
+                Console.WriteLine($"[RETE] AlphaNode({VariableName}) matched!");
                 Propagate(token);
             }
         }

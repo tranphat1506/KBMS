@@ -55,6 +55,10 @@ public class InferenceEngine
 
         var effectiveConcept = GetEffectiveConcept(concept);
         var network = new ReteNetwork();
+        foreach (var fact in knownFacts)
+        {
+            network.ExternalFacts[fact.Key] = fact.Value;
+        }
         network.Logger = (msg) => {
             if (msg.StartsWith("Rule ")) result.Steps.Add(msg);
             else result.Steps.Add($"[Rete] {msg}");
@@ -107,7 +111,9 @@ public class InferenceEngine
                         var castedVal = CastToVariableType(fact.Value, variable);
 
                         knownFacts[fact.Name] = castedVal;
+                        network.ExternalFacts[fact.Name] = castedVal;
                         result.DerivedFacts[fact.Name] = castedVal;
+                        Console.WriteLine($"[DEBUG] Derived {fact.Name} = {castedVal}");
                         factAddedThisTurn = true;
                         
                         if (isDifferent) result.Steps.Add($"Step {stepCount++}: Updated [{fact.Name}] = {castedVal}");
@@ -142,6 +148,9 @@ public class InferenceEngine
                                         var fullKey = prefix + derived.Key;
                                         if (!knownFacts.ContainsKey(fullKey) || !ValuesEqual(knownFacts[fullKey], derived.Value))
                                         {
+                                            knownFacts[fullKey] = derived.Value;
+                                            network.ExternalFacts[fullKey] = derived.Value;
+                                            result.DerivedFacts[fullKey] = derived.Value;
                                             network.AssertFact(fullKey, derived.Value);
                                             factAddedThisTurn = true;
                                         }
@@ -185,7 +194,10 @@ public class InferenceEngine
                     if (!EvaluateConstraint(constraint.Expression, knownFacts))
                     {
                         result.Success = false;
-                        result.ErrorMessage = $"Constraint violated: {constraint.Expression}";
+                        var meta = "";
+                        if (!string.IsNullOrEmpty(constraint.Name)) meta += $"{constraint.Name} ";
+                        if (constraint.Line > 0) meta += $"(line {constraint.Line}, col {constraint.Column}) ";
+                        result.ErrorMessage = $"Constraint violated: {meta}{constraint.Expression}";
                         return result;
                     }
                 }
@@ -315,9 +327,13 @@ public class InferenceEngine
         catch { return double.NaN; }
     }
 
-    public object EvaluateFormula(string formula, Dictionary<string, object> parameters, Action<string>? log = null)
+    public object EvaluateFormula(string formula, Dictionary<string, object> parameters)
     {
         if (string.IsNullOrWhiteSpace(formula)) return 0.0;
+        var trimmed = formula.Trim();
+        if (trimmed.StartsWith("'") && trimmed.EndsWith("'") && trimmed.Length >= 2)
+            return trimmed.Substring(1, trimmed.Length - 2);
+
         string cacheKey = formula.Trim('\'').Trim();
 
         if (!_expressionCache.TryGetValue(cacheKey, out var e))
@@ -334,6 +350,13 @@ public class InferenceEngine
             
             var powSafe = _powRegex.Replace(processed, "Pow($1, $2)");
             var safe = _dotRegex.Replace(powSafe, "[$1]");
+            
+            // Convert single-quoted strings to double-quoted for NCalc compatibility
+            if (!safe.Contains("\"") && safe.Contains("'"))
+            {
+                safe = Regex.Replace(safe, @"'([^']*)'", "\"$1\"");
+            }
+            
             e = new NCalc.Expression(safe);
             _expressionCache[cacheKey] = e;
 
@@ -351,7 +374,7 @@ public class InferenceEngine
                         var bp = new Dictionary<string, object>();
                         if (evalArgs.Length >= 1) bp["a"] = evalArgs[0];
                         if (evalArgs.Length >= 2) bp["b"] = evalArgs[1];
-                        args.Result = EvaluateFormula(op.Body, bp, log);
+                        args.Result = EvaluateFormula(op.Body, bp);
                         return;
                     }
                 }
@@ -361,7 +384,7 @@ public class InferenceEngine
                     var evalArgs = args.EvaluateParameters(System.Threading.CancellationToken.None);
                     var bp = new Dictionary<string, object>();
                     for (int i = 0; i < func.Parameters.Count && i < evalArgs.Length; i++) bp[func.Parameters[i].Name] = evalArgs[i];
-                    args.Result = EvaluateFormula(func.Body, bp, log);
+                    args.Result = EvaluateFormula(func.Body, bp);
                 }
             };
         }
@@ -373,12 +396,10 @@ public class InferenceEngine
             else e.Parameters[p.Key] = p.Value;
         }
 
-        try {
-            var res = e.Evaluate();
-            return (res is int or long or double or float or decimal) ? Convert.ToDouble(res) : res;
-        } catch {
-            return 0.0;
-        }
+        var res = e.Evaluate();
+        if (res is double dv && (double.IsInfinity(dv) || double.IsNaN(dv)))
+            throw new Exception("Mathematical error: Infinity or NaN produced.");
+        return (res is int or long or double or float or decimal) ? Convert.ToDouble(res) : res;
     }
 
     public object CastToVariableType(object? val, KBMS.Models.Variable? variable)
@@ -436,9 +457,9 @@ public class InferenceEngine
 
         try {
             var res = e.Evaluate();
-            if (res is bool b) return b;
-            if (res is int or long or double or float or decimal) return Convert.ToDouble(res) != 0;
-            return false;
+            var b = (res is bool val) ? val : (res is int or long or double or float or decimal) ? Convert.ToDouble(res) != 0 : false;
+            if (!b) Console.WriteLine($"[DEBUG] Constraint failed: {expr} with facts: {string.Join(", ", parameters.Select(k => k.Key + "=" + k.Value))}");
+            return b;
         } catch { return false; }
     }
 
@@ -467,7 +488,7 @@ public class InferenceEngine
     public List<string> ExtractVariablesFromExpression(string expression)
     {
         if (string.IsNullOrWhiteSpace(expression)) return new List<string>();
-        var cleaned = Regex.Replace(expression.Trim('\''), @"'[^']*'|""[^""]*""", " ");
+        var cleaned = Regex.Replace(expression, @"'[^']*'|""[^""]*""", " ");
         var vars = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var funcs = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { 
             "Abs", "Acos", "Asin", "Atan", "Atan2", "Ceiling", "Cos", "Cosh", "Exp", "Floor", "Log", "Log10", 
@@ -506,14 +527,30 @@ public class InferenceEngine
 
     public bool ApplyConclusion(string conclusion, Concept concept, Dictionary<string, object> knownFacts, ReasoningResult result, string ruleKind, int? stepNumber = null)
     {
-        var t = conclusion.Trim(' ', '(', ')').Replace("SET ", "", StringComparison.OrdinalIgnoreCase);
+        // Trim only leading/trailing spaces, then remove SET keyword
+        // Do NOT Trim('(', ')') as that breaks function calls like GravityForce(...)
+        var t = conclusion.Trim();
+        // Remove optional outer parentheses only if the whole string is wrapped
+        if (t.StartsWith("(") && t.EndsWith(")")) {
+            // Verify it's a wrapping paren, not part of expression
+            int depth = 0;
+            bool isWrapper = true;
+            for (int ci = 0; ci < t.Length - 1; ci++) {
+                if (t[ci] == '(') depth++;
+                else if (t[ci] == ')') depth--;
+                if (depth == 0 && ci < t.Length - 1) { isWrapper = false; break; }
+            }
+            if (isWrapper) t = t.Substring(1, t.Length - 2).Trim();
+        }
+        t = Regex.Replace(t, @"^SET\s+", "", RegexOptions.IgnoreCase);
         var idx = t.IndexOfAny(new[] { '=', ':' });
         bool isAssignment = idx > 0 && (idx == t.Length - 1 || (t[idx - 1] != '!' && t[idx - 1] != '<' && t[idx - 1] != '>'));
         if (isAssignment && idx < t.Length - 1 && t[idx+1] == '=') isAssignment = false;
 
         if (isAssignment) {
             var varName = t.Substring(0, idx).Trim();
-            var valRaw = EvaluateFormula(t.Substring(idx + 1).Trim(), knownFacts);
+            var formula = t.Substring(idx + 1).Trim();
+            var valRaw = EvaluateFormula(formula, knownFacts);
             var castedVal = CastToVariableType(valRaw, concept.Variables.FirstOrDefault(v => v.Name.Equals(varName, StringComparison.OrdinalIgnoreCase)));
             if (knownFacts.ContainsKey(varName) && ValuesEqual(knownFacts[varName], castedVal)) return false;
             knownFacts[varName] = castedVal;

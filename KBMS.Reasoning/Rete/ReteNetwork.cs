@@ -13,6 +13,8 @@ public class ReteNetwork
     public List<Fact> WorkingMemory { get; } = new();
     public List<(TerminalNode Node, Token Token)> Agenda { get; } = new();
     public Action<string>? Logger { get; set; }
+    /// <summary>External facts not in Rete (no AlphaNode), merged during rule firing.</summary>
+    public Dictionary<string, object> ExternalFacts { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     // Map to keep track of AlphaNodes to share them (Optimization)
     private readonly Dictionary<string, AlphaNode> _alphaNodes = new(StringComparer.OrdinalIgnoreCase);

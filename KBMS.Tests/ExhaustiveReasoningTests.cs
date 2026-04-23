@@ -62,7 +62,7 @@ namespace KBMS.Tests
                 "ADD HIERARCHY Planet IS_A SpaceBody;",
 
                 // 4. Object Context
-                "INSERT INTO SpaceBody ATTRIBUTE (name: 'StarX', mass: 1000000.0);",
+                "INSERT INTO SpaceBody VARIABLES (name: 'StarX', mass: 1000000.0);",
 
                 // 5. Rule (R) with Hierarchy Inherited Property
                 // mass is inherited from SpaceBody
@@ -135,7 +135,7 @@ namespace KBMS.Tests
 
             // Phase A: Create Planet, testing IS_A and Rules
             string pName = $"Planet_{id}";
-            await cli.ExecuteCommandAsync($"INSERT INTO Planet ATTRIBUTE (name: '{pName}', mass: {pMass}, radius: {pRadius});");
+            await cli.ExecuteCommandAsync($"INSERT INTO Planet VARIABLES (name: '{pName}', mass: {pMass}, radius: {pRadius});");
             
             var res1 = await cli.ExecuteCommandAsync($"SELECT SOLVE(isGas) FROM Planet WHERE name = '{pName}';");
             var out1 = res1.Content;
@@ -147,7 +147,7 @@ namespace KBMS.Tests
             }
 
             // Phase B: Create Orbit System using inherited data, testing Equations and Functions
-            await cli.ExecuteCommandAsync($"INSERT INTO OrbitSystem ATTRIBUTE (pName: '{pName}', pMass: {pMass}, pRadius: {pRadius}, distance: {distance});");
+            await cli.ExecuteCommandAsync($"INSERT INTO OrbitSystem VARIABLES (pName: '{pName}', pMass: {pMass}, pRadius: {pRadius}, distance: {distance});");
             
             var res2 = await cli.ExecuteCommandAsync($"SELECT distance, SOLVE(force) FROM OrbitSystem WHERE pName = '{pName}';");
             var out2 = res2.Content;
@@ -156,6 +156,10 @@ namespace KBMS.Tests
             Assert.Equal(MessageType.RESULT, res2.Type);
             // Since double serialization has precision quirks in C#, we check the integer part
             string expectedIntPart = ((int)expectedForce).ToString();
+            if (!out2.Contains(expectedIntPart)) {
+                Console.WriteLine($"[DEBUG] out2: {out2}");
+                Console.WriteLine($"[DEBUG] expectedIntPart: {expectedIntPart}");
+            }
             Assert.Contains(expectedIntPart, out2);
 
             await cli.DisconnectAsync();

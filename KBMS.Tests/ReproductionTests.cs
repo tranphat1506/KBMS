@@ -60,7 +60,7 @@ public class ReproductionTests : IAsyncLifetime
         await _cli!.ExecuteCommandAsync("CREATE KNOWLEDGE BASE ReproKB;");
         await _cli.ExecuteCommandAsync("USE ReproKB;");
         await _cli.ExecuteCommandAsync("CREATE CONCEPT Product (VARIABLES(id: INT, price: DECIMAL, stock: INT));");
-        await _cli.ExecuteCommandAsync("INSERT INTO Product ATTRIBUTE (1, 100, 10);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Product VARIABLES (1, 100, 10);");
 
         // 1. Simple expression with alias
         var res1 = await _cli.ExecuteCommandAsync("SELECT p.price * 1.1 AS Result FROM Product p;");
@@ -106,9 +106,9 @@ public class ReproductionTests : IAsyncLifetime
 
         // 7. JOIN with shorthand alias and newlines (from full_test.kbql)
         await _cli.ExecuteCommandAsync("CREATE CONCEPT Dept (VARIABLES(id: INT, name: STRING));");
-        await _cli.ExecuteCommandAsync("INSERT INTO Dept ATTRIBUTE (1, 'IT');");
+        await _cli.ExecuteCommandAsync("INSERT INTO Dept VARIABLES (1, 'IT');");
         await _cli.ExecuteCommandAsync("CREATE CONCEPT Emp (VARIABLES(id: INT, name: STRING, dept_id: INT));");
-        await _cli.ExecuteCommandAsync("INSERT INTO Emp ATTRIBUTE (1, 'Alice', 1);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Emp VARIABLES (1, 'Alice', 1);");
 
         var joinQuery = @"
 SELECT 

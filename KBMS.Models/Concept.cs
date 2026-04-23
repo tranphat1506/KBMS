@@ -33,6 +33,8 @@ public class Variable
     public string Type { get; set; } = string.Empty;
     public int? Length { get; set; }
     public int? Scale { get; set; }
+    public bool IsReference { get; set; } = false;
+    public string? ReferenceConceptName { get; set; }
 }
 
 public class Constraint

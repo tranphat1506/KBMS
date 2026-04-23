@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using KBMS.Models;
 
 namespace KBMS.Reasoning.Rete;
@@ -42,6 +43,12 @@ public class ReteCompiler
             CompileComputation(concept, rel);
         }
 
+        // (RC16) Compile ConstructRelations
+        foreach (var cr in concept.ConstructRelations)
+        {
+            CompileConstructRelation(concept, cr);
+        }
+
         // 4. Compile SameVariables
         foreach (var sv in concept.SameVariables)
         {
@@ -75,45 +82,50 @@ public class ReteCompiler
         // In reality, Rete is more complex. For this MVP, let's treat variables as facts.
 
         // (RC6.1) Identify vars in hypothesis as triggers
-        var neededVars = rule.Hypothesis.SelectMany(h => _engine.ExtractVariablesFromExpression(h)).Distinct().ToList();
+        // (RC6.1) Identify vars in hypothesis as triggers
+        var neededVars = _engine.ExtractVariablesFromExpression(string.Join(" and ", rule.Hypothesis)).Distinct().ToList();
 
-        if (!neededVars.Any()) return;
         // Build the chain
-        ReteNode? lastNode = null;
+        ReteNode lastNode = _network.Root;
 
-        for (int i = 0; i < neededVars.Count; i++)
+        if (neededVars.Any())
         {
-            var alpha = _network.GetOrCreateAlphaNode(neededVars[i]);
-
-            if (i == 0)
+            for (int i = 0; i < neededVars.Count; i++)
             {
-                lastNode = alpha;
-            }
-            else
-            {
-                var beta = new BetaNode();
-                beta.LeftParent = lastNode;
-                beta.RightParent = alpha;
+                var alpha = _network.GetOrCreateAlphaNode(neededVars[i]);
 
-                // Link Beta to its parents
-                lastNode!.AddChild(new LeftDistributor(beta));
-                alpha.AddChild(new RightDistributor(beta));
+                if (i == 0)
+                {
+                    lastNode = alpha;
+                }
+                else
+                {
+                    var beta = new BetaNode();
+                    beta.LeftParent = lastNode;
+                    beta.RightParent = alpha;
 
-                lastNode = beta;
+                    // Link Beta to its parents
+                    lastNode!.AddChild(new LeftDistributor(beta));
+                    alpha.AddChild(new RightDistributor(beta));
+
+                    lastNode = beta;
+                }
             }
         }
 
+        var ruleName = rule.Kind ?? "R" + (concept.ConceptRules.IndexOf(rule) + 1);
         // Final condition check node (Special Alpha/Beta to verify hypothesis)
         var filterNode = new FilterNode(token => {
             var facts = token.ToDictionary();
-            return rule.Hypothesis.All(h => {
+            bool allMet = rule.Hypothesis.All(h => {
                 try { return _engine.EvaluateConstraint(h, facts); } catch { return false; }
             });
+            if (!allMet) Console.WriteLine($"[RETE] Rule {ruleName} filter failed. Facts: {string.Join(", ", facts.Select(k => k.Key + "=" + k.Value))}");
+            return allMet;
         });
 
         lastNode!.AddChild(filterNode);
 
-        var ruleName = rule.Kind ?? "R" + (concept.ConceptRules.IndexOf(rule) + 1);
         var terminalAction = new Action<Token>(token => {
             // Build fact context for conclusion execution
             // Start with facts that triggered the rule (from Token)
@@ -125,16 +137,31 @@ public class ReteCompiler
             {
                 if (!facts.ContainsKey(f.Name)) facts[f.Name] = f.Value;
             }
-
-            var res = new InferenceEngine.ReasoningResult();
-            foreach (var concl in rule.Conclusion)
+            foreach (var kv in _network.ExternalFacts)
             {
-                _engine.ApplyConclusion(concl, concept, facts, res, ruleName);
-                foreach (var derived in res.DerivedFacts)
+                if (!facts.ContainsKey(kv.Key)) facts[kv.Key] = kv.Value;
+            }
+
+            Console.WriteLine($"[RETE] Rule {ruleName} firing. Facts: {string.Join(", ", facts.Select(k => k.Key + "=" + k.Value))}");
+
+            try
+            {
+                var res = new InferenceEngine.ReasoningResult();
+                foreach (var concl in rule.Conclusion)
                 {
-                    _network.AssertFact(derived.Key, derived.Value);
-                    _network.Logger?.Invoke($"Rule {ruleName} resolved {derived.Key}");
+                    _engine.ApplyConclusion(concl, concept, facts, res, ruleName);
+                    foreach (var derived in res.DerivedFacts)
+                    {
+                        _network.AssertFact(derived.Key, derived.Value);
+                        _network.Logger?.Invoke($"Rule {ruleName} resolved {derived.Key}");
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                _network.Logger?.Invoke($"Rule {ruleName} failed: {ex.Message}");
+                // If it's a math error we want to propagate, we might need a way to signal the engine
+                throw; 
             }
         });
         var terminal = new TerminalNode(ruleName, terminalAction);
@@ -329,6 +356,12 @@ public class ReteCompiler
 
             var terminalAction = new Action<Token>(token => {
                 var facts = token.ToDictionary();
+                // Supplement with working memory and external facts
+                foreach (var f in _network.WorkingMemory)
+                    if (!facts.ContainsKey(f.Name)) facts[f.Name] = f.Value;
+                foreach (var kv in _network.ExternalFacts)
+                    if (!facts.ContainsKey(kv.Key)) facts[kv.Key] = kv.Value;
+
                 // ONLY solve if target is not in local token facts AND not in global WorkingMemory
                 bool isKnownGlobally = _network.WorkingMemory.Any(f => f.Name.Equals(target, StringComparison.OrdinalIgnoreCase));
                 if (!facts.ContainsKey(target) && !isKnownGlobally)
@@ -393,6 +426,43 @@ public class ReteCompiler
 
         var terminal = new TerminalNode($"Comp:{rel.Expression}", terminalAction);
         lastNode?.AddChild(terminal);
+    }
+
+    private void CompileConstructRelation(Concept concept, ConstructRelation cr)
+    {
+        var rel = _engine.RelationResolver?.Invoke(cr.RelationName);
+        if (rel == null) return;
+
+        foreach (var eq in rel.Equations)
+        {
+            // Map relation equation variables to concept context
+            // e.g. total.r = c1.r + c2.r
+            // If Arguments = [r1, r2, this], then c1->r1, c2->r2, total->this
+            var mappedExpr = eq.Expression;
+            for (int i = 0; i < rel.ParamNames.Count && i < cr.Arguments.Count; i++)
+            {
+                var param = rel.ParamNames[i];
+                var arg = cr.Arguments[i];
+                
+                if (arg.Equals("this", StringComparison.OrdinalIgnoreCase))
+                {
+                    // total.r -> r (if it's a direct property)
+                    // Wait! The test has total_r mapped to this.r.
+                    // If we map total.r to r, it might not match total_r.
+                    // But SameVariables will bridge it!
+                    mappedExpr = Regex.Replace(mappedExpr, @"\b" + Regex.Escape(param) + @"\.", "this.");
+                }
+                else
+                {
+                    // c1.r -> r1.r
+                    mappedExpr = Regex.Replace(mappedExpr, @"\b" + Regex.Escape(param) + @"\.", arg + ".");
+                }
+            }
+
+            // Now we have a mapped equation, e.g., this.r = r1.r + r2.r
+            // Compile it as a normal equation in this concept
+            CompileEquation(concept, new Equation { Expression = mappedExpr });
+        }
     }
 
     private void CompileSameVariable(Concept concept, SameVariable sv)

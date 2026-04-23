@@ -347,8 +347,10 @@ public class Parser
                 Advance();
                 break;
             case TokenType.IDENTIFIER:
-                // Keep original case for concept-type references (e.g., Point, Triangle)
+                // Concept-type references (e.g., Point, Triangle)
                 varDef.Type = typeToken.Lexeme;
+                varDef.IsReference = true;
+                varDef.ReferenceConceptName = typeToken.Lexeme;
                 Advance();
                 break;
             default:
@@ -2109,7 +2111,7 @@ public class Parser
             Column = token.Column
         };
 
-        Consume(TokenType.ATTRIBUTE);
+        Consume(TokenType.VARIABLES);
         Consume(TokenType.LPAREN);
 
         int positionIndex = 0;
@@ -2164,9 +2166,9 @@ public class Parser
         bulkNode.ConceptName = conceptToken.Lexeme;
 
         // Consume ATTRIBUTES or ATTRIBUTE
-        if (!Check(TokenType.ATTRIBUTE))
+        if (!Check(TokenType.VARIABLES))
             throw Error("Expected ATTRIBUTES after concept name");
-        Consume(TokenType.ATTRIBUTE);
+        Consume(TokenType.VARIABLES);
 
         // Parse one or more row groups: (...), (...), ...
         do
@@ -2232,7 +2234,7 @@ public class Parser
             Column = token.Column
         };
 
-        Consume(TokenType.ATTRIBUTE);
+        Consume(TokenType.VARIABLES);
         Consume(TokenType.LPAREN);
 
         // Parse values - support both positional and named syntax
@@ -2339,7 +2341,7 @@ public class Parser
             Column = token.Column
         };
 
-        Consume(TokenType.ATTRIBUTE);
+        Consume(TokenType.VARIABLES);
         Consume(TokenType.LPAREN);
         Consume(TokenType.SET);
 

@@ -104,3 +104,4 @@ kbms-studio/dist/
 kbms-studio/dist-electron/
 
 .venv/
+papers/

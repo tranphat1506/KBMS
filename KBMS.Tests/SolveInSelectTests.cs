@@ -74,9 +74,9 @@ public class SolveInSelectTests : IAsyncLifetime
             "CREATE RULE CheckNormal SCOPE Patient IF sys < 140 AND dia < 90 THEN SET is_hypertension = false;");
 
         // 3. Insert Raw Data
-        await _cli.ExecuteCommandAsync("INSERT INTO Patient ATTRIBUTE (name: 'John', age: 45, sys: 120, dia: 80);");
-        await _cli.ExecuteCommandAsync("INSERT INTO Patient ATTRIBUTE (name: 'Mary', age: 60, sys: 145, dia: 85);");
-        await _cli.ExecuteCommandAsync("INSERT INTO Patient ATTRIBUTE (name: 'Bob', age: 55, sys: 130, dia: 95);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Patient VARIABLES (name: 'John', age: 45, sys: 120, dia: 80);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Patient VARIABLES (name: 'Mary', age: 60, sys: 145, dia: 85);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Patient VARIABLES (name: 'Bob', age: 55, sys: 130, dia: 95);");
 
         // 4. Query with On-the-Fly SOLVE Macro
         var sw = new System.IO.StringWriter();

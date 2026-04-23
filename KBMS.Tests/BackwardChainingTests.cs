@@ -79,7 +79,7 @@ public class BackwardChainingTests : IAsyncLifetime
         await _cli.ExecuteCommandAsync("CREATE RULE R2 SCOPE Student IF honor = 'High' THEN SET gifted = true;");
 
         // Insert base fact
-        await _cli.ExecuteCommandAsync("INSERT INTO Student ATTRIBUTE(name: 'Charlie', grade: 95);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Student VARIABLES(name: 'Charlie', grade: 95);");
 
         // Test SOLVE via SELECT
         var res = await _cli.ExecuteCommandAsync("SELECT name, SOLVE(honor), SOLVE(gifted) FROM Student WHERE name = 'Charlie';");
@@ -100,7 +100,7 @@ public class BackwardChainingTests : IAsyncLifetime
         await _cli.ExecuteCommandAsync("CREATE RULE R1 SCOPE Student IF grade >= 90 THEN SET gifted = true;");
 
         // Insert base fact with low grade
-        await _cli.ExecuteCommandAsync("INSERT INTO Student ATTRIBUTE(name: 'Bob', grade: 80);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Student VARIABLES(name: 'Bob', grade: 80);");
 
         // Goal cannot be met because grade is too low
         var res = await _cli.ExecuteCommandAsync("SELECT SOLVE(gifted) FROM Student WHERE name = 'Bob';");
@@ -122,14 +122,14 @@ public class BackwardChainingTests : IAsyncLifetime
         await _cli.ExecuteCommandAsync("CREATE RULE R_B_to_A SCOPE Node IF b = true THEN SET a = true;");
 
         // Case 1: a=true given via INSERT
-        await _cli.ExecuteCommandAsync("INSERT INTO Node ATTRIBUTE(id: 'N1', a: true);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Node VARIABLES(id: 'N1', a: true);");
         var res = await _cli.ExecuteCommandAsync("SELECT SOLVE(b) FROM Node WHERE id = 'N1';");
         
         // Should resolve because a=true is in DB
         Assert.Contains("true", res!.Content.ToLower());
 
         // Case 2: No base facts triggering the circle
-        await _cli.ExecuteCommandAsync("INSERT INTO Node ATTRIBUTE(id: 'N2', a: false);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Node VARIABLES(id: 'N2', a: false);");
         var res2 = await _cli.ExecuteCommandAsync("SELECT SOLVE(b) FROM Node WHERE id = 'N2';");
         
         // Should not resolve b

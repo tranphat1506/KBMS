@@ -470,13 +470,29 @@ public static class ModelBinaryUtility
         bw.Write(v.Type ?? string.Empty);
         bw.Write(v.Length.HasValue); if (v.Length.HasValue) bw.Write(v.Length.Value);
         bw.Write(v.Scale.HasValue);  if (v.Scale.HasValue) bw.Write(v.Scale.Value);
+        bw.Write(v.IsReference);
+        WriteNullableString(bw, v.ReferenceConceptName);
     }
-    private static Variable ReadVariable(BinaryReader br) => new Variable {
-        Name = br.ReadString(),
-        Type = br.ReadString(),
-        Length = br.ReadBoolean() ? br.ReadInt32() : null,
-        Scale = br.ReadBoolean() ? br.ReadInt32() : null
-    };
+    private static Variable ReadVariable(BinaryReader br)
+    {
+        var v = new Variable {
+            Name = br.ReadString(),
+            Type = br.ReadString(),
+            Length = br.ReadBoolean() ? br.ReadInt32() : null,
+            Scale = br.ReadBoolean() ? br.ReadInt32() : null
+        };
+        try 
+        {
+            // Handle backward compatibility since we added fields to an existing V3 binary layout
+            v.IsReference = br.ReadBoolean();
+            v.ReferenceConceptName = ReadNullableString(br);
+        }
+        catch (EndOfStreamException) 
+        {
+            // Old binary format didn't have IsReference
+        }
+        return v;
+    }
 
     // -- Constraint --
     private static void WriteConstraint(BinaryWriter bw, Constraint c)

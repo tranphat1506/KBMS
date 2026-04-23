@@ -14,7 +14,7 @@ CREATE RULE CalcHighBP SCOPE Patient IF sys > 140 OR dia > 90 THEN SET is_hypert
 -   **Truy vấn nội suy**:
 ```kbql
 -- Nạp dữ liệu cơ sở
-INSERT INTO Patient ATTRIBUTE ('John Doe', 150, 95);
+INSERT INTO Patient VARIABLES ('John Doe', 150, 95);
 
 -- Y cầu nội suy biến 'is_hypertension' trực tiếp trong kết quả
 SELECT name, SOLVE(is_hypertension) FROM Patient;
@@ -38,7 +38,7 @@ CREATE RULE CalcForce SCOPE PhysicsBody IF m1 > 0 AND m2 > 0 THEN SET f = Grav(m
 -   **Truy vấn nội suy**:
 ```kbql
 -- Nạp dữ liệu (biết f, m1, m2, cần tìm r)
-INSERT INTO PhysicsBody ATTRIBUTE (100.0, 50.0, 0, 0.005);
+INSERT INTO PhysicsBody VARIABLES (100.0, 50.0, 0, 0.005);
 
 -- Kích hoạt bộ giải EquationResolver cho biến 'r'
 SELECT SOLVE(r) FROM PhysicsBody;

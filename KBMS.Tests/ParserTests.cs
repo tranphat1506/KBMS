@@ -465,7 +465,7 @@ public class ParserTests
     [Fact]
     public void Parser_Insert_ShouldParseCorrectly()
     {
-        var node = ParseStatement("INSERT INTO Person ATTRIBUTE (name: 'John', age: 30);");
+        var node = ParseStatement("INSERT INTO Person VARIABLES (name: 'John', age: 30);");
 
         Assert.NotNull(node);
         Assert.IsType<InsertNode>(node);
@@ -483,7 +483,7 @@ public class ParserTests
     [Fact]
     public void Parser_Update_ShouldParseCorrectly()
     {
-        var node = ParseStatement("UPDATE Person ATTRIBUTE (SET age: 31) WHERE name = 'John';");
+        var node = ParseStatement("UPDATE Person VARIABLES (SET age: 31) WHERE name = 'John';");
 
         Assert.NotNull(node);
         Assert.IsType<UpdateNode>(node);

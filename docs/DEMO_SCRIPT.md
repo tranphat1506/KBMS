@@ -90,7 +90,7 @@ CREATE CONCEPT Triangle (
 
 ### Demo INSERT:
 ```kbql
-INSERT INTO Triangle ATTRIBUTE (a: 3, b: 4, c: 5);
+INSERT INTO Triangle VARIABLES (a: 3, b: 4, c: 5);
 ```
 **Nói:** "Chỉ nhập 3 cạnh a, b, c. Perimeter và area CHƯA CÓ."
 
@@ -107,7 +107,7 @@ SELECT a, b, c, SOLVE(perimeter), SOLVE(area) FROM Triangle;
 
 ### Ngược lại - Tìm cạnh từ diện tích:
 ```kbql
-INSERT INTO Triangle ATTRIBUTE (a: 3, b: 4, area: 6);
+INSERT INTO Triangle VARIABLES (a: 3, b: 4, area: 6);
 SELECT a, b, SOLVE(c), SOLVE(perimeter) FROM Triangle WHERE area = 6;
 ```
 **Nói:** "Nhập diện tích = 6, hệ thống GIẢI NGƯỢC để tìm c = 5. Đây là khả năng symbolic reasoning."
@@ -134,7 +134,7 @@ PRIORITY 60;
 
 ### Thêm bệnh nhân:
 ```kbql
-INSERT INTO Patient ATTRIBUTE (
+INSERT INTO Patient VARIABLES (
     patientId: 'P001',
     name: 'Nguyen Van A',
     age: 65,
@@ -168,7 +168,7 @@ ADD HIERARCHY Doctor IS_A Person;
 **Nói:** "Doctor IS_A Person - kế thừa thuộc tính. Tương tự inheritance trong OOP nhưng ở mức data model."
 
 ```kbql
-INSERT INTO Doctor ATTRIBUTE (id: 'D001', name: 'Dr. Smith', age: 45, specialty: 'Cardiology', licenseNumber: 'MD123');
+INSERT INTO Doctor VARIABLES (id: 'D001', name: 'Dr. Smith', age: 45, specialty: 'Cardiology', licenseNumber: 'MD123');
 SELECT * FROM Doctor;
 ```
 
@@ -186,7 +186,7 @@ CREATE CONCEPT LabResult (
     )
 );
 
-INSERT INTO LabResult ATTRIBUTE (resultId: 'L001', patientId: 'P001', bloodSugar: 180, cholesterol: 250);
+INSERT INTO LabResult VARIABLES (resultId: 'L001', patientId: 'P001', bloodSugar: 180, cholesterol: 250);
 ```
 
 ### Multi-concept rule:

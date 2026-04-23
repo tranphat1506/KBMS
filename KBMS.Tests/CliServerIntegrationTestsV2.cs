@@ -97,12 +97,12 @@ public class CliServerIntegrationTestsV2 : IAsyncLifetime
         Assert.Equal(MessageType.RESULT, res1!.Type);
 
         // 3. KML: Insert
-        var insertQuery = "INSERT INTO Rectangle ATTRIBUTE ( id:'R1', width:5.0, height:10.0, area:50.0, perimeter:30.0 );";
+        var insertQuery = "INSERT INTO Rectangle VARIABLES ( id:'R1', width:5.0, height:10.0, area:50.0, perimeter:30.0 );";
         var res2 = await _cli.ExecuteCommandAsync(insertQuery);
         Assert.Equal(MessageType.RESULT, res2!.Type);
 
         // 4. KQL: SOLVE using SELECT function call
-        await _cli.ExecuteCommandAsync("INSERT INTO Rectangle ATTRIBUTE ( id:'R2', width:2.0, height:4.0 );");
+        await _cli.ExecuteCommandAsync("INSERT INTO Rectangle VARIABLES ( id:'R2', width:2.0, height:4.0 );");
         var res3 = await _cli.ExecuteCommandAsync("SELECT SOLVE(area), SOLVE(perimeter) FROM Rectangle WHERE id = 'R2';");
         Assert.Equal(MessageType.RESULT, res3!.Type);
         Assert.Contains("8", res3.Content); // area = 8
@@ -122,7 +122,7 @@ public class CliServerIntegrationTestsV2 : IAsyncLifetime
         await _cli.ExecuteCommandAsync("BEGIN TRANSACTION;");
 
         // 3. Insert in Transaction
-        await _cli.ExecuteCommandAsync("INSERT INTO Counter ATTRIBUTE (val:100);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Counter VARIABLES (val:100);");
         
         // 4. Verify shadow visibility
         var select1 = await _cli.ExecuteCommandAsync("SELECT * FROM Counter;");
@@ -137,7 +137,7 @@ public class CliServerIntegrationTestsV2 : IAsyncLifetime
         
         // 7. Successive Commit
         await _cli.ExecuteCommandAsync("BEGIN TRANSACTION;");
-        await _cli.ExecuteCommandAsync("INSERT INTO Counter ATTRIBUTE (val:200);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Counter VARIABLES (val:200);");
         await _cli.ExecuteCommandAsync("COMMIT;");
         
         var select3 = await _cli.ExecuteCommandAsync("SELECT * FROM Counter;");
@@ -168,10 +168,10 @@ public class CliServerIntegrationTestsV2 : IAsyncLifetime
         await _cli.ExecuteCommandAsync("ADD HIERARCHY Circle IS_A Shape;");
 
         // 4. Insert (must respect constraints now!)
-        await _cli.ExecuteCommandAsync("INSERT INTO Circle ATTRIBUTE (id:'C1', radius:2.0, area:12.56636);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Circle VARIABLES (id:'C1', radius:2.0, area:12.56636);");
 
         // 5. SOLVE
-        await _cli.ExecuteCommandAsync("INSERT INTO Circle ATTRIBUTE (id:'C2', radius:3.0);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Circle VARIABLES (id:'C2', radius:3.0);");
         var res = await _cli.ExecuteCommandAsync("SELECT SOLVE(area) FROM Circle WHERE id = 'C2';");
         Assert.Contains("28", res!.Content); // area = 28.274...
     }

@@ -50,7 +50,8 @@ public class Lexer
         { "UPDATE", TokenType.UPDATE },
         { "DELETE", TokenType.DELETE },
         { "SHOW", TokenType.SHOW },
-        { "ATTRIBUTE", TokenType.ATTRIBUTE },
+        { "ATTRIBUTE", TokenType.VARIABLES },
+
         { "INDEX", TokenType.INDEX },
         { "EXPLAIN", TokenType.EXPLAIN },
         { "DESCRIBE", TokenType.DESCRIBE },

@@ -84,7 +84,7 @@ namespace KBMS.Tests
             await RunCmd("CREATE RULE R_DeanList SCOPE Student IF gpa >= 3.8 AND behavior >= 90 AND credits >= 15 THEN SET status = 'DeanList';");
 
             // Insert base facts
-            await RunCmd("INSERT INTO Student ATTRIBUTE(name: 'Le Phat', gpa: 3.9, behavior: 95, credits: 18);");
+            await RunCmd("INSERT INTO Student VARIABLES(name: 'Le Phat', gpa: 3.9, behavior: 95, credits: 18);");
             
             // Reason via SELECT SOLVE
             var res = await _cli.ExecuteCommandAsync("SELECT SOLVE(status) FROM Student WHERE name = 'Le Phat';");
@@ -103,7 +103,7 @@ namespace KBMS.Tests
             await RunCmd("CREATE RULE R_CardiacRisk SCOPE Patient IF p_age > 60 AND p_bmi > 30 THEN SET p_risk = 'High';");
 
             // Insert base facts
-            await RunCmd("INSERT INTO Patient ATTRIBUTE(p_id: 'P1', p_age: 65, p_bmi: 32.5);");
+            await RunCmd("INSERT INTO Patient VARIABLES(p_id: 'P1', p_age: 65, p_bmi: 32.5);");
             
             // Reason via SELECT SOLVE
             var res = await _cli.ExecuteCommandAsync("SELECT SOLVE(p_risk) FROM Patient WHERE p_id = 'P1';");
@@ -124,7 +124,7 @@ namespace KBMS.Tests
             await RunCmd("CREATE RULE R_Right SCOPE Triangle IF (ta*ta + tb*tb) = (tc*tc) THEN SET t_type = 'RightTriangle';");
 
             // Insert base facts
-            await RunCmd("INSERT INTO Triangle ATTRIBUTE(ta: 3.0, tb: 4.0, tc: 5.0);");
+            await RunCmd("INSERT INTO Triangle VARIABLES(ta: 3.0, tb: 4.0, tc: 5.0);");
             
             // Reason via SELECT SOLVE
             var res = await _cli.ExecuteCommandAsync("SELECT SOLVE(t_type) FROM Triangle WHERE ta = 3.0;");
@@ -148,7 +148,7 @@ namespace KBMS.Tests
             await RunCmd("CREATE RULE R_Jam SCOPE Sensor IF speed < 10 THEN SET id = 'JAMMED';");
 
             // Insert base facts
-            await RunCmd("INSERT INTO Sensor ATTRIBUTE(id: 'S1', speed: 5, zid: 'Z1');");
+            await RunCmd("INSERT INTO Sensor VARIABLES(id: 'S1', speed: 5, zid: 'Z1');");
             
             // Reason via SELECT SOLVE
             var res = await _cli.ExecuteCommandAsync("SELECT SOLVE(id) FROM Sensor WHERE zid = 'Z1';");

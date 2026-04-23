@@ -28,7 +28,7 @@ public class SystemV3PersistenceTests
             await cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE persist_db;");
             await cli.ExecuteCommandAsync("USE persist_db;");
             await cli.ExecuteCommandAsync("CREATE CONCEPT Person (id: INT, name: STRING, age: INT);");
-            await cli.ExecuteCommandAsync("INSERT INTO Person ATTRIBUTE (1, 'Le Chau', 23);");
+            await cli.ExecuteCommandAsync("INSERT INTO Person VARIABLES (1, 'Le Chau', 23);");
             
             await cli.DisconnectAsync();
             server.Stop();

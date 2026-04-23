@@ -42,7 +42,7 @@ public class KnowledgeUpdateTests
         };
         router.InsertObject(kbName, obj);
 
-        // Create update node: UPDATE Product ATTRIBUTE (SET stock: stock - 1) WHERE id = 101
+        // Create update node: UPDATE Product VARIABLES (SET stock: stock - 1) WHERE id = 101
         var updateNode = new UpdateNode {
             ConceptName = "Product",
             SetValues = new Dictionary<string, ExpressionNode> {

@@ -60,7 +60,7 @@ public class ExhaustiveAlterIntegrationTests : IDisposable
         Exec("CREATE CONCEPT Person ( VARIABLES ( name: string ) );", "TestKB");
         
         // 2. Insert initial data
-        Exec("INSERT INTO Person ATTRIBUTE ( name: 'Alice' );", "TestKB");
+        Exec("INSERT INTO Person VARIABLES ( name: 'Alice' );", "TestKB");
 
         // 3. ALTER: Add variable, Rename variable, Add constraint
         var alterQuery = @"

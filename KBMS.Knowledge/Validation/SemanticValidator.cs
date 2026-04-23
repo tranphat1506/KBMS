@@ -484,10 +484,9 @@ public class SemanticValidator
 
             if (prefixVar == null) return false;
 
-            // If it's a concept type, check if field exists
-            if (!IsPrimitiveType(prefixVar.Type))
+            if (prefixVar.IsReference && !string.IsNullOrEmpty(prefixVar.ReferenceConceptName))
             {
-                var subConcept = _conceptCatalog.LoadConcept(concept.KbId.ToString(), prefixVar.Type);
+                var subConcept = _conceptCatalog.LoadConcept(concept.KbId.ToString(), prefixVar.ReferenceConceptName);
                 if (subConcept != null)
                 {
                     return subConcept.Variables.Any(v => v.Name.Equals(field, StringComparison.OrdinalIgnoreCase));

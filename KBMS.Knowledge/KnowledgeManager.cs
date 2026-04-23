@@ -431,7 +431,9 @@ public class KnowledgeManager
                         Name = v.Name,
                         Type = v.Type,
                         Length = v.Length,
-                        Scale = v.Scale
+                        Scale = v.Scale,
+                        IsReference = v.IsReference,
+                        ReferenceConceptName = v.ReferenceConceptName
                     });
 
                     // Also expand: p1.x, p1.y, etc. for backward compatibility and direct property access
@@ -1252,6 +1254,7 @@ public class KnowledgeManager
                                             if (!solved)
                                             {
                                                 var solveResult = engine.FindClosure(resolvedConcept, evalParams, new List<string> { targetVar });
+                                                Console.WriteLine($"[SOLVE] target={targetVar} success={solveResult.Success} derived={string.Join(",",solveResult.DerivedFacts.Select(k=>k.Key+"="+k.Value))} err={solveResult.ErrorMessage}");
                                                 if (solveResult.Success && solveResult.DerivedFacts.ContainsKey(targetVar))
                                                     newValues[outName] = solveResult.DerivedFacts[targetVar];
                                                 else if (!solveResult.Success && !string.IsNullOrEmpty(solveResult.ErrorMessage))
@@ -2112,6 +2115,11 @@ public class KnowledgeManager
             if (type is "FLOAT" or "DOUBLE")
             {
                 return Convert.ToDouble(rawValue);
+            }
+            if (targetVar.IsReference)
+            {
+                // Ensure it's stored as a string or Guid representation
+                return rawValue.ToString() ?? "";
             }
         }
         catch

@@ -76,7 +76,7 @@ public class FullIntegrationTests : IAsyncLifetime
         await _cli.ExecuteCommandAsync("CREATE RULE HonorToGift SCOPE Student IF honor = 'High' THEN SET gifted = true;");
 
         // Use SELECT SOLVE to infer
-        await _cli.ExecuteCommandAsync("INSERT INTO Student ATTRIBUTE(id: 1, name: 'Alice', grade: 95);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Student VARIABLES(id: 1, name: 'Alice', grade: 95);");
         var res = await _cli.ExecuteCommandAsync("SELECT name, SOLVE(honor) as honor, SOLVE(gifted) as gifted FROM Student WHERE id = 1;");
         
         var resLower = res!.Content.ToLower();
@@ -95,7 +95,7 @@ public class FullIntegrationTests : IAsyncLifetime
         await _cli.ExecuteCommandAsync("CREATE RULE R2 SCOPE Student IF honor = 'High' THEN SET gifted = true;");
 
         // SELECT SOLVE triggers reasoning
-        await _cli.ExecuteCommandAsync("INSERT INTO Student ATTRIBUTE(grade: 92);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Student VARIABLES(grade: 92);");
         var res = await _cli.ExecuteCommandAsync("SELECT SOLVE(honor), SOLVE(gifted) FROM Student WHERE grade = 92;");
         
         Assert.Equal(MessageType.RESULT, res!.Type);
@@ -109,7 +109,7 @@ public class FullIntegrationTests : IAsyncLifetime
         await _cli!.ExecuteCommandAsync("CREATE KNOWLEDGE BASE MetaKB;");
         await _cli.ExecuteCommandAsync("USE MetaKB;");
         await _cli.ExecuteCommandAsync("CREATE CONCEPT Product (VARIABLES(id: INT, price: DECIMAL, stock: INT));");
-        await _cli.ExecuteCommandAsync("INSERT INTO Product ATTRIBUTE (501, 1000.0, 50);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Product VARIABLES (501, 1000.0, 50);");
 
         var res = await _cli.ExecuteCommandAsync(@"
             SELECT 
@@ -128,8 +128,8 @@ public class FullIntegrationTests : IAsyncLifetime
         await _cli!.ExecuteCommandAsync("CREATE KNOWLEDGE BASE AliasKB;");
         await _cli.ExecuteCommandAsync("USE AliasKB;");
         await _cli.ExecuteCommandAsync("CREATE CONCEPT Product (VARIABLES(id: INT, price: DECIMAL));");
-        await _cli.ExecuteCommandAsync("INSERT INTO Product ATTRIBUTE (1, 1000);");
-        await _cli.ExecuteCommandAsync("INSERT INTO Product ATTRIBUTE (2, 200);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Product VARIABLES (1, 1000);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Product VARIABLES (2, 200);");
 
         // WHERE clause with alias prefix 'p.'
         var res = await _cli.ExecuteCommandAsync("SELECT p.id FROM Product p WHERE p.price > 500;");
@@ -146,8 +146,8 @@ public class FullIntegrationTests : IAsyncLifetime
         await _cli.ExecuteCommandAsync("CREATE CONCEPT Dept (VARIABLES(id: INT, name: STRING));");
         await _cli.ExecuteCommandAsync("CREATE CONCEPT Emp (VARIABLES(id: INT, name: STRING, dept_id: INT));");
         
-        await _cli.ExecuteCommandAsync("INSERT INTO Dept ATTRIBUTE (1, 'IT');");
-        await _cli.ExecuteCommandAsync("INSERT INTO Emp ATTRIBUTE (101, 'Alice', 1);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Dept VARIABLES (1, 'IT');");
+        await _cli.ExecuteCommandAsync("INSERT INTO Emp VARIABLES (101, 'Alice', 1);");
 
         // JOIN with aliases and qualified ON condition
         var res = await _cli.ExecuteCommandAsync(@"
@@ -167,7 +167,7 @@ public class FullIntegrationTests : IAsyncLifetime
         await _cli!.ExecuteCommandAsync("CREATE KNOWLEDGE BASE ExprKB;");
         await _cli.ExecuteCommandAsync("USE ExprKB;");
         await _cli.ExecuteCommandAsync("CREATE CONCEPT Product (VARIABLES(id: INT, price: DECIMAL));");
-        await _cli.ExecuteCommandAsync("INSERT INTO Product ATTRIBUTE (1, 1000);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Product VARIABLES (1, 1000);");
 
         // 1. Expression with alias (should NOT be null)
         var resExpr = await _cli.ExecuteCommandAsync("SELECT p.price * 1.1 AS Result FROM Product p;");

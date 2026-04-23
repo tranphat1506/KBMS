@@ -26,6 +26,8 @@ public class VariableDefinition
     /// Scale for DECIMAL type
     /// </summary>
     public int? Scale { get; set; }
+    public bool IsReference { get; set; } = false;
+    public string? ReferenceConceptName { get; set; }
 }
 
 /// <summary>

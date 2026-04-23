@@ -594,8 +594,8 @@ public class CliServerIntegrationTests : IAsyncLifetime
         await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE select_test_kb;");
         await _cli.ExecuteCommandAsync("USE select_test_kb;");
         await _cli.ExecuteCommandAsync("CREATE CONCEPT Product ( VARIABLES (name: STRING, price: DOUBLE) );");
-        await _cli.ExecuteCommandAsync("INSERT INTO Product ATTRIBUTE ('Laptop', 999.99);");
-        await _cli.ExecuteCommandAsync("INSERT INTO Product ATTRIBUTE ('Mouse', 29.99);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Product VARIABLES ('Laptop', 999.99);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Product VARIABLES ('Mouse', 29.99);");
 
         // Act
         var response = await _cli.ExecuteCommandAsync("SELECT * FROM Product;");
@@ -613,9 +613,9 @@ public class CliServerIntegrationTests : IAsyncLifetime
         await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE select_where_kb;");
         await _cli.ExecuteCommandAsync("USE select_where_kb;");
         await _cli.ExecuteCommandAsync("CREATE CONCEPT Employee ( VARIABLES (name: STRING, salary: DOUBLE) );");
-        await _cli.ExecuteCommandAsync("INSERT INTO Employee ATTRIBUTE ('Alice', 50000);");
-        await _cli.ExecuteCommandAsync("INSERT INTO Employee ATTRIBUTE ('Bob', 30000);");
-        await _cli.ExecuteCommandAsync("INSERT INTO Employee ATTRIBUTE ('Charlie', 70000);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Employee VARIABLES ('Alice', 50000);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Employee VARIABLES ('Bob', 30000);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Employee VARIABLES ('Charlie', 70000);");
 
         // Act
         var response = await _cli.ExecuteCommandAsync("SELECT * FROM Employee WHERE salary > 40000;");
@@ -633,9 +633,9 @@ public class CliServerIntegrationTests : IAsyncLifetime
         await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE select_order_kb;");
         await _cli.ExecuteCommandAsync("USE select_order_kb;");
         await _cli.ExecuteCommandAsync("CREATE CONCEPT Item ( VARIABLES (name: STRING, quantity: INT) );");
-        await _cli.ExecuteCommandAsync("INSERT INTO Item ATTRIBUTE ('A', 10);");
-        await _cli.ExecuteCommandAsync("INSERT INTO Item ATTRIBUTE ('B', 5);");
-        await _cli.ExecuteCommandAsync("INSERT INTO Item ATTRIBUTE ('C', 20);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Item VARIABLES ('A', 10);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Item VARIABLES ('B', 5);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Item VARIABLES ('C', 20);");
 
         // Act
         var response = await _cli.ExecuteCommandAsync("SELECT * FROM Item ORDER BY quantity DESC;");
@@ -657,12 +657,12 @@ public class CliServerIntegrationTests : IAsyncLifetime
         await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE select_limit_kb;");
         await _cli.ExecuteCommandAsync("USE select_limit_kb;");
         await _cli.ExecuteCommandAsync("CREATE CONCEPT Number ( VARIABLES (value: INT) );");
-        var insertResult = await _cli.ExecuteCommandAsync("INSERT INTO Number ATTRIBUTE (1);");
+        var insertResult = await _cli.ExecuteCommandAsync("INSERT INTO Number VARIABLES (1);");
         Assert.True(insertResult!.Type == MessageType.RESULT, $"INSERT failed: {insertResult.Content}");
 
         for (int i = 2; i <= 10; i++)
         {
-            await _cli.ExecuteCommandAsync($"INSERT INTO Number ATTRIBUTE ({i});");
+            await _cli.ExecuteCommandAsync($"INSERT INTO Number VARIABLES ({i});");
         }
 
         // Act
@@ -688,7 +688,7 @@ public class CliServerIntegrationTests : IAsyncLifetime
 
         // Act
         var response = await _cli.ExecuteCommandAsync(
-            "INSERT INTO Book ATTRIBUTE ('The Great Gatsby', 'F. Scott Fitzgerald', 180);");
+            "INSERT INTO Book VARIABLES ('The Great Gatsby', 'F. Scott Fitzgerald', 180);");
 
         // Assert
         Assert.NotNull(response);
@@ -705,9 +705,9 @@ public class CliServerIntegrationTests : IAsyncLifetime
         await _cli.ExecuteCommandAsync("CREATE CONCEPT Color ( VARIABLES (name: STRING, code: STRING) );");
 
         // Act
-        var response1 = await _cli.ExecuteCommandAsync("INSERT INTO Color ATTRIBUTE ('Red', '#FF0000');");
-        var response2 = await _cli.ExecuteCommandAsync("INSERT INTO Color ATTRIBUTE ('Green', '#00FF00');");
-        var response3 = await _cli.ExecuteCommandAsync("INSERT INTO Color ATTRIBUTE ('Blue', '#0000FF');");
+        var response1 = await _cli.ExecuteCommandAsync("INSERT INTO Color VARIABLES ('Red', '#FF0000');");
+        var response2 = await _cli.ExecuteCommandAsync("INSERT INTO Color VARIABLES ('Green', '#00FF00');");
+        var response3 = await _cli.ExecuteCommandAsync("INSERT INTO Color VARIABLES ('Blue', '#0000FF');");
 
         // Assert
         Assert.Equal(MessageType.RESULT, response1!.Type);
@@ -724,7 +724,7 @@ public class CliServerIntegrationTests : IAsyncLifetime
         await _cli.ExecuteCommandAsync("USE insert_invalid_kb;");
 
         // Act
-        var response = await _cli.ExecuteCommandAsync("INSERT INTO NonExistent ATTRIBUTE ('test');");
+        var response = await _cli.ExecuteCommandAsync("INSERT INTO NonExistent VARIABLES ('test');");
 
         // Assert
         Assert.NotNull(response);
@@ -742,12 +742,12 @@ public class CliServerIntegrationTests : IAsyncLifetime
         await _cli.ExecuteCommandAsync("USE update_test_kb;");
         await _cli.ExecuteCommandAsync("CREATE CONCEPT Account ( VARIABLES (name: STRING, balance: DOUBLE) );");
 
-        var insertResponse = await _cli.ExecuteCommandAsync("INSERT INTO Account ATTRIBUTE ('Savings', 1000.00);");
+        var insertResponse = await _cli.ExecuteCommandAsync("INSERT INTO Account VARIABLES ('Savings', 1000.00);");
         Assert.True(insertResponse!.Type == MessageType.RESULT, $"INSERT failed: {insertResponse.Content}");
 
         // Act
         var response = await _cli.ExecuteCommandAsync(
-            "UPDATE Account ATTRIBUTE (SET balance: 1500.00) WHERE name = 'Savings';");
+            "UPDATE Account VARIABLES (SET balance: 1500.00) WHERE name = 'Savings';");
 
         // Assert
         Assert.NotNull(response);
@@ -762,13 +762,13 @@ public class CliServerIntegrationTests : IAsyncLifetime
         await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE update_where_kb;");
         await _cli.ExecuteCommandAsync("USE update_where_kb;");
         await _cli.ExecuteCommandAsync("CREATE CONCEPT Status ( VARIABLES (name: STRING, active: BOOLEAN) );");
-        await _cli.ExecuteCommandAsync("INSERT INTO Status ATTRIBUTE ('Item1', true);");
-        await _cli.ExecuteCommandAsync("INSERT INTO Status ATTRIBUTE ('Item2', true);");
-        await _cli.ExecuteCommandAsync("INSERT INTO Status ATTRIBUTE ('Item3', false);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Status VARIABLES ('Item1', true);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Status VARIABLES ('Item2', true);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Status VARIABLES ('Item3', false);");
 
         // Act
         var response = await _cli.ExecuteCommandAsync(
-            "UPDATE Status ATTRIBUTE (SET active: false) WHERE name = 'Item1';");
+            "UPDATE Status VARIABLES (SET active: false) WHERE name = 'Item1';");
 
         // Assert
         Assert.NotNull(response);
@@ -785,7 +785,7 @@ public class CliServerIntegrationTests : IAsyncLifetime
         await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE delete_test_kb;");
         await _cli.ExecuteCommandAsync("USE delete_test_kb;");
         await _cli.ExecuteCommandAsync("CREATE CONCEPT Temp ( VARIABLES (id: INT, value: STRING) );");
-        var insertResponse = await _cli.ExecuteCommandAsync("INSERT INTO Temp ATTRIBUTE (1, 'to delete');");
+        var insertResponse = await _cli.ExecuteCommandAsync("INSERT INTO Temp VARIABLES (1, 'to delete');");
         Assert.True(insertResponse!.Type == MessageType.RESULT, $"INSERT failed: {insertResponse.Content}");
 
         // Act
@@ -804,9 +804,9 @@ public class CliServerIntegrationTests : IAsyncLifetime
         await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE delete_all_kb;");
         await _cli.ExecuteCommandAsync("USE delete_all_kb;");
         await _cli.ExecuteCommandAsync("CREATE CONCEPT Log ( VARIABLES (message: STRING) );");
-        await _cli.ExecuteCommandAsync("INSERT INTO Log ATTRIBUTE ('msg1');");
-        await _cli.ExecuteCommandAsync("INSERT INTO Log ATTRIBUTE ('msg2');");
-        await _cli.ExecuteCommandAsync("INSERT INTO Log ATTRIBUTE ('msg3');");
+        await _cli.ExecuteCommandAsync("INSERT INTO Log VARIABLES ('msg1');");
+        await _cli.ExecuteCommandAsync("INSERT INTO Log VARIABLES ('msg2');");
+        await _cli.ExecuteCommandAsync("INSERT INTO Log VARIABLES ('msg3');");
 
         // Act
         var response = await _cli.ExecuteCommandAsync("DELETE FROM Log;");
@@ -913,7 +913,7 @@ public class CliServerIntegrationTests : IAsyncLifetime
         await _cli.ExecuteCommandAsync("USE solve_test_kb;");
         await _cli.ExecuteCommandAsync("CREATE CONCEPT Triangle ( VARIABLES (id: STRING, a: DOUBLE, b: DOUBLE, c: DOUBLE, area: DOUBLE) );");
         await _cli.ExecuteCommandAsync("CREATE RULE CalcArea SCOPE Triangle IF a > 0 AND b > 0 THEN SET area = (a * b) / 2.0;");
-        await _cli.ExecuteCommandAsync("INSERT INTO Triangle ATTRIBUTE (id: 'T1', a: 3.0, b: 4.0, c: 5.0);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Triangle VARIABLES (id: 'T1', a: 3.0, b: 4.0, c: 5.0);");
 
         // Act
         var response = await _cli.ExecuteCommandAsync("SELECT SOLVE(area) FROM Triangle WHERE id = 'T1';");
@@ -935,9 +935,9 @@ public class CliServerIntegrationTests : IAsyncLifetime
         await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE agg_count_kb;");
         await _cli.ExecuteCommandAsync("USE agg_count_kb;");
         await _cli.ExecuteCommandAsync("CREATE CONCEPT Item ( VARIABLES (name: STRING, value: INT) );");
-        await _cli.ExecuteCommandAsync("INSERT INTO Item ATTRIBUTE ('A', 1);");
-        await _cli.ExecuteCommandAsync("INSERT INTO Item ATTRIBUTE ('B', 2);");
-        await _cli.ExecuteCommandAsync("INSERT INTO Item ATTRIBUTE ('C', 3);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Item VARIABLES ('A', 1);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Item VARIABLES ('B', 2);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Item VARIABLES ('C', 3);");
 
         // Act
         var response = await _cli.ExecuteCommandAsync("SELECT COUNT(*) FROM Item;");
@@ -955,9 +955,9 @@ public class CliServerIntegrationTests : IAsyncLifetime
         await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE agg_sum_kb;");
         await _cli.ExecuteCommandAsync("USE agg_sum_kb;");
         await _cli.ExecuteCommandAsync("CREATE CONCEPT Sales ( VARIABLES (product: STRING, amount: DOUBLE) );");
-        await _cli.ExecuteCommandAsync("INSERT INTO Sales ATTRIBUTE ('P1', 100);");
-        await _cli.ExecuteCommandAsync("INSERT INTO Sales ATTRIBUTE ('P2', 200);");
-        await _cli.ExecuteCommandAsync("INSERT INTO Sales ATTRIBUTE ('P3', 300);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Sales VARIABLES ('P1', 100);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Sales VARIABLES ('P2', 200);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Sales VARIABLES ('P3', 300);");
 
         // Act
         var response = await _cli.ExecuteCommandAsync("SELECT SUM(amount) FROM Sales;");
@@ -975,9 +975,9 @@ public class CliServerIntegrationTests : IAsyncLifetime
         await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE agg_avg_kb;");
         await _cli.ExecuteCommandAsync("USE agg_avg_kb;");
         await _cli.ExecuteCommandAsync("CREATE CONCEPT Score ( VARIABLES (student: STRING, score: DOUBLE) );");
-        await _cli.ExecuteCommandAsync("INSERT INTO Score ATTRIBUTE ('Alice', 85);");
-        await _cli.ExecuteCommandAsync("INSERT INTO Score ATTRIBUTE ('Bob', 90);");
-        await _cli.ExecuteCommandAsync("INSERT INTO Score ATTRIBUTE ('Charlie', 80);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Score VARIABLES ('Alice', 85);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Score VARIABLES ('Bob', 90);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Score VARIABLES ('Charlie', 80);");
 
         // Act
         var response = await _cli.ExecuteCommandAsync("SELECT AVG(score) FROM Score;");
@@ -1056,7 +1056,7 @@ public class CliServerIntegrationTests : IAsyncLifetime
         await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE private_kb;");
         await _cli.ExecuteCommandAsync("USE private_kb;");
         await _cli.ExecuteCommandAsync("CREATE CONCEPT Secret ( VARIABLES (data: STRING) );");
-        await _cli.ExecuteCommandAsync("INSERT INTO Secret ATTRIBUTE ('confidential');");
+        await _cli.ExecuteCommandAsync("INSERT INTO Secret VARIABLES ('confidential');");
         await _cli.ExecuteCommandAsync("CREATE USER restricteduser PASSWORD pass ROLE USER;");
         // Note: Not granting any privilege on private_kb
         await _cli.ExecuteCommandAsync("LOGIN restricteduser pass");
@@ -1098,7 +1098,7 @@ public class CliServerIntegrationTests : IAsyncLifetime
 
         // Act
         var response = await _cli.ExecuteCommandAsync(
-            "INSERT INTO Message ATTRIBUTE ('Hello, World! @#$%^&*()')");
+            "INSERT INTO Message VARIABLES ('Hello, World! @#$%^&*()')");
 
         // Assert
         Assert.NotNull(response);
@@ -1116,7 +1116,7 @@ public class CliServerIntegrationTests : IAsyncLifetime
 
         // Act
         var response = await _cli.ExecuteCommandAsync(
-            "INSERT INTO Greeting ATTRIBUTE ('Xin chào - 你好 - مرحبا')");
+            "INSERT INTO Greeting VARIABLES ('Xin chào - 你好 - مرحبا')");
 
         // Assert
         Assert.NotNull(response);

@@ -69,7 +69,7 @@ namespace KBMS.Tests
             await _cli.ExecuteCommandAsync("CREATE RULE BtoA SCOPE Node IF b = true THEN SET a = true;");
 
             // Execution
-            await _cli.ExecuteCommandAsync("INSERT INTO Node ATTRIBUTE (a: true);");
+            await _cli.ExecuteCommandAsync("INSERT INTO Node VARIABLES (a: true);");
             var res = await _cli.ExecuteCommandAsync("SELECT a, SOLVE(b) FROM Node;");
             
             // Expectation: Result returns cleanly, not timing out or throwing StackOverflow
@@ -85,7 +85,7 @@ namespace KBMS.Tests
             await _cli.ExecuteCommandAsync("CREATE RULE Good SCOPE TestScore IF score > 5 THEN SET status = 'Good';");
             await _cli.ExecuteCommandAsync("CREATE RULE Bad SCOPE TestScore IF score < 10 THEN SET status = 'Bad';");
 
-            await _cli.ExecuteCommandAsync("INSERT INTO TestScore ATTRIBUTE (score: 7);");
+            await _cli.ExecuteCommandAsync("INSERT INTO TestScore VARIABLES (score: 7);");
             var res = await _cli.ExecuteCommandAsync("SELECT score, SOLVE(status) FROM TestScore;");
             
             // Because Rete executes sequentially based on insertion or evaluation order, it could realistically be either. 
@@ -103,7 +103,7 @@ namespace KBMS.Tests
             await _cli.ExecuteCommandAsync("CREATE RULE DivRule SCOPE MathNode IF true THEN SET result = numerator / denominator;");
             
             // Provide 0.0
-            await _cli.ExecuteCommandAsync("INSERT INTO MathNode ATTRIBUTE (numerator: 10.0, denominator: 0.0);");
+            await _cli.ExecuteCommandAsync("INSERT INTO MathNode VARIABLES (numerator: 10.0, denominator: 0.0);");
             var res = await _cli.ExecuteCommandAsync("SELECT numerator, denominator, SOLVE(result) FROM MathNode;");
             Assert.Equal(MessageType.ERROR, res.Type);
             // Double division by zero in C# (and NCalc) is Infinity, which JSON serializer refuses to write by default
@@ -130,7 +130,7 @@ namespace KBMS.Tests
             await _cli.ExecuteCommandAsync("CREATE RULE DeepCombine SCOPE Level4 IF val1 = 1 AND val3 = 3 THEN SET target = 'Success';");
 
             // Solve at Level 4, given val1 and val3
-            await _cli.ExecuteCommandAsync("INSERT INTO Level4 ATTRIBUTE (val1: 1, val2: 2, val3: 3);");
+            await _cli.ExecuteCommandAsync("INSERT INTO Level4 VARIABLES (val1: 1, val2: 2, val3: 3);");
             var res = await _cli.ExecuteCommandAsync("SELECT val1, SOLVE(target) FROM Level4;");
             Assert.Equal(MessageType.RESULT, res.Type);
             Assert.Contains("Success", res.Content);
@@ -143,7 +143,7 @@ namespace KBMS.Tests
             await _cli.ExecuteCommandAsync("CREATE CONCEPT Adult(VARIABLES(age: INT), CONSTRAINTS(age >= 18));");
 
             // Try to solve with invalid given
-            await _cli.ExecuteCommandAsync("INSERT INTO Adult ATTRIBUTE (age: 10);");
+            await _cli.ExecuteCommandAsync("INSERT INTO Adult VARIABLES (age: 10);");
             var res = await _cli.ExecuteCommandAsync("SELECT SOLVE(age) FROM Adult;");
             
             Assert.Equal(MessageType.RESULT, res.Type);

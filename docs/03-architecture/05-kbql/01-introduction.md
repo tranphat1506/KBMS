@@ -84,9 +84,9 @@ CREATE CONCEPT Triangle (
 );
 
 -- Bước 5: Thêm sự kiện (Facts)
-INSERT INTO Point ATTRIBUTE (0, 0, 'O');
-INSERT INTO Point ATTRIBUTE (3, 0, 'A');
-INSERT INTO Point ATTRIBUTE (0, 4, 'B');
+INSERT INTO Point VARIABLES (0, 0, 'O');
+INSERT INTO Point VARIABLES (3, 0, 'A');
+INSERT INTO Point VARIABLES (0, 4, 'B');
 
 -- Bước 6: Truy vấn với suy diễn tự động
 SELECT SOLVE(length) FROM LineSegment

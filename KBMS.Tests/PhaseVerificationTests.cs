@@ -98,8 +98,8 @@ public class PhaseVerificationTests : IAsyncLifetime
         await _cli!.ExecuteCommandAsync("CREATE KNOWLEDGE BASE p2_kb;");
         await _cli.ExecuteCommandAsync("USE p2_kb;");
         await _cli.ExecuteCommandAsync("CREATE CONCEPT Product ( VARIABLES (name: string, price: double) );");
-        await _cli.ExecuteCommandAsync("INSERT INTO Product ATTRIBUTE (name:'Apple', price:1.5);");
-        await _cli.ExecuteCommandAsync("INSERT INTO Product ATTRIBUTE (name:'Banana', price:0.8);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Product VARIABLES (name:'Apple', price:1.5);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Product VARIABLES (name:'Banana', price:0.8);");
 
         // Test Column and Table aliases
         var query = "SELECT p.name AS ProductName, p.price * 1.1 AS PriceWithTax FROM Product p;";
@@ -122,8 +122,8 @@ public class PhaseVerificationTests : IAsyncLifetime
         await _cli!.ExecuteCommandAsync("CREATE KNOWLEDGE BASE p3_kb;");
         await _cli.ExecuteCommandAsync("USE p3_kb;");
         await _cli.ExecuteCommandAsync("CREATE CONCEPT Student ( VARIABLES (name: string, grade: double) );");
-        await _cli.ExecuteCommandAsync("INSERT INTO Student ATTRIBUTE (name:'Alice', grade:95);");
-        await _cli.ExecuteCommandAsync("INSERT INTO Student ATTRIBUTE (name:'Bob', grade:60);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Student VARIABLES (name:'Alice', grade:95);");
+        await _cli.ExecuteCommandAsync("INSERT INTO Student VARIABLES (name:'Bob', grade:60);");
         
         await _cli.ExecuteCommandAsync("CREATE RULE TopStudents IF Student(grade > 90) THEN Student(honor = 'High');");
 
@@ -175,7 +175,7 @@ public class PhaseVerificationTests : IAsyncLifetime
         await _cli.ExecuteCommandAsync("CREATE CONCEPT Log ( VARIABLES (msg: string, level: int) );");
 
         // Test INSERT BULK
-        var bulkQuery = "INSERT BULK INTO Log ATTRIBUTE (msg:'Start', level:1), (msg:'Error', level:3), (msg:'End', level:1);";
+        var bulkQuery = "INSERT BULK INTO Log VARIABLES (msg:'Start', level:1), (msg:'Error', level:3), (msg:'End', level:1);";
         var res = await _cli.ExecuteCommandAsync(bulkQuery);
         
         Assert.Equal(MessageType.RESULT, res!.Type);

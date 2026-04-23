@@ -15,7 +15,7 @@ BEGIN TRANSACTION;
 *Ví dụ:*
 ```kbql
 BEGIN TRANSACTION;
-INSERT INTO Patient ATTRIBUTE ('John Doe', 30, 120, 80);
+INSERT INTO Patient VARIABLES ('John Doe', 30, 120, 80);
 ```
 Sau lệnh này, mọi thay đổi về dữ liệu thực thể hoặc định nghĩa cấu trúc tri thức sẽ được thực thi tạm thời trong bộ đệm giao dịch (Transaction Buffer).
 
@@ -58,17 +58,17 @@ Dưới đây là các kịch bản thực tế về sử dụng giao dịch tro
 BEGIN TRANSACTION;
 
 -- Thêm bệnh nhân mới
-INSERT INTO Patient ATTRIBUTE (
+INSERT INTO Patient VARIABLES (
     'P006', 'Hoang Van F', 35, 'B+', 125, 82, 72, 36.6, '2026-04-03'
 );
 
 -- Tạo hồ sơ khám bệnh
-INSERT INTO MedicalRecord ATTRIBUTE (
+INSERT INTO MedicalRecord VARIABLES (
     'MR006', 'P006', 'Khai thác bệnh sử ban đầu', '2026-04-03'
 );
 
 -- Đặt lịch hẹn với bác sĩ
-INSERT INTO Appointment ATTRIBUTE (
+INSERT INTO Appointment VARIABLES (
     'APT006', 'P006', 'D001', '2026-04-05 09:00', 'Tái khám', 'Scheduled'
 );
 
@@ -97,16 +97,16 @@ BEGIN TRANSACTION;
 
 -- Giảm số lượng tại kho chính
 UPDATE Product
-ATTRIBUTE (SET stock: stock - 100)
+VARIABLES (SET stock: stock - 100)
 WHERE productId = 'MED001';
 
 -- Tăng số lượng tại khoa dược
-INSERT INTO PharmacyStock ATTRIBUTE (
+INSERT INTO PharmacyStock VARIABLES (
     'PH001', 'MED001', 'Khoa Dược', 100, '2026-04-03'
 );
 
 -- Ghi lại lịch sử chuyển kho
-INSERT INTO InventoryMovement ATTRIBUTE (
+INSERT INTO InventoryMovement VARIABLES (
     'MOV001', 'MED001', 'Kho Chính', 'Khoa Dược', 100, '2026-04-03 10:30'
 );
 
@@ -135,17 +135,17 @@ BEGIN TRANSACTION;
 
 -- Cập nhật trạng thái thanh toán
 UPDATE Billing
-ATTRIBUTE (SET status: 'Paid', paymentDate: '2026-04-03')
+VARIABLES (SET status: 'Paid', paymentDate: '2026-04-03')
 WHERE billId = 'BILL001';
 
 -- Ghi nhận giao dịch thanh toán
-INSERT INTO Payment ATTRIBUTE (
+INSERT INTO Payment VARIABLES (
     'PAY001', 'BILL001', 'P001', 2500000, 'Cash', '2026-04-03 14:30', 'Completed'
 );
 
 -- Cập nhật công nợ bệnh nhân (nếu có)
 UPDATE Patient
-ATTRIBUTE (SET outstandingBalance: outstandingBalance - 2500000)
+VARIABLES (SET outstandingBalance: outstandingBalance - 2500000)
 WHERE patientId = 'P001';
 
 -- Xác nhận giao dịch
@@ -159,17 +159,17 @@ COMMIT;
 BEGIN TRANSACTION;
 
 -- Thêm lô thuốc mới
-INSERT INTO Product ATTRIBUTE (
+INSERT INTO Product VARIABLES (
     'PRD004', 'Paracetamol 500mg', 'Thuốc', 50000, 1000, 100, 'PharmaCo', '2026-04-03'
 );
 
 -- Cập nhật kho
-INSERT INTO PharmacyStock ATTRIBUTE (
+INSERT INTO PharmacyStock VARIABLES (
     'PH004', 'PRD004', 'Kho Chính', 1000, '2026-04-03'
 );
 
 -- Giả sử có lỗi: số lượng âm
--- INSERT INTO Product ATTRIBUTE ('PRD005', 'Invalid', 'Thuốc', -1000, -100, 0, 'X', '2026-04-03');
+-- INSERT INTO Product VARIABLES ('PRD005', 'Invalid', 'Thuốc', -1000, -100, 0, 'X', '2026-04-03');
 
 -- Kiểm tra lỗi và rollback nếu cần
 -- ROLLBACK;
@@ -185,7 +185,7 @@ COMMIT;
 BEGIN TRANSACTION;
 
 -- Bước 1: Đăng ký bệnh nhân
-INSERT INTO Patient ATTRIBUTE (
+INSERT INTO Patient VARIABLES (
     'P007', 'Nguyen Thi G', 42, 'O+', 138, 88, 76, 36.8, '2026-04-03'
 );
 
@@ -194,11 +194,11 @@ CREATE CONCEPT Bed (
     VARIABLES (bedId: STRING, ward: STRING, room: INT, bedNumber: INT, status: STRING)
 );
 
-INSERT INTO Bed ATTRIBUTE ('B001', 'Nội khoa', 301, 5, 'Occupied');
+INSERT INTO Bed VARIABLES ('B001', 'Nội khoa', 301, 5, 'Occupied');
 
 -- Bước 3: Gán bệnh nhân vào giường
 UPDATE Bed
-ATTRIBUTE (SET status: 'Occupied')
+VARIABLES (SET status: 'Occupied')
 WHERE bedId = 'B001';
 
 -- Bước 4: Tạo phiếu điều trị
@@ -213,7 +213,7 @@ CREATE CONCEPT TreatmentSheet (
     )
 );
 
-INSERT INTO TreatmentSheet ATTRIBUTE (
+INSERT INTO TreatmentSheet VARIABLES (
     'TS007', 'P007', 'B001', '2026-04-03 16:00', 'D001', 'Active'
 );
 
@@ -230,7 +230,7 @@ CREATE CONCEPT VitalSigns (
     )
 );
 
-INSERT INTO VitalSigns ATTRIBUTE (
+INSERT INTO VitalSigns VARIABLES (
     'VS001', 'P007', 138, 88, 76, 36.8, '2026-04-03 16:00'
 );
 
@@ -245,13 +245,13 @@ COMMIT;
 BEGIN TRANSACTION;
 
 -- Thêm bệnh nhân
-INSERT INTO Patient ATTRIBUTE ('P008', 'Test User', 30, 'A+', 120, 80, 70, 36.5, '2026-04-03');
+INSERT INTO Patient VARIABLES ('P008', 'Test User', 30, 'A+', 120, 80, 70, 36.5, '2026-04-03');
 
 -- Tạo savepoint sau khi thêm bệnh nhân
 -- SAVEPOINT after_patient_insert;
 
 -- Thêm lịch hẹn
-INSERT INTO Appointment ATTRIBUTE ('APT008', 'P008', 'D001', '2026-04-04', 'Test', 'Scheduled');
+INSERT INTO Appointment VARIABLES ('APT008', 'P008', 'D001', '2026-04-04', 'Test', 'Scheduled');
 
 -- Nếu có lỗi ở bước này, có thể quay về savepoint
 -- ROLLBACK TO after_patient_insert;
@@ -269,14 +269,14 @@ COMMIT;
 -- Session 1: Bác sĩ A đang cập nhật bệnh án
 BEGIN TRANSACTION;
 UPDATE Patient
-ATTRIBUTE (SET sys: 135, dia: 88)
+VARIABLES (SET sys: 135, dia: 88)
 WHERE patientId = 'P001';
 -- (chưa COMMIT)
 
 -- Session 2: Y tá B cố gắng cập nhật cùng bệnh nhân
 -- BEGIN TRANSACTION;
 -- UPDATE Patient
--- ATTRIBUTE (SET heartRate: 75)
+-- VARIABLES (SET heartRate: 75)
 -- WHERE patientId = 'P001';
 -- -> Sẽ bị BLOCK chờ Session 1 COMMIT hoặc ROLLBACK
 
@@ -303,7 +303,7 @@ CREATE CONCEPT Account (
 
 -- Trừ tiền
 UPDATE Account
-ATTRIBUTE (SET balance: balance - 2000000)
+VARIABLES (SET balance: balance - 2000000)
 WHERE patientId = 'P001' AND balance >= 2000000;
 
 -- Nếu balance không đủ, câu lệnh trên sẽ fail
@@ -312,7 +312,7 @@ WHERE patientId = 'P001' AND balance >= 2000000;
 
 -- Cập nhật thanh toán
 UPDATE Billing
-ATTRIBUTE (SET status: 'Paid')
+VARIABLES (SET status: 'Paid')
 WHERE billId = 'BILL001' AND patientId = 'P001';
 
 -- Commit nếu mọi thứ OK

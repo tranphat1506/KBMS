@@ -184,7 +184,7 @@ DO ( <kbql_statement> );
 ```kbql
 CREATE TRIGGER SyncInventory
 ON (INSERT OF SalesOrder)
-DO (UPDATE Product ATTRIBUTE (SET stock: stock - 1) WHERE id = new.product_id);
+DO (UPDATE Product VARIABLES (SET stock: stock - 1) WHERE id = new.product_id);
 ```
 
 ## 9. Ví dụ Thực tế - Xây dựng Hệ Tri thức Hình học
@@ -315,7 +315,7 @@ CREATE TRIGGER CalculateTriangleMetrics
 ON (INSERT OF Triangle)
 DO (
     UPDATE Triangle
-    ATTRIBUTE (SET type: 'Scalene')
+    VARIABLES (SET type: 'Scalene')
     WHERE type IS NULL
 );
 ```

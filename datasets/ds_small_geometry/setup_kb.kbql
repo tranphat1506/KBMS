@@ -31,7 +31,7 @@ BODY {
 }
 
 -- [Data] Bulk Ingestion
-INSERT BULK INTO Triangle ATTRIBUTE
+INSERT BULK INTO Triangle VARIABLES
 ('T000', 83.88, 92.83, 21.67, 'Normal'),
 ('T001', 10.97, 51.43, 41.35, 'Normal'),
 ('T002', 87.22, 88.51, 41.33, 'Normal'),

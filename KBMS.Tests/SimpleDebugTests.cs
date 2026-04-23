@@ -59,7 +59,7 @@ namespace KBMS.Tests
             var r3 = await _cli.ExecuteCommandAsync("CREATE CONCEPT Item(name: STRING, val: INT);");
             _output.WriteLine($"CREATE CONCEPT: {r3.Content}");
 
-            var r4 = await _cli.ExecuteCommandAsync("INSERT INTO Item ATTRIBUTE (name: 'TestObj', val: 42);");
+            var r4 = await _cli.ExecuteCommandAsync("INSERT INTO Item VARIABLES (name: 'TestObj', val: 42);");
             _output.WriteLine($"INSERT: {r4.Content}");
 
             var r5 = await _cli.ExecuteCommandAsync("SELECT * FROM Item;");

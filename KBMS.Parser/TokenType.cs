@@ -47,7 +47,7 @@ public enum TokenType
     UPDATE,         // UPDATE
     DELETE,         // DELETE
     SHOW,           // SHOW
-    ATTRIBUTE,      // ATTRIBUTE
+
     INDEX,          // INDEX
     EXPLAIN,        // EXPLAIN
     DESCRIBE,       // DESCRIBE

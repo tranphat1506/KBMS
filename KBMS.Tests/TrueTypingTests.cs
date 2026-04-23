@@ -154,8 +154,8 @@ namespace KBMS.Tests
             var useAst = new KBMS.Parser.Parser("USE " + kbName + ";").ParseAll().First();
             km.Execute(useAst, user, null);
 
-            // 2. INSERT via query string - use correct KBQL 'ATTRIBUTE' syntax
-            var insertAst = new KBMS.Parser.Parser("INSERT INTO Product ATTRIBUTE (Price: 19.995, Qty: 10.5);").ParseAll().First();
+            // 2. INSERT via query string - use correct KBQL 'VARIABLES' syntax
+            var insertAst = new KBMS.Parser.Parser("INSERT INTO Product VARIABLES (Price: 19.995, Qty: 10.5);").ParseAll().First();
             km.Execute(insertAst, user, kbName);
             
             var objects = km.SelectAllObjects(kbName).Where(o => o.ConceptName == "Product").ToList();

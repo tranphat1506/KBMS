@@ -1496,9 +1496,9 @@ CREATE CONCEPT Triangle (
 );
 
 -- Bước 5: Thêm sự kiện (Facts)
-INSERT INTO Point ATTRIBUTE (0, 0, 'O');
-INSERT INTO Point ATTRIBUTE (3, 0, 'A');
-INSERT INTO Point ATTRIBUTE (0, 4, 'B');
+INSERT INTO Point VARIABLES (0, 0, 'O');
+INSERT INTO Point VARIABLES (3, 0, 'A');
+INSERT INTO Point VARIABLES (0, 4, 'B');
 
 -- Bước 6: Truy vấn với suy diễn tự động
 SELECT SOLVE(length) FROM LineSegment
@@ -1830,7 +1830,7 @@ DO ( <kbql_statement> );
 \begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
 CREATE TRIGGER SyncInventory
 ON (INSERT OF SalesOrder)
-DO (UPDATE Product ATTRIBUTE (SET stock: stock - 1) WHERE id = new.product_id);
+DO (UPDATE Product VARIABLES (SET stock: stock - 1) WHERE id = new.product_id);
 \end{Verbatim}
 \end{academicbox}
 
@@ -1968,7 +1968,7 @@ CREATE TRIGGER CalculateTriangleMetrics
 ON (INSERT OF Triangle)
 DO (
     UPDATE Triangle
-    ATTRIBUTE (SET type: 'Scalene')
+    VARIABLES (SET type: 'Scalene')
     WHERE type IS NULL
 );
 \end{Verbatim}
@@ -2029,7 +2029,7 @@ Hành vi chèn sự kiện cho phép nạp các thực thể cụ thể vào m�
 
 \begin{academicbox}
 \begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
-INSERT INTO <concept_name> ATTRIBUTE (<val1>, <val2>, ...);
+INSERT INTO <concept_name> VARIABLES (<val1>, <val2>, ...);
 \end{Verbatim}
 \end{academicbox}
 
@@ -2039,7 +2039,7 @@ INSERT INTO <concept_name> ATTRIBUTE (<val1>, <val2>, ...);
 \textit{Ví dụ:}\par
 \begin{academicbox}
 \begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
-INSERT INTO Patient ATTRIBUTE ('John Doe', 65, 150, 95);
+INSERT INTO Patient VARIABLES ('John Doe', 65, 150, 95);
 \end{Verbatim}
 \end{academicbox}
 
@@ -2054,7 +2054,7 @@ Cơ chế \texttt{INSERT BULK} được tối ưu hóa để nạp tập dữ li
 
 \begin{academicbox}
 \begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
-INSERT BULK INTO <concept_name> ATTRIBUTE (
+INSERT BULK INTO <concept_name> VARIABLES (
     (<val1a>, <val2a>, ...),
     (<val1b>, <val2b>, ...),
     ...
@@ -2068,7 +2068,7 @@ INSERT BULK INTO <concept_name> ATTRIBUTE (
 \textit{Ví dụ:}\par
 \begin{academicbox}
 \begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
-INSERT BULK INTO Patient ATTRIBUTE (
+INSERT BULK INTO Patient VARIABLES (
     ('Alice', 45, 120, 80),
     ('Bob', 50, 130, 85)
 );
@@ -2087,7 +2087,7 @@ Lệnh \texttt{UPDATE} cho phép sửa đổi giá trị các thuộc tính củ
 \begin{academicbox}
 \begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
 UPDATE <concept_name> 
-ATTRIBUTE (SET <var1>: <new_val1>, <var2>: <new_val2>) 
+VARIABLES (SET <var1>: <new_val1>, <var2>: <new_val2>) 
 WHERE <filter_conditions>;
 \end{Verbatim}
 \end{academicbox}
@@ -2099,7 +2099,7 @@ WHERE <filter_conditions>;
 \begin{academicbox}
 \begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
 UPDATE Patient 
-ATTRIBUTE (SET sys: 125, dia: 82) 
+VARIABLES (SET sys: 125, dia: 82) 
 WHERE name = 'Alice';
 \end{Verbatim}
 \end{academicbox}
@@ -2234,12 +2234,12 @@ CREATE CONCEPT Patient (
 );
 
 -- Kịch bản 1: Thêm bệnh nhân mới (INSERT đơn lẻ)
-INSERT INTO Patient ATTRIBUTE (
+INSERT INTO Patient VARIABLES (
     'P001', 'Nguyen Van A', 45, 'A+', 120, 80, 72, 36.5, '2026-04-01'
 );
 
 -- Kịch bản 2: Thêm hàng loạt bệnh nhân (BULK INSERT)
-INSERT BULK INTO Patient ATTRIBUTE (
+INSERT BULK INTO Patient VARIABLES (
     ('P002', 'Tran Thi B', 32, 'B+', 115, 75, 68, 36.6, '2026-04-02'),
     ('P003', 'Le Van C', 58, 'O+', 145, 95, 88, 37.2, '2026-04-02'),
     ('P004', 'Pham Thi D', 28, 'AB+', 118, 78, 70, 36.4, '2026-04-03'),
@@ -2249,12 +2249,12 @@ INSERT BULK INTO Patient ATTRIBUTE (
 -- Kịch bản 3: Cập nhật thông tin bệnh nhân
 -- Cập nhật chỉ số sinh tồn cho bệnh nhân P003
 UPDATE Patient
-ATTRIBUTE (SET sys: 140, dia: 90, heartRate: 85)
+VARIABLES (SET sys: 140, dia: 90, heartRate: 85)
 WHERE patientId = 'P003';
 
 -- Cập nhật nhiều thuộc tính cùng lúc
 UPDATE Patient
-ATTRIBUTE (
+VARIABLES (
     SET sys: 130,
         dia: 85,
         heartRate: 75,
@@ -2286,7 +2286,7 @@ IMPORT (
 -- Kịch bản 7: Cập nhật hàng loạt (Batch Update)
 -- Đánh dấu tất cả bệnh nhân nguy cấp
 UPDATE Patient
-ATTRIBUTE (SET is_critical: true)
+VARIABLES (SET is_critical: true)
 WHERE sys >= 140 OR dia >= 90 OR heartRate > 100 OR temperature >= 38.0;
 
 -- Kịch bản 8: Xóa hàng loạt (Batch Delete)
@@ -2324,7 +2324,7 @@ CREATE CONCEPT Product (
 );
 
 -- Nhập hàng mới về kho
-INSERT BULK INTO Product ATTRIBUTE (
+INSERT BULK INTO Product VARIABLES (
     ('PRD001', 'Laptop Dell XPS', 'Electronics', 25000000, 50, 10, 'Dell Vietnam', '2026-04-01'),
     ('PRD002', 'Mouse Logitech', 'Accessories', 500000, 200, 20, 'Logitech', '2026-04-01'),
     ('PRD003', 'Keyboard Mechanical', 'Accessories', 1200000, 100, 15, 'Keychron', '2026-04-02')
@@ -2332,7 +2332,7 @@ INSERT BULK INTO Product ATTRIBUTE (
 
 -- Cập nhật số tồn kho sau khi bán
 UPDATE Product
-ATTRIBUTE (SET stock: stock - 5)
+VARIABLES (SET stock: stock - 5)
 WHERE productId = 'PRD001';
 
 -- Kiểm tra hàng cần nhập lại
@@ -3006,7 +3006,7 @@ CREATE CONCEPT Triangle (
     )
 );
 
-INSERT INTO Triangle ATTRIBUTE (5, 7, 60);
+INSERT INTO Triangle VARIABLES (5, 7, 60);
 
 -- Tìm các tam giác có diện tích > 100
 SELECT sideA, sideB, angleC
@@ -3523,7 +3523,7 @@ BEGIN TRANSACTION;
 \begin{academicbox}
 \begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
 BEGIN TRANSACTION;
-INSERT INTO Patient ATTRIBUTE ('John Doe', 30, 120, 80);
+INSERT INTO Patient VARIABLES ('John Doe', 30, 120, 80);
 \end{Verbatim}
 \end{academicbox}
 
@@ -3599,17 +3599,17 @@ Dưới đây là các kịch bản thực tế về sử dụng giao dịch tro
 BEGIN TRANSACTION;
 
 -- Thêm bệnh nhân mới
-INSERT INTO Patient ATTRIBUTE (
+INSERT INTO Patient VARIABLES (
     'P006', 'Hoang Van F', 35, 'B+', 125, 82, 72, 36.6, '2026-04-03'
 );
 
 -- Tạo hồ sơ khám bệnh
-INSERT INTO MedicalRecord ATTRIBUTE (
+INSERT INTO MedicalRecord VARIABLES (
     'MR006', 'P006', 'Khai thác bệnh sử ban đầu', '2026-04-03'
 );
 
 -- Đặt lịch hẹn với bác sĩ
-INSERT INTO Appointment ATTRIBUTE (
+INSERT INTO Appointment VARIABLES (
     'APT006', 'P006', 'D001', '2026-04-05 09:00', 'Tái khám', 'Scheduled'
 );
 
@@ -3644,16 +3644,16 @@ BEGIN TRANSACTION;
 
 -- Giảm số lượng tại kho chính
 UPDATE Product
-ATTRIBUTE (SET stock: stock - 100)
+VARIABLES (SET stock: stock - 100)
 WHERE productId = 'MED001';
 
 -- Tăng số lượng tại khoa dược
-INSERT INTO PharmacyStock ATTRIBUTE (
+INSERT INTO PharmacyStock VARIABLES (
     'PH001', 'MED001', 'Khoa Dược', 100, '2026-04-03'
 );
 
 -- Ghi lại lịch sử chuyển kho
-INSERT INTO InventoryMovement ATTRIBUTE (
+INSERT INTO InventoryMovement VARIABLES (
     'MOV001', 'MED001', 'Kho Chính', 'Khoa Dược', 100, '2026-04-03 10:30'
 );
 
@@ -3688,17 +3688,17 @@ BEGIN TRANSACTION;
 
 -- Cập nhật trạng thái thanh toán
 UPDATE Billing
-ATTRIBUTE (SET status: 'Paid', paymentDate: '2026-04-03')
+VARIABLES (SET status: 'Paid', paymentDate: '2026-04-03')
 WHERE billId = 'BILL001';
 
 -- Ghi nhận giao dịch thanh toán
-INSERT INTO Payment ATTRIBUTE (
+INSERT INTO Payment VARIABLES (
     'PAY001', 'BILL001', 'P001', 2500000, 'Cash', '2026-04-03 14:30', 'Completed'
 );
 
 -- Cập nhật công nợ bệnh nhân (nếu có)
 UPDATE Patient
-ATTRIBUTE (SET outstandingBalance: outstandingBalance - 2500000)
+VARIABLES (SET outstandingBalance: outstandingBalance - 2500000)
 WHERE patientId = 'P001';
 
 -- Xác nhận giao dịch
@@ -3718,17 +3718,17 @@ COMMIT;
 BEGIN TRANSACTION;
 
 -- Thêm lô thuốc mới
-INSERT INTO Product ATTRIBUTE (
+INSERT INTO Product VARIABLES (
     'PRD004', 'Paracetamol 500mg', 'Thuốc', 50000, 1000, 100, 'PharmaCo', '2026-04-03'
 );
 
 -- Cập nhật kho
-INSERT INTO PharmacyStock ATTRIBUTE (
+INSERT INTO PharmacyStock VARIABLES (
     'PH004', 'PRD004', 'Kho Chính', 1000, '2026-04-03'
 );
 
 -- Giả sử có lỗi: số lượng âm
--- INSERT INTO Product ATTRIBUTE ('PRD005', 'Invalid', 'Thuốc', -1000, -100, 0, 'X', '2026-04-03');
+-- INSERT INTO Product VARIABLES ('PRD005', 'Invalid', 'Thuốc', -1000, -100, 0, 'X', '2026-04-03');
 
 -- Kiểm tra lỗi và rollback nếu cần
 -- ROLLBACK;
@@ -3750,7 +3750,7 @@ COMMIT;
 BEGIN TRANSACTION;
 
 -- Bước 1: Đăng ký bệnh nhân
-INSERT INTO Patient ATTRIBUTE (
+INSERT INTO Patient VARIABLES (
     'P007', 'Nguyen Thi G', 42, 'O+', 138, 88, 76, 36.8, '2026-04-03'
 );
 
@@ -3759,11 +3759,11 @@ CREATE CONCEPT Bed (
     VARIABLES (bedId: STRING, ward: STRING, room: INT, bedNumber: INT, status: STRING)
 );
 
-INSERT INTO Bed ATTRIBUTE ('B001', 'Nội khoa', 301, 5, 'Occupied');
+INSERT INTO Bed VARIABLES ('B001', 'Nội khoa', 301, 5, 'Occupied');
 
 -- Bước 3: Gán bệnh nhân vào giường
 UPDATE Bed
-ATTRIBUTE (SET status: 'Occupied')
+VARIABLES (SET status: 'Occupied')
 WHERE bedId = 'B001';
 
 -- Bước 4: Tạo phiếu điều trị
@@ -3778,7 +3778,7 @@ CREATE CONCEPT TreatmentSheet (
     )
 );
 
-INSERT INTO TreatmentSheet ATTRIBUTE (
+INSERT INTO TreatmentSheet VARIABLES (
     'TS007', 'P007', 'B001', '2026-04-03 16:00', 'D001', 'Active'
 );
 
@@ -3795,7 +3795,7 @@ CREATE CONCEPT VitalSigns (
     )
 );
 
-INSERT INTO VitalSigns ATTRIBUTE (
+INSERT INTO VitalSigns VARIABLES (
     'VS001', 'P007', 138, 88, 76, 36.8, '2026-04-03 16:00'
 );
 
@@ -3816,13 +3816,13 @@ COMMIT;
 BEGIN TRANSACTION;
 
 -- Thêm bệnh nhân
-INSERT INTO Patient ATTRIBUTE ('P008', 'Test User', 30, 'A+', 120, 80, 70, 36.5, '2026-04-03');
+INSERT INTO Patient VARIABLES ('P008', 'Test User', 30, 'A+', 120, 80, 70, 36.5, '2026-04-03');
 
 -- Tạo savepoint sau khi thêm bệnh nhân
 -- SAVEPOINT after_patient_insert;
 
 -- Thêm lịch hẹn
-INSERT INTO Appointment ATTRIBUTE ('APT008', 'P008', 'D001', '2026-04-04', 'Test', 'Scheduled');
+INSERT INTO Appointment VARIABLES ('APT008', 'P008', 'D001', '2026-04-04', 'Test', 'Scheduled');
 
 -- Nếu có lỗi ở bước này, có thể quay về savepoint
 -- ROLLBACK TO after_patient_insert;
@@ -3846,14 +3846,14 @@ COMMIT;
 -- Session 1: Bác sĩ A đang cập nhật bệnh án
 BEGIN TRANSACTION;
 UPDATE Patient
-ATTRIBUTE (SET sys: 135, dia: 88)
+VARIABLES (SET sys: 135, dia: 88)
 WHERE patientId = 'P001';
 -- (chưa COMMIT)
 
 -- Session 2: Y tá B cố gắng cập nhật cùng bệnh nhân
 -- BEGIN TRANSACTION;
 -- UPDATE Patient
--- ATTRIBUTE (SET heartRate: 75)
+-- VARIABLES (SET heartRate: 75)
 -- WHERE patientId = 'P001';
 -- -> Sẽ bị BLOCK chờ Session 1 COMMIT hoặc ROLLBACK
 
@@ -3886,7 +3886,7 @@ CREATE CONCEPT Account (
 
 -- Trừ tiền
 UPDATE Account
-ATTRIBUTE (SET balance: balance - 2000000)
+VARIABLES (SET balance: balance - 2000000)
 WHERE patientId = 'P001' AND balance >= 2000000;
 
 -- Nếu balance không đủ, câu lệnh trên sẽ fail
@@ -3895,7 +3895,7 @@ WHERE patientId = 'P001' AND balance >= 2000000;
 
 -- Cập nhật thanh toán
 UPDATE Billing
-ATTRIBUTE (SET status: 'Paid')
+VARIABLES (SET status: 'Paid')
 WHERE billId = 'BILL001' AND patientId = 'P001';
 
 -- Commit nếu mọi thứ OK
@@ -4897,7 +4897,7 @@ CREATE RULE CalcHighBP SCOPE Patient IF sys > 140 OR dia > 90 THEN SET is_hypert
     \begin{academicbox}
 \begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
 -- Nạp dữ liệu cơ sở
-INSERT INTO Patient ATTRIBUTE ('John Doe', 150, 95);
+INSERT INTO Patient VARIABLES ('John Doe', 150, 95);
 
 -- Y cầu nội suy biến 'is_hypertension' trực tiếp trong kết quả
 SELECT name, SOLVE(is_hypertension) FROM Patient;
@@ -4937,7 +4937,7 @@ CREATE RULE CalcForce SCOPE PhysicsBody IF m1 > 0 AND m2 > 0 THEN SET f = Grav(m
     \begin{academicbox}
 \begin{Verbatim}[commandchars=\\\{\},breaklines=true,breakanywhere=true,fontfamily=tt,fontsize=\small]
 -- Nạp dữ liệu (biết f, m1, m2, cần tìm r)
-INSERT INTO PhysicsBody ATTRIBUTE (100.0, 50.0, 0, 0.005);
+INSERT INTO PhysicsBody VARIABLES (100.0, 50.0, 0, 0.005);
 
 -- Kích hoạt bộ giải EquationResolver cho biến 'r'
 SELECT SOLVE(r) FROM PhysicsBody;
