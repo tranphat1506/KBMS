@@ -1,5 +1,0 @@
-[0] Config.pm:328> INFO - This is Biber 2.21
-[0] Config.pm:331> INFO - Logfile is 'report_final.blg'
-[29] biber-darwin:342> INFO - === Wed May 27, 2026, 13:53:34
-[114] Utils.pm:479> ERROR - Cannot find 'report_final.bcf'!
-[114] Biber.pm:137> INFO - ERRORS: 1
