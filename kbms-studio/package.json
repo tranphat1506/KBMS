@@ -56,10 +56,10 @@
       "LICENSE"
     ],
     "mac": {
-      "icon": "public/assets/Thingent-Icons.png"
+      "icon": "public/assets/Thingent-Icons.ico"
     },
     "win": {
-      "icon": "public/assets/Thingent-Icons.png"
+      "icon": "public/assets/Thingent-Icons.ico"
     }
   }
 }
