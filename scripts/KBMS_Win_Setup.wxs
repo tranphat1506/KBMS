@@ -45,11 +45,20 @@
             </Component>
         </DirectoryRef>
 
+        <!-- Service Configuration -->
+        <DirectoryRef Id="SERVERFOLDER">
+            <Component Id="KbmsServerService" Guid="98765432-1234-1234-1234-123456789012">
+                <File Id="KbmsServerExe" Source="server\kbms-server.exe" KeyPath="yes" />
+                <ServiceInstall Id="ServiceInstaller" Type="ownProcess" Name="KBMSServer" DisplayName="KBMS Core Server" Description="Thingent Knowledge Base Management System" Start="auto" Account="LocalSystem" ErrorControl="normal" />
+                <ServiceControl Id="StartService" Start="install" Stop="both" Remove="uninstall" Name="KBMSServer" Wait="yes" />
+            </Component>
+        </DirectoryRef>
+
         <!-- Features -->
         <Feature Id="ProductFeature" Title="KBMS Core" Level="1">
             <ComponentRef Id="PathEnvVar" />
             <ComponentRef Id="GlobalConfig" />
-            <ComponentRef Id="ServerExecutable" />
+            <ComponentRef Id="KbmsServerService" />
             <ComponentRef Id="CliExecutable" />
         </Feature>
     </Product>

@@ -21,6 +21,30 @@ echo "Extracting macOS binaries from releases..."
 unzip -q -o "releases/KBMS_Server_v${VERSION}_osx-arm64.zip" -d "$PAYLOAD_DIR/opt/kbms/server"
 unzip -q -o "releases/KBMS_CLI_v${VERSION}_osx-arm64.zip" -d "$PAYLOAD_DIR/opt/kbms/cli"
 
+mkdir -p "$PAYLOAD_DIR/Library/LaunchDaemons"
+cat <<EOF > "$PAYLOAD_DIR/Library/LaunchDaemons/com.thingent.kbms.plist"
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.thingent.kbms</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/kbms/server/KBMS.Server</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardErrorPath</key>
+    <string>/var/log/kbms-error.log</string>
+    <key>StandardOutPath</key>
+    <string>/var/log/kbms-output.log</string>
+</dict>
+</plist>
+EOF
+
 cat <<EOF > "$PAYLOAD_DIR/etc/kbms/kbms.ini"
 [Server]
 host=127.0.0.1
@@ -47,6 +71,9 @@ ln -sf /opt/kbms/server/KBMS.Server /usr/local/bin/kbms-server
 ln -sf /opt/kbms/cli/KBMS.CLI /usr/local/bin/kbms-cli
 mkdir -p /var/lib/kbms/data
 chmod -R 755 /opt/kbms
+
+# Start LaunchDaemon Service
+launchctl load -w /Library/LaunchDaemons/com.thingent.kbms.plist || true
 exit 0
 EOF
 chmod +x "$SCRIPTS_DIR/postinstall"

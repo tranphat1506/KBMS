@@ -95,9 +95,57 @@ EOF
 chmod +x "$INSTALL_DIR/server/KBMS.Server" 2>/dev/null || true
 chmod +x "$INSTALL_DIR/cli/KBMS.CLI" 2>/dev/null || true
 
-echo "[4/4] Creating global aliases..."
+echo "[4/5] Creating global aliases..."
 ln -sf "$INSTALL_DIR/server/KBMS.Server" "$BIN_DIR/kbms-server"
 ln -sf "$INSTALL_DIR/cli/KBMS.CLI" "$BIN_DIR/kbms-cli"
+
+echo "[5/5] Registering KBMS as a System Service..."
+if [ "$OS" = "Darwin" ]; then
+    PLIST_FILE="/Library/LaunchDaemons/com.thingent.kbms.plist"
+    cat <<EOF > "$PLIST_FILE"
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.thingent.kbms</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>$INSTALL_DIR/server/KBMS.Server</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardErrorPath</key>
+    <string>/var/log/kbms-error.log</string>
+    <key>StandardOutPath</key>
+    <string>/var/log/kbms-output.log</string>
+</dict>
+</plist>
+EOF
+    launchctl load -w "$PLIST_FILE" || true
+    echo "Service registered with launchd (macOS)."
+elif [ "$OS" = "Linux" ]; then
+    SERVICE_FILE="/etc/systemd/system/kbms.service"
+    cat <<EOF > "$SERVICE_FILE"
+[Unit]
+Description=KBMS Server Daemon
+After=network.target
+
+[Service]
+ExecStart=$INSTALL_DIR/server/KBMS.Server
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    systemctl daemon-reload || true
+    systemctl enable kbms || true
+    systemctl start kbms || true
+    echo "Service registered with systemd (Linux)."
+fi
 
 # Cleanup
 rm -rf /tmp/kbms_install

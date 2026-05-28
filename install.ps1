@@ -88,6 +88,16 @@ if (Test-Path "$InstallDir\cli\KBMS.CLI.exe") {
     Rename-Item -Path "$InstallDir\cli\KBMS.CLI.exe" -NewName "kbms-cli.exe" -Force
 }
 
+Write-Host "[5/5] Registering KBMS as a Windows Service..."
+$ServiceName = "KBMSServer"
+if (Get-Service $ServiceName -ErrorAction SilentlyContinue) {
+    Stop-Service $ServiceName -Force
+    # Delete old service if exists via sc.exe (PowerShell 5 workaround)
+    sc.exe delete $ServiceName | Out-Null
+}
+New-Service -Name $ServiceName -BinaryPathName "$InstallDir\server\kbms-server.exe" -DisplayName "KBMS Core Server" -Description "Thingent Knowledge Base Management System" -StartupType Automatic | Out-Null
+Start-Service $ServiceName | Out-Null
+
 Remove-Item -Recurse -Force $TempDir
 
 Write-Host "========================================="

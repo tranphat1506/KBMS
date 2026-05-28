@@ -22,6 +22,21 @@ echo "Extracting Linux binaries from releases..."
 unzip -q -o "releases/KBMS_Server_v${VERSION}_linux-x64.zip" -d "$PAYLOAD_DIR/opt/kbms/server"
 unzip -q -o "releases/KBMS_CLI_v${VERSION}_linux-x64.zip" -d "$PAYLOAD_DIR/opt/kbms/cli"
 
+mkdir -p "$PAYLOAD_DIR/etc/systemd/system"
+cat <<EOF > "$PAYLOAD_DIR/etc/systemd/system/kbms.service"
+[Unit]
+Description=KBMS Server Daemon
+After=network.target
+
+[Service]
+ExecStart=/opt/kbms/server/KBMS.Server
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
 cat <<EOF > "$PAYLOAD_DIR/DEBIAN/control"
 Package: kbms-core
 Version: $VERSION
@@ -58,6 +73,11 @@ ln -sf /opt/kbms/server/KBMS.Server /usr/local/bin/kbms-server
 ln -sf /opt/kbms/cli/KBMS.CLI /usr/local/bin/kbms-cli
 mkdir -p /var/lib/kbms/data
 chmod -R 755 /opt/kbms
+
+# Start Systemd Service
+systemctl daemon-reload || true
+systemctl enable kbms || true
+systemctl start kbms || true
 exit 0
 EOF
 chmod +x "$PAYLOAD_DIR/DEBIAN/postinst"
