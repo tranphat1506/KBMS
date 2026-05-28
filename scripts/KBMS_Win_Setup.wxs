@@ -10,11 +10,7 @@
         <Directory Id="TARGETDIR" Name="SourceDir">
             <Directory Id="ProgramFiles64Folder">
                 <Directory Id="INSTALLFOLDER" Name="KBMS">
-                    <Directory Id="SERVERFOLDER" Name="server">
-                        <Component Id="ServerExecutable" Guid="34567890-1234-1234-1234-123456789012">
-                            <File Id="KbmsServerExe" Source="..\temp_server\kbms-server.exe" KeyPath="yes" />
-                        </Component>
-                    </Directory>
+                    <Directory Id="SERVERFOLDER" Name="server" />
                     <Directory Id="CLIFOLDER" Name="cli">
                         <Component Id="CliExecutable" Guid="45678901-1234-1234-1234-123456789012">
                             <File Id="KbmsCliExe" Source="..\temp_cli\kbms-cli.exe" KeyPath="yes" />
@@ -48,7 +44,7 @@
         <!-- Service Configuration -->
         <DirectoryRef Id="SERVERFOLDER">
             <Component Id="KbmsServerService" Guid="98765432-1234-1234-1234-123456789012">
-                <File Id="KbmsServerExe" Source="server\kbms-server.exe" KeyPath="yes" />
+                <File Id="KbmsServerExe" Source="..\temp_server\kbms-server.exe" KeyPath="yes" />
                 <ServiceInstall Id="ServiceInstaller" Type="ownProcess" Name="KBMSServer" DisplayName="KBMS Core Server" Description="Thingent Knowledge Base Management System" Start="auto" Account="NT AUTHORITY\LocalService" ErrorControl="normal" />
                 <ServiceControl Id="StartService" Start="install" Stop="both" Remove="uninstall" Name="KBMSServer" Wait="yes" />
             </Component>
