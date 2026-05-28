@@ -109,14 +109,12 @@ papers/
 data/
 kbms.ini
 script/
-latex_report/
 docs_backup/
 datasets/
 *.txt
 !README.md
 *.pdf
 *.docx
-*.py
 *.xlsx
 
 # KBMS Scripts folder build results
