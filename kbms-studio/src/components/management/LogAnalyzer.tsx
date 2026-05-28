@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { useKbmsStore } from '../../store/kbmsStore';
+import { useThingentStore } from '../../store/thingentStore';
 import { Search, Filter, Calendar, User, Tag, AlertCircle, Info, Download, Loader2 } from 'lucide-react';
 
 export default function LogAnalyzer(props: { onSelect?: (log: any) => void }) {
-  const { systemLogs, auditLogs, fetchSystemLogs, fetchAuditLogs } = useKbmsStore();
+  const { systemLogs, auditLogs, fetchSystemLogs, fetchAuditLogs } = useThingentStore();
   const [logType, setLogType] = useState<'system' | 'audit'>('system');
   const [filters, setFilters] = useState({
     userFilter: '',

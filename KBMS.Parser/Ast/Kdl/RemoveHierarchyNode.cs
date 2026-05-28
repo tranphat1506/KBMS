@@ -18,7 +18,7 @@ public class RemoveHierarchyNode : KdlNode
     public string ChildConcept { get; set; } = string.Empty;
 
     /// <summary>
-    /// Hierarchy type (IS_A or PART_OF)
+    /// Hierarchy type (IS_A)
     /// </summary>
     public HierarchyType HierarchyType { get; set; }
 }

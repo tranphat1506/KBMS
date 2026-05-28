@@ -1,0 +1,26 @@
+-- KBMS Comprehensive Test Suite: AGRICULTURE (FINAL)
+CREATE KNOWLEDGE BASE Agriculture; USE Agriculture;
+CREATE CONCEPT Field ( VARIABLES ( fId: STRING, evapo: DECIMAL, rain: DECIMAL, waterNeed: DECIMAL ) );
+CREATE RULE Rule_Water_Need SCOPE Field THEN waterNeed = evapo - rain;
+CREATE CONCEPT Crop ( VARIABLES ( name: STRING, seeds: INT, germRate: DECIMAL, areaVal: DECIMAL, expectedYield: DECIMAL ) );
+CREATE RULE Rule_Yield_Calc SCOPE Crop THEN expectedYield = seeds * germRate * areaVal;
+CREATE CONCEPT PestStatus ( VARIABLES ( fId: STRING, bugCount: INT, threshold: INT, needsSpray: BOOL ) );
+CREATE RULE Rule_Pest_Spray SCOPE PestStatus IF bugCount > threshold THEN needsSpray = true;
+CREATE CONCEPT SoilSample ( VARIABLES ( sId: STRING, n: DECIMAL, p: DECIMAL, k: DECIMAL, totalNPK: DECIMAL ) );
+CREATE RULE Rule_NPK_Sum SCOPE SoilSample THEN totalNPK = n + p + k;
+CREATE CONCEPT Feed ( VARIABLES ( animalId: STRING, weight: DECIMAL, proteinPerc: DECIMAL, proteinGrams: DECIMAL ) );
+CREATE RULE Rule_Feed_Prot SCOPE Feed THEN proteinGrams = weight * proteinPerc;
+CREATE CONCEPT Greenhouse ( VARIABLES ( gId: STRING, temp: DECIMAL, ventStatus: STRING, humidity: DECIMAL ) );
+CREATE RULE Rule_GH_Humid SCOPE Greenhouse IF temp > 35 THEN ventStatus = 'OPEN';
+CREATE CONCEPT ForestBlock ( VARIABLES ( bId: STRING, treeAge: INT, speciesFactor: DECIMAL, co2Absorbed: DECIMAL ) );
+CREATE RULE Rule_CO2_Calc SCOPE ForestBlock THEN co2Absorbed = treeAge * speciesFactor;
+CREATE CONCEPT OceanSample ( VARIABLES ( locId: STRING, co2Level: DECIMAL, ph: DECIMAL ) );
+CREATE RULE Rule_Acid_Calc SCOPE OceanSample THEN ph = 8.1 - (co2Level * 0.001);
+CREATE CONCEPT LandStats ( VARIABLES ( region: STRING, initialArea: DECIMAL, currentArea: DECIMAL, lossRate: DECIMAL ) );
+CREATE RULE Rule_Loss_Calc SCOPE LandStats THEN lossRate = (initialArea - currentArea) / initialArea;
+CREATE CONCEPT Migration ( VARIABLES ( species: STRING, dist: DECIMAL, time: DECIMAL, speed: DECIMAL ) );
+CREATE RULE Rule_Mig_Speed SCOPE Migration THEN speed = dist / time;
+INSERT INTO Field VARIABLES (fId: 'FIELD_01', evapo: 5.5, rain: 1.2);
+INSERT INTO Crop VARIABLES (name: 'Corn', seeds: 1000, germRate: 0.9, areaVal: 10);
+INSERT INTO PestStatus VARIABLES (fId: 'FIELD_01', bugCount: 150, threshold: 100);
+SELECT fId, SOLVE(waterNeed) FROM Field; SELECT name, SOLVE(expectedYield) FROM Crop; SELECT fId, SOLVE(needsSpray) FROM PestStatus;

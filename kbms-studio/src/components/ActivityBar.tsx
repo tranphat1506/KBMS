@@ -1,8 +1,8 @@
 import { Database, Search, Settings, FileCode2, Server } from 'lucide-react';
-import { useKbmsStore } from '../store/kbmsStore';
+import { useThingentStore } from '../store/thingentStore';
 
 export default function ActivityBar() {
-  const { setConnectModalOpen, activeSidebarView, setActiveSidebarView, setStudioSettingsOpen, isStudioSettingsOpen } = useKbmsStore();
+  const { setConnectModalOpen, activeSidebarView, setActiveSidebarView, setStudioSettingsOpen, isStudioSettingsOpen } = useThingentStore();
   const isMac = navigator.userAgent.indexOf('Mac') > -1;
   const cmd = isMac ? '⌘' : 'Ctrl';
 

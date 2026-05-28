@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useKbmsStore } from '../store/kbmsStore';
+import { useThingentStore } from '../store/thingentStore';
 import { 
   Activity, ShieldAlert, FileText, CheckCircle2, AlertCircle, Clock, 
   Terminal, Server, Database, AlertTriangle, ExternalLink, X,
@@ -25,7 +25,7 @@ export default function SystemManagement() {
     fetchSettings,
     systemActiveTab,
     logTest
-  } = useKbmsStore();
+  } = useThingentStore();
 
   const [selectedLog, setSelectedLog] = useState<any>(null);
   const [overviewLogLevel, setOverviewLogLevel] = useState<string>('');

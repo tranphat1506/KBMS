@@ -1,57 +1,23 @@
-# Tổng quan Kiến trúc và Mô hình Điều phối Hệ thống
+# 3.1. Tổng quan Kiến trúc và Mô hình Điều phối Hệ thống
 
-Hệ quản trị cơ sở tri thức **KBMS** được xây dựng dựa trên kiến trúc phân lớp (Layered Architecture), cho phép tách biệt các tầng chức năng nhằm tối ưu hóa quá trình xử lý tri thức và quản trị dữ liệu. Kiến trúc này hỗ trợ việc chuyển đổi mô hình lý thuyết **COKB** [1] thành một hệ thống thực thi ổn định, đảm bảo tính mở rộng và khả năng bảo trì mã nguồn trong dài hạn.
+Việc chuyển đổi từ một mô hình lý thuyết toán học thành một hệ quản trị cơ sở tri thức đòi hỏi một kiến trúc có khả năng phân tách hợp lý giữa nghiệp vụ tính toán và kỹ thuật lưu trữ vật lý. Đối với dự án KBMS, toàn bộ mã nguồn được tổ chức thành một giải pháp bao gồm nhiều tầng như `KBMS.Network`, `KBMS.Parser`, `KBMS.Reasoning` và `KBMS.Storage`. Việc phân rã này không chỉ giúp cô lập các rủi ro phát sinh trong quá trình phát triển, mà còn tạo tiền đề cho việc dễ dàng bảo trì và mở rộng hệ thống theo mô hình phân tán trong tương lai [11].
 
-Nội dung chương này tập trung phân tích cấu trúc tổng thể của hệ thống, luồng dữ liệu giữa các tầng và các giải pháp công nghệ cốt lõi được áp dụng trong quá trình triển khai.
+Dựa trên nguyên tắc chia để trị, hệ thống KBMS được cấu trúc thành nhiều tầng khác nhau. Mối liên kết và vị trí của các lớp này được thể hiện trực quan qua Sơ đồ Kiến trúc Phân lớp ở Hình dưới.
 
-## 1. Kiến trúc Phân lớp Chức năng
+![Sơ đồ khối kiến trúc phân lớp tổng quát của hệ thống KBMS. | width=0.7](../assets/diagrams/kbms_4layer_architecture.png)
+*Hình 3.1: Sơ đồ khối kiến trúc phân lớp chức năng của hệ thống KBMS dựa trên cấu trúc dự án.*
 
-Hệ thống được chia thành bốn lớp chức năng chính, mỗi lớp đảm nhiệm một vai trò cụ thể trong chu trình xử lý tri thức từ mức ứng dụng đến mức lưu trữ vật lý:
+Tầng trên cùng là **Tầng Ứng dụng (Application Layer)**, đóng vai trò là điểm chạm đầu tiên của người dùng thông qua các module như `KBMS.CLI` và `kbms-studio`. Tầng này không chứa bất kỳ logic tính toán tri thức nào, mà chỉ đơn thuần cung cấp các giao diện tương tác (IDE hoặc giao diện dòng lệnh) để kỹ sư tri thức soạn thảo mã nguồn KBQL. Lớp ứng dụng sẽ đóng gói các đoạn mã này thành các yêu cầu mạng và gửi xuống máy chủ.
 
-![Kiến trúc Phân lớp KBMS](../assets/diagrams/kbms_4layer_architecture.png)
-*Hình 4.1: Sơ đồ kiến trúc phân lớp chức năng của hệ thống KBMS.*
+Ngay phía dưới là **Tầng Mạng (Network Layer)** được quản lý hoàn toàn bởi thư viện `KBMS.Network`. Nhiệm vụ của lớp này là thiết lập kết nối TCP tin cậy (TCP Binary Server) và quản lý vòng đời của các phiên giao dịch (Session). Để giảm thiểu độ trễ, KBMS loại bỏ hoàn toàn các giao thức văn bản cồng kềnh như HTTP/REST, thay vào đó truyền tải trực tiếp các gói tin nhị phân. Mọi dữ liệu đi vào hoặc đi ra đều phải qua khâu tuần tự hóa (Serialization) trước khi được đẩy vào vùng đệm của máy chủ.
 
-Đặc tả các lớp chức năng:
+Trái tim của hệ thống nằm ở **Tầng Server và Suy diễn (Engine Layer)**, bao gồm sự kết hợp chặt chẽ giữa `KBMS.Parser` và `KBMS.Reasoning`. Tại đây, các lệnh dạng văn bản sẽ được `KBMS.Parser` phân tích từ vựng (Lexer) và ngữ pháp (Grammar) để tạo ra một Cây cú pháp trừu tượng (AST). Sau đó, `KBMS.Reasoning` sẽ tiếp nhận cây AST này. Nếu đó là một lệnh yêu cầu tính toán, bộ máy suy diễn sẽ kích hoạt mạng Rete (Rete Network), thực thi thuật toán suy diễn tiến (Forward Chaining) để đối sánh các luật trên dữ kiện hiện có nhằm tìm ra tri thức mới [4].
 
--   **Lớp Ứng dụng (Application Layer)**: Cung cấp giao diện tương tác cho người dùng. Phân hệ này bao gồm **KBMS Studio** (môi trường phát triển tích hợp dựa trên React và Electron) và **KBMS CLI** (giao diện dòng lệnh). Các ứng dụng này hỗ trợ biên tập tri thức, trực quan hóa mô hình và quản trị hệ thống.
--   **Lớp Mạng (Network Layer)**: Thực hiện truyền dẫn dữ liệu giữa Client và Server thông qua các gói tin nhị phân. Lớp này quản lý việc tuần tự hóa đối tượng (Serialization), thiết lập phiên làm việc (Session) và đảm bảo an toàn dữ liệu bằng các giao thức socket bất đồng bộ.
--   **Lớp Xử lý Server (Server Engine Layer)**: Là thành phần điều phối trung tâm của hệ thống. Tại đây, các câu lệnh ngôn ngữ **KBQL** được phân tích cú pháp để tạo thành Cây cú pháp trừu tượng (**AST**). Dựa trên AST, hệ thống điều hướng yêu cầu tới bộ máy suy diễn (**Inference Engine**) hoặc bộ phân tích truy vấn dữ liệu.
--   **Lớp Lưu trữ (Storage Layer)**: Đảm nhiệm việc lưu trữ và truy xuất dữ liệu từ các thiết bị lưu trữ thứ cấp. Sử dụng cấu trúc **Slotted Page** và chỉ mục **B+ Tree** [5, 10], lớp này đảm bảo các thuộc tính **ACID** cho giao dịch và sử dụng nhật ký ghi trước (**WAL**) [5] để phục hồi dữ liệu khi xảy ra sự cố.
+Tầng cuối cùng, chịu trách nhiệm lưu giữ sự sống cho toàn bộ tri thức, là **Tầng Lưu trữ (Storage Layer)** thuộc namespace `KBMS.Storage`. Khác với các cơ sở dữ liệu truyền thống, Tầng lưu trữ này được tùy chỉnh cực kỳ tinh vi để tối ưu hóa việc cấp phát bộ nhớ. Nó bao gồm một bộ quản lý trang (`BufferPoolManager`) sử dụng thuật toán thay thế trang LRU Cache. Đĩa cứng vật lý được chia nhỏ thành các trang `SlottedPage` có kích thước chính xác 16KB. Đồng thời, quá trình tìm kiếm được tăng tốc bằng cơ chế chỉ mục `BPlusTree` dựa trên các khóa định danh toàn cục (`Guid`). Đặc biệt, để đảm bảo tính an toàn dữ liệu tuyệt đối khi mất điện, module `WalManagerV3` sẽ liên tục ghi lưu nhật ký theo chu kỳ 1 giây/lần.
 
-## 2. Quy trình Điều phối và Luồng Xử lý Dữ liệu
+Sự tương tác giữa bốn lớp này không diễn ra rời rạc mà tuân theo một quy trình điều phối tuyến tính và nghiêm ngặt. Khi một ứng dụng bên ngoài gửi một yêu cầu truy vấn, dữ liệu sẽ chảy qua từng thành phần, kích hoạt các xử lý tuần tự cho đến khi trả về tập kết quả cuối cùng. Luồng dữ liệu điều phối này được mô phỏng chi tiết trong Hình 3.2.
 
-Quy trình xử lý một yêu cầu trong KBMS bắt đầu từ việc tiếp nhận chuỗi ký tự từ lớp ứng dụng và chuyển hóa thành các tác vụ thực thi tại hạ tầng. Đối tượng trung tâm xuyên suốt quá trình này là Cây cú pháp trừu tượng (AST).
+![Sơ đồ tuần tự quá trình xử lý lệnh qua các lớp hệ thống. | width=1.1](../assets/diagrams/new_kbms_general_system_sequence.png)
+*Hình 3.2: Sơ đồ tuần tự (Sequence Diagram) phản ánh luồng thực thi mã nguồn giữa các module.*
 
-![Sơ đồ Tuần tự Hệ thống](../assets/diagrams/kbms_general_system_sequence.png)
-*Hình 4.2: Sơ đồ tuần tự mô tả luồng xử lý và điều phối dữ liệu qua các lớp.*
-
-Khi một lệnh được gửi đến, luồng xử lý diễn ra theo các bước:
-1.  **Tiếp nhận**: Lớp mạng nhận gói tin và giải mã nội dung lệnh.
-2.  **Phân tích**: Bộ phân tích (Parser) xây dựng AST từ câu lệnh.
-3.  **Điều hướng**: Hệ thống kiểm tra loại lệnh trong AST. Nếu là lệnh suy diễn, thông tin sẽ được đưa vào mạng lưới **Rete** [9]. Nếu là lệnh quản trị dữ liệu, hệ thống sẽ thực hiện truy xuất trực tiếp các trang dữ liệu (Pages) thông qua Buffer Pool [5].
-4.  **Phản hồi**: Kết quả thực thi được đóng gói và gửi ngược lại phía người dùng.
-
-## 3. Các Phân hệ Phụ trợ và Quản trị Hệ thống
-
-Bên cạnh các luồng xử lý tri thức chính, hệ thống triển khai các phân hệ phụ trợ để đảm bảo an ninh và chẩn đoán trạng thái vận hành.
-
-![Quy trình Chẩn đoán và Bảo mật | width=1.1](../assets/diagrams/kbms_security_diagnostics_flow.png)
-*Hình 4.3: Sơ đồ luồng chẩn đoán và kiểm soát an ninh hệ thống.*
-
-Các phân hệ này bao gồm:
--   **Kiểm soát truy cập (RBAC)**: Xác thực người dùng và phân quyền dựa trên vai trò trước khi thực thi các lệnh đặc quyền.
--   **Ghi nhật ký (Logging)**: Lưu trữ nhật ký kiểm toán (Audit Log) để theo dõi các hành vi tác động đến cơ sở tri thức.
--   **Giám sát (Monitoring)**: Theo dõi các chỉ số tài nguyên như CPU, bộ nhớ RAM và trạng thái của các tệp tin lưu trữ.
-
-## 4. Tổng hợp Công nghệ và Thuật toán Nền tảng
-
-Bảng dưới đây tóm tắt các giải pháp công nghệ chính được ứng dụng trong quá trình cài đặt hệ thống:
-
-*Bảng 4.1: Đặc tả công nghệ và thuật toán tại các phân lớp*
-| Lớp kiến trúc | Phân hệ triển khai | Công nghệ và Thuật toán cốt lõi |
-| :--- | :--- | :--- |
-| **Ứng dụng** | `kbms-studio-ui`, `KBMS.CLI` | React, Electron, TypeScript, Monaco Editor |
-| **Mạng** | `KBMS.Server.Network` | Asynchronous Sockets, AES-256, Binary Protocol |
-| **Server** | `KBMS.Parser`, `KnowledgeManager`| Phân tích cú pháp LL(k), TAP (Multithreading) |
-| **Suy luận** | `KBMS.Reasoning.InferenceEngine`| Suy diễn tiến (Forward Chaining) [6], Mạng Rete [9] |
-| **Lưu trữ** | `KBMS.Storage.V3` | Slotted Page, Cây B+ (B+ Tree) [5, 10], WAL [5] |
+Nhìn vào sơ đồ tuần tự trên, có thể thấy điểm mấu chốt quyết định tính đúng đắn của toàn bộ chu trình nằm ở sự kết hợp giữa thuật toán phân tích cú pháp (Parser) và cơ chế đảm bảo an toàn ghi đệm (WAL) trước khi dữ liệu thực sự đi vào vùng xử lý logic của `KBMS.Reasoning`. Với cái nhìn bao quát về kiến trúc này, phần tiếp theo sẽ đi sâu vào kỹ thuật cài đặt của Lớp Lưu trữ — nền móng vật lý của toàn bộ cấu trúc COKB.

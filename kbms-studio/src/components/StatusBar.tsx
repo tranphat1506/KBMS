@@ -1,8 +1,8 @@
-import { useKbmsStore } from '../store/kbmsStore';
+import { useThingentStore } from '../store/thingentStore';
 import { Wifi, WifiOff, Clock, HardDrive, CheckCircle2, XCircle } from 'lucide-react';
 
 export default function StatusBar() {
-  const { status, isExecuting, result } = useKbmsStore();
+  const { status, isExecuting, result } = useThingentStore();
   
   return (
     <div className="h-6 flex-shrink-0 bg-[var(--brand-primary)] text-white flex items-center justify-between px-3 text-[11px] font-medium tracking-wide z-30 shadow-[0_-1px_2px_rgba(0,0,0,0.1)] select-none transition-colors duration-200">
@@ -44,7 +44,7 @@ export default function StatusBar() {
         </div>
         
         <div className="pl-3 border-l border-white/20 font-semibold text-white/60">
-           KBMS Driver v1.1
+           Thingent Driver v1.1
         </div>
       </div>
     </div>

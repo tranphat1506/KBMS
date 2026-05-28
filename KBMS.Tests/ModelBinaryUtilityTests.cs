@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using KBMS.Models;
-using KBMS.Storage.V3;
+using KBMS.Storage.Core;
 using Xunit;
 
 namespace KBMS.Tests

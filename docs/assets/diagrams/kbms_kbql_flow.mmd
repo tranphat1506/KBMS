@@ -1,0 +1,24 @@
+stateDiagram-v2
+    [*] --> Client: Gửi lệnh KBQL (TCP Binary)
+    Client --> Parser: Phân tích cú pháp (Lexer/Parser)
+    
+    state Parser {
+        direction LR
+        Tokenize --> ValidateSyntax
+    }
+    
+    Parser --> AST: Khởi tạo Cây cú pháp (AST)
+    
+    state AST_Processing {
+        direction TB
+        AST --> DDL: Lệnh định nghĩa
+        AST --> DML: Lệnh thao tác
+        AST --> DQL: Lệnh truy vấn/suy diễn
+    }
+    
+    DDL --> Storage: Cập nhật Schema (B+ Tree)
+    DML --> Storage: Lưu dữ kiện mới (WAL)
+    DQL --> Inference: Kích hoạt Forward Chaining
+    
+    Storage --> [*]: Trả kết quả
+    Inference --> [*]: Trả tập kết quả

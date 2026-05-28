@@ -1,10 +1,10 @@
 import { Bell, Trash2, CheckCircle2, Info, AlertTriangle, AlertCircle, X } from 'lucide-react';
-import { useKbmsStore } from '../store/kbmsStore';
-import type { Notification } from '../store/kbmsStore';
+import { useThingentStore } from '../store/thingentStore';
+import type { Notification } from '../store/thingentStore';
 import { useState, useRef, useEffect } from 'react';
 
 export default function NotificationBell() {
-  const { notifications, clearNotifications, removeNotification, setSelectedNotification, markAsRead } = useKbmsStore();
+  const { notifications, clearNotifications, removeNotification, setSelectedNotification, markAsRead } = useThingentStore();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 

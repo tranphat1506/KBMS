@@ -10,7 +10,7 @@ public class ConfigManager
     public string Host { get; private set; } = "127.0.0.1";
     public int Port { get; private set; } = 3307;
     public string DataDir { get; private set; } = Path.GetFullPath("data");
-    public string MasterKey { get; private set; } = "KBMS_V3_MASTER_SECRET_2026";
+    public string MasterKey { get; set; } = string.Empty;
     public int MaxConnections { get; private set; } = 100;
     public string Version { get; private set; } = "3.4.0-stable";
 
@@ -79,6 +79,11 @@ public class ConfigManager
                     config.SystemSettings[key] = val;
                     break;
             }
+        }
+
+        if (string.IsNullOrEmpty(config.MasterKey))
+        {
+            config.MasterKey = "KBMS_V3_MASTER_SECRET_2026";
         }
 
         return config;

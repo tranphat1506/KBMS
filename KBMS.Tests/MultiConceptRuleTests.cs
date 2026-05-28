@@ -47,81 +47,81 @@ namespace KBMS.Tests
         }
 
         [Fact]
-        public void MultiConceptRule_CommaSyntax_ShouldParseAndCreate()
+        public async Task MultiConceptRule_CommaSyntax_ShouldParseAndCreate()
         {
             // Test comma-separated multi-concept scope syntax
-            var result = _cli.ExecuteCommandAsync(@"
+            var result = await _cli.ExecuteCommandAsync(@"
                 CREATE KNOWLEDGE BASE MedicalDB;
                 USE MedicalDB;
                 CREATE CONCEPT Patient(patientId: STRING, age: INT, riskLevel: STRING);
                 CREATE CONCEPT LabResult(resultId: STRING, patientId: STRING, bloodSugar: DECIMAL, cholesterol: DECIMAL);
-            ").Result;
+            ");
 
             Assert.Equal(MessageType.RESULT, result.Type);
 
             // Create multi-concept rule with comma syntax
-            var ruleResult = _cli.ExecuteCommandAsync(@"
+            var ruleResult = await _cli.ExecuteCommandAsync(@"
                 CREATE RULE CardiovascularRisk
                 SCOPE Patient p, LabResult l
                 IF p.age > 50 AND l.bloodSugar > 140
                 THEN SET p.riskLevel = 'high'
                 PRIORITY 80;
-            ").Result;
+            ");
 
-            _output.WriteLine($"Rule Result: {ruleResult.Content}");
-            Assert.Equal(MessageType.RESULT, ruleResult.Type);
-            Assert.Contains("CardiovascularRisk", ruleResult.Content);
+            _output.WriteLine($"Rule Result: {ruleResult?.Content}");
+            Assert.Equal(MessageType.RESULT, ruleResult?.Type);
+            Assert.Contains("CardiovascularRisk", ruleResult?.Content ?? "");
         }
 
         [Fact]
-        public void MultiConceptRule_JoinSyntax_ShouldParseAndCreate()
+        public async Task MultiConceptRule_JoinSyntax_ShouldParseAndCreate()
         {
             // Test JOIN...ON multi-concept scope syntax
-            var result = _cli.ExecuteCommandAsync(@"
+            var result = await _cli.ExecuteCommandAsync(@"
                 CREATE KNOWLEDGE BASE RetailDB;
                 USE RetailDB;
                 CREATE CONCEPT Customer(customerId: STRING, name: STRING, totalSpent: DECIMAL, tier: STRING);
                 CREATE CONCEPT Orders(orderId: STRING, customerId: STRING, amount: DECIMAL, status: STRING);
-            ").Result;
+            ");
 
             Assert.Equal(MessageType.RESULT, result.Type);
 
             // Create multi-concept rule with JOIN...ON syntax
-            var ruleResult = _cli.ExecuteCommandAsync(@"
+            var ruleResult = await _cli.ExecuteCommandAsync(@"
                 CREATE RULE VipCustomer
                 SCOPE Customer c JOIN Orders o ON c.customerId = o.customerId
                 IF o.status = 'completed' AND o.amount > 1000
                 THEN SET c.tier = 'VIP'
                 PRIORITY 90;
-            ").Result;
+            ");
 
-            _output.WriteLine($"Rule Result: {ruleResult.Content}");
-            Assert.Equal(MessageType.RESULT, ruleResult.Type);
-            Assert.Contains("VipCustomer", ruleResult.Content);
+            _output.WriteLine($"Rule Result: {ruleResult?.Content}");
+            Assert.Equal(MessageType.RESULT, ruleResult?.Type);
+            Assert.Contains("VipCustomer", ruleResult?.Content ?? "");
         }
 
         [Fact]
-        public void SingleConceptRule_BackwardCompatible_ShouldWork()
+        public async Task SingleConceptRule_BackwardCompatible_ShouldWork()
         {
             // Ensure single-concept rules still work (backward compatibility)
-            var result = _cli.ExecuteCommandAsync(@"
+            var result = await _cli.ExecuteCommandAsync(@"
                 CREATE KNOWLEDGE BASE SimpleDB;
                 USE SimpleDB;
                 CREATE CONCEPT Triangle(a: DECIMAL, b: DECIMAL, c: DECIMAL, area: DECIMAL);
-            ").Result;
+            ");
 
             Assert.Equal(MessageType.RESULT, result.Type);
 
             // Single concept rule (original syntax)
-            var ruleResult = _cli.ExecuteCommandAsync(@"
+            var ruleResult = await _cli.ExecuteCommandAsync(@"
                 CREATE RULE CalculateArea
                 SCOPE Triangle
                 IF a > 0 AND b > 0 AND c > 0
                 THEN SET area = a * b * c / 2;
-            ").Result;
+            ");
 
-            _output.WriteLine($"Rule Result: {ruleResult.Content}");
-            Assert.Equal(MessageType.RESULT, ruleResult.Type);
+            _output.WriteLine($"Rule Result: {ruleResult?.Content}");
+            Assert.Equal(MessageType.RESULT, ruleResult?.Type);
         }
     }
 }

@@ -1,7 +1,7 @@
 {
-  "name": "kbms-studio",
-  "displayName": "KBMS Studio",
-  "productName": "KBMS Studio",
+  "name": "thingent-studio",
+  "displayName": "Thingent Studio",
+  "productName": "Thingent Studio",
   "private": true,
   "version": "3.4.0",
   "type": "module",
@@ -14,14 +14,19 @@
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
     "@tailwindcss/vite": "^4.2.2",
+    "@types/dagre": "^0.7.54",
+    "d3-force": "^3.0.0",
+    "dagre": "^0.8.5",
     "lucide-react": "^0.577.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "reactflow": "^11.11.4",
     "tailwindcss": "^4.2.2",
     "zustand": "^5.0.12"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@types/d3-force": "^3.0.10",
     "@types/node": "^24.12.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
@@ -40,8 +45,8 @@
   },
   "main": "dist-electron/main.js",
   "build": {
-    "appId": "com.kbms.studio",
-    "productName": "KBMS Studio",
+    "appId": "com.thingent.studio",
+    "productName": "Thingent Studio",
     "directories": {
       "output": "release"
     },
@@ -51,10 +56,10 @@
       "LICENSE"
     ],
     "mac": {
-      "icon": "public/icon.png"
+      "icon": "public/assets/Thingent-Icons.png"
     },
     "win": {
-      "icon": "public/icon.png"
+      "icon": "public/assets/Thingent-Icons.png"
     }
   }
 }

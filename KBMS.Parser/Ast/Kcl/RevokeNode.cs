@@ -15,7 +15,7 @@ public class RevokeNode : KdlNode
     /// <summary>
     /// Knowledge Base name
     /// </summary>
-    public string KbName { get; set; } = string.Empty;
+    public new string KbName { get; set; } = string.Empty;
 
     /// <summary>
     /// Username to revoke privilege from

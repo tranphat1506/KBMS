@@ -1,0 +1,28 @@
+graph LR
+    subgraph "Working Memory (Facts)"
+        F1(Customer.tier)
+        F2(Order.amount)
+        F3(Triangle.a)
+    end
+
+    subgraph "Rete Network (Inference Engine)"
+        R(Root Node)
+        A1[Alpha Node: amount > 1000]
+        A2[Alpha Node: a^2 + b^2 = c^2]
+        B1{Beta Node: Customer JOIN Order}
+        T1((Target: VIP Rule))
+        T2((Target: Pythagoras Rule))
+        
+        R --> A1
+        R --> A2
+        A1 --> B1
+        B1 --> T1
+        A2 --> T2
+    end
+
+    subgraph "Knowledge Base"
+        T1 -.->|Update| F1
+        T2 -.->|Update| F3
+    end
+    
+    F2 --> R

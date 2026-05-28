@@ -13,5 +13,7 @@ public enum MessageType : byte
     STATS = 10,
     LOGS_STREAM = 11,
     SESSIONS = 12,
-    MANAGEMENT_CMD = 13
+    MANAGEMENT_CMD = 13,
+    LSP_AUTOCOMPLETE = 14,
+    LSP_DIAGNOSTICS = 15
 }

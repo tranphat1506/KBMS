@@ -1,0 +1,17 @@
+flowchart TD
+    Input[Chuỗi lệnh KBQL gốc] --> Lexer(Trình phân tích từ vựng - Lexer)
+    Lexer -->|Danh sách Token| Parser(Trình phân tích cú pháp - Parser)
+    
+    subgraph AST [Abstract Syntax Tree - AST]
+        Root(Root Node: Lệnh gốc)
+        Root --> N1(Node Nhánh: Thực thể)
+        Root --> N2(Node Nhánh: Biểu thức)
+        N1 --> L1(Node Lá: Tên biến/Tham số)
+        N2 --> L2(Node Lá: Giá trị literal)
+    end
+    
+    Parser -->|Khớp Grammar & Sinh Cây| Root
+    
+    Root --> Dispatcher{Bộ phân luồng}
+    Dispatcher -->|KDL, KCL, TCL| Executor(Trực tiếp xuống Storage)
+    Dispatcher -->|KML, KQL| Inference(Đẩy vào Working Memory / Rete)

@@ -40,6 +40,8 @@ public enum TokenType
     FUNCTIONS,      // FUNCTIONS
     USERS,          // USERS
     HIERARCHIES,    // HIERARCHIES
+    TRIGGERS,       // TRIGGERS
+    INDEXES,        // INDEXES
 
     // Keywords - DML/KML
     SELECT,         // SELECT
@@ -47,6 +49,7 @@ public enum TokenType
     UPDATE,         // UPDATE
     DELETE,         // DELETE
     SHOW,           // SHOW
+    FIND,           // FIND
 
     INDEX,          // INDEX
     EXPLAIN,        // EXPLAIN
@@ -71,6 +74,8 @@ public enum TokenType
     // Keywords - Clauses
     WHERE,          // WHERE
     FROM,           // FROM
+    WITH,           // WITH
+    RETURN,         // RETURN
     INTO,           // INTO
     TO,             // TO
     OF,             // OF
@@ -103,9 +108,9 @@ public enum TokenType
     ATTRIBUTES,     // ATTRIBUTES (alias for VARIABLES)
 
     // Keywords - Hierarchy
+    IS,             // IS
     IS_A,           // IS_A
     ISA,            // ISA
-    PART_OF,        // PART_OF
     HIERARCHY,      // HIERARCHY
 
     // Keywords - Relation/Function/Operator
@@ -151,6 +156,15 @@ public enum TokenType
     AVG,            // AVG
     MAX,            // MAX
     MIN,            // MIN
+
+    // Keywords - Meta-Querying
+    HAS_FIRED,      // HAS_FIRED
+    IS_DEDUCED,     // IS_DEDUCED
+    TOTAL_COST,     // TOTAL_COST
+    IS_STUCK,       // IS_STUCK
+    AUDIT_LOG,      // AUDIT_LOG
+    GENERATED_VARIABLES, // GENERATED_VARIABLES
+    MISSING_FACTS,  // MISSING_FACTS
 
     // Keywords - Logical
     AND,            // AND

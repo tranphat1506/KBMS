@@ -1,8 +1,8 @@
 import { AlertTriangle, X } from 'lucide-react';
-import { useKbmsStore } from '../store/kbmsStore';
+import { useThingentStore } from '../store/thingentStore';
 
 export default function ConfirmDialog() {
-  const { confirmDialog, closeConfirm } = useKbmsStore();
+  const { confirmDialog, closeConfirm } = useThingentStore();
   const { isOpen, title, message, onConfirm, onCancel } = confirmDialog;
 
   if (!isOpen) return null;

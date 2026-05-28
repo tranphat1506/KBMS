@@ -1,0 +1,26 @@
+-- KBMS Comprehensive Test Suite: MANUFACTURING (FINAL)
+CREATE KNOWLEDGE BASE Manufacturing; USE Manufacturing;
+CREATE CONCEPT Machine ( VARIABLES ( mId: STRING, vibration: DECIMAL, temp: DECIMAL, needsMaintenance: BOOL ) );
+CREATE RULE Rule_Maint_Check SCOPE Machine IF vibration > 5.5 AND temp > 80 THEN needsMaintenance = true;
+CREATE CONCEPT ProductionLine ( VARIABLES ( lineId: STRING, avail: DECIMAL, perf: DECIMAL, qual: DECIMAL, oee: DECIMAL ) );
+CREATE RULE Rule_OEE_Calc SCOPE ProductionLine THEN oee = avail * perf * qual;
+CREATE CONCEPT Component ( VARIABLES ( name: STRING, unitCost: DECIMAL, quantity: INT, totalCost: DECIMAL ) );
+CREATE RULE Rule_BOM_Sum SCOPE Component THEN totalCost = unitCost * quantity;
+CREATE CONCEPT Shipment ( VARIABLES ( sId: STRING, originalETA: INT, delayDays: INT, newETA: INT ) );
+CREATE RULE Rule_Delay_Calc SCOPE Shipment THEN newETA = originalETA + delayDays;
+CREATE CONCEPT Sensor ( VARIABLES ( sId: STRING, voltage: DECIMAL, current: DECIMAL, power: DECIMAL ) );
+CREATE RULE Rule_Power_Calc SCOPE Sensor THEN power = voltage * current;
+CREATE CONCEPT QualityControl ( VARIABLES ( batchId: STRING, defects: INT, totalCount: INT, rate: DECIMAL ) );
+CREATE RULE Rule_Defect_Perc SCOPE QualityControl THEN rate = (defects / totalCount) * 100;
+CREATE CONCEPT Joint ( VARIABLES ( jId: STRING, targetX: DECIMAL, currentX: DECIMAL, error: DECIMAL ) );
+CREATE RULE Rule_Joint_Error SCOPE Joint THEN error = targetX - currentX;
+CREATE CONCEPT Rack ( VARIABLES ( rId: STRING, accessFreq: INT, priorityZone: STRING ) );
+CREATE RULE Rule_Zone_High SCOPE Rack IF accessFreq > 100 THEN priorityZone = 'HOT';
+CREATE CONCEPT BaseBatch ( VARIABLES ( batchNo: STRING, origin: STRING ) );
+CREATE CONCEPT UnitBatch ( BASE_OBJECTS (BaseBatch), VARIABLES ( unitId: STRING, statusVal: STRING ) );
+CREATE CONCEPT Worker ( VARIABLES ( name: STRING, hasHelmet: BOOL, hasVest: BOOL, isSafe: BOOL ) );
+CREATE RULE Rule_Safety_Check SCOPE Worker IF hasHelmet = true AND hasVest = true THEN isSafe = true;
+INSERT INTO Machine VARIABLES (mId: 'M101', vibration: 6.2, temp: 85);
+INSERT INTO ProductionLine VARIABLES (lineId: 'LINE_A', avail: 0.9, perf: 0.85, qual: 0.98);
+INSERT INTO Worker VARIABLES (name: 'Dung', hasHelmet: true, hasVest: true);
+SELECT mId, SOLVE(needsMaintenance) FROM Machine; SELECT lineId, SOLVE(oee) FROM ProductionLine; SELECT name, SOLVE(isSafe) FROM Worker;

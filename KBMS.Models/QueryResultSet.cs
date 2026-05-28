@@ -37,7 +37,7 @@ public class QueryResultSet
                 Id = obj.Id,
                 KbId = obj.KbId,
                 ConceptName = alias, // Use alias as concept name
-                Values = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
+                Values = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
             };
 
             // Add values with both prefixed and non-prefixed keys

@@ -126,6 +126,7 @@ public class ConstraintDef
 /// </summary>
 public class ConceptRuleDef
 {
+    public string RuleName { get; set; } = string.Empty;
     public string Kind { get; set; } = string.Empty;
     public List<VariableDefinition> Variables { get; set; } = new();
     public List<string> Hypothesis { get; set; } = new();

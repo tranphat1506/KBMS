@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using KBMS.Models;
@@ -10,8 +11,8 @@ using KBMS.Parser.Ast.Kcl;
 using KBMS.Parser.Ast.Tcl;
 using KBMS.Parser.Ast.Expressions;
 using KBMS.Storage;
-using KBMS.Storage.V3;
-using KBMS.Knowledge.V3;
+using KBMS.Storage.Core;
+using KBMS.Knowledge.Core;
 using KBMS.Knowledge.Validation;
 using KBMS.Reasoning;
 
@@ -23,28 +24,139 @@ namespace KBMS.Knowledge;
 public class KnowledgeManager
 {
     private readonly StoragePool _storagePool;
-    private readonly V3DataRouter _v3Router;
-    public V3DataRouter V3Router => _v3Router;
-    private readonly KBMS.Storage.V3.KbCatalog _kbCatalog;
-    private readonly KBMS.Storage.V3.ConceptCatalog _conceptCatalog;
-    private readonly KBMS.Storage.V3.UserCatalog _userCatalog;
+    private readonly StorageRouter _v3Router;
+    public StorageRouter V3Router => _v3Router;
+    private readonly KBMS.Storage.Core.KbCatalog _kbCatalog;
+    private readonly KBMS.Storage.Core.ConceptCatalog _conceptCatalog;
+    private readonly KBMS.Storage.Core.UserCatalog _userCatalog;
 
-    // Transaction buffering
-    private bool _inTransaction = false;
-    private readonly List<(string kbName, ObjectInstance obj)> _txBuffer = new();
+    // Per-KB InferenceEngine cache: engines hold compiled Rete networks
+    // Key = kbName (case-insensitive)
+    private readonly ConcurrentDictionary<string, KBMS.Reasoning.InferenceEngine> _engineCache
+        = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Fully invalidates the Rete network cache for a given KB.
+    /// Call this whenever schema changes (rules, concepts, relations) are made.
+    /// </summary>
+    private void InvalidateEngineCache(string kbName)
+    {
+        if (_engineCache.TryRemove(kbName, out var old))
+            old.ClearCache();
+    }
 
     public KnowledgeManager(
         StoragePool storagePool,
         KbCatalog kbCatalog,
         ConceptCatalog conceptCatalog,
         UserCatalog userCatalog,
-        V3DataRouter? v3Router = null)
+        StorageRouter? v3Router = null)
     {
         _storagePool = storagePool;
         _kbCatalog = kbCatalog;
         _conceptCatalog = conceptCatalog;
         _userCatalog = userCatalog;
-        _v3Router = v3Router ?? new V3DataRouter(storagePool);
+        _v3Router = v3Router ?? new StorageRouter(storagePool);
+    }
+
+    private Concept GetEffectiveConcept(string kbName, Concept primary)
+    {
+        var allBaseObjects = new HashSet<string>(primary.BaseObjects, StringComparer.OrdinalIgnoreCase);
+        
+        var effective = new Concept
+        {
+            Name = primary.Name,
+            Variables = new List<Variable>(primary.Variables),
+            Constraints = new List<KBMS.Models.Constraint>(primary.Constraints),
+            SameVariables = new List<SameVariable>(primary.SameVariables),
+            ConceptRules = new List<ConceptRule>(primary.ConceptRules),
+            Equations = new List<Equation>(primary.Equations),
+            ConstructRelations = new List<ConstructRelation>(primary.ConstructRelations)
+        };
+
+        foreach (var baseName in allBaseObjects)
+        {
+            var baseConcept = _conceptCatalog.LoadConcept(kbName, baseName);
+            if (baseConcept != null)
+            {
+                var flattendBase = GetEffectiveConcept(kbName, baseConcept);
+                // Inherit variables that aren't shadowed
+                foreach (var v in flattendBase.Variables)
+                {
+                    if (!effective.Variables.Any(ev => ev.Name.Equals(v.Name, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        effective.Variables.Add(v);
+                    }
+                }
+                effective.Constraints.AddRange(flattendBase.Constraints);
+                effective.SameVariables.AddRange(flattendBase.SameVariables);
+                effective.ConceptRules.AddRange(flattendBase.ConceptRules);
+                effective.Equations.AddRange(flattendBase.Equations);
+                effective.ConstructRelations.AddRange(flattendBase.ConstructRelations);
+            }
+        }
+        return effective;
+    }
+
+    /// <summary>
+    /// Ensures that every concept with BASE_OBJECTS has a matching IS-A Hierarchy entry.
+    /// Safe to call repeatedly (idempotent). Runs on USE and on CREATE CONCEPT.
+    /// </summary>
+    private void SyncHierarchiesFromBaseObjects(string kbName)
+    {
+        var kb = _kbCatalog.LoadKb(kbName);
+        if (kb == null) return;
+
+        var concepts = _conceptCatalog.ListConcepts(kbName);
+        bool modified = false;
+
+        foreach (var concept in concepts)
+        {
+            foreach (var baseObj in concept.BaseObjects)
+            {
+                bool exists = kb.Hierarchies.Any(h =>
+                    h.ChildConcept.Equals(concept.Name, StringComparison.OrdinalIgnoreCase) &&
+                    h.ParentConcept.Equals(baseObj, StringComparison.OrdinalIgnoreCase));
+
+                if (!exists)
+                {
+                    kb.Hierarchies.Add(new Hierarchy
+                    {
+                        ParentConcept = baseObj,
+                        ChildConcept = concept.Name,
+                        HierarchyType = Models.HierarchyType.IsA
+                    });
+                    modified = true;
+                }
+            }
+        }
+
+        if (modified) _kbCatalog.SaveKbMetadata(kb);
+    }
+
+    private List<string> GetDescendantConcepts(string kbName, string parentConceptName)
+    {
+        var descendants = new List<string>();
+        var concepts = _conceptCatalog.ListConcepts(kbName);
+        var queue = new Queue<string>();
+        queue.Enqueue(parentConceptName);
+
+        while (queue.Count > 0)
+        {
+            var current = queue.Dequeue();
+            foreach (var c in concepts)
+            {
+                if (c.BaseObjects != null && c.BaseObjects.Any(b => b.Equals(current, StringComparison.OrdinalIgnoreCase)))
+                {
+                    if (!descendants.Contains(c.Name, StringComparer.OrdinalIgnoreCase))
+                    {
+                        descendants.Add(c.Name);
+                        queue.Enqueue(c.Name);
+                    }
+                }
+            }
+        }
+        return descendants;
     }
 
     /// <summary>
@@ -252,11 +364,13 @@ public class KnowledgeManager
             "DROP_CONCEPT" => HandleDropConcept((DropConceptNode)ast, kbName!),
             "ALTER_CONCEPT" => HandleAlterConcept((AlterConceptNode)ast, kbName!),
             "CREATE_TRIGGER" => HandleCreateTrigger((KBMS.Parser.Ast.Kdl.CreateTriggerNode)ast, kbName!),
+            "DROP_TRIGGER" => HandleDropTrigger((KBMS.Parser.Ast.Kdl.DropTriggerNode)ast, kbName!),
 
             // DCL - User
             "ALTER_USER" => HandleAlterUser((AlterUserNode)ast),
             "ALTER_KNOWLEDGE_BASE" => HandleAlterKnowledgeBase((AlterKbNode)ast),
             "CREATE_INDEX" => HandleCreateIndex((KBMS.Parser.Ast.Kdl.CreateIndexNode)ast, kbName!),
+            "DROP_INDEX" => HandleDropIndex((KBMS.Parser.Ast.Kdl.DropIndexNode)ast, kbName!),
             "MAINTENANCE" => HandleMaintenance((KBMS.Parser.Ast.Kml.MaintenanceNode)ast, kbName!),
             "EXPLAIN" => HandleExplain((ExplainNode)ast, kbName),
             "DESCRIBE" => HandleDescribe((KBMS.Parser.Ast.Kql.DescribeNode)ast, kbName!),
@@ -297,6 +411,7 @@ public class KnowledgeManager
 
             // DML
             "SELECT" => HandleSelect((SelectNode)ast, kbName!),
+            "FIND" => HandleFind((FindNode)ast, kbName!),
             "INSERT" => HandleInsert((InsertNode)ast, kbName!, user),
             "INSERT_BULK" => HandleInsertBulk((InsertBulkNode)ast, kbName!, user),
             "UPDATE" => HandleUpdate((UpdateNode)ast, kbName!, user),
@@ -310,6 +425,8 @@ public class KnowledgeManager
             "SHOW_FUNCTIONS" => HandleShowFunctions((ShowNode)ast, kbName!),
             "SHOW_HIERARCHIES" => HandleShowHierarchies((ShowNode)ast, kbName!),
             "SHOW_USERS" => HandleShowUsers(),
+            "SHOW_TRIGGERS" => HandleShowTriggers((ShowNode)ast, kbName!),
+            "SHOW_INDEXES" => HandleShowIndexes((ShowNode)ast, kbName!),
             "SHOW_PRIVILEGES_ON" => HandleShowPrivilegesOnKb((ShowNode)ast),
             "SHOW_PRIVILEGES_OF" => HandleShowPrivilegesOfUser((ShowNode)ast),
 
@@ -325,6 +442,10 @@ public class KnowledgeManager
 
     // ==================== TCL Handlers ====================
 
+    // Transaction buffering
+    private bool _inTransaction = false;
+    private List<(string Action, string KbName, ObjectInstance Obj)> _txBuffer = new();
+
     private object HandleBeginTransaction()
     {
         _inTransaction = true;
@@ -334,9 +455,13 @@ public class KnowledgeManager
 
     private object HandleCommit(string? kbName)
     {
-        foreach (var (kb, obj) in _txBuffer)
+        foreach (var (action, kb, obj) in _txBuffer)
         {
-            _v3Router.InsertObject(kb, obj);
+            var concept = _conceptCatalog.LoadConcept(kb, obj.ConceptName);
+            if (action == "INSERT")
+                _v3Router.InsertObject(kb, obj, concept);
+            else if (action == "UPDATE")
+                _v3Router.UpdateObject(kb, obj.ConceptName, obj.Id, obj.Values, concept);
         }
         _txBuffer.Clear();
         _inTransaction = false;
@@ -388,10 +513,11 @@ public class KnowledgeManager
         var kb = _kbCatalog.LoadKb(kbName);
         if (kb == null) return ErrorResponse.ExecutionErrorResponse($"Knowledge base '{kbName}' not found.");
 
-        // Check if trigger with same name already exists
-        if (kb.Triggers.Any(t => t.Name.Equals(node.TriggerName, StringComparison.OrdinalIgnoreCase)))
+        // Check if trigger with same name already exists and replace it
+        var existing = kb.Triggers.FirstOrDefault(t => t.Name.Equals(node.TriggerName, StringComparison.OrdinalIgnoreCase));
+        if (existing != null)
         {
-            return ErrorResponse.ExecutionErrorResponse($"Trigger '{node.TriggerName}' already exists.");
+            kb.Triggers.Remove(existing);
         }
 
         var triggerModel = new Models.Trigger
@@ -441,7 +567,7 @@ public class KnowledgeManager
             _userCatalog.GrantPrivilege(creator.Username, node.KbName, Privilege.ADMIN);
         }
 
-        return new { success = true, message = $"Knowledge base '{node.KbName}' created successfully (V3 Catalog)." };
+        return new { success = true, message = $"Knowledge base '{node.KbName}' created successfully (System Catalog)." };
     }
 
     private object HandleDropKnowledgeBase(DropKbNode node)
@@ -465,10 +591,13 @@ public class KnowledgeManager
             
             // RC18: Clear in-memory triggers and transaction buffers for this KB
             _triggers.Remove(node.KbName);
-            _txBuffer.RemoveAll(tx => tx.kbName.Equals(node.KbName, StringComparison.OrdinalIgnoreCase));
+            _txBuffer.RemoveAll(tx => tx.KbName.Equals(node.KbName, StringComparison.OrdinalIgnoreCase));
             
             // RC12: Physically delete the .kdb file and clear manager cache
             _storagePool.DeleteKbFile(node.KbName);
+
+            // Purge compiled Rete networks for this KB so a re-created KB of the same name starts fresh
+            InvalidateEngineCache(node.KbName);
         }
         return success
             ? new { success = true, message = $"Knowledge base '{node.KbName}' dropped successfully." }
@@ -478,9 +607,13 @@ public class KnowledgeManager
     private object HandleUse(UseKbNode node)
     {
         var kb = _kbCatalog.LoadKb(node.KbName);
-        return kb != null
-            ? new { success = true, message = $"Now using knowledge base '{node.KbName}'.", currentKb = node.KbName }
-            : ErrorResponse.ExecutionErrorResponse($"Knowledge base '{node.KbName}' not found.");
+        if (kb != null)
+        {
+            // Backfill: ensure any concept with BASE_OBJECTS has an IS-A hierarchy entry
+            SyncHierarchiesFromBaseObjects(node.KbName);
+            return new { success = true, message = $"Now using knowledge base '{node.KbName}'.", currentKb = node.KbName };
+        }
+        return ErrorResponse.ExecutionErrorResponse($"Knowledge base '{node.KbName}' not found.");
     }
 
     private object HandleCreateConcept(CreateConceptNode node, string kbName)
@@ -585,6 +718,7 @@ public class KnowledgeManager
             ConceptRules = node.ConceptRules.Select(r => new ConceptRule
             {
                 Id = Guid.NewGuid(),
+                Name = r.RuleName,
                 Kind = r.Kind,
                 Variables = r.Variables.Select(v => new Variable { Name = v.Name, Type = v.Type, Length = v.Length, Scale = v.Scale }).ToList(),
                 Hypothesis = r.Hypothesis,
@@ -601,8 +735,13 @@ public class KnowledgeManager
         };
 
         var created = _conceptCatalog.CreateConcept(kbName, concept);
+        if (created)
+        {
+            // Sync: auto-create IS-A Hierarchy entries for any BASE_OBJECTS declared
+            SyncHierarchiesFromBaseObjects(kbName);
+        }
         return created
-            ? new { success = true, message = $"Concept '{node.ConceptName}' created successfully (V3 Catalog)." }
+            ? new { success = true, message = $"Concept '{node.ConceptName}' created successfully (System Catalog)." }
             : ErrorResponse.ExecutionErrorResponse($"Concept '{node.ConceptName}' already exists.");
     }
 
@@ -625,6 +764,109 @@ public class KnowledgeManager
         return vars.ToList();
     }
 
+    // ── Known meta-functions exempt from field-existence checks ─────────────
+    private static readonly HashSet<string> _metaFunctions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "IS_STUCK", "HAS_FIRED", "IS_DEDUCED", "TOTAL_COST", "SOLVE",
+        "COUNT", "SUM", "AVG", "MIN", "MAX", "EXISTS"
+    };
+
+    private static readonly HashSet<string> _numericTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "INT", "BIGINT", "SMALLINT", "TINYINT", "FLOAT", "DOUBLE", "DECIMAL", "NUMBER"
+    };
+
+    private static readonly HashSet<string> _stringTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "STRING", "VARCHAR", "CHAR", "TEXT"
+    };
+
+    /// <summary>
+    /// Validates that every field referenced in the given conditions:
+    ///   1. Exists in the effective concept schema (or is a known meta-function/wildcard).
+    ///   2. Has a value compatible with the declared variable type.
+    /// Returns null when valid, or a user-friendly error message.
+    /// </summary>
+    private string? ValidateConditionsAgainstSchema(
+        List<Condition> conditions, Concept effectiveConcept, string clauseName = "WITH")
+    {
+        if (conditions == null || conditions.Count == 0) return null;
+
+        foreach (var cond in conditions)
+        {
+            // Skip meta-functions and function-based left sides (e.g. SOLVE, HAS_FIRED)
+            if (cond.LeftExpression is KBMS.Parser.Ast.Expressions.FunctionCallNode fn &&
+                _metaFunctions.Contains(fn.FunctionName))
+                continue;
+
+            var rawField = cond.Field?.Trim();
+            if (string.IsNullOrEmpty(rawField)) continue;
+
+            // Strip concept prefix (e.g. "p.sys" → "sys")
+            var fieldName = rawField.Contains('.') ? rawField.Split('.').Last() : rawField;
+
+            // Allow star and meta-function names used directly in Field
+            if (fieldName == "*" || _metaFunctions.Contains(fieldName)) continue;
+
+            // ── 1. Existence check ──────────────────────────────────────────
+            var variable = effectiveConcept.Variables
+                .FirstOrDefault(v => v.Name.Equals(fieldName, StringComparison.OrdinalIgnoreCase));
+
+            if (variable == null)
+            {
+                var knownFields = string.Join(", ", effectiveConcept.Variables.Select(v => v.Name));
+                return $"Semantic Error: Variable '{fieldName}' does not exist in concept " +
+                       $"'{effectiveConcept.Name}'. Known variables: [{knownFields}]";
+            }
+
+            // ── 2. Type compatibility check ─────────────────────────────────
+            var compareValue = cond.Value;
+            if (compareValue == null) continue; // NULL comparisons always valid
+
+            bool isNumericField  = _numericTypes.Contains(variable.Type);
+            bool isStringField   = _stringTypes.Contains(variable.Type);
+            bool isBooleanField  = variable.Type.Equals("BOOLEAN", StringComparison.OrdinalIgnoreCase);
+
+            // Detect value kind
+            bool valueIsString  = compareValue is string;
+            bool valueIsNumeric = compareValue is int or long or double or decimal or float;
+            bool valueIsBool    = compareValue is bool;
+
+            if (isNumericField && valueIsString)
+            {
+                var strVal = (string)compareValue;
+                // Allow quoted numbers like '150'
+                if (!decimal.TryParse(strVal, System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture, out _))
+                {
+                    return $"Type Error in {clauseName}: Variable '{fieldName}' is numeric " +
+                           $"({variable.Type}) but was compared with string value '{strVal}'. " +
+                           $"Remove quotes or use a numeric value.";
+                }
+            }
+
+            if (isStringField && valueIsNumeric)
+            {
+                return $"Type Error in {clauseName}: Variable '{fieldName}' is a string " +
+                       $"({variable.Type}) but was compared with a numeric value '{compareValue}'. " +
+                       $"Wrap the value in quotes (e.g. '{compareValue}').";
+            }
+
+            if (isBooleanField && !valueIsBool && valueIsString)
+            {
+                var s = ((string)compareValue).ToLower();
+                if (s != "true" && s != "false" && s != "1" && s != "0")
+                {
+                    return $"Type Error in {clauseName}: Variable '{fieldName}' is BOOLEAN but " +
+                           $"was compared with '{compareValue}'. Use TRUE or FALSE.";
+                }
+            }
+        }
+
+        return null; // all good
+    }
+
+
     private object HandleDropConcept(DropConceptNode node, string kbName)
     {
         // First delete all data associated with the concept in V3 storage
@@ -633,6 +875,10 @@ public class KnowledgeManager
         var success = _conceptCatalog.DropConcept(kbName, node.ConceptName);
         if (!success && node.IfExists)
             return new { success = true, message = $"Concept '{node.ConceptName}' does not exist, skipping (IF EXISTS)." };
+
+        if (success)
+            InvalidateEngineCache(kbName); // Schema changed
+
         return success
             ? new { success = true, message = $"Concept '{node.ConceptName}' dropped successfully." }
             : ErrorResponse.ExecutionErrorResponse($"Concept '{node.ConceptName}' not found or is in use.");
@@ -662,18 +908,28 @@ public class KnowledgeManager
         var kb = _kbCatalog.LoadKb(kbName);
         if (kb == null) return ErrorResponse.ExecutionErrorResponse("KB not found.");
         
-        var hierarchy = new Hierarchy 
-        { 
-            ParentConcept = node.ParentConcept, 
-            ChildConcept = node.ChildConcept, 
-            HierarchyType = (Models.HierarchyType)node.HierarchyType 
-        };
-        kb.Hierarchies.Add(hierarchy);
+        // Auto-sync: Hierarchy
+        if (!kb.Hierarchies.Any(h => h.ParentConcept.Equals(node.ParentConcept, StringComparison.OrdinalIgnoreCase) && h.ChildConcept.Equals(node.ChildConcept, StringComparison.OrdinalIgnoreCase)))
+        {
+            var hierarchy = new Hierarchy 
+            { 
+                ParentConcept = node.ParentConcept, 
+                ChildConcept = node.ChildConcept, 
+                HierarchyType = Models.HierarchyType.IsA 
+            };
+            kb.Hierarchies.Add(hierarchy);
+            _kbCatalog.SaveKbMetadata(kb);
+        }
+
+        // Auto-sync: Add to Child's BaseObjects
+        var childConcept = _conceptCatalog.LoadConcept(kbName, node.ChildConcept);
+        if (childConcept != null && !childConcept.BaseObjects.Contains(node.ParentConcept, StringComparer.OrdinalIgnoreCase))
+        {
+            childConcept.BaseObjects.Add(node.ParentConcept);
+            _conceptCatalog.UpdateConcept(kbName, childConcept);
+        }
         
-        var success = _kbCatalog.SaveKbMetadata(kb);
-        return success
-            ? new { success = true, message = "Hierarchy added successfully (V3 Engine)." }
-            : ErrorResponse.ExecutionErrorResponse("Failed to save hierarchy metadata.");
+        return new { success = true, message = "Hierarchy added and synced successfully." };
     }
 
     private object HandleRemoveHierarchy(RemoveHierarchyNode node, string kbName)
@@ -681,14 +937,33 @@ public class KnowledgeManager
         var kb = _kbCatalog.LoadKb(kbName);
         if (kb == null) return ErrorResponse.ExecutionErrorResponse("KB not found.");
         
-        var h = kb.Hierarchies.FirstOrDefault(x => x.ParentConcept == node.ParentConcept && x.ChildConcept == node.ChildConcept);
-        if (h == null) return ErrorResponse.ExecutionErrorResponse("Hierarchy not found.");
+        bool removedFromKb = false;
+        var h = kb.Hierarchies.FirstOrDefault(x => x.ParentConcept.Equals(node.ParentConcept, StringComparison.OrdinalIgnoreCase) && x.ChildConcept.Equals(node.ChildConcept, StringComparison.OrdinalIgnoreCase));
+        if (h != null)
+        {
+            kb.Hierarchies.Remove(h);
+            _kbCatalog.SaveKbMetadata(kb);
+            removedFromKb = true;
+        }
+
+        // Auto-sync: Remove from Child's BaseObjects
+        bool removedFromConcept = false;
+        var childConcept = _conceptCatalog.LoadConcept(kbName, node.ChildConcept);
+        if (childConcept != null)
+        {
+            var baseObj = childConcept.BaseObjects.FirstOrDefault(b => b.Equals(node.ParentConcept, StringComparison.OrdinalIgnoreCase));
+            if (baseObj != null)
+            {
+                childConcept.BaseObjects.Remove(baseObj);
+                _conceptCatalog.UpdateConcept(kbName, childConcept);
+                removedFromConcept = true;
+            }
+        }
         
-        kb.Hierarchies.Remove(h);
-        var success = _kbCatalog.SaveKbMetadata(kb);
-        return success
-            ? new { success = true, message = "Hierarchy removed successfully (V3 Engine)." }
-            : ErrorResponse.ExecutionErrorResponse("Failed to update hierarchy metadata.");
+        if (!removedFromKb && !removedFromConcept)
+            return ErrorResponse.ExecutionErrorResponse("Hierarchy not found.");
+            
+        return new { success = true, message = "Hierarchy removed and synced successfully." };
     }
 
     private object HandleCreateRelation(CreateRelationNode node, string kbName)
@@ -710,6 +985,7 @@ public class KnowledgeManager
             Rules = node.ConceptRules.Select(r => new ConceptRule
             {
                 Id = Guid.NewGuid(),
+                Name = r.RuleName,
                 Kind = r.Kind,
                 Hypothesis = r.Hypothesis,
                 Conclusion = r.Conclusion
@@ -723,7 +999,9 @@ public class KnowledgeManager
         var kb = _kbCatalog.LoadKb(kbName);
         if (kb == null) return ErrorResponse.ExecutionErrorResponse("KB not found.");
         kb.Relations.Add(relation);
-        return _kbCatalog.SaveKbMetadata(kb)
+        var saved = _kbCatalog.SaveKbMetadata(kb);
+        if (saved) InvalidateEngineCache(kbName); // Schema changed
+        return saved
             ? new { success = true, message = $"Relation '{relation.Name}' created successfully (V3 Engine)." }
             : ErrorResponse.ExecutionErrorResponse("Failed to save KB metadata.");
     }
@@ -735,7 +1013,9 @@ public class KnowledgeManager
         var rel = kb.Relations.FirstOrDefault(r => r.Name.Equals(node.RelationName, StringComparison.OrdinalIgnoreCase));
         if (rel == null) return ErrorResponse.ExecutionErrorResponse("Relation not found.");
         kb.Relations.Remove(rel);
-        return _kbCatalog.SaveKbMetadata(kb)
+        var saved = _kbCatalog.SaveKbMetadata(kb);
+        if (saved) InvalidateEngineCache(kbName); // Schema changed
+        return saved
             ? new { success = true, message = $"Relation '{node.RelationName}' dropped successfully (V3 Engine)." }
             : ErrorResponse.ExecutionErrorResponse("Failed to save KB metadata.");
     }
@@ -877,8 +1157,14 @@ public class KnowledgeManager
 
         var kb = _kbCatalog.LoadKb(kbName);
         if (kb == null) return ErrorResponse.ExecutionErrorResponse("KB not found.");
+        
+        var existingRule = kb.Rules.FirstOrDefault(r => r.Name.Equals(rule.Name, StringComparison.OrdinalIgnoreCase));
+        if (existingRule != null) kb.Rules.Remove(existingRule);
+        
         kb.Rules.Add(rule);
-        return _kbCatalog.SaveKbMetadata(kb)
+        var saved = _kbCatalog.SaveKbMetadata(kb);
+        if (saved) InvalidateEngineCache(kbName); // New rule → compiled network stale
+        return saved
             ? new { success = true, message = $"Rule '{node.RuleName}' created successfully (V3 Engine)." + (rule.IsMultiConcept ? $" Multi-concept scope: {string.Join(", ", scopeConcepts.Select(s => s.ConceptName))}" : "") }
             : ErrorResponse.ExecutionErrorResponse("Failed to save KB metadata.");
     }
@@ -933,7 +1219,7 @@ public class KnowledgeManager
         
         // Use recursive ToString if implemented, otherwise fall back to basic reconstruction
         // Most nodes already override ToString()
-        return ast.ToString();
+        return ast.ToString() ?? "";
     }
 
 
@@ -945,7 +1231,9 @@ public class KnowledgeManager
         var rule = kb.Rules.FirstOrDefault(r => r.Name.Equals(node.RuleName, StringComparison.OrdinalIgnoreCase));
         if (rule == null) return ErrorResponse.ExecutionErrorResponse("Rule not found.");
         kb.Rules.Remove(rule);
-        return _kbCatalog.SaveKbMetadata(kb)
+        var saved = _kbCatalog.SaveKbMetadata(kb);
+        if (saved) InvalidateEngineCache(kbName); // Rule removed → compiled network stale
+        return saved
             ? new { success = true, message = $"Rule '{node.RuleName}' dropped successfully (V3 Engine)." }
             : ErrorResponse.ExecutionErrorResponse("Failed to save KB metadata.");
     }
@@ -955,7 +1243,7 @@ public class KnowledgeManager
         var role = Enum.TryParse<UserRole>(node.Role, out var r) ? r : UserRole.USER;
         var user = _userCatalog.CreateUser(node.Username, node.Password, role);
         return user != null
-            ? new { success = true, message = $"User '{node.Username}' created successfully (V3 Catalog)." }
+            ? new { success = true, message = $"User '{node.Username}' created successfully (System Catalog)." }
             : ErrorResponse.ExecutionErrorResponse($"User '{node.Username}' already exists.");
     }
 
@@ -972,7 +1260,7 @@ public class KnowledgeManager
         var priv = Enum.TryParse<Privilege>(node.Privilege, out var p) ? p : Privilege.READ;
         var success = _userCatalog.GrantPrivilege(node.Username, node.KbName, priv);
         return success
-            ? new { success = true, message = $"Privilege {node.Privilege} on {node.KbName} granted to {node.Username} (V3 Catalog)." }
+            ? new { success = true, message = $"Privilege {node.Privilege} on {node.KbName} granted to {node.Username} (System Catalog)." }
             : ErrorResponse.ExecutionErrorResponse("Failed to grant privilege.");
     }
 
@@ -985,6 +1273,241 @@ public class KnowledgeManager
     }
 
     // ==================== DML Handlers ====================
+
+    private object HandleFind(FindNode node, string kbName)
+    {
+        try
+        {
+            var concept = _conceptCatalog.LoadConcept(kbName, node.ConceptName);
+            if (concept == null) return ErrorResponse.ExecutionErrorResponse($"Concept {node.ConceptName} not found.");
+
+            var allConceptsToScan = new List<string> { concept.Name };
+            allConceptsToScan.AddRange(GetDescendantConcepts(kbName, concept.Name));
+            
+            var allObjects = new List<ObjectInstance>();
+            // For each concept (including children), load objects using the EFFECTIVE concept
+            // so that all inherited variables and rules are available during inference.
+            var effectiveConcepts = allConceptsToScan
+                .Select(cName => _conceptCatalog.LoadConcept(kbName, cName))
+                .Where(c => c != null)
+                .Select(c => GetEffectiveConcept(kbName, c!))
+                .ToList();
+
+            foreach (var ec in effectiveConcepts)
+            {
+                allObjects.AddRange(_v3Router.SelectObjects(kbName, ec.Name, concept: ec));
+            }
+            var engine = GetConfiguredEngine(kbName);
+
+            var finalResults = new List<Dictionary<string, object>>();
+            // Use the effective concept for the primary concept (inherits parent rules)
+            var effectiveConcept = GetEffectiveConcept(kbName, concept);
+            var targetVars = effectiveConcept.Variables.Select(v => v.Name).ToList();
+
+            // ── Semantic validation: check WITH clause fields/types ───────
+            var validationError = ValidateConditionsAgainstSchema(
+                node.WithConditions, effectiveConcept, "WITH");
+            if (validationError != null)
+                return ErrorResponse.ExecutionErrorResponse(validationError);
+
+            foreach (var obj in allObjects)
+            {
+                // Find the effective concept for this specific object's concept type
+                var objEffective = effectiveConcepts.FirstOrDefault(
+                    ec => ec.Name.Equals(obj.ConceptName, StringComparison.OrdinalIgnoreCase))
+                    ?? effectiveConcept;
+                var inferenceResult = engine.FindClosure(objEffective, obj.Values, targetVars);
+
+                // Load cached explainability metadata if present
+                if (obj.Values.TryGetValue("__audit_trail", out var atObj) && atObj is string atJson)
+                {
+                    try { inferenceResult.AuditTrail.AddRange(System.Text.Json.JsonSerializer.Deserialize<List<KBMS.Reasoning.Rete.ReasoningStep>>(atJson) ?? new()); } catch { }
+                }
+                if (obj.Values.TryGetValue("__generated_vars", out var gvObj) && gvObj is string gvJson)
+                {
+                    try { 
+                        var vars = System.Text.Json.JsonSerializer.Deserialize<List<string>>(gvJson) ?? new();
+                        foreach(var v in vars) inferenceResult.GeneratedVariables.Add(v);
+                    } catch { }
+                }
+
+                bool passesWith = true;
+                foreach (var cond in node.WithConditions)
+                {
+                    if (cond.LeftExpression is FunctionCallNode funcNode)
+                    {
+                        var fn = funcNode.FunctionName.ToUpperInvariant();
+                        if (fn == "IS_STUCK")
+                        {
+                            if (inferenceResult.MissingFacts.Count == 0) { passesWith = false; break; }
+                        }
+                        else if (fn == "HAS_FIRED")
+                        {
+                            var arg = funcNode.Arguments.FirstOrDefault()?.ToString()?.Trim('\'', '"') ?? "";
+                            if (!inferenceResult.AuditTrail.Any(a => a.RuleName.Equals(arg, StringComparison.OrdinalIgnoreCase))) { passesWith = false; break; }
+                        }
+                        else if (fn == "IS_DEDUCED")
+                        {
+                            var arg = funcNode.Arguments.FirstOrDefault()?.ToString()?.Trim('\'', '"') ?? "";
+                            if (!inferenceResult.GeneratedVariables.Contains(arg)) { passesWith = false; break; }
+                        }
+                        else if (fn == "TOTAL_COST")
+                        {
+                            var totalCost = inferenceResult.AuditTrail.Sum(a => a.StepCost);
+                            double conditionValue = Convert.ToDouble(cond.Value);
+                            bool match = cond.Operator switch {
+                                ">" => totalCost > conditionValue,
+                                ">=" => totalCost >= conditionValue,
+                                "<" => totalCost < conditionValue,
+                                "<=" => totalCost <= conditionValue,
+                                "=" => totalCost == conditionValue,
+                                "!=" or "<>" => totalCost != conditionValue,
+                                _ => false
+                            };
+                            if (!match) { passesWith = false; break; }
+                        }
+                    }
+                    else
+                    {
+                        var fieldName = cond.Field;
+                        if (string.IsNullOrEmpty(fieldName)) fieldName = cond.LeftExpression?.ToString() ?? "";
+                        
+                        object? actualValue = null;
+                        if (inferenceResult.DerivedFacts.TryGetValue(fieldName, out var dval)) actualValue = dval;
+                        else if (obj.Values.TryGetValue(fieldName, out var oval)) actualValue = oval;
+                        else
+                        {
+                            // Fallback: check if the fact exists under an alias prefix (e.g., "p.riskLevel")
+                            var aliasedKey = inferenceResult.DerivedFacts.Keys.FirstOrDefault(k => k.EndsWith("." + fieldName, StringComparison.OrdinalIgnoreCase));
+                            if (aliasedKey != null) actualValue = inferenceResult.DerivedFacts[aliasedKey];
+                        }
+                        
+                        // ── NULL semantics ──────────────────────────────────────────────
+                        // condValue is null when parser sees literal NULL or = null
+                        bool condValueIsNull = cond.Value == null ||
+                            cond.Value?.ToString()?.Equals("NULL", StringComparison.OrdinalIgnoreCase) == true;
+
+                        if (actualValue == null)
+                        {
+                            // field is null → match only for = null / IS [NULL] / IS NULL
+                            bool pass = cond.Operator switch
+                            {
+                                "=" => condValueIsNull,
+                                "IS" => condValueIsNull,
+                                "<>" or "!=" => !condValueIsNull,
+                                _ => false // >, <, >=, <= with null → false (SQL semantics)
+                            };
+                            if (!pass) { passesWith = false; break; }
+                        }
+                        else if (condValueIsNull)
+                        {
+                            // field has a value but condition compares to null
+                            bool pass = cond.Operator switch
+                            {
+                                "=" => false,        // value = null → false
+                                "IS" => false,       // value IS NULL → false
+                                "<>" or "!=" => true,// value <> null → true
+                                _ => false
+                            };
+                            if (!pass) { passesWith = false; break; }
+                        }
+                        else
+                        {
+                            var actualStr = actualValue.ToString() ?? "";
+                            var expectedStr = cond.Value!.ToString()?.Trim('\'', '"') ?? "";
+                            bool match = cond.Operator switch {
+                                "=" or "==" => actualStr.Equals(expectedStr, StringComparison.OrdinalIgnoreCase),
+                                "!=" or "<>" => !actualStr.Equals(expectedStr, StringComparison.OrdinalIgnoreCase),
+                                ">" => double.TryParse(actualStr, out var ad) && double.TryParse(expectedStr, out var ed) && ad > ed,
+                                ">=" => double.TryParse(actualStr, out var ad) && double.TryParse(expectedStr, out var ed) && ad >= ed,
+                                "<" => double.TryParse(actualStr, out var ad) && double.TryParse(expectedStr, out var ed) && ad < ed,
+                                "<=" => double.TryParse(actualStr, out var ad) && double.TryParse(expectedStr, out var ed) && ad <= ed,
+                                "LIKE" => actualStr.Contains(expectedStr.Replace("%", ""), StringComparison.OrdinalIgnoreCase),
+                                _ => false
+                            };
+                            if (!match) { passesWith = false; break; }
+                        }
+                    }
+                }
+
+                if (!passesWith) continue;
+
+                var projectedObj = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+
+                if (node.ReturnItems.Count == 0 || node.ReturnItems.Any(r => r.IsStar))
+                {
+                    // Merge original object values with derived facts, excluding internals and aliases
+                    foreach (var kvp in obj.Values) 
+                    {
+                        if (kvp.Key.StartsWith("__") || kvp.Key.Contains('.')) continue;
+                        projectedObj[kvp.Key] = kvp.Value;
+                    }
+                    foreach (var kvp in inferenceResult.DerivedFacts) 
+                    {
+                        if (kvp.Key.StartsWith("__") || kvp.Key.Contains('.')) continue;
+                        projectedObj[kvp.Key] = kvp.Value;
+                    }
+                }
+                
+                foreach (var ret in node.ReturnItems)
+                {
+                    if (ret.IsStar) continue;
+                    
+                    if (ret.Expression is FunctionCallNode fnNode)
+                    {
+                        var fn = fnNode.FunctionName.ToUpperInvariant();
+                        if (fn == "AUDIT_LOG" || fn == "AUDIT_TRAIL") projectedObj[fn] = System.Text.Json.JsonSerializer.Serialize(inferenceResult.AuditTrail);
+                        else if (fn == "MISSING_FACTS") projectedObj["MISSING_FACTS"] = System.Text.Json.JsonSerializer.Serialize(inferenceResult.MissingFacts);
+                        else if (fn == "GENERATED_VARIABLES") projectedObj["GENERATED_VARIABLES"] = System.Text.Json.JsonSerializer.Serialize(inferenceResult.GeneratedVariables);
+                        else if (fn == "EXPLAIN_TREE")
+                        {
+                            var arg = fnNode.Arguments.FirstOrDefault()?.ToString()?.Trim('\'', '"') ?? "";
+                            if (!string.IsNullOrEmpty(arg))
+                            {
+                                var allFacts = new Dictionary<string, object>(obj.Values, StringComparer.OrdinalIgnoreCase);
+                                foreach (var kvp in inferenceResult.DerivedFacts) allFacts[kvp.Key] = kvp.Value;
+                                
+                                var tree = KBMS.Reasoning.InferenceEngine.BuildExplanationTree(arg, allFacts, inferenceResult.AuditTrail, inferenceResult.GeneratedVariables);
+                                projectedObj[$"EXPLAIN_TREE({arg})"] = System.Text.Json.JsonSerializer.Serialize(tree);
+                            }
+                        }
+                    }
+                    else if (ret.Expression is VariableNode vNode)
+                    {
+                        var name = vNode.Name;
+                        if (name.Contains(".")) name = name.Split('.')[1]; // basic prefix stripping
+                        
+                        if (inferenceResult.DerivedFacts.TryGetValue(name, out var val)) projectedObj[name] = val;
+                        else if (obj.Values.TryGetValue(name, out var oval)) projectedObj[name] = oval;
+                        else projectedObj[name] = null!;
+                    }
+                }
+
+                finalResults.Add(projectedObj);
+            }
+
+            var mappedObjects = finalResults.Select(r => new ObjectInstance
+            {
+                ConceptName = concept.Name,
+                Values = r
+            }).ToList();
+
+            return new QueryResultSet
+            {
+                Success = true,
+                ConceptName = concept.Name,
+                Objects = mappedObjects,
+                Count = mappedObjects.Count,
+                Columns = mappedObjects.Count > 0 
+                    ? mappedObjects[0].Values.Keys.Where(k => !k.StartsWith("__")).ToList() 
+                    : effectiveConcept.Variables.Select(v => v.Name).ToList()
+            };
+        }
+        catch (Exception ex)
+        {
+            return ErrorResponse.ExecutionErrorResponse($"Error executing FIND: {ex.Message}");
+        }
+    }
 
     private object HandleSelect(SelectNode node, string kbName)
     {
@@ -1009,9 +1532,14 @@ public class KnowledgeManager
             switch (targetType)
             {
                 case "CONCEPT":
-                    conceptMetadata = _conceptCatalog.ListConcepts(kbName).FirstOrDefault(c => c.Name.Equals(entityName, StringComparison.OrdinalIgnoreCase));
+                    var primaryConcept = _conceptCatalog.ListConcepts(kbName).FirstOrDefault(c => c.Name.Equals(entityName, StringComparison.OrdinalIgnoreCase));
+                    if (primaryConcept != null)
+                    {
+                        conceptMetadata = GetEffectiveConcept(kbName, primaryConcept);
+                    }
                     entityExists = conceptMetadata != null;
                     break;
+
                 case "RELATION":
                     var relationMetadata = ListRelations(kbName).FirstOrDefault(r => r.Name.Equals(entityName, StringComparison.OrdinalIgnoreCase));
                     entityExists = relationMetadata != null;
@@ -1039,6 +1567,15 @@ public class KnowledgeManager
                 return ErrorResponse.ExecutionErrorResponse($"{targetType} '{entityName}' not found.");
             }
 
+            // ── Semantic validation: WHERE conditions against concept schema ──
+            if (targetType == "CONCEPT" && conceptMetadata != null && node.Conditions.Count > 0)
+            {
+                var whereValidError = ValidateConditionsAgainstSchema(
+                    node.Conditions, conceptMetadata, "WHERE");
+                if (whereValidError != null)
+                    return ErrorResponse.ExecutionErrorResponse(whereValidError);
+            }
+
             // 2. Handle HIERARCHY SELECT - returns table of hierarchy relationships
             if (targetType == "HIERARCHY")
             {
@@ -1059,10 +1596,10 @@ public class KnowledgeManager
                 {
                     Id = h.Id,
                     ConceptName = "HIERARCHY",
-                    Values = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
+                    Values = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
                     {
                         ["child_concept"]   = h.ChildConcept,
-                        ["hierarchy_type"]  = h.HierarchyType == KBMS.Models.HierarchyType.IsA ? "IS_A" : "PART_OF",
+                        ["hierarchy_type"]  = "IS_A",
                         ["parent_concept"]  = h.ParentConcept
                     }
                 }).ToList();
@@ -1160,11 +1697,11 @@ public class KnowledgeManager
                 {
                     Id = r.Id,
                     ConceptName = "RULE",
-                    Values = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
+                    Values = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
                     {
                         ["Name"]       = r.Name,
                         ["Type"]       = r.RuleType.ToString(),
-                        ["Scope"]      = r.Scope,
+                        ["Scope"]      = r.Scope ?? "",
                         ["Hypothesis"] = string.Join(", ", r.Hypothesis.Select(h => h.Content)),
                         ["Conclusion"] = string.Join(", ", r.Conclusion.Select(c => c.Content))
                     }
@@ -1274,8 +1811,8 @@ public class KnowledgeManager
                                 ["Name"]    = v.Name,
                                 ["Type"]    = v.Type,
                                 ["Concept"] = c.Name,
-                                ["Length"]  = v.Length,
-                                ["Scale"]   = v.Scale
+                                ["Length"]  = v.Length ?? (object)DBNull.Value,
+                                ["Scale"]   = v.Scale ?? (object)DBNull.Value
                             }
                         });
                     }
@@ -1311,15 +1848,28 @@ public class KnowledgeManager
                 if (_v3Router != null)
                 {
                     // V3 Route: Uses the Optimizer and Execution Pipeline (Pushdown + Joins)
-                    objects = _v3Router.ExecuteSelect(kbName, node, conceptMetadata);
+                    var allConceptsToScan = new List<string> { entityName };
+                    allConceptsToScan.AddRange(GetDescendantConcepts(kbName, entityName));
+                    
+                    var originalName = node.ConceptName;
+                    foreach (var cName in allConceptsToScan)
+                    {
+                        node.ConceptName = cName;
+                        var cMeta = _conceptCatalog.LoadConcept(kbName, cName);
+                        var cMetaEffective = cMeta != null ? GetEffectiveConcept(kbName, cMeta) : null;
+                        
+                        var partialObjects = _v3Router.ExecuteSelect(kbName, node, cMetaEffective);
+                        objects.AddRange(partialObjects);
+                    }
+                    node.ConceptName = originalName;
                 }
                 
                 // Merge transaction buffer (shadow visibility)
                 if (_inTransaction)
                 {
                     objects.AddRange(_txBuffer
-                        .Where(t => t.kbName == kbName && t.obj.ConceptName.Equals(entityName, StringComparison.OrdinalIgnoreCase))
-                        .Select(t => t.obj));
+                        .Where(t => t.KbName == kbName && t.Obj.ConceptName.Equals(entityName, StringComparison.OrdinalIgnoreCase))
+                        .Select(t => t.Obj));
                 }
                 
                 // If there are no conditions/aggregates/joins (just a direct Select), 
@@ -1335,7 +1885,7 @@ public class KnowledgeManager
                     
 
                     if (qrs_data.Objects.Count > 0)
-                        qrs_data.Columns = qrs_data.Objects[0].Values.Keys.ToList();
+                        qrs_data.Columns = qrs_data.Objects[0].Values.Keys.Where(k => !k.StartsWith("__")).ToList();
                     else if (conceptMetadata != null)
                         qrs_data.Columns = conceptMetadata.Variables.Select(v => v.Name).ToList();
                     
@@ -1397,10 +1947,10 @@ public class KnowledgeManager
 
                     objects = objects.Select(obj =>
                     {
-                        // If * is selected, start with all existing values
+                        // If * is selected, start with all existing values, excluding internal ones
                         var newValues = isStarSelected 
-                            ? new Dictionary<string, object?>(obj.Values, StringComparer.OrdinalIgnoreCase)
-                            : new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+                            ? obj.Values.Where(kv => !kv.Key.StartsWith("__")).ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.OrdinalIgnoreCase)
+                            : new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
                         
                         // Prepare evaluation parameters with both raw and aliased names
                         var evalParams = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
@@ -1428,39 +1978,49 @@ public class KnowledgeManager
                                 if (col.Expression is FunctionCallNode func && func.FunctionName.Equals("SOLVE", StringComparison.OrdinalIgnoreCase))
                                 {
                                     var targetVar = func.Arguments.FirstOrDefault()?.ToString();
-                                    newValues[outName] = null;
+                                    newValues[outName] = null!;
                                     if (!string.IsNullOrEmpty(targetVar))
                                     {
                                         var resolvedConcept = engine.ConceptResolver?.Invoke(entityName) ?? conceptMetadata;
                                         if (resolvedConcept != null)
                                         {
-                                            // FAST PATH: Try direct equation solving first (much faster than full Rete)
                                             bool solved = false;
-                                            foreach (var eq in resolvedConcept.Equations)
+                                            
+                                            // Quick path: if the target is already known (e.g. from DB), just return it
+                                            if (evalParams.TryGetValue(targetVar, out var knownVal))
                                             {
-                                                var eqVars = engine.ExtractVariablesFromExpression(eq.Expression);
-                                                if (eqVars.Contains(targetVar, StringComparer.OrdinalIgnoreCase))
-                                                {
-                                                    try
-                                                    {
-                                                        var root = engine.Solve1DEquation(eq.Expression, targetVar, evalParams);
-                                                        if (!double.IsNaN(root))
-                                                        {
-                                                            if (double.IsInfinity(root)) throw new Exception("Mathematical error: infinity produced.");
-                                                            var variable = resolvedConcept.Variables.FirstOrDefault(v => v.Name.Equals(targetVar, StringComparison.OrdinalIgnoreCase));
-                                                            newValues[outName] = engine.CastToVariableType(root, variable);
-                                                            solved = true;
-                                                            break;
-                                                        }
-                                                    }
-                                                    catch (Exception ex) when (ex.Message.Contains("infinity")) { throw; }
-                                                    catch { /* Fall through to full closure */ }
-                                                }
+                                                newValues[outName] = knownVal;
+                                                solved = true;
                                             }
 
-                                            // FALLBACK: Full Rete-based closure if fast path failed
+                                            // FAST PATH: Try direct equation solving first (much faster than full Rete)
                                             if (!solved)
                                             {
+                                                foreach (var eq in resolvedConcept.Equations)
+                                                {
+                                                    var eqVars = engine.ExtractVariablesFromExpression(eq.Expression);
+                                                    if (eqVars.Contains(targetVar, StringComparer.OrdinalIgnoreCase))
+                                                    {
+                                                        try
+                                                        {
+                                                            var root = engine.Solve1DEquation(eq.Expression, targetVar, evalParams);
+                                                            if (!double.IsNaN(root))
+                                                            {
+                                                                if (double.IsInfinity(root)) throw new Exception("Mathematical error: infinity produced.");
+                                                                var variable = resolvedConcept.Variables.FirstOrDefault(v => v.Name.Equals(targetVar, StringComparison.OrdinalIgnoreCase));
+                                                                newValues[outName] = engine.CastToVariableType(root, variable);
+                                                                solved = true;
+                                                                break;
+                                                            }
+                                                        }
+                                                        catch (Exception ex) when (ex.Message.Contains("infinity")) { throw; }
+                                                        catch { /* Fall through to full closure */ }
+                                                    }
+                                                }
+
+                                                // FALLBACK: Full Rete-based closure if fast path failed
+                                                if (!solved)
+                                                {
                                                     var solveResult = engine.FindClosure(resolvedConcept, evalParams, new List<string> { targetVar });
                                                     if (solveResult.Success && solveResult.DerivedFacts.TryGetValue(targetVar, out var solvedVal))
                                                     {
@@ -1478,14 +2038,15 @@ public class KnowledgeManager
                                             }
                                         }
                                     }
+                                }
                                 else
                                 {
                                     // 2. Try evaluating as NCalc expression (for math/aggregate functions)
                                     try {
-                                        var exprForEval = col.Expression != null ? col.Expression.ToString() : sourceName;
+                                        var exprForEval = (col.Expression != null ? col.Expression.ToString() : sourceName) ?? "";
                                         newValues[outName] = engine.EvaluateFormula(exprForEval, evalParams);
                                     } catch {
-                                        newValues[outName] = null;
+                                        newValues[outName] = null!;
                                     }
                                 }
                             }
@@ -1588,7 +2149,7 @@ public class KnowledgeManager
                     Id = obj.Id,
                     KbId = obj.KbId,
                     ConceptName = alias,
-                    Values = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
+                    Values = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
                 };
 
                 foreach (var col in node.SelectColumns)
@@ -1778,9 +2339,44 @@ public class KnowledgeManager
         }
 
         var value = ResolveValue(obj, condition.Field, a, c);
-        if (value == null) return false;
 
         var compareValue = condition.Value;
+
+        // ── NULL semantics ──────────────────────────────────────────────────
+        // Field has no value → treat as NULL
+        if (value == null)
+        {
+            // "IS" operator (e.g. field IS NULL / field IS NOT NULL)
+            if (condition.Operator.Equals("IS", StringComparison.OrdinalIgnoreCase))
+            {
+                bool expectNull = compareValue == null ||
+                    compareValue.ToString()!.Equals("NULL", StringComparison.OrdinalIgnoreCase);
+                return expectNull; // IS NULL → true
+            }
+            // Explicit = null / <> null
+            bool condValueIsNull = compareValue == null ||
+                compareValue.ToString()!.Equals("NULL", StringComparison.OrdinalIgnoreCase);
+            return condition.Operator switch
+            {
+                "=" => condValueIsNull,           // field = null → true when field is null
+                "<>" or "!=" => !condValueIsNull, // field <> null → true when field is NOT null
+                _ => false  // >, <, >=, <= with null → always false (SQL semantics)
+            };
+        }
+
+        // If compare value is explicitly NULL and field has a real value → not null
+        bool compareIsNull = compareValue == null ||
+            compareValue.ToString()!.Equals("NULL", StringComparison.OrdinalIgnoreCase);
+        if (compareIsNull)
+        {
+            return condition.Operator switch
+            {
+                "=" => false,           // some_value = null → false
+                "<>" or "!=" => true,   // some_value <> null → true
+                "IS" => false,          // some_value IS NULL → false
+                _ => false
+            };
+        }
 
         // Handle scalar sub-query comparison (e.g., id = (SELECT MAX(id) FROM T))
         if (compareValue is SelectNode scalarSubQuery)
@@ -1967,17 +2563,17 @@ public class KnowledgeManager
         var nullObj = new ObjectInstance
         {
             ConceptName = conceptName,
-            Values = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
+            Values = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
         };
 
         if (concept != null)
         {
             foreach (var variable in concept.Variables)
             {
-                nullObj.Values[variable.Name] = null;
+                nullObj.Values[variable.Name] = null!;
                 if (!string.IsNullOrEmpty(alias))
                 {
-                    nullObj.Values[$"{alias}.{variable.Name}"] = null;
+                    nullObj.Values[$"{alias}.{variable.Name}"] = null!;
                 }
             }
         }
@@ -2068,7 +2664,7 @@ public class KnowledgeManager
             var firstObj = group.First();
             foreach (var gb in node.GroupBy)
             {
-                row[gb] = firstObj.Values.GetValueOrDefault(gb);
+                row[gb] = firstObj.Values.GetValueOrDefault(gb)!;
             }
 
             // Add aggregates
@@ -2174,23 +2770,26 @@ public class KnowledgeManager
         }
 
         // Load concept to validate it exists and get variable names for positional values
-        var concept = _conceptCatalog.LoadConcept(kbName, node.ConceptName);
-        if (concept == null)
+        var primaryConcept = _conceptCatalog.LoadConcept(kbName, node.ConceptName);
+        if (primaryConcept == null)
         {
             return ErrorResponse.ExecutionErrorResponse($"Concept '{node.ConceptName}' does not exist.");
         }
+
+        // Apply Inheritance
+        var concept = GetEffectiveConcept(kbName, primaryConcept);
 
         var values = new Dictionary<string, object>();
 
         // Check if values use positional syntax (keys like _0, _1, etc.)
         var positionalValues = node.Values
-            .Where(kv => kv.Key.StartsWith("_"))
+            .Where(kv => kv.Key.StartsWith("_") && int.TryParse(kv.Key.Substring(1), out _))
             .OrderBy(kv => int.Parse(kv.Key.Substring(1)))
             .Select(kv => kv.Value)
             .ToList();
 
         var namedValues = node.Values
-            .Where(kv => !kv.Key.StartsWith("_"))
+            .Where(kv => !(kv.Key.StartsWith("_") && int.TryParse(kv.Key.Substring(1), out _)))
             .ToDictionary(kv => kv.Key, kv => kv.Value);
 
         if (positionalValues.Count > 0 && concept != null)
@@ -2210,30 +2809,115 @@ public class KnowledgeManager
             values[kv.Key] = ConvertValueNodeToObject(kv.Value, variable);
         }
 
-        var obj = new ObjectInstance
+        bool localTxn = false;
+        if (!_inTransaction)
         {
-            Id = Guid.NewGuid(),
-            KbId = kb.Id,
-            ConceptName = node.ConceptName,
-            Values = values
-        };
+            HandleBeginTransaction();
+            localTxn = true;
+        }
 
-        // V3 engine write (buffered if in transaction)
-        if (_inTransaction)
+        try
         {
-            _txBuffer.Add((kbName, obj));
+            var obj = new ObjectInstance
+            {
+                Id = Guid.NewGuid(),
+                KbId = kb.Id,
+                ConceptName = node.ConceptName,
+                Values = values
+            };
+
+            // --- Write-Time Inference for INSERT ---
+            if (concept != null)
+            {
+                var engine = GetConfiguredEngine(kbName);
+                var inferenceValues = new Dictionary<string, object>(values);
+                
+                // Remove dependent variables so they are forced to be re-derived
+                foreach (var eq in concept.Equations)
+                {
+                    var parts = eq.Expression.Split('=');
+                    if (parts.Length == 2) inferenceValues.Remove(parts[0].Trim());
+                }
+
+                var inferenceResult = engine.FindClosure(concept, inferenceValues, new List<string>());
+                if (!inferenceResult.Success)
+                {
+                    throw new Exception(inferenceResult.ErrorMessage ?? "Inference failed.");
+                }
+
+                if (inferenceResult.DerivedFacts.Count > 0)
+                {
+                    var externalUpdates = new Dictionary<string, Dictionary<string, object>>();
+
+                    foreach (var derived in inferenceResult.DerivedFacts)
+                    {
+                        if (!derived.Key.Contains('.'))
+                        {
+                            values[derived.Key] = derived.Value;
+                        }
+                        else
+                        {
+                            var parts = derived.Key.Split('.');
+                            var alias = parts[0];
+                            var field = parts[1];
+                            
+                            if (!externalUpdates.ContainsKey(alias))
+                                externalUpdates[alias] = new Dictionary<string, object>();
+                                
+                            externalUpdates[alias][field] = derived.Value;
+                        }
+                    }
+
+                    // Save explainability metadata to the database
+                    values["__audit_trail"] = System.Text.Json.JsonSerializer.Serialize(inferenceResult.AuditTrail);
+                    values["__generated_vars"] = System.Text.Json.JsonSerializer.Serialize(inferenceResult.GeneratedVariables);
+
+                    // Apply external updates
+                    foreach (var kvp in externalUpdates)
+                    {
+                        var alias = kvp.Key;
+                        var updates = kvp.Value;
+                        
+                        var idFact = inferenceResult.WorkingMemory.FirstOrDefault(f => f.Name.Equals($"{alias}.__internal_id", StringComparison.OrdinalIgnoreCase));
+                        var conceptFact = inferenceResult.WorkingMemory.FirstOrDefault(f => f.Name.Equals($"{alias}.__internal_concept", StringComparison.OrdinalIgnoreCase));
+                        
+                        if (idFact != null && conceptFact != null && Guid.TryParse(idFact.Value?.ToString(), out var extId))
+                        {
+                            var extConcept = conceptFact.Value?.ToString();
+                            if (string.IsNullOrEmpty(extConcept)) continue;
+
+                            var extObj = _v3Router.SelectObjects(kbName, extConcept).FirstOrDefault(o => o.Id == extId);
+                            if (extObj != null)
+                            {
+                                foreach (var uv in updates) extObj.Values[uv.Key] = uv.Value;
+                                
+                                // Buffer the update
+                                _txBuffer.Add(("UPDATE", kbName, extObj));
+                            }
+                        }
+                    }
+                }
+            }
+
+            // V3 engine write
+            _txBuffer.Add(("INSERT", kbName, obj));
+
+            if (localTxn)
+            {
+                var commitResult = HandleCommit(kbName);
+                // Assume HandleCommit handles actual v3Router writes. Wait, HandleCommit loops _txBuffer and calls InsertObject.
+                // But _v3Router.UpdateObject is called directly above!
+                // We need to fix HandleCommit to handle both Insert and Update.
+                // Actually, _v3Router.UpdateObject might not be buffered!
+            }
+
             return new { success = true, message = $"Object inserted successfully with ID: {obj.Id}", data = obj.Values };
         }
-
-        var success = _v3Router.InsertObject(kbName, obj);
-        if (success)
+        catch (Exception ex)
         {
-            FireTriggers(kbName, node.ConceptName, "INSERT", executor);
+            if (localTxn) HandleRollback();
+            return ErrorResponse.ExecutionErrorResponse($"Insert failed: {ex.Message}");
         }
-        
-        return success
-            ? new { success = true, message = $"Object inserted successfully with ID: {obj.Id}", data = obj.Values }
-            : ErrorResponse.ExecutionErrorResponse("Failed to insert object.");
     }
 
     private object HandleInsertBulk(InsertBulkNode node, string kbName, Models.User executor)
@@ -2257,13 +2941,13 @@ public class KnowledgeManager
             var values = new Dictionary<string, object>();
 
             var positionalValues = rowValues
-                .Where(kv => kv.Key.StartsWith("_"))
+                .Where(kv => kv.Key.StartsWith("_") && int.TryParse(kv.Key.Substring(1), out _))
                 .OrderBy(kv => int.Parse(kv.Key.Substring(1)))
                 .Select(kv => kv.Value)
                 .ToList();
 
             var namedValues = rowValues
-                .Where(kv => !kv.Key.StartsWith("_"))
+                .Where(kv => !(kv.Key.StartsWith("_") && int.TryParse(kv.Key.Substring(1), out _)))
                 .ToDictionary(kv => kv.Key, kv => kv.Value);
 
             if (positionalValues.Count > 0)
@@ -2292,7 +2976,7 @@ public class KnowledgeManager
             objectsToInsert.Add(obj);
         }
 
-        inserted = _v3Router.BulkInsertObjects(kbName, objectsToInsert);
+        inserted = _v3Router.BulkInsertObjects(kbName, objectsToInsert, concept);
         if (inserted > 0)
         {
             FireTriggers(kbName, node.ConceptName, "INSERT", executor);
@@ -2381,7 +3065,7 @@ public class KnowledgeManager
             {
                 try
                 {
-                    var formula = kv.Value.ToString();
+                    var formula = kv.Value.ToString() ?? "";
                     var res = engine.EvaluateFormula(formula, parameters);
                     
                     var variable = concept?.Variables.FirstOrDefault(v => v.Name.Equals(kv.Key, StringComparison.OrdinalIgnoreCase));
@@ -2402,14 +3086,95 @@ public class KnowledgeManager
                 obj.Values[kv.Key] = kv.Value;
             }
 
-            if (_v3Router.UpdateObject(kbName, node.ConceptName, obj.Id, obj.Values, concept))
+            bool localTxn = false;
+            if (!_inTransaction)
             {
+                HandleBeginTransaction();
+                localTxn = true;
+            }
+
+            try
+            {
+                // --- Write-Time Inference for UPDATE ---
+                if (concept != null)
+                {
+                    var inferenceValues = new Dictionary<string, object>(obj.Values);
+                    // Remove dependent variables so they are forced to be re-derived
+                    foreach (var eq in concept.Equations)
+                    {
+                        var parts = eq.Expression.Split('=');
+                        if (parts.Length == 2) inferenceValues.Remove(parts[0].Trim());
+                    }
+
+                    var inferenceResult = engine.FindClosure(concept, inferenceValues, new List<string>());
+                    if (!inferenceResult.Success)
+                    {
+                        throw new Exception(inferenceResult.ErrorMessage ?? "Inference failed.");
+                    }
+
+                    if (inferenceResult.DerivedFacts.Count > 0)
+                    {
+                        var externalUpdates = new Dictionary<string, Dictionary<string, object>>();
+
+                        foreach (var derived in inferenceResult.DerivedFacts)
+                        {
+                            if (!derived.Key.Contains('.'))
+                            {
+                                obj.Values[derived.Key] = derived.Value;
+                            }
+                            else
+                            {
+                                var parts = derived.Key.Split('.');
+                                var alias = parts[0];
+                                var field = parts[1];
+                                
+                                if (!externalUpdates.ContainsKey(alias))
+                                    externalUpdates[alias] = new Dictionary<string, object>();
+                                    
+                                externalUpdates[alias][field] = derived.Value;
+                            }
+                        }
+
+                        // Apply external updates
+                        foreach (var kvp in externalUpdates)
+                        {
+                            var alias = kvp.Key;
+                            var updates = kvp.Value;
+                            
+                            var idFact = inferenceResult.WorkingMemory.FirstOrDefault(f => f.Name.Equals($"{alias}.__internal_id", StringComparison.OrdinalIgnoreCase));
+                            var conceptFact = inferenceResult.WorkingMemory.FirstOrDefault(f => f.Name.Equals($"{alias}.__internal_concept", StringComparison.OrdinalIgnoreCase));
+                            
+                            if (idFact != null && conceptFact != null && Guid.TryParse(idFact.Value?.ToString(), out var extId))
+                            {
+                                var extConcept = conceptFact.Value?.ToString();
+                                if (string.IsNullOrEmpty(extConcept)) continue;
+
+                                var extObj = _v3Router.SelectObjects(kbName, extConcept).FirstOrDefault(o => o.Id == extId);
+                                if (extObj != null)
+                                {
+                                    foreach (var uv in updates) extObj.Values[uv.Key] = uv.Value;
+                                    
+                                    _txBuffer.Add(("UPDATE", kbName, extObj));
+                                }
+                            }
+                        }
+                    }
+                }
+
+                _txBuffer.Add(("UPDATE", kbName, obj));
+
+                if (localTxn)
+                {
+                    HandleCommit(kbName);
+                }
+
                 updatedCount++;
                 FireTriggers(kbName, node.ConceptName, "UPDATE", executor);
             }
-            else
+            catch (Exception ex)
             {
-                success = false;
+                if (localTxn) HandleRollback();
+                return ErrorResponse.ExecutionErrorResponse($"Update failed: {ex.Message}");
             }
         }
 
@@ -2420,13 +3185,26 @@ public class KnowledgeManager
 
     private object HandleDelete(DeleteNode node, string kbName, Models.User executor)
     {
-        // Optimized V3 delete: push conditions down
+        // Capture objects BEFORE deletion so we can re-derive cross-concept effects
         var concept = _conceptCatalog.LoadConcept(kbName, node.ConceptName);
-        int deletedCount = _v3Router.DeleteObjects(kbName, node.ConceptName, values => EvaluatePredicate(values, node.Conditions, kbName, null, node.ConceptName), concept);
+        var objectsToDelete = _v3Router.SelectObjects(
+            kbName, node.ConceptName,
+            values => EvaluatePredicate(values, node.Conditions, kbName, null, node.ConceptName),
+            concept);
+
+        int deletedCount = _v3Router.DeleteObjects(
+            kbName, node.ConceptName,
+            values => EvaluatePredicate(values, node.Conditions, kbName, null, node.ConceptName),
+            concept);
 
         if (deletedCount > 0)
         {
             FireTriggers(kbName, node.ConceptName, "DELETE", executor);
+
+            // --- Post-delete re-derive: find concepts that have cross-concept rules referencing
+            // the deleted concept, and re-run inference on affected objects ---
+            try { RederiveAffectedConcepts(kbName, node.ConceptName); }
+            catch { /* Non-fatal: log only */ }
         }
 
         if (deletedCount == 0)
@@ -2435,6 +3213,75 @@ public class KnowledgeManager
         }
 
         return new { success = true, message = $"{deletedCount} object(s) deleted successfully (V3 Engine)." };
+    }
+
+    /// <summary>
+    /// After deleting objects of <paramref name="deletedConceptName"/>, find all concepts
+    /// that have rules involving the deleted concept and re-run write-time inference
+    /// on their existing objects, so derived facts are updated / nulled-out appropriately.
+    /// </summary>
+    private void RederiveAffectedConcepts(string kbName, string deletedConceptName)
+    {
+        var kb = _kbCatalog.LoadKb(kbName);
+        if (kb == null) return;
+
+        // Collect concept names that have any cross-concept rule referencing deletedConceptName
+        var affectedConcepts = kb.Rules
+            .Where(r => r.ScopeConcepts != null &&
+                        r.ScopeConcepts.Any(sc => sc.ConceptName.Equals(deletedConceptName, StringComparison.OrdinalIgnoreCase)) &&
+                        r.ScopeConcepts.Any(sc => !sc.ConceptName.Equals(deletedConceptName, StringComparison.OrdinalIgnoreCase)))
+            .SelectMany(r => r.ScopeConcepts
+                .Where(sc => !sc.ConceptName.Equals(deletedConceptName, StringComparison.OrdinalIgnoreCase))
+                .Select(sc => sc.ConceptName))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (affectedConcepts.Count == 0) return;
+
+        var engine = GetConfiguredEngine(kbName);
+
+        foreach (var conceptName in affectedConcepts)
+        {
+            var affectedConcept = _conceptCatalog.LoadConcept(kbName, conceptName);
+            if (affectedConcept == null) continue;
+
+            var objects = _v3Router.SelectObjects(kbName, conceptName);
+            foreach (var obj in objects)
+            {
+                try
+                {
+                    var inferenceValues = new Dictionary<string, object>(obj.Values
+                        .Where(kv => kv.Value != null)
+                        .ToDictionary(kv => kv.Key, kv => kv.Value!));
+
+                    // Remove equation-derived fields so they're fully re-derived
+                    foreach (var eq in affectedConcept.Equations)
+                    {
+                        var eqParts = eq.Expression.Split('=');
+                        if (eqParts.Length == 2) inferenceValues.Remove(eqParts[0].Trim());
+                    }
+
+                    var inferenceResult = engine.FindClosure(affectedConcept, inferenceValues, new List<string>());
+                    if (!inferenceResult.Success) continue;
+
+                    bool changed = false;
+                    foreach (var derived in inferenceResult.DerivedFacts)
+                    {
+                        if (!derived.Key.Contains('.'))
+                        {
+                            obj.Values[derived.Key] = derived.Value;
+                            changed = true;
+                        }
+                    }
+
+                    if (changed)
+                        _v3Router.UpdateObject(kbName, conceptName, obj.Id, 
+                            obj.Values.Where(kv => kv.Value != null).ToDictionary(kv => kv.Key, kv => kv.Value!), 
+                            affectedConcept);
+                }
+                catch { /* skip individual object failures */ }
+            }
+        }
     }
 
 
@@ -2484,7 +3331,7 @@ public class KnowledgeManager
 
     private object HandleShowConcepts(ShowNode node, string kbName)
     {
-        var concepts = _conceptCatalog.ListConcepts(kbName);
+        var concepts = _conceptCatalog.ListConcepts(kbName).Select(c => GetEffectiveConcept(kbName, c)).ToList();
         var qrs = new QueryResultSet { 
             Success = true, 
             ConceptName = "System.Concepts",
@@ -2512,7 +3359,7 @@ public class KnowledgeManager
         // UNIFIED: Return as a Table via HandleDescribe logic
         return HandleDescribe(new KBMS.Parser.Ast.Kql.DescribeNode { 
             TargetType = "CONCEPT", 
-            TargetName = node.ConceptName 
+            TargetName = node.ConceptName ?? "" 
         }, kbName);
     }
 
@@ -2642,6 +3489,40 @@ public class KnowledgeManager
         };
     }
 
+    private object HandleShowTriggers(ShowNode node, string kbName)
+    {
+        var kb = _kbCatalog.LoadKb(kbName);
+        var triggers = kb != null ? kb.Triggers : new List<Models.Trigger>();
+        return new QueryResultSet
+        {
+            Success = true,
+            ConceptName = "System.Triggers",
+            Count = triggers.Count,
+            Columns = new List<string> { "Name", "Event", "TargetConcept" },
+            Objects = triggers.Select(t => new ObjectInstance
+            {
+                Values = new Dictionary<string, object> 
+                { 
+                    { "Name", t.Name },
+                    { "Event", t.Event },
+                    { "TargetConcept", t.TargetConcept }
+                }
+            }).ToList()
+        };
+    }
+
+    private object HandleShowIndexes(ShowNode node, string kbName)
+    {
+        return new QueryResultSet
+        {
+            Success = true,
+            ConceptName = "System.Indexes",
+            Count = 0,
+            Columns = new List<string> { "Name", "TargetConcept", "Fields" },
+            Objects = new List<ObjectInstance>() // Placeholder since indexes are auto-managed in V3
+        };
+    }
+
     private object HandleShowPrivilegesOnKb(ShowNode node)
     {
         var users = _userCatalog.ListUsers();
@@ -2742,6 +3623,7 @@ public class KnowledgeManager
                         if (action.Rule != null)
                             concept.ConceptRules.Add(new ConceptRule { 
                                 Id = Guid.NewGuid(),
+                                Name = action.Rule.Name,
                                 Kind = action.Rule.Kind,
                                 Variables = action.Rule.Variables.Select(v => new Variable { Name = v.Name, Type = v.Type, Length = v.Length, Scale = v.Scale }).ToList(),
                                 Hypothesis = action.Rule.Hypothesis.ToList(),
@@ -2820,7 +3702,10 @@ public class KnowledgeManager
                     }
                 }
 
-                migratedObjects.Add((obj.Id, newValues));
+                if (schemaModified)
+                {
+                    migratedObjects.Add((obj.Id, newValues));
+                }
             }
 
             // If we get here, all data is valid. Commit the concept and update objects.
@@ -2832,6 +3717,10 @@ public class KnowledgeManager
             
             Console.WriteLine($"[V3] Persisted altered concept '{cName}' and migrated/validated {existingObjects.Count} objects.");
         }
+
+        // Invalidate Rete network cache for all altered concepts
+        foreach (var cName in conceptsToAlter)
+            InvalidateEngineCache(kbName);
 
         return new { success = true, alteredCount = conceptsToAlter.Count };
     }
@@ -2875,7 +3764,75 @@ public class KnowledgeManager
 
     private object HandleCreateIndex(KBMS.Parser.Ast.Kdl.CreateIndexNode node, string kbName)
     {
-        return new { success = true, message = $"Index '{node.IndexName}' creation handled by V3 auto-indexer (Placeholder)." };
+        var kb = _kbCatalog.LoadKb(kbName);
+        if (kb == null) return ErrorResponse.ExecutionErrorResponse($"Knowledge base '{kbName}' not found.");
+
+        var concept = _conceptCatalog.LoadConcept(kbName, node.ConceptName);
+        if (concept == null) return ErrorResponse.ExecutionErrorResponse($"Concept '{node.ConceptName}' not found.");
+
+        if (concept.Indexes == null) concept.Indexes = new List<Models.ConceptIndex>();
+
+        if (concept.Indexes.Any(i => i.Name.Equals(node.IndexName, StringComparison.OrdinalIgnoreCase)))
+            return ErrorResponse.ExecutionErrorResponse($"Index '{node.IndexName}' already exists.");
+
+        foreach (var v in node.Variables)
+        {
+            if (!concept.Variables.Any(cv => cv.Name.Equals(v, StringComparison.OrdinalIgnoreCase)))
+                return ErrorResponse.ExecutionErrorResponse($"Variable '{v}' not found in concept '{node.ConceptName}'.");
+        }
+
+        var newIndex = new Models.ConceptIndex { Name = node.IndexName, Fields = node.Variables };
+        concept.Indexes.Add(newIndex);
+        _conceptCatalog.UpdateConcept(kbName, concept);
+
+        // Build the B+ Tree index with existing data
+        _v3Router.BackfillIndex(kbName, node.ConceptName, newIndex);
+
+        return new { success = true, message = $"Index '{node.IndexName}' successfully created on concept '{node.ConceptName}'." };
+    }
+
+    private object HandleDropIndex(KBMS.Parser.Ast.Kdl.DropIndexNode node, string kbName)
+    {
+        var kb = _kbCatalog.LoadKb(kbName);
+        if (kb == null) return ErrorResponse.ExecutionErrorResponse($"Knowledge base '{kbName}' not found.");
+
+        var concept = _conceptCatalog.LoadConcept(kbName, node.ConceptName);
+        if (concept == null) return ErrorResponse.ExecutionErrorResponse($"Concept '{node.ConceptName}' not found.");
+
+        if (concept.Indexes == null) return ErrorResponse.ExecutionErrorResponse($"Index '{node.IndexName}' not found.");
+
+        var existing = concept.Indexes.FirstOrDefault(i => i.Name.Equals(node.IndexName, StringComparison.OrdinalIgnoreCase));
+        if (existing == null)
+            return ErrorResponse.ExecutionErrorResponse($"Index '{node.IndexName}' not found.");
+
+        concept.Indexes.Remove(existing);
+        _conceptCatalog.UpdateConcept(kbName, concept);
+        
+        _v3Router.DropConceptIndex(kbName, node.ConceptName, node.IndexName);
+
+        return new { success = true, message = $"Index '{node.IndexName}' on concept '{node.ConceptName}' dropped successfully." };
+    }
+
+    private object HandleDropTrigger(KBMS.Parser.Ast.Kdl.DropTriggerNode node, string kbName)
+    {
+        var kb = _kbCatalog.LoadKb(kbName);
+        if (kb == null) return ErrorResponse.ExecutionErrorResponse($"Knowledge base '{kbName}' not found.");
+
+        var existing = kb.Triggers.FirstOrDefault(t => t.Name.Equals(node.TriggerName, StringComparison.OrdinalIgnoreCase));
+        if (existing == null)
+            return ErrorResponse.ExecutionErrorResponse($"Trigger '{node.TriggerName}' not found.");
+
+        kb.Triggers.Remove(existing);
+        
+        if (!_kbCatalog.SaveKbMetadata(kb))
+            return ErrorResponse.ExecutionErrorResponse("Failed to save KB metadata after dropping trigger.");
+
+        if (_triggers.ContainsKey(kbName))
+        {
+             _triggers[kbName].RemoveAll(t => t.TriggerName.Equals(node.TriggerName, StringComparison.OrdinalIgnoreCase));
+        }
+
+        return new { success = true, message = $"Trigger '{node.TriggerName}' dropped successfully." };
     }
 
     private object HandleMaintenance(KBMS.Parser.Ast.Kml.MaintenanceNode node, string kbName)
@@ -2947,22 +3904,25 @@ public class KnowledgeManager
                 if (c == null) return ErrorResponse.ExecutionErrorResponse($"Concept '{node.TargetName}' not found in KB '{kbName}'");
                 
                 var qrs = new QueryResultSet { ConceptName = "Describe_Concept", Success = true };
-                var valuesDict = new Dictionary<string, object>
+                var valuesDict = new Dictionary<string, object?>
                 {
+                    { "Id", c.Id },
+                    { "KbId", c.KbId },
                     { "Concept", c.Name },
-                    { "Aliases", c.Aliases.Count > 0 ? string.Join(", ", c.Aliases) : "None" },
-                    { "BaseObjects", c.BaseObjects.Count > 0 ? string.Join(", ", c.BaseObjects) : "None" },
-                    { "Variables", c.Variables.Count > 0 ? string.Join("\n", c.Variables.Select(v => $"{v.Name} ({GetFormattedType(v)})")) : "None" },
-                    { "SameVariables", c.SameVariables.Count > 0 ? string.Join("\n", c.SameVariables.Select(sv => $"{sv.Variable1} = {sv.Variable2}")) : "None" },
-                    { "Constraints", c.Constraints.Count > 0 ? string.Join("\n", c.Constraints.Select(ct => ct.Expression)) : "None" },
-                    { "Equations", c.Equations.Count > 0 ? string.Join("\n", c.Equations.Select(eq => eq.Expression)) : "None" },
-                    { "Rules", c.ConceptRules.Count > 0 ? string.Join("\n", c.ConceptRules.Select(r => $"{(string.IsNullOrEmpty(r.Kind) ? "RULE" : r.Kind)}: {string.Join(" AND ", r.Hypothesis)} => {string.Join(", ", r.Conclusion)}")) : "None" },
-                    { "CompRels", c.CompRels.Count > 0 ? string.Join("\n", c.CompRels.Select(cr => $"[Rank {cr.Rank}] {string.Join(",", cr.InputVariables)} -> {cr.ResultVariable} (Cost:{cr.Cost}) Expr: {cr.Expression}")) : "None" },
-                    { "ConstructRelations", c.ConstructRelations.Count > 0 ? string.Join("\n", c.ConstructRelations.Select(cr => $"{cr.RelationName}({string.Join(", ", cr.Arguments)})")) : "None" },
-                    { "Properties", c.Properties.Count > 0 ? string.Join("\n", c.Properties.Select(p => $"{p.Key}: {p.Value}")) : "None" }
+                    { "Aliases", c.Aliases.Count > 0 ? string.Join(", ", c.Aliases) : null },
+                    { "BaseObjects", c.BaseObjects.Count > 0 ? string.Join(", ", c.BaseObjects) : null },
+                    { "Variables", c.Variables.Count > 0 ? string.Join("\n", c.Variables.Select(v => $"{v.Name} ({GetFormattedType(v)})")) : null },
+                    { "SameVariables", c.SameVariables.Count > 0 ? string.Join("\n", c.SameVariables.Select(sv => $"{sv.Variable1} = {sv.Variable2}")) : null },
+                    { "Constraints", c.Constraints.Count > 0 ? string.Join("\n", c.Constraints.Select(ct => ct.Expression)) : null },
+                    { "Equations", c.Equations.Count > 0 ? string.Join("\n", c.Equations.Select(eq => eq.Expression)) : null },
+                    { "Rules", c.ConceptRules.Count > 0 ? string.Join("\n", c.ConceptRules.Select(r => $"{(string.IsNullOrEmpty(r.Kind) ? "RULE" : r.Kind)}: {string.Join(" AND ", r.Hypothesis)} => {string.Join(", ", r.Conclusion)}")) : null },
+                    { "CompRels", c.CompRels.Count > 0 ? string.Join("\n", c.CompRels.Select(cr => $"[Rank {cr.Rank}] {string.Join(",", cr.InputVariables)} -> {cr.ResultVariable} (Cost:{cr.Cost}) Expr: {cr.Expression}")) : null },
+                    { "ConstructRelations", c.ConstructRelations.Count > 0 ? string.Join("\n", c.ConstructRelations.Select(cr => $"{cr.RelationName}({string.Join(", ", cr.Arguments)})")) : null },
+                    { "Properties", c.Properties.Count > 0 ? string.Join("\n", c.Properties.Select(p => $"{p.Key}: {p.Value}")) : null },
+                    { "_JsonData", System.Text.Json.JsonSerializer.Serialize(c) }
                 };
 
-                qrs.Objects.Add(new ObjectInstance { Values = valuesDict });
+                qrs.Objects.Add(new ObjectInstance { Values = valuesDict.ToDictionary(kv => kv.Key, kv => (object)(kv.Value ?? string.Empty)) });
                 qrs.Count = qrs.Objects.Count;
                 if (qrs.Objects.Count > 0)
                     qrs.Columns = qrs.Objects[0].Values.Keys.ToList();
@@ -3127,6 +4087,11 @@ public class KnowledgeManager
     {
         try
         {
+            if (node.Format.Equals("KBPKG", StringComparison.OrdinalIgnoreCase))
+            {
+                return ExportKnowledgeBaseAsKbpkg(node, kbName);
+            }
+
             // Full Knowledge Base dump (MySQL-style .kql script)
             if (node.TargetType.Equals("KNOWLEDGE_BASE", StringComparison.OrdinalIgnoreCase) ||
                 node.Format.Equals("KQL", StringComparison.OrdinalIgnoreCase))
@@ -3193,7 +4158,7 @@ public class KnowledgeManager
             sb.AppendLine("-- -------------------------");
             foreach (var h in hierarchies)
             {
-                string typeStr = h.HierarchyType == Models.HierarchyType.IsA ? "ISA" : "PART_OF";
+                string typeStr = "ISA";
                 sb.AppendLine($"ADD HIERARCHY {h.ChildConcept} {typeStr} {h.ParentConcept};");
             }
             sb.AppendLine();
@@ -3317,7 +4282,12 @@ public class KnowledgeManager
                 objectsToInsert.Add(obj);
             }
 
-            var inserted = _v3Router.BulkInsertObjects(kbName, objectsToInsert);
+            var inserted = 0;
+            foreach (var group in objectsToInsert.GroupBy(o => o.ConceptName))
+            {
+                var concept = _conceptCatalog.LoadConcept(kbName, group.Key);
+                inserted += _v3Router.BulkInsertObjects(kbName, group.ToList(), concept);
+            }
             
             if (inserted > 0)
             {
@@ -3368,6 +4338,12 @@ public class KnowledgeManager
                 errorCount++;
                 errors.Add($"[Line {stmt.Line}] {ex.Message}");
             }
+        }
+
+        if (errors.Count > 0)
+        {
+            Console.WriteLine("IMPORT ERRORS:");
+            foreach (var e in errors) Console.WriteLine(e);
         }
 
         // Evict cached triggers to force a reload from new metadata
@@ -3547,78 +4523,186 @@ public class KnowledgeManager
 
     private KBMS.Reasoning.InferenceEngine GetConfiguredEngine(string kbName)
     {
-        var engine = new KBMS.Reasoning.InferenceEngine();
-        var allRules = ListRules(kbName);
+        // Return cached engine if available.
+        // InvalidateEngineCache() removes it on any schema change (CREATE/DROP RULE/CONCEPT/RELATION, ALTER CONCEPT).
+        return _engineCache.GetOrAdd(kbName, _ => CreateFreshEngine(kbName));
+    }
 
+    /// <summary>
+    /// Creates a brand-new InferenceEngine for <paramref name="kbName"/> with all resolvers
+    /// wired to perform live DB reads. This is called only on cache miss (first call or after
+    /// a schema-invalidating DDL statement).
+    /// </summary>
+    private KBMS.Reasoning.InferenceEngine CreateFreshEngine(string kbName)
+    {
+        var engine = new KBMS.Reasoning.InferenceEngine();
+
+        // --- ConceptResolver: loads concept + injects all matching rules (live read) ---
         engine.ConceptResolver = (name) => {
             var c = _conceptCatalog.LoadConcept(kbName, name);
-            if (c != null) {
+            if (c != null)
+            {
+                var allRules = ListRules(kbName);
                 var hierarchy = ListHierarchies(kbName);
                 var ancestors = GetAncestors(name, hierarchy);
                 ancestors.Add(name);
 
                 var matchingRules = allRules
-                    .Where(r => r != null && ancestors.Any(a => a.Equals(r.Scope, StringComparison.OrdinalIgnoreCase)))
+                    .Where(r => r != null && (
+                        ancestors.Any(a => a.Equals(r.Scope, StringComparison.OrdinalIgnoreCase)) ||
+                        (r.ScopeConcepts != null && r.ScopeConcepts.Any(sc => ancestors.Any(a => a.Equals(sc.ConceptName, StringComparison.OrdinalIgnoreCase))))
+                    ))
                     .ToList();
 
-                c.ConceptRules = matchingRules
-                    .Select(r => {
-                        var scopeName = r.Scope;
-                        return new Models.ConceptRule {
-                            Id = r.Id,
-                            Kind = r.Name ?? r.RuleType ?? "deduction",
-                            Scope = scopeName,
-                            // Multi-concept scope support
-                            ScopeConcepts = r.ScopeConcepts?.Select(sc => new Models.ConceptRuleScopeConcept {
-                                ConceptName = sc.ConceptName,
-                                Alias = sc.Alias,
-                                Position = sc.Position
-                            }).ToList() ?? new(),
-                            JoinConditions = r.JoinConditions?.Select(jc => new Models.ConceptRuleJoinCondition {
-                                LeftField = jc.LeftField,
-                                Operator = jc.Operator,
-                                RightField = jc.RightField
-                            }).ToList() ?? new(),
-                            Priority = r.Priority,
-                            Hypothesis = r.Hypothesis?.Select(h => {
-                                var s = h.Content ?? "";
-                                if (!string.IsNullOrEmpty(scopeName) && s.StartsWith(scopeName + "(", StringComparison.OrdinalIgnoreCase) && s.EndsWith(")"))
-                                    return s.Substring(scopeName.Length + 1, s.Length - scopeName.Length - 2);
-                                return s;
-                            }).ToList() ?? new(),
-                            Conclusion = r.Conclusion?.Select(conc => {
-                                var s = conc.Content ?? "";
-                                if (!string.IsNullOrEmpty(scopeName) && s.StartsWith(scopeName + "(", StringComparison.OrdinalIgnoreCase) && s.EndsWith(")"))
-                                    return s.Substring(scopeName.Length + 1, s.Length - scopeName.Length - 2);
-                                return s;
-                            }).ToList() ?? new()
-                        };
-                    }).ToList();
+                if (c.ConceptRules == null) c.ConceptRules = new List<Models.ConceptRule>();
+
+                foreach (var r in matchingRules)
+                {
+                    var cr = new Models.ConceptRule
+                    {
+                        Id = r.Id,
+                        Name = r.Name ?? "",
+                        Kind = r.RuleType ?? "deduction",
+                        Scope = r.Scope,
+                        ScopeConcepts = r.ScopeConcepts?.Select(sc => new Models.ConceptRuleScopeConcept {
+                            ConceptName = sc.ConceptName,
+                            Alias = sc.Alias,
+                            Position = sc.Position
+                        }).ToList() ?? new(),
+                        JoinConditions = r.JoinConditions?.Select(jc => new Models.ConceptRuleJoinCondition {
+                            LeftField = jc.LeftField,
+                            Operator = jc.Operator,
+                            RightField = jc.RightField
+                        }).ToList() ?? new(),
+                        Priority = r.Priority,
+                        Hypothesis = r.Hypothesis?.Select(h => h.Content ?? "").ToList() ?? new(),
+                        Conclusion = r.Conclusion?.Select(conc => conc.Content ?? "").ToList() ?? new()
+                    };
+
+                    if (!c.ConceptRules.Any(existing => existing.Id == cr.Id))
+                        c.ConceptRules.Add(cr);
+                }
             }
             return c;
         };
 
-        var functions = ListFunctions(kbName);
-        engine.FunctionResolver = (name) => functions.FirstOrDefault(f => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+        // --- Other resolvers: always read live from DB ---
+        engine.FunctionResolver  = (name)   => ListFunctions(kbName).FirstOrDefault(f => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+        engine.OperatorResolver  = (symbol) => ListOperators(kbName).FirstOrDefault(o => o.Symbol.Equals(symbol));
+        engine.HierarchyResolver = (child)  => ListHierarchies(kbName)
+            .Where(h => h.ChildConcept.Equals(child, StringComparison.OrdinalIgnoreCase) && h.HierarchyType == Models.HierarchyType.IsA)
+            .Select(h => h.ParentConcept).ToList();
+        engine.PartOfResolver    = (_)      => new List<string>();
+        engine.RelationResolver  = (name)   => ListRelations(kbName).FirstOrDefault(r => r.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
 
-        var operators = ListOperators(kbName);
-        engine.OperatorResolver = (symbol) => operators.FirstOrDefault(o => o.Symbol.Equals(symbol));
+        // --- ExternalDataSource: Lazy Join / Query Planner ---
+        engine.ExternalDataSource = (conceptAlias, joinConditions, leftToken) => {
+            if (_v3Router == null) return Enumerable.Empty<Dictionary<string, object>>();
 
-        var hierarchies = ListHierarchies(kbName);
-        engine.HierarchyResolver = (childName) => hierarchies
-            .Where(h => h.ChildConcept.Equals(childName, StringComparison.OrdinalIgnoreCase) && h.HierarchyType == Models.HierarchyType.IsA)
-            .Select(h => h.ParentConcept)
-            .ToList();
+            var concept = engine.ConceptResolver!(conceptAlias);
+            if (concept == null) return Enumerable.Empty<Dictionary<string, object>>();
+            var realConceptName = concept.Name;
 
-        engine.PartOfResolver = (parentName) => hierarchies
-            .Where(h => h.ParentConcept.Equals(parentName, StringComparison.OrdinalIgnoreCase) && h.HierarchyType == Models.HierarchyType.PartOf)
-            .Select(h => h.ChildConcept)
-            .ToList();
+            var leftFacts = leftToken.ToDictionary();
 
-        var relations = ListRelations(kbName);
-        engine.RelationResolver = (name) => relations.FirstOrDefault(r => r.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+            // Query Planner: prefer index scan (equality join)
+            KBMS.Models.ConceptRuleJoinCondition? bestIndexCondition = null;
+            string indexNameToUse = "";
+
+            foreach (var jc in joinConditions)
+            {
+                if (jc.Operator == "=") 
+                { 
+                    var rFieldParts = jc.RightField.Split('.');
+                    var rFieldName = rFieldParts.Length > 1 ? rFieldParts[1] : jc.RightField;
+                    
+                    if (rFieldName.Equals("id", StringComparison.OrdinalIgnoreCase))
+                    {
+                        bestIndexCondition = jc;
+                        indexNameToUse = "id";
+                        break;
+                    }
+                    
+                    var matchingIndex = concept.Indexes?.FirstOrDefault(idx => idx.Fields.Count == 1 && idx.Fields[0].Equals(rFieldName, StringComparison.OrdinalIgnoreCase));
+                    if (matchingIndex != null)
+                    {
+                        bestIndexCondition = jc;
+                        indexNameToUse = matchingIndex.Name;
+                        break;
+                    }
+                }
+            }
+
+            IEnumerable<Dictionary<string, object>> Enrich(IEnumerable<ObjectInstance> objs) =>
+                objs.Select(o => {
+                    var dict = new Dictionary<string, object>(o.Values);
+                    dict["__internal_id"] = o.Id.ToString();
+                    dict["__internal_concept"] = o.ConceptName;
+                    return dict;
+                });
+
+            bool PassesAllJoins(Dictionary<string, object> rightDict)
+            {
+                foreach (var jc in joinConditions)
+                {
+                    if (jc == bestIndexCondition) continue;
+                    var lVal = leftFacts.TryGetValue(jc.LeftField, out var lv) ? lv : null;
+                    var rFieldParts = jc.RightField.Split('.');
+                    var rFieldName = rFieldParts.Length > 1 ? rFieldParts[1] : jc.RightField;
+                    var rVal = rightDict.TryGetValue(rFieldName, out var rv) ? rv : null;
+                    if (!EvaluateJoinOperator(lVal, jc.Operator, rVal)) return false;
+                }
+                return true;
+            }
+
+            if (bestIndexCondition != null)
+            {
+                var leftVal = leftFacts.TryGetValue(bestIndexCondition.LeftField, out var lv) ? lv : null;
+                if (leftVal == null) return Enumerable.Empty<Dictionary<string, object>>();
+                return Enrich(_v3Router.SelectByValue(kbName, realConceptName, indexNameToUse, leftVal.ToString()!))
+                    .Where(PassesAllJoins);
+            }
+            else
+            {
+                return Enrich(_v3Router.SelectObjects(kbName, realConceptName))
+                    .Where(PassesAllJoins);
+            }
+        };
 
         return engine;
+    }
+
+    private static bool EvaluateJoinOperator(object? leftVal, string op, object? rightVal)
+    {
+        if (leftVal == null || rightVal == null) return false;
+        
+        // If they are both numeric
+        if (double.TryParse(leftVal.ToString(), out double lNum) && double.TryParse(rightVal.ToString(), out double rNum))
+        {
+            switch (op)
+            {
+                case "=": return Math.Abs(lNum - rNum) < 0.00001;
+                case "!=": return Math.Abs(lNum - rNum) >= 0.00001;
+                case ">": return lNum > rNum;
+                case "<": return lNum < rNum;
+                case ">=": return lNum >= rNum;
+                case "<=": return lNum <= rNum;
+            }
+        }
+        
+        // String comparison
+        int cmp = string.Compare(leftVal.ToString(), rightVal.ToString(), StringComparison.OrdinalIgnoreCase);
+        switch (op)
+        {
+            case "=": return cmp == 0;
+            case "!=": return cmp != 0;
+            case ">": return cmp > 0;
+            case "<": return cmp < 0;
+            case ">=": return cmp >= 0;
+            case "<=": return cmp <= 0;
+        }
+        
+        return false;
     }
 
     private object HandleSearch(SearchNode node, string kbName)
@@ -3675,5 +4759,59 @@ public class KnowledgeManager
             Objects = results,
             Count = results.Count
         };
+    }
+    private object ExportKnowledgeBaseAsKbpkg(KBMS.Parser.Ast.Kml.ExportNode node, string kbName)
+    {
+        var kb = _kbCatalog.LoadKb(kbName);
+        if (kb == null) return ErrorResponse.ExecutionErrorResponse($"Knowledge base '{kbName}' not found.");
+
+        var dir = Path.GetDirectoryName(node.FilePath);
+        if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+
+        var tempDir = Path.Combine(Path.GetTempPath(), $"kbpkg_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            // 1. Export KQL Dump
+            var kqlResult = ExportKnowledgeBaseAsKql(node, kbName);
+            if (kqlResult is ErrorResponse err) return err;
+            
+            var kqlContent = kqlResult.GetType().GetProperty("script")?.GetValue(kqlResult)?.ToString();
+            File.WriteAllText(Path.Combine(tempDir, "data.kql"), kqlContent);
+
+            // 2. Generate Telemetry
+            var telemetry = new TelemetryLog
+            {
+                ExportedAt = DateTime.UtcNow,
+                KnowledgeBase = kbName,
+                Version = "3.4.0",
+                Metrics = new Dictionary<string, object>
+                {
+                    { "ConceptsCount", _conceptCatalog.ListConcepts(kbName).Count },
+                    { "ObjectsCount", SelectAllObjects(kbName).Count() }
+                }
+            };
+            var telemetryJson = System.Text.Json.JsonSerializer.Serialize(telemetry, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(Path.Combine(tempDir, "telemetry.json"), telemetryJson);
+
+            // 3. Compress to .kbpkg
+            if (File.Exists(node.FilePath)) File.Delete(node.FilePath);
+            System.IO.Compression.ZipFile.CreateFromDirectory(tempDir, node.FilePath, System.IO.Compression.CompressionLevel.Optimal, false);
+
+            return new { success = true, file = node.FilePath, format = "KBPKG" };
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+        }
+    }
+
+    public class TelemetryLog
+    {
+        public DateTime ExportedAt { get; set; }
+        public string KnowledgeBase { get; set; } = string.Empty;
+        public string Version { get; set; } = string.Empty;
+        public Dictionary<string, object> Metrics { get; set; } = new();
     }
 }

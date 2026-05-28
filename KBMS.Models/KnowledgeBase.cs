@@ -18,4 +18,5 @@ public class KnowledgeBase
     public List<Function> Functions { get; set; } = new();
     public List<Hierarchy> Hierarchies { get; set; } = new();
     public List<Trigger> Triggers { get; set; } = new();
+    public List<Constant> Constants { get; set; } = new();
 }

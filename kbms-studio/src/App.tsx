@@ -1,31 +1,31 @@
 import Layout from './components/Layout';
 import ConnectModal from './components/ConnectModal';
-import { useKbmsStore } from './store/kbmsStore';
+import { useThingentStore } from './store/thingentStore';
 import StudioSettings from './components/management/StudioSettings';
 import NotificationDetailModal from './components/NotificationDetailModal';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import ConfirmDialog from './components/ConfirmDialog';
 
 function App() {
-  const isConnectModalOpen = useKbmsStore(state => state.isConnectModalOpen);
-  const isStudioSettingsOpen = useKbmsStore(state => state.isStudioSettingsOpen);
-  const setStatus = useKbmsStore(state => state.setStatus);
-  const tabs = useKbmsStore(state => state.tabs);
-  const showConfirm = useKbmsStore(state => state.showConfirm);
+  const isConnectModalOpen = useThingentStore(state => state.isConnectModalOpen);
+  const isStudioSettingsOpen = useThingentStore(state => state.isStudioSettingsOpen);
+  const setStatus = useThingentStore(state => state.setStatus);
+  const tabs = useThingentStore(state => state.tabs);
+  const showConfirm = useThingentStore(state => state.showConfirm);
 
   useEffect(() => {
     // @ts-ignore
-    if (window.kbmsApi?.onAppCloseRequested) {
+    if (window.thingentApi?.onAppCloseRequested) {
       // @ts-ignore
-      window.kbmsApi.onAppCloseRequested(() => {
+      window.thingentApi.onAppCloseRequested(() => {
         showConfirm(
           'Confirm Exit',
           'You have unsaved changes. Are you sure you want to quit? Any unsaved work will be lost.',
           () => {
             // @ts-ignore
-            window.kbmsApi.forceQuit();
+            window.thingentApi.forceQuit();
           }
         );
       });
@@ -35,9 +35,9 @@ function App() {
   useEffect(() => {
     const hasUnsaved = tabs.some(t => !t.isSaved);
     // @ts-ignore
-    if (window.kbmsApi?.setUnsavedStatus) {
+    if (window.thingentApi?.setUnsavedStatus) {
       // @ts-ignore
-      window.kbmsApi.setUnsavedStatus(hasUnsaved);
+      window.thingentApi.setUnsavedStatus(hasUnsaved);
     }
   }, [tabs]);
 
@@ -52,24 +52,24 @@ function App() {
 
   useEffect(() => {
     // @ts-ignore
-    const unsubscribeStatus = window.kbmsApi.onStatusChange((status: any) => {
+    const unsubscribeStatus = window.thingentApi.onStatusChange((status: any) => {
       console.log("(App) Connection status changed:", status);
       setStatus(status);
     });
 
     // @ts-ignore
-    const unsubscribeStream = window.kbmsApi.onDataStream((data: any) => {
+    const unsubscribeStream = window.thingentApi.onDataStream((data: any) => {
       console.log("(App) Incoming data stream fragment:", data);
-      useKbmsStore.getState().handleResultFragment(data);
+      useThingentStore.getState().handleResultFragment(data);
     });
 
     // Recover status on startup
     // @ts-ignore
-    window.kbmsApi.getStatus().then((res: any) => {
+    window.thingentApi.getStatus().then((res: any) => {
       if (res && res.status === 'connected') {
         console.log("(App) Recovered active connection from backend");
         setStatus('connected');
-        useKbmsStore.getState().fetchMetadata();
+        useThingentStore.getState().fetchMetadata();
       }
     });
 
@@ -87,21 +87,56 @@ function App() {
       if (isCmdOrCtrl && e.key.toLowerCase() === 'r') {
         e.preventDefault();
         console.log("(App) Intercepted Reload shortcut. Fetching metadata...");
-        useKbmsStore.getState().fetchMetadata();
+        useThingentStore.getState().fetchMetadata();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setStatus]);
 
-  const studioSettings = useKbmsStore(state => state.studioSettings);
-  const fontSizeClass = `size-${studioSettings.fontSize}`;
-  const fontWeightClass = `font-${studioSettings.fontWeight}`;
-  const themeClass = studioSettings.theme === 'dark' ? 'dark' : '';
+  const studioSettings = useThingentStore(state => state.studioSettings);
+  
+  const [isSystemDark, setIsSystemDark] = useState(
+    window.matchMedia('(prefers-color-scheme: dark)').matches
+  );
+
+  useEffect(() => {
+    if (studioSettings.theme !== 'device') return;
+    
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (e: MediaQueryListEvent) => {
+       setIsSystemDark(e.matches);
+    };
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, [studioSettings.theme]);
+
+  const isDark = studioSettings.theme === 'device' ? isSystemDark : studioSettings.theme === 'dark';
+
+  useEffect(() => {
+    const html = document.documentElement;
+    // Remove old classes
+    const classesToRemove = Array.from(html.classList).filter(c => 
+      c.startsWith('size-') || c.startsWith('font-') || c === 'dark'
+    );
+    html.classList.remove(...classesToRemove);
+    
+    // Add new classes
+    html.classList.add(`size-${studioSettings.fontSize}`);
+    html.classList.add(`font-${studioSettings.fontWeight}`);
+    if (isDark) html.classList.add('dark');
+
+    // Notify main process
+    // @ts-ignore
+    if (window.thingentApi?.setTheme) {
+      // @ts-ignore
+      window.thingentApi.setTheme(isDark ? 'dark' : 'light');
+    }
+  }, [isDark, studioSettings.fontSize, studioSettings.fontWeight]);
 
   return (
     <ErrorBoundary>
-      <div className={`h-screen w-screen overflow-hidden bg-[var(--bg-app)] font-sans text-[var(--text-main)] flex flex-col antialiased relative ${fontSizeClass} ${fontWeightClass} ${themeClass} transition-colors duration-200`}>
+      <div className="h-screen w-screen overflow-hidden bg-[var(--bg-app)] font-sans text-[var(--text-main)] flex flex-col antialiased relative transition-colors duration-200">
         <Layout />
         <ConfirmDialog />
         <NotificationDetailModal />

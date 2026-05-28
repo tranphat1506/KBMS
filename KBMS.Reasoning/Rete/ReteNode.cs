@@ -9,14 +9,43 @@ namespace KBMS.Reasoning.Rete;
 /// </summary>
 public record Fact(string Name, object Value);
 
+public class ReasoningStep
+{
+    public string RuleName { get; set; } = string.Empty;
+    public int StepCost { get; set; }
+    public Dictionary<string, object> InputFacts { get; set; } = new();
+    public Dictionary<string, object> OutputFacts { get; set; } = new();
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public string? Logic { get; set; }
+    public List<string> UsedVariables { get; set; } = new();
+}
+
+public class ExplanationNode
+{
+    public string Goal { get; set; } = string.Empty;
+    public object? Value { get; set; }
+    public string? DerivedBy { get; set; }
+    public bool IsBaseFact { get; set; }
+    public string? Logic { get; set; }
+    public int? StepCost { get; set; }
+    public List<ExplanationNode>? Dependencies { get; set; }
+}
+
 /// <summary>
 /// A collection of facts that satisfy a partial or full set of rule conditions.
 /// </summary>
 public class Token
 {
     public List<Fact> Facts { get; } = new();
+    public List<ReasoningStep> AuditTrail { get; } = new();
+    public List<string> GeneratedVariables { get; } = new();
 
     public Token() { }
+
+    public Token(IEnumerable<Fact> facts)
+    {
+        Facts.AddRange(facts);
+    }
 
     public Token(Fact fact)
     {
@@ -27,6 +56,27 @@ public class Token
     {
         Facts.AddRange(parent.Facts);
         Facts.Add(newFact);
+        AuditTrail.AddRange(parent.AuditTrail);
+        GeneratedVariables.AddRange(parent.GeneratedVariables);
+    }
+
+    // Constructor to merge two tokens (BetaNode Join)
+    public Token(Token left, Token right)
+    {
+        Facts.AddRange(left.Facts);
+        // Avoid duplicate facts from right side
+        var leftNames = new HashSet<string>(left.Facts.Select(f => f.Name), StringComparer.OrdinalIgnoreCase);
+        Facts.AddRange(right.Facts.Where(f => !leftNames.Contains(f.Name)));
+        
+        AuditTrail.AddRange(left.AuditTrail);
+        AuditTrail.AddRange(right.AuditTrail);
+        
+        GeneratedVariables.AddRange(left.GeneratedVariables);
+        GeneratedVariables.AddRange(right.GeneratedVariables);
+        
+        // Remove duplicates in audit/generated if any
+        GeneratedVariables = GeneratedVariables.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        AuditTrail = AuditTrail.DistinctBy(a => a.Timestamp).ToList(); // Naive dedup
     }
 
     public object? GetValue(string name) => Facts.LastOrDefault(f => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase))?.Value;
@@ -51,16 +101,32 @@ public abstract class ReteNode
     /// <summary>
     /// Processes a token entering the node from a parent.
     /// </summary>
-    public abstract void ReceiveToken(Token token, ReteNode? sender);
+    public abstract void ReceiveToken(Token token, ReteNode? sender, InferenceSession session);
+
+    /// <summary>
+    /// Processes the retraction of a fact from the node.
+    /// </summary>
+    public abstract void RetractFact(Fact fact, ReteNode? sender, InferenceSession session);
 
     /// <summary>
     /// Propagates a token to all children.
     /// </summary>
-    protected void Propagate(Token token)
+    protected void Propagate(Token token, InferenceSession session)
     {
         foreach (var child in Children.ToList())
         {
-            child.ReceiveToken(token, this);
+            child.ReceiveToken(token, this, session);
+        }
+    }
+
+    /// <summary>
+    /// Propagates the retraction to all children.
+    /// </summary>
+    protected void PropagateRetract(Fact fact, InferenceSession session)
+    {
+        foreach (var child in Children.ToList())
+        {
+            child.RetractFact(fact, this, session);
         }
     }
 }
@@ -70,14 +136,19 @@ public abstract class ReteNode
 /// </summary>
 public class EntryNode : ReteNode
 {
-    public override void ReceiveToken(Token token, ReteNode? sender)
+    public override void ReceiveToken(Token token, ReteNode? sender, InferenceSession session)
     {
         // Entry node just passes everything through to Alpha nodes
-        Propagate(token);
+        Propagate(token, session);
     }
 
-    public void AssertFact(Fact fact)
+    public override void RetractFact(Fact fact, ReteNode? sender, InferenceSession session)
     {
-        ReceiveToken(new Token(fact), null);
+        PropagateRetract(fact, session);
+    }
+
+    public void AssertFact(Fact fact, InferenceSession session)
+    {
+        ReceiveToken(new Token(fact), null, session);
     }
 }

@@ -20,12 +20,12 @@ public class KnowledgeUpdateTests
         // Setup temporary storage
         string testDir = Path.Combine(Path.GetTempPath(), "KBMS_Test_" + Guid.NewGuid().ToString());
         if (!Directory.Exists(testDir)) Directory.CreateDirectory(testDir);
-        var pool = new KBMS.Storage.V3.StoragePool(testDir, 64);
-        var kbCatalog = new KBMS.Storage.V3.KbCatalog(pool);
-        var conceptCatalog = new KBMS.Storage.V3.ConceptCatalog(pool);
-        var userCatalog = new KBMS.Storage.V3.UserCatalog(pool);
+        var pool = new KBMS.Storage.Core.StoragePool(testDir, 64);
+        var kbCatalog = new KBMS.Storage.Core.KbCatalog(pool);
+        var conceptCatalog = new KBMS.Storage.Core.ConceptCatalog(pool);
+        var userCatalog = new KBMS.Storage.Core.UserCatalog(pool);
 
-        var router = new KBMS.Knowledge.V3.V3DataRouter(pool);
+        var router = new KBMS.Knowledge.Core.StorageRouter(pool);
         var km = new KnowledgeManager(pool, kbCatalog, conceptCatalog, userCatalog, router);
 
         string kbName = "UpdateTestKB";

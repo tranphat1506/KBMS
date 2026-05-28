@@ -11,9 +11,9 @@ namespace KBMS.Tests;
 public class SolveInSelectTests : IAsyncLifetime
 {
     private readonly ITestOutputHelper _output;
-    private KbmsServer _server;
-    private Cli _cli;
-    private string _dataDir;
+    private KbmsServer? _server;
+    private Cli? _cli;
+    private string? _dataDir;
     private static int _nextPort = 9300;
     private int _port;
 

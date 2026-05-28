@@ -2,14 +2,16 @@ import { useEffect, useState, useRef } from 'react';
 import {
   Database, ChevronDown, ChevronRight, Folder, Table, GitBranch, Link, Settings2,
   TerminalSquare, Copy, RefreshCw, AlignLeft, Unplug, Search, Activity, LayoutDashboard, FileText, Users,
-  Wrench
+  Wrench, Zap, Code, Calculator, Network, Download
 } from 'lucide-react';
-import { useKbmsStore } from '../store/kbmsStore';
+import { useThingentStore } from '../store/thingentStore';
 
 export default function Sidebar() {
   const {
+    openDetailTab,
     status,
-    metadata,
+    serverMetadata,
+    kbMetadata,
     fetchMetadata,
     activeSidebarView,
     selectedKb,
@@ -17,18 +19,17 @@ export default function Sidebar() {
     connectionDetails,
     lastCredentials,
     setQuery,
-    execute,
     setConnectModalOpen,
     connect,
     disconnect,
-    metadataDetails,
     systemActiveTab,
     setSystemActiveTab
-  } = useKbmsStore();
+  } = useThingentStore();
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ 'server': true, 'databases': true, 'system': true });
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, concept: any } | null>(null);
   const [serverContextMenu, setServerContextMenu] = useState<{ x: number, y: number } | null>(null);
+  const [kbContextMenu, setKbContextMenu] = useState<{ x: number, y: number, kbName: string } | null>(null);
 
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -37,7 +38,8 @@ export default function Sidebar() {
   };
 
   useEffect(() => {
-    setExpanded(prev => ({ ...prev, 'server': true, 'databases': true, 'system': true }));
+    // Collapse all object folders when switching KB, don't auto-fetch
+    setExpanded(prev => ({ ...prev, 'system': false, 'hierarchies': false, 'relations': false, 'rules': false, 'functions': false, 'operators': false }));
   }, [selectedKb]);
 
   useEffect(() => {
@@ -51,6 +53,7 @@ export default function Sidebar() {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setContextMenu(null);
         setServerContextMenu(null);
+        setKbContextMenu(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -66,7 +69,58 @@ export default function Sidebar() {
   const handleServerContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     setContextMenu(null);
+    setKbContextMenu(null);
     setServerContextMenu({ x: e.pageX, y: e.pageY });
+  };
+
+  const handleKbContextMenu = (e: React.MouseEvent, kbName: string) => {
+    e.preventDefault();
+    setContextMenu(null);
+    setServerContextMenu(null);
+    setKbContextMenu({ x: e.pageX, y: e.pageY, kbName });
+  };
+
+  const handleKbAction = async (action: 'export') => {
+    if (!kbContextMenu?.kbName) return;
+    const kbName = kbContextMenu.kbName;
+    setKbContextMenu(null);
+
+    if (action === 'export') {
+      try {
+        // First ask for save path via thingentApi.saveFile without content just to get the path
+        // Wait, thingentApi.saveFile is not a "save dialog" alone, it writes.
+        // We can create a new ipcMain handle in main.ts to show a save dialog.
+        // For now, I'll just execute the query with a temp path, but that's backend.
+        // We can execute a query to export to a default file, or use IPC to show dialog.
+        
+        // Actually, if we just run EXPORT KNOWLEDGE BASE {kbName} FORMAT: KBPKG;
+        // The server will export it to the CWD by default if we don't specify FILE.
+        // Wait! The Parser says FILE is REQUIRED! `if (Consume(TokenType.FILE) == null) throw Error("Expected 'FILE' in EXPORT parameters");`
+        // So we MUST specify a file!
+        // We can generate a dummy file path, but on the server?
+        // Let's use `window.thingentApi.saveFile('', 'export.kbpkg', true)` to prompt user and get a path?
+        // Let's do that!
+        
+        // @ts-ignore
+        const res = await window.thingentApi.saveFile('', `${kbName}.kbpkg`, true);
+        if (res && res.success && res.filePath) {
+           const query = `EXPORT(KNOWLEDGE BASE: ${kbName}, FORMAT: KBPKG, FILE: '${res.filePath.replace(/\\/g, '/')}');`;
+           setQuery(query);
+           // Auto execute it
+           // @ts-ignore
+           window.thingentApi.execute(query);
+           
+           useThingentStore.getState().addNotification({
+             type: 'log',
+             severity: 'info',
+             title: 'Export Started',
+             message: `Exporting ${kbName} to ${res.filePath}`
+           });
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
   };
 
   const handleAction = (action: 'select' | 'drop' | 'insert') => {
@@ -88,6 +142,15 @@ export default function Sidebar() {
   const isMac = typeof navigator !== 'undefined' && navigator.userAgent.indexOf('Mac') > -1;
   const cmd = isMac ? '⌘' : 'Ctrl';
 
+  const currentMetadata = kbMetadata[selectedKb] || {
+    concepts: [],
+    hierarchies: [],
+    relations: [],
+    rules: [],
+    functions: [],
+    operators: []
+  };
+
   return (
     <div className="h-full flex flex-col pt-3 text-[var(--text-main)] relative font-sans transition-colors duration-200">
       <div className="px-3 pb-2.5 flex items-center justify-between">
@@ -102,8 +165,8 @@ export default function Sidebar() {
             onClick={() => {
               if (activeSidebarView === 'explorer') fetchMetadata();
               else {
-                useKbmsStore.getState().fetchSystemLogs();
-                useKbmsStore.getState().fetchAuditLogs();
+                useThingentStore.getState().fetchSystemLogs();
+                useThingentStore.getState().fetchAuditLogs();
               }
             }}
             disabled={status !== 'connected'}
@@ -123,7 +186,7 @@ export default function Sidebar() {
           type="text"
           placeholder={`Search ${activeSidebarView === 'explorer' ? 'objects' : 'logs'}...`}
           disabled={status !== 'connected'}
-          className="w-full text-[11px] font-normal box-border pl-7 pr-3 py-1 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded text-[var(--text-main)] focus:outline-none focus:border-[var(--brand-primary)] transition-all placeholder:text-[var(--text-muted)] shadow-inner"
+          className="w-full text-xs font-normal box-border pl-7 pr-3 py-1 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded text-[var(--text-main)] focus:outline-none focus:border-[var(--brand-primary)] transition-all placeholder:text-[var(--text-muted)] shadow-inner"
         />
       </div>
 
@@ -131,10 +194,10 @@ export default function Sidebar() {
         {status !== 'connected' ? (
           <div className="flex flex-col items-center justify-center h-full text-[var(--text-muted)] space-y-3 px-3 text-center mt-[-30px]">
             <Unplug className="w-10 h-10 opacity-30" />
-            <p className="text-[11px] font-normal">Not connected to server.</p>
+            <p className="text-xs font-normal">Not connected to server.</p>
             <button
               onClick={() => setConnectModalOpen(true)}
-              className="px-4 py-1.5 bg-[var(--bg-surface)] text-[var(--brand-primary-text)] font-medium text-[11px] rounded border border-[var(--brand-primary)]/30 hover:bg-[var(--brand-primary-light)] transition-colors shadow-sm cursor-pointer"
+              className="px-4 py-1.5 bg-[var(--bg-surface)] text-[var(--brand-primary-text)] font-medium text-xs rounded border border-[var(--brand-primary)]/30 hover:bg-[var(--brand-primary-light)] transition-colors shadow-sm cursor-pointer"
             >
               Connect Now
             </button>
@@ -149,7 +212,7 @@ export default function Sidebar() {
               <div className="space-y-0.5">
                 <button 
                   onClick={() => setSystemActiveTab('overview')}
-                  className={`w-full flex items-center space-x-2 px-2.5 py-2 rounded hover:bg-[var(--brand-primary-light)] transition-all group cursor-pointer text-[12px] border border-transparent ${systemActiveTab === 'overview' ? 'bg-[var(--brand-primary-light)] text-[var(--brand-primary-text)] border-[var(--brand-primary)]/20 font-medium' : 'text-[var(--text-sub)]'}`}
+                  className={`w-full flex items-center space-x-2 px-2.5 py-2 rounded hover:bg-[var(--brand-primary-light)] transition-all group cursor-pointer text-sm border border-transparent ${systemActiveTab === 'logs' ? 'bg-[var(--brand-primary-light)] text-[var(--brand-primary-text)] border-[var(--brand-primary)]/20 font-medium' : 'text-[var(--text-sub)]'}`}
                 >
                   <LayoutDashboard className={`w-3.5 h-3.5 ${systemActiveTab === 'overview' ? 'text-[var(--brand-primary)]' : 'text-[var(--text-muted)] group-hover:text-[var(--brand-primary)]'}`} />
                   <span className="flex-1 text-left">Overview</span>
@@ -211,7 +274,7 @@ export default function Sidebar() {
             </div>
           </div>
         ) : (
-          <ul className="text-[12px] font-normal text-[var(--text-main)] select-none">
+          <ul className="text-sm font-normal text-[var(--text-main)] select-none">
             {/* Server Node */}
             <li>
               <div
@@ -240,7 +303,7 @@ export default function Sidebar() {
                   </div>
                   <div className="flex items-center space-x-1">
                     <div className={`w-1.5 h-1.5 rounded-full ${status === 'connected' ? 'bg-[var(--brand-primary)] animate-pulse' : (status === 'connecting' ? 'bg-amber-400 animate-bounce' : 'bg-rose-500')}`} />
-                    <span className={`text-[9px] font-bold uppercase tracking-tighter ${status === 'connected' ? 'text-[var(--brand-primary)]' : (status === 'connecting' ? 'text-amber-600' : 'text-rose-600')}`}>
+                    <span className={`text-[10px] font-bold uppercase tracking-tighter ${status === 'connected' ? 'text-[var(--brand-primary)]' : (status === 'connecting' ? 'text-amber-600' : 'text-rose-600')}`}>
                       {status === 'connected' ? 'Live' : (status === 'connecting' ? 'Connecting...' : 'Disconnected')}
                     </span>
                   </div>
@@ -263,15 +326,27 @@ export default function Sidebar() {
                       <div className={`grid transition-all duration-200 ${expanded['databases'] ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                         <div className="overflow-hidden">
                           <ul className="pl-4 mt-0.5 space-y-0.5 border-l border-[var(--border-subtle)] ml-[6px] pb-1">
-                            {metadata.databases.map((db, i) => (
+                            {serverMetadata.databases.map((db, i) => (
                               <li
                                 key={i}
                                 onClick={() => changeKnowledgeBase(db)}
+                                onContextMenu={(e) => handleKbContextMenu(e, db)}
                                 className={`flex items-center space-x-2 p-1 pl-2.5 hover:bg-[var(--brand-primary-light)] rounded cursor-pointer group relative transition-colors ${selectedKb === db ? 'bg-[var(--brand-primary-light)] text-[var(--brand-primary-text)] font-medium' : ''}`}
                               >
                                 <div className="absolute -left-[1px] w-[6px] h-[1px] border-t border-[var(--border-subtle)] top-1/2" />
-                                <Database className="w-3 h-3 text-[var(--brand-primary)]" />
-                                <span className="truncate">{db}</span>
+                                <Database className="w-3 h-3 text-[var(--brand-primary)] shrink-0" />
+                                <span className="truncate flex-1">{db}</span>
+                                <button 
+                                  onClick={(e) => { 
+                                    e.stopPropagation(); 
+                                    if (selectedKb !== db) changeKnowledgeBase(db);
+                                    useThingentStore.getState().openOntologyBuilderTab(db); 
+                                  }}
+                                  className="opacity-0 group-hover:opacity-100 p-0.5 text-[var(--text-muted)] hover:text-[var(--brand-primary)] hover:bg-[var(--bg-surface-alt)] rounded"
+                                  title="Open Visual Builder"
+                                >
+                                  <Network className="w-3.5 h-3.5" />
+                                </button>
                               </li>
                             ))}
                           </ul>
@@ -293,42 +368,19 @@ export default function Sidebar() {
                       <div className={`grid transition-all duration-200 ${expanded['system'] ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                         <div className="overflow-hidden">
                           <ul className="pl-4 mt-0.5 space-y-0.5 border-l border-[var(--border-subtle)] ml-[6px] pb-1">
-                            {metadata.concepts.length === 0 ? (
-                              <li className="pl-3 py-1 text-[var(--text-muted)] text-[11px] italic font-normal">Empty</li>
+                            {currentMetadata.concepts.length === 0 ? (
+                              <li className="pl-3 py-1 text-[var(--text-muted)] text-xs italic font-normal">Empty</li>
                             ) : (
-                              metadata.concepts.map((concept, i) => (
+                              currentMetadata.concepts.map((concept, i) => (
                                 <li key={i}>
                                   <div
-                                    onClick={() => {
-                                      toggle(`concept-${i}`);
-                                      execute(`DESCRIBE (CONCEPT : ${concept.Name});`, { isDescribe: true, targetName: concept.Name, isBackground: true });
-                                    }}
+                                    onClick={() => openDetailTab('Concept', concept.Name)}
                                     onContextMenu={(e) => handleContextMenu(e, concept)}
                                     className="flex items-center space-x-1.5 p-1 pl-2.5 hover:bg-[var(--brand-primary-light)] rounded cursor-pointer group relative transition-colors"
                                   >
                                     <div className="absolute -left-[1px] w-[6px] h-[1px] border-t border-[var(--border-subtle)] top-1/2" />
                                     <Table className="w-[12px] h-[12px] text-indigo-500 shrink-0 group-hover:text-[var(--brand-primary)]" />
                                     <span className="truncate group-hover:text-[var(--brand-primary-text)] leading-tight">{concept?.Name || 'Unknown'}</span>
-                                  </div>
-                                  <div className={`grid transition-all duration-200 ${expanded[`concept-${i}`] ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
-                                    <div className="overflow-hidden">
-                                      {metadataDetails[concept.Name.toLowerCase()] ? (
-                                        <ul className="pl-6 pb-1 pt-0.5 space-y-0.5 text-[10px] font-normal text-[var(--text-sub)] border-l border-[var(--brand-primary-light)]/50 ml-3">
-                                          {metadataDetails[concept.Name.toLowerCase()].headers?.map((h: string, hi: number) => {
-                                            const val = metadataDetails[concept.Name.toLowerCase()].rows?.[0]?.[h];
-                                            if (!val || val === 'None') return null;
-                                            return (
-                                              <li key={hi} className="flex flex-col space-y-0.5 py-0.5">
-                                                <span className="font-bold text-[9px] text-[var(--text-muted)] tracking-tighter uppercase">{h}</span>
-                                                <span className="pl-1 text-[var(--text-sub)] break-words font-thin">{String(val)}</span>
-                                              </li>
-                                            );
-                                          })}
-                                        </ul>
-                                      ) : (
-                                        <div className="pl-9 py-1 text-[10px] text-[var(--text-muted)] italic animate-pulse">Loading...</div>
-                                      )}
-                                    </div>
                                   </div>
                                 </li>
                               ))
@@ -348,8 +400,8 @@ export default function Sidebar() {
                       <div className={`grid transition-all duration-200 ${expanded['hierarchies'] ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                         <div className="overflow-hidden">
                           <ul className="pl-4 mt-0.5 space-y-0.5 border-l border-[var(--border-subtle)] ml-[6px] pb-1">
-                            {metadata.hierarchies.length === 0 ? <li className="pl-3 py-1 text-[var(--text-muted)] text-[11px] italic font-normal">Empty</li> :
-                              metadata.hierarchies.map((h, i) => (
+                            {currentMetadata.hierarchies.length === 0 ? <li className="pl-3 py-1 text-[var(--text-muted)] text-[11px] italic font-normal">Empty</li> :
+                              currentMetadata.hierarchies.map((h, i) => (
                                 <li key={i} className="flex items-center space-x-2 p-1 pl-2.5 hover:bg-[var(--brand-primary-light)] rounded text-[var(--text-sub)] transition-colors cursor-pointer relative">
                                   <div className="absolute -left-[1px] w-[6px] h-[1px] border-t border-[var(--border-subtle)] top-1/2" />
                                   <span className="truncate text-[11px]">{h.ParentConcept} → {h.ChildConcept}</span>
@@ -371,11 +423,80 @@ export default function Sidebar() {
                       <div className={`grid transition-all duration-200 ${expanded['relations'] ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                         <div className="overflow-hidden">
                           <ul className="pl-4 mt-0.5 space-y-0.5 border-l border-[var(--border-subtle)] ml-[6px] pb-1">
-                            {metadata.relations.length === 0 ? <li className="pl-3 py-1 text-[var(--text-muted)] text-[11px] italic font-normal">Empty</li> :
-                              metadata.relations.map((r, i) => (
-                                <li key={i} className="flex items-center space-x-2 p-1 pl-2.5 hover:bg-[var(--brand-primary-light)] rounded text-[var(--text-sub)] transition-colors cursor-pointer relative">
+                            {!currentMetadata.relations || currentMetadata.relations.length === 0 ? <li className="pl-3 py-1 text-[var(--text-muted)] text-xs italic font-normal">Empty</li> :
+                              currentMetadata.relations.map((r, i) => (
+                                <li key={i} onClick={() => openDetailTab('Relation', r.Name || r)} className="flex items-center space-x-2 p-1 pl-2.5 hover:bg-[var(--brand-primary-light)] rounded text-[var(--text-sub)] hover:text-[var(--text-main)] transition-colors cursor-pointer relative">
                                   <div className="absolute -left-[1px] w-[6px] h-[1px] border-t border-[var(--border-subtle)] top-1/2" />
-                                  <span className="truncate text-[11px]">{r.Name}</span>
+                                  <span className="truncate text-xs">{r.Name || r}</span>
+                                </li>
+                              ))
+                            }
+                          </ul>
+                        </div>
+                      </div>
+                    </li>
+
+                    {/* Rules Node */}
+                    <li>
+                      <div onClick={() => toggle('rules')} className={`flex items-center space-x-1 p-1 rounded cursor-pointer group transition-colors ${expanded['rules'] ? 'bg-[var(--bg-surface-alt)]/40' : 'hover:bg-[var(--bg-surface-alt)]/50'}`}>
+                        {expanded['rules'] ? <ChevronDown className="w-3 h-3 text-[var(--text-muted)]" /> : <ChevronRight className="w-3 h-3 text-[var(--text-muted)]" />}
+                        <Zap className="w-3.5 h-3.5 text-yellow-500 shrink-0" />
+                        <span className="truncate">Rules</span>
+                      </div>
+                      <div className={`grid transition-all duration-200 ${expanded['rules'] ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                        <div className="overflow-hidden">
+                          <ul className="pl-4 mt-0.5 space-y-0.5 border-l border-[var(--border-subtle)] ml-[6px] pb-1">
+                            {!currentMetadata.rules || currentMetadata.rules.length === 0 ? <li className="pl-3 py-1 text-[var(--text-muted)] text-xs italic font-normal">Empty</li> :
+                              currentMetadata.rules.map((r, i) => (
+                                <li key={i} onClick={() => openDetailTab('Rule', r.Name || r.Id || r)} className="flex items-center space-x-2 p-1 pl-2.5 hover:bg-[var(--brand-primary-light)] rounded text-[var(--text-sub)] hover:text-[var(--text-main)] transition-colors cursor-pointer relative">
+                                  <div className="absolute -left-[1px] w-[6px] h-[1px] border-t border-[var(--border-subtle)] top-1/2" />
+                                  <span className="truncate text-xs">{r.Name || r.Id || r}</span>
+                                </li>
+                              ))
+                            }
+                          </ul>
+                        </div>
+                      </div>
+                    </li>
+
+                    {/* Functions Node */}
+                    <li>
+                      <div onClick={() => toggle('functions')} className={`flex items-center space-x-1 p-1 rounded cursor-pointer group transition-colors ${expanded['functions'] ? 'bg-[var(--bg-surface-alt)]/40' : 'hover:bg-[var(--bg-surface-alt)]/50'}`}>
+                        {expanded['functions'] ? <ChevronDown className="w-3 h-3 text-[var(--text-muted)]" /> : <ChevronRight className="w-3 h-3 text-[var(--text-muted)]" />}
+                        <Code className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                        <span className="truncate">Functions</span>
+                      </div>
+                      <div className={`grid transition-all duration-200 ${expanded['functions'] ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                        <div className="overflow-hidden">
+                          <ul className="pl-4 mt-0.5 space-y-0.5 border-l border-[var(--border-subtle)] ml-[6px] pb-1">
+                            {!currentMetadata.functions || currentMetadata.functions.length === 0 ? <li className="pl-3 py-1 text-[var(--text-muted)] text-xs italic font-normal">Empty</li> :
+                              currentMetadata.functions.map((f, i) => (
+                                <li key={i} onClick={() => openDetailTab('Function', f.Name || f)} className="flex items-center space-x-2 p-1 pl-2.5 hover:bg-[var(--brand-primary-light)] rounded text-[var(--text-sub)] hover:text-[var(--text-main)] transition-colors cursor-pointer relative">
+                                  <div className="absolute -left-[1px] w-[6px] h-[1px] border-t border-[var(--border-subtle)] top-1/2" />
+                                  <span className="truncate text-xs">{f.Name || f}</span>
+                                </li>
+                              ))
+                            }
+                          </ul>
+                        </div>
+                      </div>
+                    </li>
+
+                    {/* Operators Node */}
+                    <li>
+                      <div onClick={() => toggle('operators')} className={`flex items-center space-x-1 p-1 rounded cursor-pointer group transition-colors ${expanded['operators'] ? 'bg-[var(--bg-surface-alt)]/40' : 'hover:bg-[var(--bg-surface-alt)]/50'}`}>
+                        {expanded['operators'] ? <ChevronDown className="w-3 h-3 text-[var(--text-muted)]" /> : <ChevronRight className="w-3 h-3 text-[var(--text-muted)]" />}
+                        <Calculator className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+                        <span className="truncate">Operators</span>
+                      </div>
+                      <div className={`grid transition-all duration-200 ${expanded['operators'] ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                        <div className="overflow-hidden">
+                          <ul className="pl-4 mt-0.5 space-y-0.5 border-l border-[var(--border-subtle)] ml-[6px] pb-1">
+                            {!currentMetadata.operators || currentMetadata.operators.length === 0 ? <li className="pl-3 py-1 text-[var(--text-muted)] text-xs italic font-normal">Empty</li> :
+                              currentMetadata.operators.map((o, i) => (
+                                <li key={i} onClick={() => openDetailTab('Operator', o.Symbol || o)} className="flex items-center space-x-2 p-1 pl-2.5 hover:bg-[var(--brand-primary-light)] rounded text-[var(--text-sub)] hover:text-[var(--text-main)] transition-colors cursor-pointer relative">
+                                  <div className="absolute -left-[1px] w-[6px] h-[1px] border-t border-[var(--border-subtle)] top-1/2" />
+                                  <span className="truncate text-xs">{o.Symbol || o}</span>
                                 </li>
                               ))
                             }
@@ -393,7 +514,7 @@ export default function Sidebar() {
 
       {/* Context Menus */}
       {serverContextMenu && (
-        <div ref={menuRef} className="fixed z-50 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded shadow-xl py-1 w-36 text-[11px]" style={{ top: serverContextMenu.y, left: serverContextMenu.x }}>
+        <div ref={menuRef} className="fixed z-50 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded shadow-xl py-1 w-36 text-xs" style={{ top: serverContextMenu.y, left: serverContextMenu.x }}>
           <button onClick={() => { disconnect(); setServerContextMenu(null); }} className="w-full flex items-center space-x-2 px-3 py-1.5 hover:bg-rose-500/10 text-rose-500">
             <Unplug className="w-3.5 h-3.5" />
             <span>Disconnect</span>
@@ -401,8 +522,20 @@ export default function Sidebar() {
         </div>
       )}
 
+      {kbContextMenu && (
+        <div ref={menuRef} className="fixed z-50 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded shadow-xl py-1 w-44 text-xs" style={{ top: kbContextMenu.y, left: kbContextMenu.x }}>
+          <div className="px-3 py-1.5 text-[10px] font-bold text-[var(--text-muted)] uppercase border-b border-[var(--border-muted)] mb-1">
+            KB: {kbContextMenu.kbName}
+          </div>
+          <button onClick={() => handleKbAction('export')} className="w-full flex items-center space-x-2 px-3 py-1.5 hover:bg-[var(--brand-primary-light)] text-[var(--text-main)]">
+            <Download className="w-3.5 h-3.5 text-[var(--brand-primary)]" />
+            <span>Export KB (.kbpkg)</span>
+          </button>
+        </div>
+      )}
+
       {contextMenu && (
-        <div ref={menuRef} className="fixed z-50 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded shadow-xl py-1 w-44 text-[11px]" style={{ top: contextMenu.y, left: contextMenu.x }}>
+        <div ref={menuRef} className="fixed z-50 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded shadow-xl py-1 w-44 text-xs" style={{ top: contextMenu.y, left: contextMenu.x }}>
           <div className="px-3 py-1.5 text-[10px] font-bold text-[var(--text-muted)] uppercase border-b border-[var(--border-muted)] mb-1">
             {contextMenu.concept.Name}
           </div>

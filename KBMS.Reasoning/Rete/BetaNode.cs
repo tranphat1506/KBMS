@@ -10,31 +10,46 @@ namespace KBMS.Reasoning.Rete;
 /// </summary>
 public class BetaNode : ReteNode
 {
-    // Memory tables for partial matches
-    public List<Token> LeftMemory { get; } = new();
-    public List<Token> RightMemory { get; } = new();
-
     public ReteNode? LeftParent { get; set; }
     public ReteNode? RightParent { get; set; }
+
+    public Func<Token, IEnumerable<Token>>? RightDataSource { get; set; }
+    public Func<Token, IEnumerable<Token>>? LeftDataSource { get; set; }
 
     /// <summary>
     /// Receives a token from the LEFT parent.
     /// </summary>
-    public void ReceiveLeft(Token leftToken)
+    public void ReceiveLeft(Token leftToken, InferenceSession session)
     {
-        lock (LeftMemory)
+        var leftMemory = session.GetBetaLeftMemory(Id);
+        lock (leftMemory)
         {
-            LeftMemory.Add(leftToken);
+            leftMemory.Add(leftToken);
         }
 
-        // Try to join with every token in RightMemory
-        lock (RightMemory)
+        // Lazy Loading: If RightDataSource is available, fetch dynamically instead of using RightMemory
+        if (RightDataSource != null)
         {
-            foreach (var rightToken in RightMemory.ToList())
+            var dynamicRightTokens = RightDataSource(leftToken);
+            foreach (var rightToken in dynamicRightTokens)
             {
                 if (CanJoin(leftToken, rightToken))
                 {
-                    Propagate(new Token(leftToken, rightToken.Facts.Last()));
+                    Propagate(new Token(leftToken, rightToken), session);
+                }
+            }
+            return;
+        }
+
+        // Try to join with every token in RightMemory
+        var rightMemory = session.GetBetaRightMemory(Id);
+        lock (rightMemory)
+        {
+            foreach (var rightToken in rightMemory.ToList())
+            {
+                if (CanJoin(leftToken, rightToken))
+                {
+                    Propagate(new Token(leftToken, rightToken), session);
                 }
             }
         }
@@ -43,35 +58,51 @@ public class BetaNode : ReteNode
     /// <summary>
     /// Receives a token from the RIGHT parent.
     /// </summary>
-    public void ReceiveRight(Token rightToken)
+    public void ReceiveRight(Token rightToken, InferenceSession session)
     {
-        lock (RightMemory)
+        var rightMemory = session.GetBetaRightMemory(Id);
+        lock (rightMemory)
         {
-            RightMemory.Add(rightToken);
+            rightMemory.Add(rightToken);
         }
 
-        // Try to join with every token in LeftMemory
-        lock (LeftMemory)
+        // Lazy Loading: If LeftDataSource is available, fetch dynamically instead of using LeftMemory
+        if (LeftDataSource != null)
         {
-            foreach (var leftToken in LeftMemory.ToList())
+            var dynamicLeftTokens = LeftDataSource(rightToken);
+            foreach (var leftToken in dynamicLeftTokens)
             {
                 if (CanJoin(leftToken, rightToken))
                 {
-                    Propagate(new Token(leftToken, rightToken.Facts.Last()));
+                    Propagate(new Token(leftToken, rightToken), session);
+                }
+            }
+            return;
+        }
+
+        // Try to join with every token in LeftMemory
+        var leftMemory = session.GetBetaLeftMemory(Id);
+        lock (leftMemory)
+        {
+            foreach (var leftToken in leftMemory.ToList())
+            {
+                if (CanJoin(leftToken, rightToken))
+                {
+                    Propagate(new Token(leftToken, rightToken), session);
                 }
             }
         }
     }
 
-    public override void ReceiveToken(Token token, ReteNode? sender)
+    public override void ReceiveToken(Token token, ReteNode? sender, InferenceSession session)
     {
         if (sender == LeftParent)
         {
-            ReceiveLeft(token);
+            ReceiveLeft(token, session);
         }
         else if (sender == RightParent)
         {
-            ReceiveRight(token);
+            ReceiveRight(token, session);
         }
         else
         {
@@ -79,6 +110,34 @@ public class BetaNode : ReteNode
             // or we could throw an exception if we want strictness.
         }
     }
+
+    public override void RetractFact(Fact fact, ReteNode? sender, InferenceSession session)
+    {
+        bool removed = false;
+
+        var leftMemory = session.GetBetaLeftMemory(Id);
+        lock (leftMemory)
+        {
+            int before = leftMemory.Count;
+            leftMemory.RemoveAll(t => t.Facts.Any(f => f.Name.Equals(fact.Name, StringComparison.OrdinalIgnoreCase)));
+            if (leftMemory.Count < before) removed = true;
+        }
+
+        var rightMemory = session.GetBetaRightMemory(Id);
+        lock (rightMemory)
+        {
+            int before = rightMemory.Count;
+            rightMemory.RemoveAll(t => t.Facts.Any(f => f.Name.Equals(fact.Name, StringComparison.OrdinalIgnoreCase)));
+            if (rightMemory.Count < before) removed = true;
+        }
+
+        if (removed || sender == null) 
+        {
+            PropagateRetract(fact, session);
+        }
+    }
+
+    public Func<Token, Token, bool>? JoinConditionEvaluator { get; set; }
 
     private bool CanJoin(Token left, Token right)
     {
@@ -91,6 +150,13 @@ public class BetaNode : ReteNode
         var existing = left.Facts.FirstOrDefault(f => f.Name.Equals(rightFact.Name, StringComparison.OrdinalIgnoreCase));
         if (existing != null && !existing.Value.Equals(rightFact.Value))
             return false;
+
+        // Evaluate smart join condition pushed down from compiler
+        if (JoinConditionEvaluator != null)
+        {
+            if (!JoinConditionEvaluator(left, right))
+                return false;
+        }
 
         return true;
     }

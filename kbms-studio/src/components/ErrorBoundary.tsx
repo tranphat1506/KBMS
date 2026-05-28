@@ -1,6 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertCircle, RotateCcw } from 'lucide-react';
-import { useKbmsStore } from '../store/kbmsStore';
+import { useThingentStore } from '../store/thingentStore';
 
 interface Props {
   children?: ReactNode;
@@ -32,7 +32,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public render() {
     if (this.state.hasError) {
-      const studioSettings = useKbmsStore.getState().studioSettings;
+      const studioSettings = useThingentStore.getState().studioSettings;
       const themeClass = studioSettings.theme === 'dark' ? 'dark' : '';
       const sizeClass = `size-${studioSettings.fontSize}`;
       const weightClass = `font-${studioSettings.fontWeight}`;

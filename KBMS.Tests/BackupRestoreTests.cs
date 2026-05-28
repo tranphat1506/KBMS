@@ -8,8 +8,8 @@ using KBMS.Models;
 using KBMS.Parser;
 using KBMS.Parser.Ast;
 using KBMS.Parser.Ast.Kql;
-using KBMS.Storage.V3;
-using KBMS.Knowledge.V3;
+using KBMS.Storage.Core;
+using KBMS.Knowledge.Core;
 
 namespace KBMS.Tests
 {
@@ -33,7 +33,7 @@ namespace KBMS.Tests
             var storagePool = new StoragePool(path);
             var kbCatalog = new KbCatalog(storagePool);
             var conceptCatalog = new ConceptCatalog(storagePool);
-            var v3Router = new V3DataRouter(storagePool);
+            var v3Router = new StorageRouter(storagePool);
             var userCatalog = new UserCatalog(storagePool);
 
             return new KnowledgeManager(storagePool, kbCatalog, conceptCatalog, userCatalog, v3Router);
@@ -81,6 +81,8 @@ namespace KBMS.Tests
 
             Assert.True(File.Exists(backupFile));
             string backupContent = File.ReadAllText(backupFile);
+            Console.WriteLine("BACKUP CONTENT:");
+            Console.WriteLine(backupContent);
             Assert.Contains("CREATE CONCEPT SinhVien", backupContent);
             Assert.Contains("INSERT BULK INTO SinhVien", backupContent);
             Assert.Contains("CREATE RULE RuleTuoi", backupContent);
@@ -114,6 +116,8 @@ namespace KBMS.Tests
             Exec("ADD HIERARCHY SinhVien ISA Teacher;", kbName);
             
             Exec($"EXPORT(KNOWLEDGE BASE: *, FORMAT: KQL, FILE: '{backupFile}')", kbName);
+            Console.WriteLine("SECOND BACKUP:");
+            Console.WriteLine(File.ReadAllText(backupFile));
             Exec($"IMPORT(KNOWLEDGE BASE: *, FORMAT: KQL, FILE: '{backupFile}')", kbName);
 
             var hierarchies = Exec("SHOW HIERARCHIES;", kbName) as QueryResultSet;

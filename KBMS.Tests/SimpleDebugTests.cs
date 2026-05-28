@@ -12,8 +12,8 @@ namespace KBMS.Tests
     [Collection("SequentialServerTests")]
     public class SimpleDebugTests : IAsyncDisposable
     {
-        private KbmsServer _server;
-        private Cli _cli;
+        private KbmsServer? _server;
+        private Cli? _cli;
         private string _dataDir;
         private readonly ITestOutputHelper _output;
         private int _port = 8600;
@@ -50,22 +50,22 @@ namespace KBMS.Tests
         {
             await Init();
             
-            var r1 = await _cli.ExecuteCommandAsync("CREATE KNOWLEDGE BASE DebugDB;");
-            _output.WriteLine($"CREATE KB: {r1.Content}");
+            var r1 = await _cli!.ExecuteCommandAsync("CREATE KNOWLEDGE BASE DebugDB;");
+            _output.WriteLine($"CREATE KB: {r1?.Content}");
 
             var r2 = await _cli.ExecuteCommandAsync("USE DebugDB;");
-            _output.WriteLine($"USE KB: {r2.Content}");
+            _output.WriteLine($"USE KB: {r2?.Content}");
 
             var r3 = await _cli.ExecuteCommandAsync("CREATE CONCEPT Item(name: STRING, val: INT);");
-            _output.WriteLine($"CREATE CONCEPT: {r3.Content}");
+            _output.WriteLine($"CREATE CONCEPT: {r3?.Content}");
 
             var r4 = await _cli.ExecuteCommandAsync("INSERT INTO Item VARIABLES (name: 'TestObj', val: 42);");
-            _output.WriteLine($"INSERT: {r4.Content}");
+            _output.WriteLine($"INSERT: {r4?.Content}");
 
             var r5 = await _cli.ExecuteCommandAsync("SELECT * FROM Item;");
-            _output.WriteLine($"SELECT ALL: {r5.Content}");
+            _output.WriteLine($"SELECT ALL: {r5?.Content}");
 
-            Assert.Contains("TestObj", r5.Content);
+            Assert.Contains("TestObj", r5?.Content ?? "");
         }
     }
 }

@@ -5,8 +5,8 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using KBMS.Network;
 using KBMS.Server;
-using KBMS.Server.V3;
-using KBMS.Models.V3;
+using KBMS.Server.Core;
+using KBMS.Models.Core;
 using Xunit;
 
 namespace KBMS.Tests;
@@ -18,12 +18,12 @@ public class DashboardApiTests
     {
         var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(tempDir);
-        var pool = new KBMS.Storage.V3.StoragePool(tempDir, 16);
-        var router = new KBMS.Knowledge.V3.V3DataRouter(pool);
+        var pool = new KBMS.Storage.Core.StoragePool(tempDir, 16);
+        var router = new KBMS.Knowledge.Core.StorageRouter(pool);
 
         var cm = new ConnectionManager();
         var sysLogger = new SystemLogger(null!); 
-        var mm = new ManagementManager(cm, sysLogger, router, new KBMS.Storage.V3.UserCatalog(pool));
+        var mm = new ManagementManager(cm, sysLogger, router, new KBMS.Storage.Core.UserCatalog(pool));
 
         var stats = mm.GetSystemStats();
         
@@ -37,12 +37,12 @@ public class DashboardApiTests
     {
         var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(tempDir);
-        var pool = new KBMS.Storage.V3.StoragePool(tempDir, 16);
-        var router = new KBMS.Knowledge.V3.V3DataRouter(pool);
+        var pool = new KBMS.Storage.Core.StoragePool(tempDir, 16);
+        var router = new KBMS.Knowledge.Core.StorageRouter(pool);
 
         var cm = new ConnectionManager();
         var sysLogger = new SystemLogger(null!);
-        var mm = new ManagementManager(cm, sysLogger, router, new KBMS.Storage.V3.UserCatalog(pool));
+        var mm = new ManagementManager(cm, sysLogger, router, new KBMS.Storage.Core.UserCatalog(pool));
         
         var clientId = "test_client";
         var session = cm.CreateSession(clientId, null!, "127.0.0.1");
@@ -59,12 +59,12 @@ public class DashboardApiTests
     {
         var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(tempDir);
-        var pool = new KBMS.Storage.V3.StoragePool(tempDir, 16);
-        var router = new KBMS.Knowledge.V3.V3DataRouter(pool);
+        var pool = new KBMS.Storage.Core.StoragePool(tempDir, 16);
+        var router = new KBMS.Knowledge.Core.StorageRouter(pool);
 
         var cm = new ConnectionManager();
         var sysLogger = new SystemLogger(null!);
-        var mm = new ManagementManager(cm, sysLogger, router, new KBMS.Storage.V3.UserCatalog(pool));
+        var mm = new ManagementManager(cm, sysLogger, router, new KBMS.Storage.Core.UserCatalog(pool));
         
         using var ms = new MemoryStream();
         mm.SubscribeToLogs("client1", ms);

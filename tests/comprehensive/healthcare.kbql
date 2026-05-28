@@ -1,0 +1,27 @@
+-- KBMS Comprehensive Test Suite: HEALTHCARE (FINAL)
+CREATE KNOWLEDGE BASE Healthcare; USE Healthcare;
+CREATE CONCEPT PatientRisk ( VARIABLES ( pId: STRING, age: INT, bmi: DECIMAL, glucose: DECIMAL, riskLevel: STRING ) );
+CREATE RULE Rule_Diabetes_High SCOPE PatientRisk IF age > 45 AND glucose > 126 AND bmi > 30 THEN riskLevel = 'High Risk';
+CREATE CONCEPT MedInteraction ( VARIABLES ( drugA: STRING, drugB: STRING, interaction: STRING ) );
+CREATE RULE Rule_Inter_Warfarin_Aspirin SCOPE MedInteraction IF drugA = 'Warfarin' AND drugB = 'Aspirin' THEN interaction = 'Danger: Bleeding Risk';
+CREATE CONCEPT Triage ( VARIABLES ( patientName: STRING, heartRate: INT, spO2: INT, priority: STRING ) );
+CREATE RULE Rule_Triage_Urgent SCOPE Triage IF heartRate > 120 OR spO2 < 90 THEN priority = 'URGENT';
+CREATE CONCEPT Cell ( VARIABLES ( dnaSequence: STRING, mutationDetected: BOOL ) );
+CREATE CONCEPT CancerCell ( BASE_OBJECTS (Cell), VARIABLES ( growthRate: DECIMAL, stage: INT ) );
+CREATE CONCEPT Dosage ( VARIABLES ( weight: DECIMAL, conc: DECIMAL, freq: DECIMAL, dose: DECIMAL ) );
+CREATE RULE Rule_Calc_Dose SCOPE Dosage THEN dose = weight * conc / freq;
+CREATE CONCEPT Insurance ( VARIABLES ( age: INT, preExisting: BOOL, eligible: BOOL ) );
+CREATE RULE Rule_Insur_Check SCOPE Insurance IF age < 65 AND preExisting = false THEN eligible = true;
+CREATE CONCEPT ProstateBiopsy ( VARIABLES ( primaryGrade: INT, secondaryGrade: INT, totalScore: INT ) );
+CREATE RULE Rule_Gleason_Sum SCOPE ProstateBiopsy THEN totalScore = primaryGrade + secondaryGrade;
+CREATE CONCEPT Virus ( VARIABLES ( contacts: INT, duration: DECIMAL, r0: DECIMAL ) );
+CREATE RULE Rule_R0_Calc SCOPE Virus THEN r0 = contacts * duration * 0.1;
+CREATE CONCEPT PHQ9 ( VARIABLES ( q1: INT, q2: INT, q3: INT, totalScore: INT, severity: STRING ) );
+CREATE RULE Rule_PHQ9_Sum SCOPE PHQ9 THEN totalScore = q1 + q2 + q3;
+CREATE CONCEPT Rehab ( VARIABLES ( startRange: DECIMAL, currentRange: DECIMAL, progress: DECIMAL ) );
+CREATE RULE Rule_Rehab_Perc SCOPE Rehab THEN progress = (currentRange / startRange) * 100;
+INSERT INTO PatientRisk VARIABLES (pId: 'P001', age: 50, bmi: 32, glucose: 140);
+INSERT INTO MedInteraction VARIABLES (drugA: 'Warfarin', drugB: 'Aspirin');
+INSERT INTO Triage VARIABLES (patientName: 'An', heartRate: 130, spO2: 88);
+INSERT INTO Dosage VARIABLES (weight: 70, conc: 0.5, freq: 3);
+SELECT pId, SOLVE(riskLevel) FROM PatientRisk; SELECT drugA, drugB, SOLVE(interaction) FROM MedInteraction; SELECT patientName, SOLVE(priority) FROM Triage; SELECT weight, SOLVE(dose) FROM Dosage;

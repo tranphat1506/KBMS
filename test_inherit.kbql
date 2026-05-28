@@ -1,0 +1,5 @@
+CREATE KNOWLEDGE BASE TestInherit; USE TestInherit;
+CREATE CONCEPT Parent ( VARIABLES ( pName: STRING ) );
+CREATE CONCEPT Child ( BASE_OBJECTS (Parent), VARIABLES ( cAge: INT ) );
+INSERT INTO Child VARIABLES (pName: 'Father', cAge: 30);
+SELECT * FROM Child;

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useKbmsStore } from '../../store/kbmsStore';
+import { useThingentStore } from '../../store/thingentStore';
 import { Settings, Save, RefreshCw, Network, Layers } from 'lucide-react';
 
 export default function ServerSettings() {
-  const { systemSettings, fetchSettings, updateSetting } = useKbmsStore();
+  const { systemSettings, fetchSettings, updateSetting } = useThingentStore();
   const [editing, setEditing] = useState<Record<string, string>>({});
 
   useEffect(() => {

@@ -1,0 +1,26 @@
+-- KBMS Comprehensive Test Suite: GAMING (FINAL)
+CREATE KNOWLEDGE BASE Gaming; USE Gaming;
+CREATE CONCEPT Combat ( VARIABLES ( atk: DECIMAL, def: DECIMAL, mult: DECIMAL, damage: DECIMAL ) );
+CREATE RULE Rule_Dmg_Calc SCOPE Combat THEN damage = (atk - def) * mult;
+CREATE CONCEPT Hero ( VARIABLES ( name: STRING, rankLevel: INT, xpNeeded: DECIMAL ) );
+CREATE RULE Rule_XP_Calc SCOPE Hero THEN xpNeeded = (rankLevel * rankLevel) * 100;
+CREATE CONCEPT LootDrop ( VARIABLES ( luck: INT, baseRarity: INT, finalRarity: DECIMAL ) );
+CREATE RULE Rule_Loot_Luck SCOPE LootDrop THEN finalRarity = baseRarity + (luck * 0.5);
+CREATE CONCEPT GameEconomy ( VARIABLES ( totalGold: DECIMAL, basePrice: DECIMAL, currentPrice: DECIMAL ) );
+CREATE RULE Rule_Price_Inflat SCOPE GameEconomy THEN currentPrice = basePrice * (1 + (totalGold / 1000000));
+CREATE CONCEPT Quest ( VARIABLES ( qId: STRING, itemGot: BOOL, bossDead: BOOL, isComplete: BOOL ) );
+CREATE RULE Rule_Quest_Check SCOPE Quest IF itemGot = true AND bossDead = true THEN isComplete = true;
+CREATE CONCEPT Node ( VARIABLES ( id: STRING, isWalkable: BOOL, cost: INT ) );
+CREATE CONCEPT Squad ( VARIABLES ( mageCount: INT, bonus: DECIMAL ) );
+CREATE RULE Rule_Syn_Mage SCOPE Squad THEN bonus = mageCount * 5;
+CREATE CONCEPT Crafting ( VARIABLES ( iron: INT, wood: INT, craftResult: STRING ) );
+CREATE RULE Rule_Craft_Sword SCOPE Crafting IF iron >= 2 AND wood >= 1 THEN craftResult = 'Iron Sword';
+CREATE CONCEPT Weather ( VARIABLES ( humid: DECIMAL, press: DECIMAL, rainChance: DECIMAL ) );
+CREATE RULE Rule_Rain_Calc SCOPE Weather THEN rainChance = humid * press;
+CREATE CONCEPT NPC ( VARIABLES ( name: STRING, healthPerc: DECIMAL, action: STRING ) );
+CREATE RULE Rule_AI_Retreat SCOPE NPC IF healthPerc < 20 THEN action = 'RETREAT';
+INSERT INTO Hero VARIABLES (name: 'Aragon', rankLevel: 10);
+INSERT INTO Quest VARIABLES (qId: 'Q001', itemGot: true, bossDead: true);
+INSERT INTO Crafting VARIABLES (iron: 5, wood: 2);
+INSERT INTO NPC VARIABLES (name: 'Guard', healthPerc: 15);
+SELECT name, SOLVE(xpNeeded) FROM Hero; SELECT qId, SOLVE(isComplete) FROM Quest; SELECT iron, SOLVE(craftResult) FROM Crafting; SELECT name, SOLVE(action) FROM NPC;

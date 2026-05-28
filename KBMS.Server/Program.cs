@@ -20,14 +20,6 @@ class Program
             return;
         }
 
-        if (args.Length >= 3 && args[0] == "--migrate-v2")
-        {
-            Console.WriteLine(">>> Migration Mode Detected (V2 -> V3).");
-            string path = args[1];
-            string key = args[2];
-            server.MigrateV2(path, key);
-            return;
-        }
 
         Console.WriteLine("Starting KBMS Server...");
         Console.WriteLine("Press Ctrl+C to stop the server.");

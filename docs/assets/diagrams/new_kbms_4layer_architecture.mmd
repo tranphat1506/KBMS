@@ -1,0 +1,26 @@
+flowchart TD
+    subgraph AppLayer [Lớp Ứng dụng - Application Layer]
+        Studio[kbms-studio: Giao diện IDE]
+        CLI[KBMS.CLI: Giao diện dòng lệnh]
+    end
+
+    subgraph NetLayer [Lớp Mạng - Network Layer]
+        Network[KBMS.Network: TCP Binary Server]
+    end
+
+    subgraph ServerLayer [Lớp Server & Suy diễn - Engine Layer]
+        Server[KBMS.Server: Xử lý Request/Response]
+        Parser[KBMS.Parser: Trình phân tích AST]
+        Reasoning[KBMS.Reasoning: Bộ máy Rete/Forward Chaining]
+    end
+
+    subgraph StorageLayer [Lớp Lưu trữ - Storage Layer]
+        Buffer[KBMS.Storage/BufferPoolManager: LRU Cache]
+        BTree[KBMS.Storage/BPlusTree: Chỉ mục Guid]
+        WAL[KBMS.Storage/WalManagerV3: Ghi log 1s/lần]
+        Disk[(SlottedPage: Bộ nhớ trang 16KB)]
+    end
+
+    AppLayer ==>|Gửi chuỗi KBQL qua TCP| NetLayer
+    NetLayer ==>|Truyền mảng Byte| ServerLayer
+    ServerLayer ==>|Gọi API Đọc/Ghi/Flush| StorageLayer

@@ -13,7 +13,7 @@ namespace KBMS.Tests
     [Collection("SequentialServerTests")]
     public class LoadAndStressTests : IAsyncDisposable
     {
-        private KbmsServer _server;
+        private KbmsServer? _server;
         private string _dataDir;
         private int _port;
         private static int _nextPort = 39000;

@@ -1,0 +1,141 @@
+-- ============================================================
+-- ADVANCED KBMS TESTING SCRIPT
+-- Tập lệnh kiểm thử chuyên sâu cho hệ thống KBMS V3
+-- ============================================================
+
+-- 1. Setup
+LOGIN root root;
+CREATE KNOWLEDGE BASE AdvancedTesting;
+USE AdvancedTesting;
+
+-- 2. Kiểm thử Chuỗi Phương trình phức tạp (Multi-step Equation Chaining)
+-- Kiểm tra khả năng giải các bài toán vật lý có nhiều bước trung gian
+CREATE CONCEPT PhysicsEngine (
+    VARIABLES (
+        mass: DECIMAL,         -- Khối lượng (kg)
+        acceleration: DECIMAL, -- Gia tốc (m/s^2)
+        force: DECIMAL,        -- Lực (N) = m * a
+        distance: DECIMAL,     -- Quãng đường (m)
+        work: DECIMAL,         -- Công (J) = F * d
+        time: DECIMAL,         -- Thời gian (s)
+        power: DECIMAL         -- Công suất (W) = W / t
+    ),
+    EQUATIONS (
+        'force = mass * acceleration',
+        'work = force * distance',
+        'power = work / time'
+    )
+);
+
+-- Test Case 1: Giải thuận chuỗi dài (Giải Power từ mass, acceleration, distance, time)
+INSERT INTO PhysicsEngine VARIABLES (mass: 10, acceleration: 2, distance: 50, time: 5);
+SELECT mass, acceleration, SOLVE(force), SOLVE(work), SOLVE(power) FROM PhysicsEngine;
+
+-- Test Case 2: Giải ngược chuỗi dài (Tìm mass khi biết Power, distance, time, acceleration)
+INSERT INTO PhysicsEngine VARIABLES (power: 200, distance: 100, time: 10, acceleration: 2);
+SELECT power, distance, time, SOLVE(force), SOLVE(work), SOLVE(mass) FROM PhysicsEngine;
+
+
+-- 3. Kiểm thử Suy diễn Bắc cầu (Chained Rules)
+-- Kiểm tra khả năng kích hoạt luật theo chuỗi (Rule A -> Fact B -> Rule B -> Fact C)
+CREATE CONCEPT FinancialHealth (
+    VARIABLES (
+        revenue: DECIMAL,
+        expenses: DECIMAL,
+        grossProfit: DECIMAL,
+        taxRate: DECIMAL,
+        netProfit: DECIMAL,
+        status: STRING,
+        strategy: STRING
+    ),
+    EQUATIONS (
+        'grossProfit = revenue - expenses',
+        'netProfit = grossProfit * (1 - taxRate)'
+    )
+);
+
+-- Định nghĩa các luật theo chuỗi
+CREATE RULE Rule_Status_Profit
+SCOPE FinancialHealth f
+IF f.netProfit > 1000000
+THEN f.status = 'Excellent';
+
+CREATE RULE Rule_Strategy_High
+SCOPE FinancialHealth f
+IF f.status = 'Excellent'
+THEN f.strategy = 'Aggressive Expansion';
+
+-- Test Chained Reasoning
+INSERT INTO FinancialHealth VARIABLES (revenue: 2000000, expenses: 500000, taxRate: 0.2);
+SELECT revenue, SOLVE(netProfit), SOLVE(status), SOLVE(strategy) FROM FinancialHealth;
+
+
+-- 4. Kiểm thử Quan hệ Đa đối tượng (Multi-concept Rules & Joins)
+-- Kiểm tra khả năng liên kết dữ liệu giữa các Concept khác nhau
+CREATE CONCEPT Person (
+    VARIABLES (
+        personId: STRING,
+        name: STRING,
+        age: INT,
+        healthRisk: STRING
+    )
+);
+
+CREATE CONCEPT LabReport (
+    VARIABLES (
+        reportId: STRING,
+        pId: STRING,
+        glucose: DECIMAL,
+        cholesterol: DECIMAL
+    )
+);
+
+-- Luật đa đối tượng: Kết hợp dữ liệu từ Person và LabReport
+-- Nếu tuổi cao (>60) VÀ đường huyết cao (>126) thì đánh dấu rủi ro Tiểu đường
+CREATE RULE Rule_Diabetes_Risk
+SCOPE Person p JOIN LabReport l ON p.personId = l.pId
+IF p.age > 60 AND l.glucose > 126
+THEN p.healthRisk = 'Diabetes Warning';
+
+INSERT INTO Person VARIABLES (personId: 'UID001', name: 'Ông An', age: 65);
+INSERT INTO LabReport VARIABLES (reportId: 'LAB001', pId: 'UID001', glucose: 140);
+
+-- Kiểm tra dữ liệu trước khi join
+SELECT * FROM Person;
+SELECT * FROM LabReport;
+
+-- Chạy suy diễn đa đối tượng
+SELECT p.name, p.age, l.glucose, SOLVE(p.healthRisk) 
+FROM Person p JOIN LabReport l ON p.personId = l.pId;
+
+-- 5. Kiểm thử Ràng buộc kế thừa sâu (Deep Inheritance & Constraints)
+CREATE CONCEPT Asset (
+    VARIABLES (
+        assetId: STRING,
+        value: DECIMAL,
+        depreciationRate: DECIMAL,
+        currentValue: DECIMAL
+    ),
+    CONSTRAINTS (
+        value > 0
+    )
+);
+
+CREATE CONCEPT Vehicle (
+    BASE_OBJECTS (Asset),
+    VARIABLES (
+        licensePlate: STRING,
+        mileage: DECIMAL
+    ),
+    EQUATIONS (
+        'currentValue = value - (mileage * depreciationRate)'
+    )
+);
+
+-- Test inheritance and nested equations
+INSERT INTO Vehicle VARIABLES (assetId: 'V001', value: 50000, mileage: 10000, depreciationRate: 0.5);
+SELECT assetId, value, mileage, SOLVE(currentValue) FROM Vehicle;
+
+-- 6. Dọn dẹp (Tùy chọn)
+-- MAINTENANCE (REINDEX (AdvancedTesting));
+-- EXIT;

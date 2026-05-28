@@ -1,0 +1,21 @@
+sequenceDiagram
+    participant CLI as KBMS CLI
+    participant Parser as ResponseParser
+    participant Net as KBMS.Network
+    participant Srv as KBMS Server
+    participant Rete as Rete Network
+
+    CLI->>Net: Gửi lệnh KQL (kèm cờ TRACE)
+    Net->>Srv: MessageType.QUERY
+    Srv->>Rete: Kích hoạt Forward Chaining
+    
+    loop Quá trình Suy diễn
+        Rete-->>Srv: Activation Fired (Dữ kiện mới)
+        Srv->>Net: MessageType.ROW (Trace Info)
+        Net-->>Parser: Nhận dòng Trace
+        Parser->>CLI: Vẽ bảng phân tích từng bước
+    end
+    
+    Srv->>Net: MessageType.FETCH_DONE
+    Net-->>Parser: Đóng luồng
+    Parser->>CLI: Kết thúc truy vết

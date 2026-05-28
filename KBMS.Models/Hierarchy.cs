@@ -9,4 +9,4 @@ public class Hierarchy
     public HierarchyType HierarchyType { get; set; }
 }
 
-public enum HierarchyType { IsA, PartOf }
+public enum HierarchyType { IsA }

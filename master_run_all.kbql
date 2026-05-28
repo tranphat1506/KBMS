@@ -1,0 +1,20 @@
+-- KBMS Master Comprehensive Test Suite
+-- This script runs all 100 test scenarios across 10 industries.
+
+-- Reset and cleanup
+LOGIN root root;
+
+-- Running Industry Modules
+SOURCE tests/comprehensive/healthcare.kbql;
+SOURCE tests/comprehensive/finance.kbql;
+SOURCE tests/comprehensive/manufacturing.kbql;
+SOURCE tests/comprehensive/retail.kbql;
+SOURCE tests/comprehensive/smartcity.kbql;
+SOURCE tests/comprehensive/engineering.kbql;
+SOURCE tests/comprehensive/education.kbql;
+SOURCE tests/comprehensive/agriculture.kbql;
+SOURCE tests/comprehensive/legal.kbql;
+SOURCE tests/comprehensive/gaming.kbql;
+
+-- Final Summary
+LIST KNOWLEDGE BASES;

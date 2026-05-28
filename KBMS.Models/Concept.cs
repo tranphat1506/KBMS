@@ -16,6 +16,13 @@ public class Concept
     public List<Property> Properties { get; set; } = new();
     public List<ConceptRule> ConceptRules { get; set; } = new();
     public List<Equation> Equations { get; set; } = new();
+    public List<ConceptIndex> Indexes { get; set; } = new();
+}
+
+public class ConceptIndex
+{
+    public string Name { get; set; } = string.Empty;
+    public List<string> Fields { get; set; } = new();
 }
 
 public class Equation
@@ -98,6 +105,7 @@ public class ConceptRuleJoinCondition
 public class ConceptRule
 {
     public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
     public string Kind { get; set; } = string.Empty;
 
     // Single concept scope (backward compatibility)
@@ -114,6 +122,7 @@ public class ConceptRule
     public List<string> Hypothesis { get; set; } = new();
     public List<string> Conclusion { get; set; } = new();
     public int Priority { get; set; } = 50;
+    public int Cost { get; set; } = 1;
 }
 
 public enum AlterActionType

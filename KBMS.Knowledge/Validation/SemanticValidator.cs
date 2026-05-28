@@ -7,7 +7,7 @@ using KBMS.Parser.Ast.Kdl;
 using KBMS.Parser.Ast.Kml;
 using KBMS.Parser.Ast.Kql;
 using KBMS.Parser.Ast.Expressions;
-using KBMS.Storage.V3;
+using KBMS.Storage.Core;
 
 namespace KBMS.Knowledge.Validation;
 
@@ -54,6 +54,50 @@ public class SemanticValidator
         _kbCatalog = kbCatalog;
     }
 
+    private Concept GetEffectiveConcept(string kbName, Concept primary)
+    {
+        var allBaseObjects = new HashSet<string>(primary.BaseObjects, StringComparer.OrdinalIgnoreCase);
+        
+        var effective = new Concept
+        {
+            Name = primary.Name,
+            Variables = new List<Variable>(primary.Variables),
+            Constraints = new List<KBMS.Models.Constraint>(primary.Constraints),
+            SameVariables = new List<SameVariable>(primary.SameVariables),
+            ConceptRules = new List<ConceptRule>(primary.ConceptRules),
+            Equations = new List<Equation>(primary.Equations),
+            ConstructRelations = new List<ConstructRelation>(primary.ConstructRelations)
+        };
+
+        foreach (var baseName in allBaseObjects)
+        {
+            var baseConcept = _conceptCatalog.LoadConcept(kbName, baseName);
+            if (baseConcept != null)
+            {
+                Console.WriteLine($"[DEBUG] Found base concept: {baseName} for {primary.Name}. Vars: {baseConcept.Variables.Count}");
+                var flattendBase = GetEffectiveConcept(kbName, baseConcept);
+                // Inherit variables that aren't shadowed
+                foreach (var v in flattendBase.Variables)
+                {
+                    if (!effective.Variables.Any(ev => ev.Name.Equals(v.Name, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        effective.Variables.Add(v);
+                    }
+                }
+                effective.Constraints.AddRange(flattendBase.Constraints);
+                effective.SameVariables.AddRange(flattendBase.SameVariables);
+                effective.ConceptRules.AddRange(flattendBase.ConceptRules);
+                effective.Equations.AddRange(flattendBase.Equations);
+                effective.ConstructRelations.AddRange(flattendBase.ConstructRelations);
+            }
+            else
+            {
+                Console.WriteLine($"[DEBUG] Base concept NOT found: {baseName} for {primary.Name}");
+            }
+        }
+        return effective;
+    }
+
     /// <summary>
     /// Validate a SELECT statement
     /// </summary>
@@ -81,6 +125,9 @@ public class SemanticValidator
             }
             else
             {
+                // Apply Inheritance
+                concept = GetEffectiveConcept(kbName, concept);
+                
                 // 2. Validate SELECT columns
                 foreach (var col in node.SelectColumns)
                 {
@@ -139,6 +186,9 @@ public class SemanticValidator
             return result;
         }
 
+        // Apply Inheritance
+        concept = GetEffectiveConcept(kbName, concept);
+
         // 2. Validate value keys exist in concept variables
         foreach (var kv in node.Values)
         {
@@ -173,6 +223,9 @@ public class SemanticValidator
             result.AddError($"Concept '{node.ConceptName}' not found in knowledge base '{kbName}'.");
             return result;
         }
+
+        // Apply Inheritance
+        concept = GetEffectiveConcept(kbName, concept);
 
         // 2. Validate SET variables exist in concept
         foreach (var setItem in node.SetValues)
@@ -211,6 +264,9 @@ public class SemanticValidator
                 result.AddError($"Rule scope concept '{scope}' not found in knowledge base '{kbName}'.");
                 return result;
             }
+            
+            // Apply Inheritance
+            concept = GetEffectiveConcept(kbName, concept);
         }
 
         // 2. Try to infer scope from hypothesis if not specified
@@ -227,6 +283,9 @@ public class SemanticValidator
                     result.AddError($"Inferred scope concept '{scope}' from hypothesis not found in knowledge base '{kbName}'.");
                     return result;
                 }
+                
+                // Apply Inheritance
+                concept = GetEffectiveConcept(kbName, concept);
             }
         }
 
@@ -397,7 +456,7 @@ public class SemanticValidator
         }
     }
 
-    private void ValidateExpressionVariables(ExpressionNode expr, Concept concept, ValidationResult result)
+    private void ValidateExpressionVariables(ExpressionNode? expr, Concept concept, ValidationResult result)
     {
         if (expr == null) return;
 

@@ -43,6 +43,8 @@ public class Lexer
         { "FUNCTIONS", TokenType.FUNCTIONS },
         { "USER", TokenType.USER },
         { "USERS", TokenType.USERS },
+        { "TRIGGERS", TokenType.TRIGGERS },
+        { "INDEXES", TokenType.INDEXES },
 
         // DML/KML Keywords
         { "SELECT", TokenType.SELECT },
@@ -50,6 +52,7 @@ public class Lexer
         { "UPDATE", TokenType.UPDATE },
         { "DELETE", TokenType.DELETE },
         { "SHOW", TokenType.SHOW },
+        { "FIND", TokenType.FIND },
 
         { "INDEX", TokenType.INDEX },
         { "EXPLAIN", TokenType.EXPLAIN },
@@ -74,6 +77,8 @@ public class Lexer
         // Clause Keywords
         { "WHERE", TokenType.WHERE },
         { "FROM", TokenType.FROM },
+        { "WITH", TokenType.WITH },
+        { "RETURN", TokenType.RETURN },
         { "TO", TokenType.TO },
         { "INTO", TokenType.INTO },
         { "VALUES", TokenType.VALUES },
@@ -108,9 +113,9 @@ public class Lexer
         // Hierarchy Keywords
         { "HIERARCHY", TokenType.HIERARCHY },
         { "HIERARCHIES", TokenType.HIERARCHIES },
+        { "IS", TokenType.IS },
         { "IS_A", TokenType.IS_A },
         { "ISA", TokenType.ISA },
-        { "PART_OF", TokenType.PART_OF },
 
         // Relation/Function/Operator Keywords
         { "PARAMS", TokenType.PARAMS },
@@ -155,6 +160,15 @@ public class Lexer
         { "AVG", TokenType.AVG },
         { "MAX", TokenType.MAX },
         { "MIN", TokenType.MIN },
+
+        // Meta-Querying Keywords
+        { "HAS_FIRED", TokenType.HAS_FIRED },
+        { "IS_DEDUCED", TokenType.IS_DEDUCED },
+        { "TOTAL_COST", TokenType.TOTAL_COST },
+        { "IS_STUCK", TokenType.IS_STUCK },
+        { "AUDIT_LOG", TokenType.AUDIT_LOG },
+        { "GENERATED_VARIABLES", TokenType.GENERATED_VARIABLES },
+        { "MISSING_FACTS", TokenType.MISSING_FACTS },
 
         // Logical Keywords
         { "AND", TokenType.AND },
@@ -411,7 +425,7 @@ public class Lexer
         }
 
         var text = _source.Substring(_start, _current - _start);
-        var type = TokenType.IDENTIFIER;
+        
 
         if (Keywords.TryGetValue(text.ToUpper(), out var keywordType))
         {

@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useKbmsStore } from '../../store/kbmsStore';
+import { useThingentStore } from '../../store/thingentStore';
 import { Users, UserPlus, Trash2, Shield, Database, X, Activity, ArrowLeft } from 'lucide-react';
 
 export default function UserManagement() {
-  const { systemUsers, systemSessions, fetchSystemUsers, refreshSessions, upsertUser, deleteUser, grantPermission, revokePermission, metadata } = useKbmsStore();
+  const { systemUsers, systemSessions, fetchSystemUsers, refreshSessions, upsertUser, deleteUser, grantPermission, revokePermission, serverMetadata } = useThingentStore();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedUsername, setSelectedUsername] = useState<string | null>(null);
   
@@ -126,7 +126,7 @@ export default function UserManagement() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {metadata.databases.map(db => {
+                  {serverMetadata.databases.map(db => {
                     const currentPriv = selectedUser.KbPrivileges?.[db];
                     return (
                       <div key={db} className="bg-[var(--bg-app)]/50 p-4 rounded-lg border border-[var(--border-subtle)] flex items-center justify-between hover:border-[var(--brand-primary)]/30 transition-colors">
@@ -179,7 +179,7 @@ export default function UserManagement() {
                             <span className="text-xs font-thin text-[var(--brand-primary)]">{session.CurrentKb || 'GLOBAL'}</span>
                           </div>
                           <button 
-                            onClick={() => { if(confirm('Terminate this session?')) useKbmsStore.getState().killSession(session.SessionId); }}
+                            onClick={() => { if(confirm('Terminate this session?')) useThingentStore.getState().killSession(session.SessionId); }}
                             className="p-2 text-[var(--text-muted)] hover:text-rose-600 hover:bg-rose-500/10 rounded transition-all border border-transparent hover:border-rose-100"
                             title="Kill Session"
                           >

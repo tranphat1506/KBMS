@@ -1,8 +1,8 @@
-import { useKbmsStore } from '../../store/kbmsStore';
+import { useThingentStore } from '../../store/thingentStore';
 import { Users, XCircle, Globe, Database, Activity, RefreshCw } from 'lucide-react';
 
 export default function ActiveSessions() {
-  const { systemSessions, refreshSessions, killSession } = useKbmsStore();
+  const { systemSessions, refreshSessions, killSession } = useThingentStore();
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">

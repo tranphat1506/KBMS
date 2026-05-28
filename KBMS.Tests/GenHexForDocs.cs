@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Linq;
-using KBMS.Storage.V3;
+using KBMS.Storage.Core;
 using KBMS.Models;
 
 namespace KBMS.Tests;
@@ -24,7 +24,7 @@ public class GenHexForDocs
 
         // 2. Create a Concept Tuple (Metadata)
         // Concept: Employee (age: INT, experience: INT)
-        var conceptTuple = new KBMS.Storage.V3.Tuple();
+        var conceptTuple = new KBMS.Storage.Core.Tuple();
         conceptTuple.AddGuid(Guid.Parse("11111111-2222-3333-4444-555555555555")); // ID
         conceptTuple.AddGuid(Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")); // KBID
         conceptTuple.AddString("Employee"); // Name
@@ -32,7 +32,7 @@ public class GenHexForDocs
         conceptTuple.AddString("age:INT|experience:INT"); 
         
         // 3. Create an Instance Tuple (Data)
-        var instanceTuple = new KBMS.Storage.V3.Tuple();
+        var instanceTuple = new KBMS.Storage.Core.Tuple();
         instanceTuple.AddGuid(Guid.Parse("99999999-8888-7777-6666-555555555555")); // ObjID
         instanceTuple.AddString("age|experience"); // Fields
         instanceTuple.AddString("30"); // Val1

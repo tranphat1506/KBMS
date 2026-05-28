@@ -1,0 +1,26 @@
+-- KBMS Comprehensive Test Suite: FINANCE (FINAL)
+CREATE KNOWLEDGE BASE Finance; USE Finance;
+CREATE CONCEPT LoanApp ( VARIABLES ( applicant: STRING, creditScore: INT, dti: DECIMAL, statusVal: STRING ) );
+CREATE RULE Rule_Loan_Approve SCOPE LoanApp IF creditScore > 700 AND dti < 0.35 THEN statusVal = 'APPROVED';
+CREATE CONCEPT TaxPayer ( VARIABLES ( income: DECIMAL, taxDue: DECIMAL ) );
+CREATE RULE Rule_Tax_High SCOPE TaxPayer IF income > 100000 THEN taxDue = income * 0.3;
+CREATE CONCEPT Investment ( VARIABLES ( principal: DECIMAL, rate: DECIMAL, years: DECIMAL, futureValue: DECIMAL ) );
+CREATE RULE Rule_Interest_Calc SCOPE Investment THEN futureValue = principal * (1 + rate);
+CREATE CONCEPT TxRecord ( VARIABLES ( txId: STRING, amountVal: DECIMAL, velocity: INT, isFraud: BOOL ) );
+CREATE RULE Rule_Fraud_Flag SCOPE TxRecord IF amountVal > 5000 AND velocity > 10 THEN isFraud = true;
+CREATE CONCEPT AssetRisk ( VARIABLES ( unitPrice: DECIMAL, volatility: DECIMAL, var: DECIMAL ) );
+CREATE RULE Rule_VaR_Calc SCOPE AssetRisk THEN var = unitPrice * volatility * 1.65;
+CREATE CONCEPT Mortgage ( VARIABLES ( loanAmount: DECIMAL, term: INT, monthlyPayment: DECIMAL ) );
+CREATE RULE Rule_Mortgage_Calc SCOPE Mortgage THEN monthlyPayment = loanAmount / term;
+CREATE CONCEPT FXPosition ( VARIABLES ( currency: STRING, amountVal: DECIMAL, rate: DECIMAL, usdValue: DECIMAL ) );
+CREATE RULE Rule_FX_USD SCOPE FXPosition THEN usdValue = amountVal * rate;
+CREATE CONCEPT Stock ( VARIABLES ( ticker: STRING, profit: DECIMAL, payoutRatio: DECIMAL, dividend: DECIMAL ) );
+CREATE RULE Rule_Div_Calc SCOPE Stock THEN dividend = profit * payoutRatio;
+CREATE CONCEPT Customer ( VARIABLES ( name: STRING, idExpiry: INT, docType: STRING, isCompliant: BOOL ) );
+CREATE RULE Rule_KYC_Check SCOPE Customer IF idExpiry > 2026 AND docType = 'Passport' THEN isCompliant = true;
+CREATE CONCEPT Arbitrage ( VARIABLES ( binancePrice: DECIMAL, coinbasePrice: DECIMAL, gap: DECIMAL ) );
+CREATE RULE Rule_Arb_Gap SCOPE Arbitrage THEN gap = coinbasePrice - binancePrice;
+INSERT INTO LoanApp VARIABLES (applicant: 'Binh', creditScore: 750, dti: 0.2);
+INSERT INTO TaxPayer VARIABLES (income: 150000);
+INSERT INTO Customer VARIABLES (name: 'Charlie', idExpiry: 2028, docType: 'Passport');
+SELECT applicant, SOLVE(statusVal) FROM LoanApp; SELECT income, SOLVE(taxDue) FROM TaxPayer; SELECT name, SOLVE(isCompliant) FROM Customer;

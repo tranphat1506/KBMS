@@ -14,10 +14,9 @@ namespace KBMS.Tests
     [Collection("SequentialServerTests")]
     public class ComplexScenarioTests : IAsyncDisposable
     {
-        private KbmsServer _server;
-        private Cli _cli;
-        private string _dataDir;
-        private string _encryptionKey = "test_key_12345678";
+        private KbmsServer? _server;
+        private Cli? _cli;
+        private string? _dataDir;
         private readonly ITestOutputHelper _output;
         private static int _nextPort = 8500;
         private int _port;
@@ -49,7 +48,7 @@ namespace KBMS.Tests
         private async Task RunCmd(string cmd, string context = "")
         {
             var res = await _cli.ExecuteCommandAsync(cmd);
-            if (res.Type == MessageType.ERROR)
+            if (res?.Type == MessageType.ERROR)
             {
                 if (res.Content != null && res.Content.Contains("already exists")) {
                     _output.WriteLine($"[INFO] {cmd} -> Already exists, continuing.");
@@ -87,9 +86,9 @@ namespace KBMS.Tests
             await RunCmd("INSERT INTO Student VARIABLES(name: 'Le Phat', gpa: 3.9, behavior: 95, credits: 18);");
             
             // Reason via SELECT SOLVE
-            var res = await _cli.ExecuteCommandAsync("SELECT SOLVE(status) FROM Student WHERE name = 'Le Phat';");
-            _output.WriteLine($"[Education] Result: {res.Content}");
-            Assert.Contains("DeanList", res.Content);
+            var res = await _cli!.ExecuteCommandAsync("SELECT SOLVE(status) FROM Student WHERE name = 'Le Phat';");
+            _output.WriteLine($"[Education] Result: {res?.Content}");
+            Assert.Contains("DeanList", res?.Content ?? "");
         }
 
         [Fact]
@@ -106,9 +105,9 @@ namespace KBMS.Tests
             await RunCmd("INSERT INTO Patient VARIABLES(p_id: 'P1', p_age: 65, p_bmi: 32.5);");
             
             // Reason via SELECT SOLVE
-            var res = await _cli.ExecuteCommandAsync("SELECT SOLVE(p_risk) FROM Patient WHERE p_id = 'P1';");
-            _output.WriteLine($"[Medical] Result: {res.Content}");
-            Assert.Contains("High", res.Content);
+            var res = await _cli!.ExecuteCommandAsync("SELECT SOLVE(p_risk) FROM Patient WHERE p_id = 'P1';");
+            _output.WriteLine($"[Medical] Result: {res?.Content}");
+            Assert.Contains("High", res?.Content ?? "");
         }
 
         [Fact]
@@ -127,9 +126,9 @@ namespace KBMS.Tests
             await RunCmd("INSERT INTO Triangle VARIABLES(ta: 3.0, tb: 4.0, tc: 5.0);");
             
             // Reason via SELECT SOLVE
-            var res = await _cli.ExecuteCommandAsync("SELECT SOLVE(t_type) FROM Triangle WHERE ta = 3.0;");
-            _output.WriteLine($"[Geometry] Result: {res.Content}");
-            Assert.Contains("RightTriangle", res.Content);
+            var res = await _cli!.ExecuteCommandAsync("SELECT SOLVE(t_type) FROM Triangle WHERE ta = 3.0;");
+            _output.WriteLine($"[Geometry] Result: {res?.Content}");
+            Assert.Contains("RightTriangle", res?.Content ?? "");
         }
 
         [Fact]
@@ -151,9 +150,9 @@ namespace KBMS.Tests
             await RunCmd("INSERT INTO Sensor VARIABLES(id: 'S1', speed: 5, zid: 'Z1');");
             
             // Reason via SELECT SOLVE
-            var res = await _cli.ExecuteCommandAsync("SELECT SOLVE(id) FROM Sensor WHERE zid = 'Z1';");
-            _output.WriteLine($"[SmartCity] Result: {res.Content}");
-            Assert.Contains("JAMMED", res.Content);
+            var res = await _cli!.ExecuteCommandAsync("SELECT SOLVE(id) FROM Sensor WHERE zid = 'Z1';");
+            _output.WriteLine($"[SmartCity] Result: {res?.Content}");
+            Assert.Contains("JAMMED", res?.Content ?? "");
         }
     }
 }

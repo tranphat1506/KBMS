@@ -1,0 +1,25 @@
+-- KBMS Comprehensive Test Suite: SMARTCITY (FINAL)
+CREATE KNOWLEDGE BASE SmartCity; USE SmartCity;
+CREATE CONCEPT TrafficLight ( VARIABLES ( intersectionId: STRING, carCount: INT, greenDuration: INT ) );
+CREATE RULE Rule_Traffic_Time SCOPE TrafficLight THEN greenDuration = 20 + (carCount * 2);
+CREATE CONCEPT Bin ( VARIABLES ( bId: STRING, fillLevel: DECIMAL, needsPickup: BOOL ) );
+CREATE RULE Rule_Waste_Pickup SCOPE Bin IF fillLevel > 85 THEN needsPickup = true;
+CREATE CONCEPT AirQuality ( VARIABLES ( zoneId: STRING, co2: DECIMAL, pm25: DECIMAL, statusVal: STRING ) );
+CREATE RULE Rule_AQI_Poor SCOPE AirQuality IF co2 > 1000 OR pm25 > 50 THEN statusVal = 'POOR';
+CREATE CONCEPT StreetLight ( VARIABLES ( sId: STRING, ambient: DECIMAL, hasMotion: BOOL, intensity: DECIMAL ) );
+CREATE RULE Rule_Light_Full SCOPE StreetLight IF ambient < 20 AND hasMotion = true THEN intensity = 100;
+CREATE CONCEPT GridNode ( VARIABLES ( nodeId: STRING, demand: DECIMAL, supply: DECIMAL, statusVal: STRING ) );
+CREATE RULE Rule_Grid_Overload SCOPE GridNode IF demand > supply THEN statusVal = 'OVERLOAD';
+CREATE CONCEPT WaterPipe ( VARIABLES ( pId: STRING, meterIn: DECIMAL, meterOut: DECIMAL, loss: DECIMAL ) );
+CREATE RULE Rule_Pipe_Loss SCOPE WaterPipe THEN loss = meterIn - meterOut;
+CREATE CONCEPT ParkingLot ( VARIABLES ( lotId: STRING, totalCount: INT, occupied: INT, available: INT ) );
+CREATE RULE Rule_Park_Calc SCOPE ParkingLot THEN available = totalCount - occupied;
+CREATE CONCEPT NoiseSensor ( VARIABLES ( sId: STRING, dbLevel: DECIMAL, isNoisy: BOOL ) );
+CREATE RULE Rule_Noise_Limit SCOPE NoiseSensor IF dbLevel > 75 THEN isNoisy = true;
+CREATE CONCEPT EmergencyUnit ( VARIABLES ( unitId: STRING, categoryType: STRING, isAvailable: BOOL ) );
+CREATE CONCEPT BusRoute ( VARIABLES ( routeId: STRING, scheduleTime: INT, delay: INT, actualTime: INT ) );
+CREATE RULE Rule_Bus_Actual SCOPE BusRoute THEN actualTime = scheduleTime + delay;
+INSERT INTO TrafficLight VARIABLES (intersectionId: 'INT01', carCount: 15);
+INSERT INTO Bin VARIABLES (bId: 'BIN101', fillLevel: 90);
+INSERT INTO AirQuality VARIABLES (zoneId: 'DOWNTOWN', co2: 1200, pm25: 30);
+SELECT intersectionId, SOLVE(greenDuration) FROM TrafficLight; SELECT bId, SOLVE(needsPickup) FROM Bin; SELECT zoneId, SOLVE(statusVal) FROM AirQuality;

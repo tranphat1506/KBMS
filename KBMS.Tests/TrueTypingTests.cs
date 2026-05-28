@@ -128,11 +128,11 @@ namespace KBMS.Tests
             if (System.IO.Directory.Exists(testDir)) System.IO.Directory.Delete(testDir, true);
             System.IO.Directory.CreateDirectory(testDir);
 
-            var pool = new KBMS.Storage.V3.StoragePool(testDir, 64);
-            var kbCatalog = new KBMS.Storage.V3.KbCatalog(pool);
-            var conceptCatalog = new KBMS.Storage.V3.ConceptCatalog(pool);
-            var userCatalog = new KBMS.Storage.V3.UserCatalog(pool);
-            var router = new KBMS.Knowledge.V3.V3DataRouter(pool);
+            var pool = new KBMS.Storage.Core.StoragePool(testDir, 64);
+            var kbCatalog = new KBMS.Storage.Core.KbCatalog(pool);
+            var conceptCatalog = new KBMS.Storage.Core.ConceptCatalog(pool);
+            var userCatalog = new KBMS.Storage.Core.UserCatalog(pool);
+            var router = new KBMS.Knowledge.Core.StorageRouter(pool);
 
             var km = new KnowledgeManager(pool, kbCatalog, conceptCatalog, userCatalog, router);
             var kbName = "TestTypingKB";

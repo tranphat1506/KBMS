@@ -98,16 +98,14 @@ namespace KBMS.Tests
         public async Task Test_3_DivisionByZero_ShouldHandleGracefully()
         {
             await _cli.ExecuteCommandAsync("CREATE CONCEPT MathNode(numerator: DOUBLE, denominator: DOUBLE, result: DOUBLE);");
-            // NCalc might actually return Infinity for 1.0 / 0.0, which is technically evaluated successfully.
-            // Let's create an explicit constraint or see how the server handles it.
             await _cli.ExecuteCommandAsync("CREATE RULE DivRule SCOPE MathNode IF true THEN SET result = numerator / denominator;");
             
             // Provide 0.0
-            await _cli.ExecuteCommandAsync("INSERT INTO MathNode VARIABLES (numerator: 10.0, denominator: 0.0);");
-            var res = await _cli.ExecuteCommandAsync("SELECT numerator, denominator, SOLVE(result) FROM MathNode;");
-            Assert.Equal(MessageType.ERROR, res.Type);
-            // Double division by zero in C# (and NCalc) is Infinity, which JSON serializer refuses to write by default
-            Assert.True(res.Content.Contains("infinity", StringComparison.OrdinalIgnoreCase), "Expected JSON infinity serialization error");
+            var insertRes = await _cli.ExecuteCommandAsync("INSERT INTO MathNode VARIABLES (numerator: 10.0, denominator: 0.0);");
+            
+            // With write-time inference, the error is caught during INSERT!
+            Assert.Equal(MessageType.ERROR, insertRes.Type);
+            Assert.True(insertRes.Content.Contains("infinity", StringComparison.OrdinalIgnoreCase), "Expected mathematical infinity error during insert");
         }
 
         [Fact]
@@ -142,12 +140,12 @@ namespace KBMS.Tests
             // Concept with strict constraint
             await _cli.ExecuteCommandAsync("CREATE CONCEPT Adult(VARIABLES(age: INT), CONSTRAINTS(age >= 18));");
 
-            // Try to solve with invalid given
-            await _cli.ExecuteCommandAsync("INSERT INTO Adult VARIABLES (age: 10);");
-            var res = await _cli.ExecuteCommandAsync("SELECT SOLVE(age) FROM Adult;");
+            // Try to insert with invalid given
+            var insertRes = await _cli.ExecuteCommandAsync("INSERT INTO Adult VARIABLES (age: 10);");
             
-            Assert.Equal(MessageType.ERROR, res.Type);
-            Assert.Contains("violated", res.Content.ToLower());
+            // With write-time validation, the error is caught during INSERT!
+            Assert.Equal(MessageType.ERROR, insertRes.Type);
+            Assert.Contains("violated", insertRes.Content.ToLower());
         }
     }
 }

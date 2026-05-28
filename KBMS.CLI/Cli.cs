@@ -100,7 +100,7 @@ public class Cli
                 var message = new Message
                 {
                     Type = MessageType.LOGIN,
-                    Content = command
+                    Content = command.Trim().TrimEnd(';')
                 };
                 await Protocol.SendMessageAsync(_stream, message);
                 var response = await Protocol.ReceiveMessageAsync(_stream);
@@ -387,7 +387,7 @@ public class Cli
         Console.WriteLine("  CREATE RELATION <name> FROM <d> TO <r>");
         Console.WriteLine("    [PARAMS (p1, p2, ...)] [EQUATIONS eq1, ...]");
         Console.WriteLine("  CREATE RULE <name> [TYPE <t>] SCOPE <c> IF <hyp> THEN <conc>");
-        Console.WriteLine("  ADD HIERARCHY <parent> [IS_A | PART_OF] <child>");
+        Console.WriteLine("  ADD HIERARCHY <parent> IS_A <child>");
         Console.WriteLine("  SOLVE ON CONCEPT <name> GIVEN <facts> FIND <targets>");
 
         Console.WriteLine("\n[ Data Operations ]");

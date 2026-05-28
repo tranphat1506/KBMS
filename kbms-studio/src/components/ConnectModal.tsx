@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Database, Loader2, Wifi, ServerIcon, AlertCircle, Plus, Trash2, X, HardDrive } from 'lucide-react';
-import { useKbmsStore } from '../store/kbmsStore';
-import type { ServerProfile } from '../store/kbmsStore';
+import { useThingentStore } from '../store/thingentStore';
+import type { ServerProfile } from '../store/thingentStore';
 
 export default function ConnectModal() {
-  const { connect, isExecuting, profiles, saveProfile, deleteProfile, setConnectModalOpen } = useKbmsStore();
+  const { connect, isExecuting, profiles, saveProfile, deleteProfile, setConnectModalOpen } = useThingentStore();
   const [selectedId, setSelectedId] = useState<string>('new');
   
   // Form State

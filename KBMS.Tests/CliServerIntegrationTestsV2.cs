@@ -88,7 +88,7 @@ public class CliServerIntegrationTestsV2 : IAsyncLifetime
                     area: double,
                     perimeter: double
                 )
-                CONSTRAINTS (
+                EQUATIONS (
                     area = width * height,
                     perimeter = 2 * (width + height)
                 )

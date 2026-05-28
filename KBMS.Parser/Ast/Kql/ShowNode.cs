@@ -17,7 +17,9 @@ public enum ShowType
     Hierarchies,
     Users,
     PrivilegesOnKb,
-    PrivilegesOfUser
+    PrivilegesOfUser, 
+    Triggers, 
+    Indexes
 }
 
 /// <summary>
@@ -33,7 +35,7 @@ public class ShowNode : KmlNode
     /// <summary>
     /// Optional KB name (for SHOW CONCEPTS IN <kb>)
     /// </summary>
-    public string? KbName { get; set; }
+    public new string? KbName { get; set; }
 
     /// <summary>
     /// Optional concept name (for SHOW CONCEPT <name>)

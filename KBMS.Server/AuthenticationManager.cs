@@ -6,9 +6,9 @@ namespace KBMS.Server;
 
 public class AuthenticationManager
 {
-    private readonly KBMS.Storage.V3.UserCatalog _userCatalog;
+    private readonly KBMS.Storage.Core.UserCatalog _userCatalog;
 
-    public AuthenticationManager(KBMS.Storage.V3.UserCatalog userCatalog)
+    public AuthenticationManager(KBMS.Storage.Core.UserCatalog userCatalog)
     {
         _userCatalog = userCatalog;
     }

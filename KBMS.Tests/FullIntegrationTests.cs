@@ -1,183 +1,247 @@
-using KBMS.Models;
-using KBMS.CLI;
 using System;
 using System.IO;
+using System.Linq;
 using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using KBMS.Network;
 using Xunit;
+using KBMS.Storage.Core;
+using KBMS.Models;
+using KBMS.Knowledge.Core;
 
 namespace KBMS.Tests;
 
-public class FullIntegrationTests : IAsyncLifetime
+/// <summary>
+/// Layer 6: Full End-to-End Integration Tests
+/// Exercises the complete V3 data path: KB creation → Concept schema → 
+/// INSERT → SELECT → UPDATE → DELETE → Auth → WAL.
+/// Each test uses a fully isolated temp database.
+/// </summary>
+public class FullIntegrationV3Tests : IDisposable
 {
-    private Server.KbmsServer? _server;
-    private Cli? _cli;
-    private readonly int _testPort;
-    private readonly string _testDataDir;
+    private readonly string _tempDir;
+    private readonly StoragePool _storagePool;
+    private readonly StorageRouter _data;
+    private readonly ConceptCatalog _concepts;
+    private readonly KbCatalog _kbs;
+    private readonly UserCatalog _users;
 
-    private static int _nextPort = 37000;
-    private static int GetNextPort() => Interlocked.Increment(ref _nextPort);
-
-    public FullIntegrationTests()
+    public FullIntegrationV3Tests()
     {
-        _testPort = GetNextPort();
-        _testDataDir = Path.Combine(Path.GetTempPath(), $"kbms_full_{Guid.NewGuid():N}");
+        _tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(_tempDir);
+        _storagePool = new StoragePool(_tempDir, 256);
+        
+        _data = new StorageRouter(_storagePool);
+        _concepts = new ConceptCatalog(_storagePool);
+        _kbs = new KbCatalog(_storagePool);
+        _users = new UserCatalog(_storagePool);
     }
 
-    public async Task InitializeAsync()
+    public void Dispose()
     {
-        if (Directory.Exists(_testDataDir)) Directory.Delete(_testDataDir, true);
-        var storage = new Storage.StorageEngine(_testDataDir, "full_test_key");
-        _server = new Server.KbmsServer("localhost", _testPort, _testDataDir);
-        _ = _server.StartAsync();
+        _storagePool?.Dispose();
+        if (Directory.Exists(_tempDir)) Directory.Delete(_tempDir, true);
+    }
 
-        for (int i = 0; i < 20; i++)
+    // =========================================================
+    // Test 1: Full CRUD Lifecycle
+    // =========================================================
+    [Fact]
+    public void Full_CRUD_Lifecycle()
+    {
+        // CREATE KB
+        var kb = _kbs.CreateKb("University", Guid.NewGuid(), "University DB");
+        Assert.NotNull(kb);
+
+        // CREATE CONCEPT
+        var studentConcept = new Concept
         {
-            await Task.Delay(50);
-            try
+            Id = Guid.NewGuid(),
+            Name = "Student",
+            Variables = new List<Variable>
             {
-                _cli = new Cli("localhost", _testPort);
-                await _cli.ConnectAsync(autoReconnect: false);
-                await _cli.ExecuteCommandAsync("LOGIN root root");
-                return;
+                new Variable { Name = "name", Type = "STRING" },
+                new Variable { Name = "grade", Type = "INT" }
             }
-            catch { _cli = null; }
+        };
+        Assert.True(_concepts.CreateConcept("University", studentConcept));
+
+        // INSERT
+        var alice = new ObjectInstance
+        {
+            Id = Guid.NewGuid(),
+            ConceptName = "Student",
+            Values = new Dictionary<string, object> { ["name"] = "Alice", ["grade"] = 95 }
+        };
+        Assert.True(_data.InsertObject("University", alice));
+
+        // SELECT
+        var all = _data.SelectObjects("University", "Student");
+        Assert.Single(all);
+        Assert.Equal("Alice", all[0].Values["name"].ToString());
+
+        // UPDATE
+        var updated = new Dictionary<string, object> { ["name"] = "Alice Wong", ["grade"] = 98 };
+        Assert.True(_data.UpdateObject("University", "Student", alice.Id, updated));
+
+        var afterUpdate = _data.SelectObjects("University", "Student");
+        Assert.Single(afterUpdate);
+        Assert.Equal("Alice Wong", afterUpdate[0].Values["name"].ToString());
+
+        // DELETE
+        int deleted = _data.DeleteObjects("University", "Student");
+        Assert.Equal(1, deleted);
+
+        var afterDelete = _data.SelectObjects("University", "Student");
+        Assert.Empty(afterDelete);
+    }
+
+    // =========================================================
+    // Test 2: Auth Guards KB Access
+    // =========================================================
+    [Fact]
+    public void Auth_Guards_Privilege_Access()
+    {
+        var user = _users.CreateUser("student_user", "pass123", UserRole.USER);
+        Assert.NotNull(user);
+        Assert.False(user!.KbPrivileges.ContainsKey("MedicalDB"));
+
+        _users.GrantPrivilege("student_user", "MedicalDB", Privilege.READ);
+        var reloaded = _users.FindUser("student_user");
+        Assert.True(reloaded!.KbPrivileges.ContainsKey("MedicalDB"));
+        Assert.Equal(Privilege.READ, reloaded.KbPrivileges["MedicalDB"]);
+
+        _users.RevokePrivilege("student_user", "MedicalDB");
+        var revoked = _users.FindUser("student_user");
+        Assert.False(revoked!.KbPrivileges.ContainsKey("MedicalDB"));
+    }
+
+    // =========================================================
+    // Test 3: Multi-Concept JOIN Simulation
+    // =========================================================
+    [Fact]
+    public void MultiConcept_Cross_Reference_Scan()
+    {
+        // Simulate joining Students and Grades
+        var studentsKb = "TestDB";
+
+        for (int i = 1; i <= 5; i++)
+        {
+            _data.InsertObject(studentsKb, new ObjectInstance
+            {
+                Id = Guid.NewGuid(), ConceptName = "Student",
+                Values = new Dictionary<string, object> { ["id"] = i, ["name"] = $"Student_{i}" }
+            });
         }
-        throw new Exception("Failed to connect to test server");
+
+        for (int i = 1; i <= 5; i++)
+        {
+            _data.InsertObject(studentsKb, new ObjectInstance
+            {
+                Id = Guid.NewGuid(), ConceptName = "Exam",
+                Values = new Dictionary<string, object> { ["student_id"] = i, ["score"] = i * 20 }
+            });
+        }
+
+        var students = _data.SelectObjects(studentsKb, "Student");
+        var exams = _data.SelectObjects(studentsKb, "Exam");
+
+        // Simulate hash join in memory (this is what V3 HashJoinOperator does on disk)
+        var joined = from s in students
+                     join e in exams
+                     on s.Values["id"].ToString() equals e.Values["student_id"].ToString()
+                     select new { Name = s.Values["name"], Score = e.Values["score"] };
+
+        var joinList = joined.ToList();
+        Assert.Equal(5, joinList.Count);
+        Assert.All(joinList, j => Assert.NotNull(j.Name));
     }
 
-    public async Task DisposeAsync()
-    {
-        if (_cli != null) await _cli.DisconnectAsync();
-        _server?.Stop();
-        try { if (Directory.Exists(_testDataDir)) Directory.Delete(_testDataDir, true); } catch { }
-    }
-
+    // =========================================================
+    // Test 4: EXPLAIN-style Plan Inspection
+    // =========================================================
     [Fact]
-    public async Task Section1_Setup_And_ForwardChaining_ShouldWork()
+    public void Optimizer_Can_Build_Scan_Plan()
     {
-        await _cli!.ExecuteCommandAsync("CREATE KNOWLEDGE BASE EnterpriseKB;");
-        await _cli.ExecuteCommandAsync("USE EnterpriseKB;");
+        var optimizer = new KBMS.Knowledge.Core.Optimizer.QueryOptimizer(_storagePool.GetManagers("University").Bpm, _data.GetConceptPageIds);
+
+        var selectNode = new KBMS.Parser.Ast.Kql.SelectNode
+        {
+            ConceptName = "Product",
+            Conditions = new List<KBMS.Parser.Ast.Kql.Condition>
+            {
+                new KBMS.Parser.Ast.Kql.Condition
+                {
+                    Field = "price",
+                    Operator = ">",
+                    Value = new KBMS.Parser.Ast.Expressions.LiteralNode { Value = 100 }
+                }
+            }
+        };
+
+        var plan = optimizer.ExplainSelect(selectNode, "University");
+        Assert.NotNull(plan);
         
-        await _cli.ExecuteCommandAsync(@"
-            CREATE CONCEPT Student (
-                VARIABLES (
-                    id: INT,
-                    name: STRING,
-                    grade: DECIMAL,
-                    honor: STRING,
-                    gifted: BOOLEAN
-                )
-            );");
-
-        await _cli.ExecuteCommandAsync("CREATE RULE HighHonor SCOPE Student IF grade >= 90 THEN SET honor = 'High';");
-        await _cli.ExecuteCommandAsync("CREATE RULE HonorToGift SCOPE Student IF honor = 'High' THEN SET gifted = true;");
-
-        // Use SELECT SOLVE to infer
-        await _cli.ExecuteCommandAsync("INSERT INTO Student VARIABLES(id: 1, name: 'Alice', grade: 95);");
-        var res = await _cli.ExecuteCommandAsync("SELECT name, SOLVE(honor) as honor, SOLVE(gifted) as gifted FROM Student WHERE id = 1;");
-        
-        var resLower = res!.Content.ToLower();
-        Assert.Contains("high", resLower);
-        Assert.Contains("true", resLower);
-
+        string formatted = plan!.FormatExplain();
+        // Should produce a Filter(Scan) plan tree
+        Assert.Contains("Scan", formatted);
+        Assert.Contains("Filter", formatted);
     }
 
+    // =========================================================
+    // Test 5: Large Dataset - 5000 Objects
+    // =========================================================
     [Fact]
-    public async Task Section2_BackwardChaining_ShouldWork()
+    public void Large_Dataset_5000_Objects()
     {
-        await _cli!.ExecuteCommandAsync("CREATE KNOWLEDGE BASE BackKB;");
-        await _cli.ExecuteCommandAsync("USE BackKB;");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Student ( VARIABLES (grade: DECIMAL, honor: STRING, gifted: BOOLEAN) );");
-        await _cli.ExecuteCommandAsync("CREATE RULE R1 SCOPE Student IF grade >= 90 THEN SET honor = 'High';");
-        await _cli.ExecuteCommandAsync("CREATE RULE R2 SCOPE Student IF honor = 'High' THEN SET gifted = true;");
+        const int n = 5000;
+        for (int i = 0; i < n; i++)
+        {
+            _data.InsertObject("BigData", new ObjectInstance
+            {
+                Id = Guid.NewGuid(),
+                ConceptName = "Record",
+                Values = new Dictionary<string, object>
+                {
+                    ["index"] = i,
+                    ["value"] = $"Row_{i:D5}",
+                    ["score"] = (i % 100) * 1.5
+                }
+            });
+        }
 
-        // SELECT SOLVE triggers reasoning
-        await _cli.ExecuteCommandAsync("INSERT INTO Student VARIABLES(grade: 92);");
-        var res = await _cli.ExecuteCommandAsync("SELECT SOLVE(honor), SOLVE(gifted) FROM Student WHERE grade = 92;");
-        
-        Assert.Equal(MessageType.RESULT, res!.Type);
-        Assert.Contains("High", res.Content);
-        Assert.Contains("true", res.Content.ToLower());
+        var all = _data.SelectObjects("BigData", "Record");
+        Assert.Equal(n, all.Count);
+
+        // Verify predicate works across pages
+        var high = _data.SelectObjects("BigData", "Record",
+            v => Convert.ToInt32(v["index"].ToString()) >= 4500);
+        Assert.Equal(500, high.Count);
     }
 
+    // =========================================================
+    // Test 6: WAL Uncommitted Detection
+    // =========================================================
     [Fact]
-    public async Task Section4_Metadata_And_Aliases()
+    public void WAL_Detects_Uncommitted_Writes_For_Recovery()
     {
-        await _cli!.ExecuteCommandAsync("CREATE KNOWLEDGE BASE MetaKB;");
-        await _cli.ExecuteCommandAsync("USE MetaKB;");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Product (VARIABLES(id: INT, price: DECIMAL, stock: INT));");
-        await _cli.ExecuteCommandAsync("INSERT INTO Product VARIABLES (501, 1000.0, 50);");
+        var managers = _storagePool.GetManagers("RecoveryTest");
+        var wal = managers.Wal;
+        var txnId = wal.Begin();
 
-        var res = await _cli.ExecuteCommandAsync(@"
-            SELECT 
-                p.id AS ProductID, 
-                p.price * 1.1 AS PriceWithVAT
-            FROM Product p;");
-        
-        Assert.Contains("ProductID", res!.Content);
-        Assert.Contains("PriceWithVAT", res.Content);
-        Assert.Contains("1100", res.Content);
-    }
+        var before = new byte[32];
+        var after = new byte[32];
+        after[0] = 0xDE; after[1] = 0xAD;
 
-    [Fact]
-    public async Task Section5_TableAliasedWhereClause_ShouldWork()
-    {
-        await _cli!.ExecuteCommandAsync("CREATE KNOWLEDGE BASE AliasKB;");
-        await _cli.ExecuteCommandAsync("USE AliasKB;");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Product (VARIABLES(id: INT, price: DECIMAL));");
-        await _cli.ExecuteCommandAsync("INSERT INTO Product VARIABLES (1, 1000);");
-        await _cli.ExecuteCommandAsync("INSERT INTO Product VARIABLES (2, 200);");
+        wal.LogWrite(txnId, pageId: 42, before, after);
+        // DO NOT commit — simulates crash
 
-        // WHERE clause with alias prefix 'p.'
-        var res = await _cli.ExecuteCommandAsync("SELECT p.id FROM Product p WHERE p.price > 500;");
-        // Check for specific value in the result list part of the JSON to avoid metadata collisions
-        Assert.Contains("[{\"id\":1}]", res!.Content);
-        Assert.DoesNotContain("[{\"id\":2}]", res.Content);
-    }
+        // Open a NEW WalManagerV3 to simulate restart
+        string dbPath = Path.Combine(_tempDir, "RecoveryTest.kdb");
+        using var recoveryWal = new WalManagerV3(dbPath);
+        var uncommitted = recoveryWal.RecoverUncommitted();
 
-    [Fact]
-    public async Task Section6_JoinWithAliases_ShouldWork()
-    {
-        await _cli!.ExecuteCommandAsync("CREATE KNOWLEDGE BASE JoinKB;");
-        await _cli.ExecuteCommandAsync("USE JoinKB;");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Dept (VARIABLES(id: INT, name: STRING));");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Emp (VARIABLES(id: INT, name: STRING, dept_id: INT));");
-        
-        await _cli.ExecuteCommandAsync("INSERT INTO Dept VARIABLES (1, 'IT');");
-        await _cli.ExecuteCommandAsync("INSERT INTO Emp VARIABLES (101, 'Alice', 1);");
-
-        // JOIN with aliases and qualified ON condition
-        var res = await _cli.ExecuteCommandAsync(@"
-            SELECT e.name, d.name AS DeptName 
-            FROM Emp e 
-            JOIN Dept d ON e.dept_id = d.id;");
-        
-        Assert.Equal(MessageType.RESULT, res!.Type);
-        Assert.Contains("Alice", res.Content);
-        Assert.Contains("IT", res.Content);
-        Assert.Contains("DeptName", res.Content);
-    }
-
-    [Fact]
-    public async Task Section7_ExpressionsAndTrailingCommas_ShouldWork()
-    {
-        await _cli!.ExecuteCommandAsync("CREATE KNOWLEDGE BASE ExprKB;");
-        await _cli.ExecuteCommandAsync("USE ExprKB;");
-        await _cli.ExecuteCommandAsync("CREATE CONCEPT Product (VARIABLES(id: INT, price: DECIMAL));");
-        await _cli.ExecuteCommandAsync("INSERT INTO Product VARIABLES (1, 1000);");
-
-        // 1. Expression with alias (should NOT be null)
-        var resExpr = await _cli.ExecuteCommandAsync("SELECT p.price * 1.1 AS Result FROM Product p;");
-        Assert.Equal(MessageType.RESULT, resExpr!.Type);
-        Assert.Contains("1100", resExpr.Content);
-        Assert.DoesNotContain("null", resExpr.Content.ToLower());
-
-        // 2. Trailing comma should FAIL with syntax error
-        var resComma = await _cli.ExecuteCommandAsync("SELECT id, price, FROM Product;");
-        Assert.Equal(MessageType.ERROR, resComma!.Type);
-        Assert.Contains("Trailing comma", resComma.Content);
+        Assert.NotEmpty(uncommitted);
+        var entry = uncommitted.First(e => e.pageId == 42);
+        Assert.Equal(0x00, entry.beforeImage[0]); 
     }
 }

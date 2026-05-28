@@ -1,0 +1,26 @@
+-- KBMS Comprehensive Test Suite: ENGINEERING (FINAL)
+CREATE KNOWLEDGE BASE Engineering; USE Engineering;
+CREATE CONCEPT Bridge ( VARIABLES ( bId: STRING, forceVal: DECIMAL, areaVal: DECIMAL, stress: DECIMAL ) );
+CREATE RULE Rule_Bridge_Stress SCOPE Bridge THEN stress = forceVal / areaVal;
+CREATE CONCEPT CircuitComponent ( VARIABLES ( cId: STRING, voltage: DECIMAL, current: DECIMAL, resistance: DECIMAL ) );
+CREATE RULE Rule_Ohms_Law SCOPE CircuitComponent THEN voltage = current * resistance;
+CREATE CONCEPT Room ( VARIABLES ( rId: STRING, volume: DECIMAL, requiredBTU: DECIMAL ) );
+CREATE RULE Rule_HVAC_Calc SCOPE Room THEN requiredBTU = volume * 20;
+CREATE CONCEPT ConcreteMix ( VARIABLES ( batchId: STRING, cement: DECIMAL, sand: DECIMAL, gravel: DECIMAL, water: DECIMAL, totalWeight: DECIMAL ) );
+CREATE RULE Rule_Mix_Total SCOPE ConcreteMix THEN totalWeight = cement + sand + gravel + water;
+CREATE CONCEPT Material ( VARIABLES ( mId: STRING, alpha: DECIMAL, length: DECIMAL, tempDelta: DECIMAL, expansion: DECIMAL ) );
+CREATE RULE Rule_Therm_Exp SCOPE Material THEN expansion = alpha * length * tempDelta;
+CREATE CONCEPT Pipe ( VARIABLES ( pId: STRING, velocity: DECIMAL, areaVal: DECIMAL, flowRate: DECIMAL ) );
+CREATE RULE Rule_Flow_Calc SCOPE Pipe THEN flowRate = velocity * areaVal;
+CREATE CONCEPT Soil ( VARIABLES ( sId: STRING, cohesion: DECIMAL, friction: DECIMAL, stabilityIndex: DECIMAL ) );
+CREATE RULE Rule_Soil_Stable SCOPE Soil THEN stabilityIndex = cohesion + friction;
+CREATE CONCEPT Building ( VARIABLES ( name: STRING, height: DECIMAL, sunAngle: DECIMAL, shadowLen: DECIMAL ) );
+CREATE RULE Rule_Shadow_Calc SCOPE Building THEN shadowLen = height / (sunAngle * 0.017);
+CREATE CONCEPT Tower ( VARIABLES ( tId: STRING, windSpeed: DECIMAL, pressure: DECIMAL ) );
+CREATE RULE Rule_Wind_Load SCOPE Tower THEN pressure = 0.5 * 1.225 * (windSpeed * windSpeed);
+CREATE CONCEPT WorkTask ( VARIABLES ( tId: STRING, start: INT, duration: INT, finish: INT ) );
+CREATE RULE Rule_Task_End SCOPE WorkTask THEN finish = start + duration;
+INSERT INTO Bridge VARIABLES (bId: 'BR01', forceVal: 50000, areaVal: 10);
+INSERT INTO CircuitComponent VARIABLES (cId: 'R1', current: 2, resistance: 50);
+INSERT INTO Room VARIABLES (rId: 'HALL_A', volume: 500);
+SELECT bId, SOLVE(stress) FROM Bridge; SELECT cId, SOLVE(voltage) FROM CircuitComponent; SELECT rId, SOLVE(requiredBTU) FROM Room;

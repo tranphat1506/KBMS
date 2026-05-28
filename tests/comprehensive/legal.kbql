@@ -1,0 +1,26 @@
+-- KBMS Comprehensive Test Suite: LEGAL (FINAL)
+CREATE KNOWLEDGE BASE Legal; USE Legal;
+CREATE CONCEPT Contract ( VARIABLES ( cId: STRING, hasLiabilityClause: BOOL, isRisky: BOOL ) );
+CREATE RULE Rule_Cont_Risk SCOPE Contract IF hasLiabilityClause = false THEN isRisky = true;
+CREATE CONCEPT UserData ( VARIABLES ( uId: STRING, hasConsent: BOOL, isCompliant: BOOL ) );
+CREATE RULE Rule_GDPR_Check SCOPE UserData IF hasConsent = true THEN isCompliant = true;
+CREATE CONCEPT FinancialAudit ( VARIABLES ( name: STRING, incomeVal: DECIMAL, expenses: DECIMAL, auditRisk: STRING ) );
+CREATE RULE Rule_Audit_High SCOPE FinancialAudit IF expenses > (incomeVal * 0.5) THEN auditRisk = 'HIGH';
+CREATE CONCEPT Patent ( VARIABLES ( pId: STRING, regYear: INT, expiryYear: INT ) );
+CREATE RULE Rule_IP_Expiry SCOPE Patent THEN expiryYear = regYear + 20;
+CREATE CONCEPT ShipmentTrade ( VARIABLES ( item: STRING, amountValue: DECIMAL, tariffRate: DECIMAL, duty: DECIMAL ) );
+CREATE RULE Rule_Duty_Calc SCOPE ShipmentTrade THEN duty = amountValue * tariffRate;
+CREATE CONCEPT BankTransfer ( VARIABLES ( txId: STRING, amountVal: DECIMAL, flagstatusVal: STRING ) );
+CREATE RULE Rule_AML_Flag SCOPE BankTransfer IF amountVal > 10000 THEN flagstatusVal = 'FLAG_FOR_REVIEW';
+CREATE CONCEPT WorkLog ( VARIABLES ( empId: STRING, hours: INT, isViolation: BOOL ) );
+CREATE RULE Rule_Labor_Check SCOPE WorkLog IF hours > 48 THEN isViolation = true;
+CREATE CONCEPT BuildingProject ( VARIABLES ( pId: STRING, height: DECIMAL, zoneLimit: DECIMAL, isCompliant: BOOL ) );
+CREATE RULE Rule_Zone_Check SCOPE BuildingProject IF height <= zoneLimit THEN isCompliant = true;
+CREATE CONCEPT SafetyDevice ( VARIABLES ( id: STRING, expiryYear: INT, currentYear: INT, isExpired: BOOL ) );
+CREATE RULE Rule_Safe_Expiry SCOPE SafetyDevice IF expiryYear < currentYear THEN isExpired = true;
+CREATE CONCEPT BusinessLicense ( VARIABLES ( id: STRING, expiryDate: INT, currentDate: INT, daysLeft: INT ) );
+CREATE RULE Rule_License_Left SCOPE BusinessLicense THEN daysLeft = expiryDate - currentDate;
+INSERT INTO Contract VARIABLES (cId: 'CONT_001', hasLiabilityClause: false);
+INSERT INTO BankTransfer VARIABLES (txId: 'TX12345', amountVal: 15000);
+INSERT INTO BuildingProject VARIABLES (pId: 'BUILD_01', height: 45, zoneLimit: 50);
+SELECT cId, SOLVE(isRisky) FROM Contract; SELECT txId, SOLVE(flagstatusVal) FROM BankTransfer; SELECT pId, SOLVE(isCompliant) FROM BuildingProject;

@@ -1,0 +1,25 @@
+CREATE KNOWLEDGE BASE InheritTest19;
+USE InheritTest19;
+
+CREATE CONCEPT Person (
+    VARIABLES (
+        pName STRING,
+        pAge INT
+    )
+);
+
+CREATE CONCEPT Employee (
+    BASE_OBJECTS (Person),
+    VARIABLES (
+        salary DECIMAL,
+        dept STRING
+    ),
+    RULES (
+        TYPE DEDUCTION: IF pAge > 60 THEN dept = 'RETIRED'
+    )
+);
+
+INSERT INTO Employee VARIABLES (pName: 'John', pAge: 65, salary: 5000, dept: 'Sales');
+
+-- This should trigger the rule via SOLVE and update dept to 'RETIRED'
+SELECT pName, pAge, salary, SOLVE(dept) as status FROM Employee;

@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { kbmsClient } from './kbms-client';
+import { thingentClient } from './thingent-client';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -13,11 +13,11 @@ process.env.VITE_PUBLIC = app.isPackaged ? process.env.DIST : path.join(process.
 let win: BrowserWindow | null;
 let splash: BrowserWindow | null;
 
-app.name = 'KBMS Studio';
+app.name = 'Thingent Studio';
 
 // Ensure the app name is correct in development (macOS)
 if (process.platform === 'darwin') {
-  app.setName('KBMS Studio');
+  app.setName('Thingent Studio');
 }
 
 function createSplashScreen() {
@@ -31,7 +31,7 @@ function createSplashScreen() {
     resizable: false,
     show: false,
     backgroundColor: '#ffffff',
-    icon: path.join(process.env.VITE_PUBLIC!, 'icon.png'),
+    icon: path.join(process.env.VITE_PUBLIC!, 'assets/Thingent-Icons.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true
@@ -52,8 +52,8 @@ function createWindow() {
     show: false, // Don't show immediately
     titleBarStyle: 'hiddenInset',
     backgroundColor: '#ffffff',
-    title: 'KBMS Studio',
-    icon: path.join(process.env.VITE_PUBLIC!, 'icon.png'),
+    title: 'Thingent Studio',
+    icon: path.join(process.env.VITE_PUBLIC!, 'assets/Thingent-Icons.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'), // vite-plugin-electron builds mjs
     },
@@ -73,61 +73,77 @@ function createWindow() {
   });
 
   // Call API Backend Setup
-  kbmsClient.setWindow(win);
+  thingentClient.setWindow(win);
 
-  ipcMain.handle('kbms:execute', async (_, query, options: any = {}) => {
+  ipcMain.handle('thingent:execute', async (_, query, options: any = {}) => {
       try {
         const isBackground = !!options.isBackground;
         const requestId = options.requestId;
         const isManagement = !!options.isManagement;
 
         console.log('Execute called from UI:', query, isBackground ? '(Background)' : '', requestId ? `[Req: ${requestId}]` : '', isManagement ? '(Management)' : '');
-        const result = await kbmsClient.execute(query, isBackground, requestId, isManagement);
+        const result = await thingentClient.execute(query, isBackground, requestId, isManagement);
         return result;
       } catch (err: any) {
         return { success: false, messages: [err.message], rows: [], headers: [] };
       }
    });
 
-  ipcMain.handle('kbms:connect', async (_, host, port, user, pass) => {
+  ipcMain.handle('thingent:connect', async (_, host, port, user, pass) => {
      try {
-       const success = await kbmsClient.connect(host, port, user, pass);
+       const success = await thingentClient.connect(host, port, user, pass);
        return { success };
      } catch (err: any) {
        return { success: false, error: err.message };
      }
   });
 
-   ipcMain.handle('kbms:get-status', async () => {
-      return kbmsClient.getStatus();
+   ipcMain.handle('thingent:get-status', async () => {
+      return thingentClient.getStatus();
    });
 
-  ipcMain.handle('kbms:disconnect', async () => {
-     kbmsClient.disconnect();
+  ipcMain.handle('thingent:disconnect', async () => {
+     thingentClient.disconnect();
      return { success: true };
   });
   
-  ipcMain.handle('kbms:get-stats', async (_, requestId?: string) => {
-     return kbmsClient.getStats(requestId);
+  ipcMain.handle('thingent:get-stats', async (_, requestId?: string) => {
+     return thingentClient.getStats(requestId);
   });
 
-  ipcMain.handle('kbms:get-sessions', async (_, requestId?: string) => {
-     return kbmsClient.getSessions(requestId);
+  ipcMain.handle('thingent:get-sessions', async (_, requestId?: string) => {
+     return thingentClient.getSessions(requestId);
   });
 
-  ipcMain.handle('kbms:mgmt-action', async (_, action: string, data: any = {}, requestId?: string) => {
+  ipcMain.handle('thingent:get-lsp-completions', async (_, code: string, line: number, column: number, kbName?: string) => {
      try {
-       return await kbmsClient.sendManagementAction(action, data, requestId);
+       return await thingentClient.getLspCompletions(code, line, column, kbName);
+     } catch (err: any) {
+       return { completions: [] };
+     }
+  });
+
+  ipcMain.handle('thingent:get-lsp-diagnostics', async (_, code: string) => {
+     try {
+       return await thingentClient.getLspDiagnostics(code);
+     } catch (err: any) {
+       return { valid: true, errors: [] };
+     }
+  });
+
+  ipcMain.handle('thingent:mgmt-action', async (_, action: string, data: any = {}, requestId?: string) => {
+     try {
+       return await thingentClient.sendManagementAction(action, data, requestId);
      } catch (err: any) {
        return { success: false, error: err.message };
      }
   });
 
-  ipcMain.on('kbms:subscribe-logs', () => {
-     kbmsClient.subscribeLogs();
+  ipcMain.on('thingent:subscribe-logs', () => {
+     thingentClient.subscribeLogs();
   });
 
-  ipcMain.handle('kbms:save-file', async (_e, content: string, currentPath?: string, isNewFile: boolean = false) => {
+  ipcMain.handle('thingent:save-file', async (_e, content: string, currentPath?: string, isNewFile: boolean = false) => {
      if (!win) return { success: false };
      
      let targetPath = currentPath;
@@ -138,7 +154,7 @@ function createWindow() {
          const { canceled, filePath } = await dialog.showSaveDialog(win, {
             title: isNewFile ? 'Save As' : 'Save KBQL Query',
             defaultPath: targetPath || 'Query.kbql',
-            filters: [{ name: 'KBMS Query', extensions: ['kbql', 'sql', 'txt'] }]
+            filters: [{ name: 'Query', extensions: ['kbql', 'sql', 'txt'] }]
          });
          
          if (canceled || !filePath) return { success: false, canceled: true };
@@ -154,11 +170,11 @@ function createWindow() {
      }
   });
 
-  ipcMain.handle('kbms:open-file', async () => {
+  ipcMain.handle('thingent:open-file', async () => {
      if (!win) return { success: false };
      const { canceled, filePaths } = await dialog.showOpenDialog(win, {
         title: 'Open KBQL Query',
-        filters: [{ name: 'KBMS Query', extensions: ['kbql', 'sql', 'txt'] }],
+        filters: [{ name: 'Query', extensions: ['kbql', 'sql', 'txt'] }],
         properties: ['openFile']
      });
      
@@ -181,11 +197,11 @@ function createWindow() {
 
   // --- Unsaved Changes Protection ---
   let hasUnsavedChanges = false;
-  ipcMain.on('kbms:set-unsaved-status', (_, status: boolean) => {
+  ipcMain.on('thingent:set-unsaved-status', (_, status: boolean) => {
     hasUnsavedChanges = status;
   });
 
-  ipcMain.on('kbms:force-quit', () => {
+  ipcMain.on('thingent:force-quit', () => {
     hasUnsavedChanges = false; // Bypass the check
     if (win) win.close();
   });
@@ -194,7 +210,17 @@ function createWindow() {
     if (hasUnsavedChanges && win) {
       e.preventDefault();
       // Notify renderer to show custom confirmation dialog
-      win.webContents.send('kbms:app-close-request');
+      win.webContents.send('thingent:app-close-request');
+    }
+  });
+
+  ipcMain.on('thingent:set-theme', (_, theme: 'light' | 'dark') => {
+    if (process.platform === 'darwin' && app.dock) {
+      const iconName = theme === 'dark' ? 'Thingent-Icons-Night.png' : 'Thingent-Icons.png';
+      const iconPath = path.join(process.env.VITE_PUBLIC!, 'assets', iconName);
+      if (fs.existsSync(iconPath)) {
+        app.dock.setIcon(iconPath);
+      }
     }
   });
 }
@@ -208,7 +234,7 @@ app.on('window-all-closed', () => {
 app.whenReady().then(() => {
   // Set Dock icon for macOS in dev
   if (process.platform === 'darwin' && process.env.VITE_PUBLIC && app.dock) {
-     const iconPath = path.join(process.env.VITE_PUBLIC, 'icon.png');
+     const iconPath = path.join(process.env.VITE_PUBLIC, 'assets/Thingent-Icons.png');
      if (fs.existsSync(iconPath)) {
         app.dock.setIcon(iconPath);
      }

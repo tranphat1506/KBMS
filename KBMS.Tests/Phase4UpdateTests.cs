@@ -3,10 +3,10 @@ using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 using Xunit;
-using KBMS.Storage.V3;
+using KBMS.Storage.Core;
 using KBMS.Models;
-using KBMS.Knowledge.V3;
-using KBMS.Server.V3;
+using KBMS.Knowledge.Core;
+using KBMS.Server.Core;
 
 namespace KBMS.Tests;
 
@@ -17,7 +17,7 @@ public class Phase4UpdateTests : IDisposable
     private readonly KbCatalog _kbCatalog;
     private readonly ConceptCatalog _conceptCatalog;
     private readonly UserCatalog _userCatalog;
-    private readonly V3DataRouter _router;
+    private readonly StorageRouter _router;
 
     public Phase4UpdateTests()
     {
@@ -30,7 +30,7 @@ public class Phase4UpdateTests : IDisposable
         _kbCatalog.CreateKb("system", Guid.NewGuid());
         _conceptCatalog = new ConceptCatalog(_storagePool);
         _userCatalog = new UserCatalog(_storagePool);
-        _router = new V3DataRouter(_storagePool);
+        _router = new StorageRouter(_storagePool);
     }
 
     public void Dispose()

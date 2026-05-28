@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using KBMS.Models;
 
 namespace KBMS.Reasoning.Rete;
 
@@ -10,56 +11,122 @@ namespace KBMS.Reasoning.Rete;
 public class ReteNetwork
 {
     public EntryNode Root { get; } = new();
-    public List<Fact> WorkingMemory { get; } = new();
-    public List<(TerminalNode Node, Token Token)> Agenda { get; } = new();
-    public Action<string>? Logger { get; set; }
-    /// <summary>External facts not in Rete (no AlphaNode), merged during rule firing.</summary>
-    public Dictionary<string, object> ExternalFacts { get; } = new(StringComparer.OrdinalIgnoreCase);
+    public Concept? ContextConcept { get; set; }
 
     // Map to keep track of AlphaNodes to share them (Optimization)
-    private readonly Dictionary<string, AlphaNode> _alphaNodes = new(StringComparer.OrdinalIgnoreCase);
-
-    private readonly Queue<Fact> _pendingFacts = new();
-    private bool _isPropagating = false;
+    // VariableName -> List of AlphaNodes (each representing a different condition for that variable)
+    private readonly Dictionary<string, List<AlphaNode>> _alphaNodes = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Asserts a new fact into the network.
+    /// Asserts a new fact into the network. Also synchronizes SameVariables if ContextConcept is provided.
     /// </summary>
-    public void AssertFact(string name, object value)
+    public void AssertFact(string name, object value, InferenceSession session)
     {
         // Avoid duplicate facts if value is same
-        if (WorkingMemory.ToList().Any(f => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase) && ValuesEqual(f.Value, value)))
+        if (session.WorkingMemory.Any(f => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase) && ValuesEqual(f.Value, value)))
             return;
 
         var fact = new Fact(name, value);
-        _pendingFacts.Enqueue(fact);
+        session.PendingFacts.Enqueue(fact);
 
-        if (!_isPropagating)
+        // SameVariables synchronization
+        if (ContextConcept?.SameVariables != null)
         {
-            _isPropagating = true;
+            foreach (var sv in ContextConcept.SameVariables)
+            {
+                if (sv.Variable1.Equals(name, StringComparison.OrdinalIgnoreCase))
+                {
+                    session.PendingFacts.Enqueue(new Fact(sv.Variable2, value));
+                }
+                else if (sv.Variable2.Equals(name, StringComparison.OrdinalIgnoreCase))
+                {
+                    session.PendingFacts.Enqueue(new Fact(sv.Variable1, value));
+                }
+            }
+        }
+
+        if (!session.IsPropagating)
+        {
+            session.IsPropagating = true;
             try
             {
-                while (_pendingFacts.Count > 0)
+                while (session.PendingFacts.Count > 0)
                 {
-                    var current = _pendingFacts.Dequeue();
+                    var current = session.PendingFacts.Dequeue();
                     
                     // Re-check WorkingMemory
-                    var existing = WorkingMemory.FirstOrDefault(f => f.Name.Equals(current.Name, StringComparison.OrdinalIgnoreCase));
+                    var existing = session.WorkingMemory.FirstOrDefault(f => f.Name.Equals(current.Name, StringComparison.OrdinalIgnoreCase));
                     if (existing != null) {
                         if (ValuesEqual(existing.Value, current.Value)) continue;
-                        WorkingMemory.Remove(existing);
+                        // If same name but different value, we must retract first
+                        RetractFact(existing.Name, session);
                     }
 
-                    Logger?.Invoke($"Asserting Fact: {current.Name} = {current.Value}");
-                    WorkingMemory.Add(current);
-                    Root.AssertFact(current);
+                    session.Logger?.Invoke($"[Rete] Asserting Fact: {current.Name} = {current.Value}");
+                    session.Logger?.Invoke($"[Rete] Propagating {current.Name} to Root. Children count: {Root.Children.Count}");
+                    session.WorkingMemory.Add(current);
+                    Root.AssertFact(current, session);
                 }
             }
             finally
             {
-                _isPropagating = false;
+                session.IsPropagating = false;
             }
         }
+    }
+
+    /// <summary>
+    /// Retracts a fact and removes all derived tokens from the network and agenda.
+    /// </summary>
+    public void RetractFact(string name, InferenceSession session)
+    {
+        var factsToRemove = session.WorkingMemory.Where(f => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase)).ToList();
+        foreach (var fact in factsToRemove)
+        {
+            session.Logger?.Invoke($"Retracting Fact: {fact.Name}");
+            session.WorkingMemory.Remove(fact);
+            Root.RetractFact(fact, null, session);
+            
+            // Remove any pending activations that rely on this fact
+            session.Agenda.RemoveActivationsForFact(fact.Name);
+        }
+
+        // Retract synchronized variables as well
+        if (ContextConcept?.SameVariables != null)
+        {
+            foreach (var sv in ContextConcept.SameVariables)
+            {
+                if (sv.Variable1.Equals(name, StringComparison.OrdinalIgnoreCase))
+                {
+                    var syncedFact = session.WorkingMemory.FirstOrDefault(f => f.Name.Equals(sv.Variable2, StringComparison.OrdinalIgnoreCase));
+                    if (syncedFact != null)
+                    {
+                        session.WorkingMemory.Remove(syncedFact);
+                        Root.RetractFact(syncedFact, null, session);
+                        session.Agenda.RemoveActivationsForFact(syncedFact.Name);
+                    }
+                }
+                else if (sv.Variable2.Equals(name, StringComparison.OrdinalIgnoreCase))
+                {
+                    var syncedFact = session.WorkingMemory.FirstOrDefault(f => f.Name.Equals(sv.Variable1, StringComparison.OrdinalIgnoreCase));
+                    if (syncedFact != null)
+                    {
+                        session.WorkingMemory.Remove(syncedFact);
+                        Root.RetractFact(syncedFact, null, session);
+                        session.Agenda.RemoveActivationsForFact(syncedFact.Name);
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Updates a fact in the network (Retract + Assert).
+    /// </summary>
+    public void UpdateFact(string name, object value, InferenceSession session)
+    {
+        RetractFact(name, session);
+        AssertFact(name, value, session);
     }
 
     private bool ValuesEqual(object? v1, object? v2)
@@ -70,7 +137,7 @@ public class ReteNetwork
         // Handle numeric equality across types (int, long, double, decimal)
         if (IsNumeric(v1) && IsNumeric(v2))
         {
-            return Math.Abs(Convert.ToDouble(v1) - Convert.ToDouble(v2)) < 1e-7;
+            return Math.Abs(Convert.ToDouble(v1) - Convert.ToDouble(v2)) < 1e-5;
         }
 
         return v1.Equals(v2);
@@ -79,80 +146,42 @@ public class ReteNetwork
     private bool IsNumeric(object v) => v is int or long or double or decimal or float;
 
     /// <summary>
-    /// Gets or creates an AlphaNode for a specific variable.
+    /// Gets or creates an AlphaNode for a specific variable and condition.
     /// </summary>
-    public AlphaNode GetOrCreateAlphaNode(string variableName)
+    public AlphaNode GetOrCreateAlphaNode(string variableName, string? conditionExpression = null, Func<Token, bool>? conditionFunc = null)
     {
-        if (!_alphaNodes.TryGetValue(variableName, out var node))
+        if (!_alphaNodes.TryGetValue(variableName, out var nodeList))
         {
-            node = new AlphaNode(variableName);
+            nodeList = new List<AlphaNode>();
+            _alphaNodes[variableName] = nodeList;
+        }
+
+        // Try to find an existing AlphaNode with the exact same condition expression
+        var node = nodeList.FirstOrDefault(n => n.ConditionExpression == conditionExpression);
+        if (node == null)
+        {
+            node = new AlphaNode(variableName, conditionExpression, conditionFunc);
             Root.AddChild(node);
-            _alphaNodes[variableName] = node;
+            nodeList.Add(node);
         }
         return node;
     }
 
     /// <summary>
-    /// Adds an activation to the agenda.
-    /// </summary>
-    public void AddToAgenda(TerminalNode node, Token token)
-    {
-        // Simple conflict resolution: don't add duplicate activations for the same rule and same token content
-        if (!Agenda.Any(a => a.Node == node && TokensMatch(a.Token, token)))
-        {
-            Agenda.Add((node, token));
-        }
-    }
-
-    private bool TokensMatch(Token t1, Token t2)
-    {
-        if (t1.Facts.Count != t2.Facts.Count) return false;
-        for (int i = 0; i < t1.Facts.Count; i++)
-        {
-            if (t1.Facts[i].Name != t2.Facts[i].Name || !t1.Facts[i].Value.Equals(t2.Facts[i].Value))
-                return false;
-        }
-        return true;
-    }
-
-    /// <summary>
     /// Fires one activation from the agenda.
     /// </summary>
-    public bool FireNext()
+    public bool FireNext(InferenceSession session)
     {
-        if (Agenda.Count == 0) return false;
+        var activation = session.Agenda.PopNext();
+        if (activation == null) return false;
 
-        var (node, token) = Agenda[0];
-        Agenda.RemoveAt(0);
+        session.Logger?.Invoke($"Firing Rule/Target: {activation.Node.RuleName}");
         
-        Logger?.Invoke($"Firing Rule/Target: {node.RuleName}");
-        node.OnActivation(token);
+        // Track stats
+        session.RulesFiredCount++;
+        session.InferenceCost += activation.Cost;
+        
+        activation.Node.OnActivation(activation.Token, session);
         return true;
-    }
-
-    /// <summary>
-    /// Clears the network memory.
-    /// </summary>
-    public void Clear()
-    {
-        WorkingMemory.Clear();
-        Agenda.Clear();
-        
-        // Note: We don't clear the nodes themselves as they are built once per Concept.
-        // But we MUST clear BetaNode memories!
-        ClearBetaMemory(Root);
-    }
-
-    private void ClearBetaMemory(ReteNode node)
-    {
-        if (node is BetaNode beta)
-        {
-            beta.LeftMemory.Clear();
-            beta.RightMemory.Clear();
-        }
-        foreach (var child in node.Children)
-        {
-            ClearBetaMemory(child);
-        }
     }
 }

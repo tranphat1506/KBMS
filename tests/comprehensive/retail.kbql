@@ -1,0 +1,26 @@
+-- KBMS Comprehensive Test Suite: RETAIL (FINAL)
+CREATE KNOWLEDGE BASE Retail; USE Retail;
+CREATE CONCEPT Product ( VARIABLES ( pId: STRING, unitCost: DECIMAL, demand: DECIMAL, price: DECIMAL ) );
+CREATE RULE Rule_Price_Dynamic SCOPE Product THEN price = unitCost * (1 + (demand * 0.1));
+CREATE CONCEPT CustomerLoyalty ( VARIABLES ( cId: STRING, totalSpend: DECIMAL, tier: STRING ) );
+CREATE RULE Rule_Tier_Gold SCOPE CustomerLoyalty IF totalSpend > 5000 THEN tier = 'GOLD';
+CREATE CONCEPT StockItem ( VARIABLES ( pId: STRING, stockLevel: INT, salesRate: DECIMAL, daysToEmpty: DECIMAL ) );
+CREATE RULE Rule_Stock_Empty SCOPE StockItem THEN daysToEmpty = stockLevel / salesRate;
+CREATE CONCEPT Package ( VARIABLES ( weight: DECIMAL, zone: INT, shippingCost: DECIMAL ) );
+CREATE RULE Rule_Ship_Cost SCOPE Package THEN shippingCost = (weight * 2) + (zone * 5);
+CREATE CONCEPT OrderItem ( VARIABLES ( orderId: STRING, item: STRING, suggestion: STRING ) );
+CREATE RULE Rule_Suggest_Filter SCOPE OrderItem IF item = 'Coffee' THEN suggestion = 'Paper Filters';
+CREATE CONCEPT RefundRequest ( VARIABLES ( daysSincePurchase: INT, isEligible: BOOL ) );
+CREATE RULE Rule_Refund_Check SCOPE RefundRequest IF daysSincePurchase < 30 THEN isEligible = true;
+CREATE CONCEPT Checkout ( VARIABLES ( subtotalAmount: DECIMAL, couponDisc: DECIMAL, memberDisc: DECIMAL, finalPrice: DECIMAL ) );
+CREATE RULE Rule_Final_Price SCOPE Checkout THEN finalPrice = subtotalAmount * (1 - couponDisc) * (1 - memberDisc);
+CREATE CONCEPT Review ( VARIABLES ( contentStr: STRING, sentiment: STRING ) );
+CREATE RULE Rule_Sent_Positive SCOPE Review IF contentStr = 'Great' OR contentStr = 'Excellent' THEN sentiment = 'POSITIVE';
+CREATE CONCEPT SalesForecast ( VARIABLES ( periodMonth: INT, prevMonthSales: DECIMAL, forecast: DECIMAL ) );
+CREATE RULE Rule_Fore_Calc SCOPE SalesForecast THEN forecast = prevMonthSales * 1.05;
+CREATE CONCEPT Basket ( VARIABLES ( bId: STRING, hasMilk: BOOL, hasBread: BOOL, commonPair: BOOL ) );
+CREATE RULE Rule_Basket_Pair SCOPE Basket IF hasMilk = true AND hasBread = true THEN commonPair = true;
+INSERT INTO Product VARIABLES (pId: 'SKU01', unitCost: 100, demand: 5);
+INSERT INTO CustomerLoyalty VARIABLES (cId: 'C101', totalSpend: 6000);
+INSERT INTO Checkout VARIABLES (subtotalAmount: 1000, couponDisc: 0.1, memberDisc: 0.05);
+SELECT pId, SOLVE(price) FROM Product; SELECT cId, SOLVE(tier) FROM CustomerLoyalty; SELECT subtotalAmount, SOLVE(finalPrice) FROM Checkout;

@@ -12,10 +12,10 @@ namespace KBMS.Tests;
 public class OptimizationIntegrationTests : IDisposable
 {
     private readonly string _dataDir;
-    private readonly KBMS.Storage.V3.StoragePool _storagePool;
-    private readonly KBMS.Storage.V3.KbCatalog _kbCatalog;
-    private readonly KBMS.Storage.V3.ConceptCatalog _conceptCatalog;
-    private readonly KBMS.Storage.V3.UserCatalog _userCatalog;
+    private readonly KBMS.Storage.Core.StoragePool _storagePool;
+    private readonly KBMS.Storage.Core.KbCatalog _kbCatalog;
+    private readonly KBMS.Storage.Core.ConceptCatalog _conceptCatalog;
+    private readonly KBMS.Storage.Core.UserCatalog _userCatalog;
     private readonly KBMS.Knowledge.KnowledgeManager _km;
     private readonly User _root;
 
@@ -24,11 +24,11 @@ public class OptimizationIntegrationTests : IDisposable
         _dataDir = Path.Combine(Path.GetTempPath(), "KBMS_Opt_Test_" + Guid.NewGuid().ToString("N"));
         if (!Directory.Exists(_dataDir)) Directory.CreateDirectory(_dataDir);
         
-        _storagePool = new KBMS.Storage.V3.StoragePool(_dataDir, 64);
-        _kbCatalog = new KBMS.Storage.V3.KbCatalog(_storagePool);
-        _conceptCatalog = new KBMS.Storage.V3.ConceptCatalog(_storagePool);
-        _userCatalog = new KBMS.Storage.V3.UserCatalog(_storagePool);
-        var router = new KBMS.Knowledge.V3.V3DataRouter(_storagePool);
+        _storagePool = new KBMS.Storage.Core.StoragePool(_dataDir, 64);
+        _kbCatalog = new KBMS.Storage.Core.KbCatalog(_storagePool);
+        _conceptCatalog = new KBMS.Storage.Core.ConceptCatalog(_storagePool);
+        _userCatalog = new KBMS.Storage.Core.UserCatalog(_storagePool);
+        var router = new KBMS.Knowledge.Core.StorageRouter(_storagePool);
 
         _km = new KBMS.Knowledge.KnowledgeManager(_storagePool, _kbCatalog, _conceptCatalog, _userCatalog, router);
         

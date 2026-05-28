@@ -26,7 +26,7 @@ namespace KBMS.Tests
                 Equations = new List<Equation>
                 {
                     new Equation { Expression = "perimeter = a + b + c" },
-                    new Equation { Expression = "area = sqrt(perimeter/2 * (perimeter/2 - a) * (perimeter/2 - b) * (perimeter/2 - c))" }
+                    new Equation { Expression = "area = Sqrt(perimeter/2 * (perimeter/2 - a) * (perimeter/2 - b) * (perimeter/2 - c))" }
                 },
                 Constraints = new List<Constraint>
                 {

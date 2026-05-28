@@ -16,9 +16,9 @@ using KBMS.Parser.Ast;
 using KBMS.Parser.Ast.Kdl;
 using KBMS.Parser.Ast.Kql;
 using KBMS.Storage;
-using KBMS.Storage.V3;
+using KBMS.Storage.Core;
 using KBMS.Knowledge;
-using KBMS.Knowledge.V3;
+using KBMS.Knowledge.Core;
 
 namespace KBMS.Server;
 
@@ -30,12 +30,13 @@ public class KbmsServer
     private readonly AuthenticationManager _authManager;
     private readonly StoragePool _storagePool;
     private readonly KnowledgeManager _knowledgeManager;
-    private readonly KBMS.Storage.V3.KbCatalog _kbCatalog;
-    private readonly KBMS.Storage.V3.ConceptCatalog _conceptCatalog;
-    private readonly KBMS.Storage.V3.UserCatalog _userCatalog;
-    private readonly KBMS.Server.V3.SystemKbBootstrapper _bootstrapper;
-    private readonly KBMS.Server.V3.SystemLogger _sysLogger;
-    private readonly KBMS.Server.V3.ManagementManager _managementManager;
+    private readonly KBMS.Storage.Core.KbCatalog _kbCatalog;
+    private readonly KBMS.Storage.Core.ConceptCatalog _conceptCatalog;
+    private readonly KBMS.Storage.Core.UserCatalog _userCatalog;
+    private readonly KBMS.Server.Core.SystemKbBootstrapper _bootstrapper;
+    private readonly KBMS.Server.Core.SystemLogger _sysLogger;
+    private readonly KBMS.Server.Core.ManagementManager _managementManager;
+    private readonly KBMS.Server.Core.LspEngine _lspEngine;
     private bool _isRunning;
     private TcpListener? _listener;
     private readonly CancellationTokenSource _cts = new();
@@ -94,20 +95,21 @@ public class KbmsServer
         // V3 Multi-DB Infrastructure
         _storagePool = new StoragePool(dataDir, 256, masterKey);
         
-        _kbCatalog = new KBMS.Storage.V3.KbCatalog(_storagePool);
-        _conceptCatalog = new KBMS.Storage.V3.ConceptCatalog(_storagePool);
-        _userCatalog = new KBMS.Storage.V3.UserCatalog(_storagePool);
+        _kbCatalog = new KBMS.Storage.Core.KbCatalog(_storagePool);
+        _conceptCatalog = new KBMS.Storage.Core.ConceptCatalog(_storagePool);
+        _userCatalog = new KBMS.Storage.Core.UserCatalog(_storagePool);
         
         _authManager = new AuthenticationManager(_userCatalog);
         _knowledgeManager = new KnowledgeManager(_storagePool, _kbCatalog, _conceptCatalog, _userCatalog);
         
         // V3 System KB & Logging
         var v3Router = _knowledgeManager.V3Router;
-        _sysLogger = new KBMS.Server.V3.SystemLogger(v3Router);
-        _bootstrapper = new KBMS.Server.V3.SystemKbBootstrapper(_kbCatalog, _conceptCatalog, v3Router);
+        _sysLogger = new KBMS.Server.Core.SystemLogger(v3Router);
+        _bootstrapper = new KBMS.Server.Core.SystemKbBootstrapper(_kbCatalog, _conceptCatalog, v3Router);
         _bootstrapper.Bootstrap();
 
-        _managementManager = new KBMS.Server.V3.ManagementManager(_connectionManager, _sysLogger, v3Router, _userCatalog);
+        _managementManager = new KBMS.Server.Core.ManagementManager(_connectionManager, _sysLogger, v3Router, _userCatalog);
+        _lspEngine = new KBMS.Server.Core.LspEngine(_conceptCatalog, _kbCatalog);
         _isRunning = false;
 
         // Initialize system users if empty (fallback)
@@ -119,14 +121,10 @@ public class KbmsServer
 
     public void RunUpdate()
     {
-        KBMS.Server.V3.SystemUpdater.Run(_kbCatalog, _conceptCatalog, _userCatalog, _knowledgeManager.V3Router);
+        KBMS.Server.Core.SystemUpdater.Run(_kbCatalog, _conceptCatalog, _userCatalog, _knowledgeManager.V3Router);
     }
 
-    public void MigrateV2(string v2Path, string v2Key)
-    {
-        var converter = new KBMS.Server.V3.V2ToV3Converter(_storagePool, _kbCatalog, _conceptCatalog, _userCatalog, _knowledgeManager.V3Router);
-        converter.Migrate(v2Path, v2Key);
-    }
+
 
     public async Task StartAsync()
     {
@@ -279,6 +277,12 @@ public class KbmsServer
             case MessageType.MANAGEMENT_CMD:
                 await HandleManagementCommandAsync(message, clientId, stream);
                 break;
+            case MessageType.LSP_AUTOCOMPLETE:
+                await HandleLspAutocompleteAsync(message, clientId, stream);
+                break;
+            case MessageType.LSP_DIAGNOSTICS:
+                await HandleLspDiagnosticsAsync(message, clientId, stream);
+                break;
             default:
                 await SendProtocolMessageAsync(clientId, stream, new Message { Type = MessageType.ERROR, Content = "Unknown message type" });
                 break;
@@ -375,7 +379,7 @@ public class KbmsServer
                     currentKb = _connectionManager.GetCurrentKb(clientId);
                     var result = _knowledgeManager.Execute(ast, user, currentKb);
                     
-                    _sysLogger.LogAudit(user.Username, ast.ToString() ?? "QUERY", "SUCCESS", clientId, user.Role.ToString(), currentKb, stopwatch.Elapsed.TotalMilliseconds);
+                    _sysLogger.LogAudit(user.Username, ast.ToString() ?? "QUERY", "SUCCESS", clientId, user.Role.ToString(), currentKb ?? "GLOBAL", stopwatch.Elapsed.TotalMilliseconds);
                     
                     if (result is QueryResultSet qrs && qrs.Success)
                     {
@@ -405,10 +409,10 @@ public class KbmsServer
                             Content = ToJson(metadata) 
                         });
 
-                        var batch = new List<Dictionary<string, object?>>();
+                        var batch = new List<Dictionary<string, object>>();
                         foreach (var obj in qrs.Objects)
                         {
-                            batch.Add(obj.Values);
+                            batch.Add(obj.Values.ToDictionary(kv => kv.Key, kv => kv.Value));
                             if (batch.Count >= 100)
                             {
                                 await SendProtocolMessageAsync(clientId, stream, new Message 
@@ -593,7 +597,7 @@ public class KbmsServer
 
             if (content.StartsWith("{"))
             {
-                var cmd = JsonSerializer.Deserialize<KBMS.Models.V3.ManagementCommandPayload>(content, _jsonOptions);
+                var cmd = JsonSerializer.Deserialize<KBMS.Models.Core.ManagementCommandPayload>(content, _jsonOptions);
                 if (cmd != null)
                 {
                     result = cmd.Action switch
@@ -642,6 +646,52 @@ public class KbmsServer
                 RequestId = message.RequestId,
                 Content = "{}"
             });
+        }
+    }
+
+    private async Task HandleLspDiagnosticsAsync(Message message, string clientId, Stream stream)
+    {
+        try
+        {
+            var req = JsonSerializer.Deserialize<JsonElement>(message.Content);
+            string code = req.GetProperty("code").GetString() ?? "";
+            
+            var result = _lspEngine.GetDiagnostics(code);
+            await SendProtocolMessageAsync(clientId, stream, new Message 
+            { 
+                Type = MessageType.RESULT, 
+                RequestId = message.RequestId,
+                Content = ToJson(result) 
+            });
+        }
+        catch (Exception ex)
+        {
+            await SendProtocolMessageAsync(clientId, stream, new Message { Type = MessageType.ERROR, RequestId = message.RequestId, Content = ex.Message });
+        }
+    }
+
+    private async Task HandleLspAutocompleteAsync(Message message, string clientId, Stream stream)
+    {
+        try
+        {
+            var req = JsonSerializer.Deserialize<JsonElement>(message.Content);
+            string code = req.GetProperty("code").GetString() ?? "";
+            int line = req.TryGetProperty("line", out var l) ? l.GetInt32() : 1;
+            int col = req.TryGetProperty("column", out var c) ? c.GetInt32() : code.Length + 1;
+            
+            var currentKb = _connectionManager.GetCurrentKb(clientId);
+            var result = _lspEngine.GetCompletions(code, line, col, currentKb);
+            
+            await SendProtocolMessageAsync(clientId, stream, new Message 
+            { 
+                Type = MessageType.RESULT, 
+                RequestId = message.RequestId,
+                Content = ToJson(result) 
+            });
+        }
+        catch (Exception ex)
+        {
+            await SendProtocolMessageAsync(clientId, stream, new Message { Type = MessageType.ERROR, RequestId = message.RequestId, Content = ex.Message });
         }
     }
 

@@ -1,10 +1,10 @@
 import { X, Info, AlertTriangle, AlertCircle, CheckCircle, Settings2, BellOff, EyeOff } from 'lucide-react';
-import { useKbmsStore } from '../store/kbmsStore';
-import type { Notification } from '../store/kbmsStore';
+import { useThingentStore } from '../store/thingentStore';
+import type { Notification } from '../store/thingentStore';
 import { useState, useEffect, useRef } from 'react';
 
 export default function NotificationToasts() {
-  const { activeToasts, dismissToast, dismissBatch, updateNotificationSettings, notificationSettings, setSelectedNotification, markAsRead } = useKbmsStore();
+  const { activeToasts, dismissToast, dismissBatch, updateNotificationSettings, notificationSettings, setSelectedNotification, markAsRead } = useThingentStore();
   const [isHovered, setIsHovered] = useState(false);
   const timerRef = useRef<any>(null);
 

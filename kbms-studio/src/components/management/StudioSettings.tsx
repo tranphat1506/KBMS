@@ -1,12 +1,12 @@
-import { useKbmsStore } from '../../store/kbmsStore';
-import { Moon, Sun, Type, Palette, Check, X, Bell, Shield, Terminal, Zap } from 'lucide-react';
+import { useThingentStore } from '../../store/thingentStore';
+import { Moon, Sun, Type, Palette, Check, X, Bell, Shield, Terminal, Monitor, Zap } from 'lucide-react';
 import { useState } from 'react';
 
 export default function StudioSettings() {
   const { 
     studioSettings, updateStudioSetting, setStudioSettingsOpen,
     notificationSettings, updateNotificationSettings 
-  } = useKbmsStore();
+  } = useThingentStore();
   
   const [activeTab, setActiveTab] = useState<'visual' | 'notifications'>('visual');
 
@@ -69,26 +69,36 @@ export default function StudioSettings() {
                   <span className="text-[10px] font-thin text-[var(--text-muted)] uppercase tracking-[0.2em]">Appearance Mode</span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-2">
+                  <button 
+                    onClick={() => updateStudioSetting('theme', 'device')}
+                    className={`flex items-center justify-between px-3 py-2 rounded border transition-all ${studioSettings.theme === 'device' ? 'bg-[var(--brand-primary-light)]/20 border-[var(--brand-primary)]/30 text-[var(--brand-primary)]' : 'bg-[var(--bg-app)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--text-muted)]'}`}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <Monitor className="w-3 h-3" />
+                      <span className="text-[11px] font-thin">Device</span>
+                    </div>
+                    {studioSettings.theme === 'device' && <Check className="w-2.5 h-2.5" />}
+                  </button>
                   <button 
                     onClick={() => updateStudioSetting('theme', 'light')}
-                    className={`flex items-center justify-between px-3 py-2.5 rounded border transition-all ${studioSettings.theme === 'light' ? 'bg-[var(--brand-primary-light)]/20 border-[var(--brand-primary)]/30 text-[var(--brand-primary)]' : 'bg-[var(--bg-app)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--text-muted)]'}`}
+                    className={`flex items-center justify-between px-3 py-2 rounded border transition-all ${studioSettings.theme === 'light' ? 'bg-[var(--brand-primary-light)]/20 border-[var(--brand-primary)]/30 text-[var(--brand-primary)]' : 'bg-[var(--bg-app)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--text-muted)]'}`}
                   >
                     <div className="flex items-center space-x-2">
                       <Sun className="w-3 h-3" />
-                      <span className="text-xs font-thin">Light</span>
+                      <span className="text-[11px] font-thin">Light</span>
                     </div>
-                    {studioSettings.theme === 'light' && <Check className="w-3 h-3" />}
+                    {studioSettings.theme === 'light' && <Check className="w-2.5 h-2.5" />}
                   </button>
                   <button 
                     onClick={() => updateStudioSetting('theme', 'dark')}
-                    className={`flex items-center justify-between px-3 py-2.5 rounded border transition-all ${studioSettings.theme === 'dark' ? 'bg-[var(--brand-primary-light)]/20 border-[var(--brand-primary)]/30 text-[var(--brand-primary)]' : 'bg-[var(--bg-app)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--text-muted)]'}`}
+                    className={`flex items-center justify-between px-3 py-2 rounded border transition-all ${studioSettings.theme === 'dark' ? 'bg-[var(--brand-primary-light)]/20 border-[var(--brand-primary)]/30 text-[var(--brand-primary)]' : 'bg-[var(--bg-app)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--text-muted)]'}`}
                   >
                     <div className="flex items-center space-x-2">
                       <Moon className="w-3 h-3" />
-                      <span className="text-xs font-thin">Dark</span>
+                      <span className="text-[11px] font-thin">Dark</span>
                     </div>
-                    {studioSettings.theme === 'dark' && <Check className="w-3 h-3" />}
+                    {studioSettings.theme === 'dark' && <Check className="w-2.5 h-2.5" />}
                   </button>
                 </div>
               </div>

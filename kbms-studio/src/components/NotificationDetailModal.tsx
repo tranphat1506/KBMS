@@ -1,8 +1,8 @@
 import { X, Info, AlertTriangle, AlertCircle, CheckCircle2, Clock, Terminal } from 'lucide-react';
-import { useKbmsStore } from '../store/kbmsStore';
+import { useThingentStore } from '../store/thingentStore';
 
 export default function NotificationDetailModal() {
-  const { selectedNotification, setSelectedNotification, markAsRead } = useKbmsStore();
+  const { selectedNotification, setSelectedNotification, markAsRead } = useThingentStore();
 
   if (!selectedNotification) return null;
 

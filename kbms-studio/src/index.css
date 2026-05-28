@@ -18,26 +18,32 @@
   --brand-primary-hover: #34d399; /* Emerald 400 - Vibrant interaction */
   --brand-primary-light: #ecfdf5;
   --brand-primary-text: #065f46;
+  
+  --kb-color-lightness: 40%;
+  --kb-color-saturation: 80%;
 }
 
 .dark {
   /* Dark Theme tokens */
-  --bg-app: #0f172a; /* Slate 900 */
-  --bg-surface: #1e293b; /* Slate 800 */
-  --bg-surface-alt: #334155; /* Slate 700 */
-  --bg-sidebar: #0f172a;
+  --bg-app: #000000; /* Pure Black */
+  --bg-surface: #0a0a0a; /* Neutral 950 */
+  --bg-surface-alt: #171717; /* Neutral 900 */
+  --bg-sidebar: #000000;
   
-  --text-main: #f8fafc;
-  --text-sub: #94a3b8;
-  --text-muted: #64748b;
+  --text-main: #f5f5f5; /* Neutral 100 */
+  --text-sub: #a3a3a3; /* Neutral 400 */
+  --text-muted: #737373; /* Neutral 500 */
   
-  --border-subtle: #334155;
-  --border-muted: #1e293b;
+  --border-subtle: #262626; /* Neutral 800 */
+  --border-muted: #0a0a0a; /* Neutral 950 */
   
   --brand-primary: #059669; /* Emerald 600 - Deeper/integrated */
   --brand-primary-hover: #10b981; /* Emerald 500 - Standard hover */
   --brand-primary-light: #064e3b;
   --brand-primary-text: #a7f3d0;
+  
+  --kb-color-lightness: 70%;
+  --kb-color-saturation: 80%;
 }
 
 @theme {
@@ -45,26 +51,32 @@
 }
 
 @layer base {
+  html {
+    transition: font-size 0.2s ease;
+  }
+
+  /* Root Font Size Scaling - Affects all rem units */
+  html.size-small { font-size: 13px; }
+  html.size-medium { font-size: 14.5px; }
+  html.size-big { font-size: 16px; }
+
   body {
     background-color: var(--bg-app);
     color: var(--text-main);
-    font-size: var(--studio-font-size, 14px);
     transition: background-color 0.2s ease, color 0.2s ease;
+    /* Reset body to inherit from html size */
+    font-size: 1rem;
   }
 
-  /* Global Typographic Scaling */
-  .size-small { --studio-font-size: 12px; font-size: 12px; }
-  .size-medium { --studio-font-size: 13px; font-size: 13px; }
-  .size-big { --studio-font-size: 15px; font-size: 15px; }
-
   /* Global Weight Orchestration */
-  /* User requested 'thin', 'regular', 'medium' */
-  .font-thin { font-weight: 300 !important; }
-  .font-regular { font-weight: 400 !important; }
-  .font-medium { font-weight: 500 !important; }
+  html.font-thin, html.font-thin body { font-weight: 300 !important; }
+  html.font-regular, html.font-regular body { font-weight: 400 !important; }
+  html.font-medium, html.font-medium body { font-weight: 500 !important; }
   
   /* Critical protection for bold titles and headers */
-  .font-bold, font-bold, h1, h2, h3, .uppercase { font-weight: 700 !important; }
+  .font-bold, font-bold, h1, h2, h3, h4, .uppercase, b, strong { 
+    font-weight: 700 !important; 
+  }
 }
 
 @layer utilities {
@@ -86,4 +98,43 @@
     border: 3px solid transparent;
     background-clip: padding-box;
   }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .tab-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .tab-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .tab-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--brand-primary);
+    border-radius: 9999px;
+  }
+  .tab-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--brand-primary-hover);
+  }
+
+  /* Custom Planetary Animations */
+  @keyframes planet-pop {
+    0% { transform: scale(0.4); opacity: 0; }
+    50% { opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes ring-expand {
+    0% { transform: scale(0.7); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .animate-planet-pop {
+    animation: planet-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+  .animate-ring-expand {
+    animation: ring-expand 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
 }
+

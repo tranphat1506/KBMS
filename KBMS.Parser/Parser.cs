@@ -1,3 +1,5 @@
+#pragma warning disable CS8602 // Dereference of a possibly null reference (guarded by throw in all cases)
+#pragma warning disable CS8629 // Nullable value type may be null (guarded by HasValue checks)
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -20,6 +22,17 @@ public class Parser
     private readonly List<Token> _tokens;
     private int _current = 0;
     private string _originalQuery = string.Empty;
+
+    // LSP Tolerant Mode properties
+    public bool TolerantMode { get; set; } = false;
+    public List<ParserException> Errors { get; } = new();
+    public List<AstNode> PartialNodes { get; } = new();
+    
+    /// <summary>
+    /// If true, the parser will strictly require a semicolon even at the end of the input.
+    /// Useful for LSP diagnostics to enforce complete statements.
+    /// </summary>
+    public bool StrictSemicolon { get; set; } = false;
 
     public Parser(List<Token> tokens)
     {
@@ -65,26 +78,65 @@ public class Parser
 
         while (!IsAtEnd())
         {
-            var stmt = ParseStatement();
-            if (stmt != null)
+            try 
             {
-                stmt.OriginalQuery = _originalQuery;
-                statements.Add(stmt);
-            }
+                int startTokenIdx = _current;
+                var stmt = ParseStatement();
+                if (stmt != null)
+                {
+                    int endTokenIdx = _current;
+                    var stmtTokens = new List<string>();
+                    for (int i = startTokenIdx; i < endTokenIdx && i < _tokens.Count; i++)
+                    {
+                        stmtTokens.Add(_tokens[i].Lexeme);
+                    }
+                    stmt.OriginalQuery = string.Join(" ", stmtTokens);
+                    statements.Add(stmt);
+                    PartialNodes.Add(stmt);
+                }
 
-            // Enforce semicolon after each statement, but allow EOF for the last one
-            if (Check(TokenType.SEMICOLON))
-            {
-                Advance();
+                // Enforce semicolon after each statement
+                if (Check(TokenType.SEMICOLON))
+                {
+                    Advance();
+                }
+                else if (StrictSemicolon || !IsAtEnd())
+                {
+                    var next = Peek();
+                    throw Error("Semicolon ';' expected at end of statement", next);
+                }
             }
-            else if (!IsAtEnd())
+            catch (TolerantParseException)
             {
-                var next = Peek();
-                throw Error("Semicolon ';' expected", next);
+                Synchronize();
             }
         }
 
         return statements;
+    }
+
+    private void Synchronize()
+    {
+        // Skip until we find a statement boundary or EOF
+        while (!IsAtEnd())
+        {
+            if (Peek()?.Type == TokenType.SEMICOLON)
+            {
+                Advance(); // consume ;
+                return;
+            }
+
+            var nextType = Peek()?.Type;
+            if (nextType == TokenType.CREATE || nextType == TokenType.DROP || 
+                nextType == TokenType.SELECT || nextType == TokenType.INSERT ||
+                nextType == TokenType.UPDATE || nextType == TokenType.DELETE ||
+                nextType == TokenType.FIND)
+            {
+                return;
+            }
+
+            Advance();
+        }
     }
 
     private AstNode? ParseStatement()
@@ -103,6 +155,7 @@ public class Parser
             TokenType.GRANT => ParseGrant(),
             TokenType.REVOKE => ParseRevoke(),
             TokenType.SELECT => ParseSelect(),
+            TokenType.FIND => ParseFind(),
             TokenType.INSERT => ParseInsertOrBulk(),
             TokenType.UPDATE => ParseUpdate(),
             TokenType.DELETE => ParseDelete(),
@@ -136,6 +189,86 @@ public class Parser
             Line = token.Line,
             Column = token.Column
         };
+    }
+
+    private FindNode ParseFind()
+    {
+        var token = Peek() ?? throw Error("Unexpected end of input");
+        Consume(TokenType.FIND);
+
+        var conceptToken = ConsumeIdentifier() ?? throw Error("Expected concept name after FIND");
+        
+        var node = new FindNode
+        {
+            Type = "FIND",
+            ConceptName = conceptToken.Lexeme,
+            Line = token.Line,
+            Column = token.Column
+        };
+        PartialNodes.Add(node);
+
+        // Parse optional alias
+        if (Check(TokenType.IDENTIFIER) && !IsClauseKeyword(Peek()?.Type ?? TokenType.EOF))
+        {
+            node.Alias = ConsumeIdentifier()?.Lexeme;
+        }
+
+        // Parse WITH clause
+        if (Check(TokenType.WITH))
+        {
+            Consume(TokenType.WITH);
+            
+            // Loop to parse conditions (similar to WHERE clause parsing but for WITH)
+            // It could be multiple conditions joined by AND/OR.
+            // ParseCondition() handles AND/OR internally if it's set up to parse a boolean expression tree.
+            // Wait, ParseCondition() in KBMS parses a single condition: "field op value".
+            // If it supports complex expressions, we need to handle that. Let's just parse one Condition for now, 
+            // or loop if it parses simple conditions.
+            // Actually, we'll parse it like WHERE clause parses conditions: ParseWhereConditions() or similar?
+            // Let's just use ParseCondition() in a loop if needed, but wait, `SelectNode.Conditions` is `List<Condition>`.
+            // Let's look at how WHERE is parsed in ParseSelect.
+            // But WITH is meta functions. Let's just use ParseCondition() and assume it handles functions.
+            while (!IsAtEnd() && !Check(TokenType.RETURN) && !Check(TokenType.SEMICOLON))
+            {
+                node.WithConditions.Add(ParseCondition());
+                if (Check(TokenType.AND))
+                {
+                    Consume(TokenType.AND);
+                }
+                else if (!Check(TokenType.RETURN) && !Check(TokenType.SEMICOLON))
+                {
+                    break;
+                }
+            }
+        }
+
+        // Parse RETURN clause
+        if (Check(TokenType.RETURN))
+        {
+            Consume(TokenType.RETURN);
+            
+            if (Check(TokenType.STAR))
+            {
+                Consume(TokenType.STAR);
+            }
+            else
+            {
+                while (!IsAtEnd() && !Check(TokenType.SEMICOLON))
+                {
+                    node.ReturnItems.Add(ParseSelectColumnItem());
+                    if (Check(TokenType.COMMA))
+                    {
+                        Consume(TokenType.COMMA);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+
+        return node;
     }
 
     // ==================== DDL Parsers ====================
@@ -223,6 +356,7 @@ public class Parser
             Line = token.Line,
             Column = token.Column
         };
+        PartialNodes.Add(node); // Record it so LSP can see it even if it fails
 
         if (!Check(TokenType.LPAREN))
             throw Error("Expected '(' after concept name");
@@ -282,6 +416,7 @@ public class Parser
             else if (nextType == TokenType.RULES)
             {
                 Consume(TokenType.RULES);
+                Console.WriteLine("[DEBUG] Entering RULES section parsing");
                 node.ConceptRules = ParseConceptRuleList();
             }
             else if (nextType == TokenType.EQUATIONS)
@@ -337,8 +472,8 @@ public class Parser
 
         var varDef = new VariableDefinition
         {
-            Name = nameToken.Lexeme,
-            Type = typeToken.Lexeme.ToUpper()
+            Name = nameToken.Lexeme!,
+            Type = typeToken.Lexeme!.ToUpper()
         };
 
         // Parse type
@@ -665,6 +800,7 @@ public class Parser
             Line = token.Line,
             Column = token.Column
         };
+        PartialNodes.Add(node);
 
         // Parse TYPE clause
         if (Check(TokenType.TYPE))
@@ -708,7 +844,7 @@ public class Parser
         {
             Advance(); // consume PRIORITY
             var priorityToken = Consume(TokenType.NUMBER) ?? throw Error("Expected priority number");
-            node.Priority = (int)ConvertToDouble(priorityToken.Literal);
+            node.Priority = (int)ConvertToDouble(priorityToken.Literal!);
         }
 
         return node;
@@ -776,7 +912,7 @@ public class Parser
         if (Check(TokenType.IDENTIFIER) && !IsClauseKeyword(Peek()?.Type ?? TokenType.EOF))
         {
             var aliasToken = Advance();
-            scopeConcept.Alias = aliasToken.Lexeme;
+            scopeConcept.Alias = aliasToken.Lexeme!;
         }
 
         return scopeConcept;
@@ -865,7 +1001,7 @@ public class Parser
         string conceptName;
         if (Check(TokenType.STAR))
         {
-            conceptName = Advance().Lexeme;
+            conceptName = Advance().Lexeme!;
         }
         else
         {
@@ -1056,7 +1192,7 @@ public class Parser
 
         var node = new AlterKbNode
         {
-            KbName = (Check(TokenType.STAR) ? Advance().Lexeme : (Consume(TokenType.IDENTIFIER)?.Lexeme ?? throw Error("Expected KB name or '*'"))),
+            KbName = (Check(TokenType.STAR) ? Advance().Lexeme : (Consume(TokenType.IDENTIFIER)?.Lexeme ?? throw Error("Expected KB name or '*'"))!),
             Line = token.Line,
             Column = token.Column
         };
@@ -1097,11 +1233,11 @@ public class Parser
                 throw Error("Expected SET field (PASSWORD or ADMIN)");
 
             Consume(TokenType.COLON);
-            if (fieldToken.Lexeme.Equals("PASSWORD", StringComparison.OrdinalIgnoreCase))
+            if (fieldToken.Lexeme!.Equals("PASSWORD", StringComparison.OrdinalIgnoreCase))
             {
                 node.NewPassword = Consume(TokenType.STRING)?.Literal?.ToString() ?? Consume(TokenType.IDENTIFIER)?.Lexeme;
             }
-            else if (fieldToken.Lexeme.Equals("ADMIN", StringComparison.OrdinalIgnoreCase))
+            else if (fieldToken.Lexeme!.Equals("ADMIN", StringComparison.OrdinalIgnoreCase))
             {
                 node.NewAdminStatus = bool.Parse(Consume(TokenType.BOOLEAN)?.Lexeme ?? "false");
             }
@@ -1156,7 +1292,7 @@ public class Parser
         if (Consume(TokenType.OF) == null) throw Error("Expected 'OF' after trigger event");
         // Concept name might be an identifier; use Advance() so keywords like a concept named after a keyword aren't rejected
         string conceptName = Check(TokenType.STAR) 
-            ? Advance().Lexeme 
+            ? Advance().Lexeme! 
             : (Advance()?.Lexeme ?? throw Error("Expected concept name or '*'"));
         if (Consume(TokenType.RPAREN) == null) throw Error("Expected ')' after trigger event concept");
 
@@ -1214,7 +1350,7 @@ public class Parser
             else if (actionToken.Type == TokenType.REINDEX)
             {
                 Consume(TokenType.LPAREN);
-                string target = Check(TokenType.STAR) ? Advance().Lexeme : (Consume(TokenType.IDENTIFIER)?.Lexeme ?? throw Error("Expected concept name or '*'"));
+                string target = Check(TokenType.STAR) ? Advance().Lexeme! : (Consume(TokenType.IDENTIFIER)?.Lexeme ?? throw Error("Expected concept name or '*'"));
                 Consume(TokenType.RPAREN);
                 node.Actions.Add(new MaintenanceAction { ActionType = MaintenanceActionType.Reindex, TargetName = target });
             }
@@ -1223,7 +1359,7 @@ public class Parser
                 Consume(TokenType.LPAREN);
                 Consume(TokenType.CONSISTENCY);
                 Consume(TokenType.COLON);
-                string target = Check(TokenType.STAR) ? Advance().Lexeme : (Consume(TokenType.IDENTIFIER)?.Lexeme ?? throw Error("Expected concept name or '*'"));
+                string target = Check(TokenType.STAR) ? Advance().Lexeme! : (Consume(TokenType.IDENTIFIER)?.Lexeme ?? throw Error("Expected concept name or '*'"));
                 Consume(TokenType.RPAREN);
                 node.Actions.Add(new MaintenanceAction { ActionType = MaintenanceActionType.CheckConsistency, TargetName = target });
             }
@@ -1273,12 +1409,12 @@ public class Parser
                     Consume(TokenType.COLON);
                     var parentToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected parent concept name after ':'");
                     targetName = $"{childToken.Lexeme}:{parentToken.Lexeme}";
-                } else if (Check(TokenType.IS_A) || Check(TokenType.PART_OF)) {
+                } else if (Check(TokenType.IS_A) || Check(TokenType.ISA)) {
                     var relToken = Advance()!;
                     var parentToken = Consume(TokenType.IDENTIFIER) ?? throw Error($"Expected parent concept name after {relToken.Lexeme}");
                     targetName = $"{childToken.Lexeme}:{parentToken.Lexeme}";
                 } else {
-                    throw Error("Expected ':' or IS_A/PART_OF in hierarchy description");
+                    throw Error("Expected ':' or IS_A in hierarchy description");
                 }
             }
         } else {
@@ -1323,7 +1459,7 @@ public class Parser
         else throw Error("Expected 'CONCEPT' or 'KNOWLEDGE BASE' in EXPORT parameters");
 
         if (Consume(TokenType.COLON) == null) throw Error("Expected ':' after target type");
-        name = Check(TokenType.STAR) ? Advance().Lexeme : (ConsumeIdentifier()?.Lexeme ?? throw Error("Expected name or '*'"));
+        name = Check(TokenType.STAR) ? Advance().Lexeme! : (ConsumeIdentifier()?.Lexeme! ?? throw Error("Expected name or '*'"));
 
         if (Consume(TokenType.COMMA) == null) throw Error("Expected ',' after target parameter");
         if (Consume(TokenType.FORMAT) == null) throw Error("Expected 'FORMAT' in EXPORT parameters");
@@ -1371,7 +1507,7 @@ public class Parser
         else throw Error("Expected 'CONCEPT' or 'KNOWLEDGE BASE' in IMPORT parameters");
 
         if (Consume(TokenType.COLON) == null) throw Error("Expected ':' after target type");
-        name = Check(TokenType.STAR) ? Advance().Lexeme : (ConsumeIdentifier()?.Lexeme ?? throw Error("Expected name or '*'"));
+        name = Check(TokenType.STAR) ? Advance().Lexeme! : (ConsumeIdentifier()?.Lexeme! ?? throw Error("Expected name or '*'"));
 
         if (Consume(TokenType.COMMA) == null) throw Error("Expected ',' after target parameter");
         if (Consume(TokenType.FORMAT) == null) throw Error("Expected 'FORMAT' in IMPORT parameters");
@@ -1413,7 +1549,40 @@ public class Parser
             TokenType.FUNCTION => ParseDropFunction(),
             TokenType.RULE => ParseDropRule(),
             TokenType.USER => ParseDropUser(),
+            TokenType.INDEX => ParseDropIndex(),
+            TokenType.TRIGGER => ParseDropTrigger(),
             _ => throw Error($"Unexpected token after DROP: {token.Lexeme}", token)
+        };
+    }
+
+    private DropIndexNode ParseDropIndex()
+    {
+        Consume(TokenType.INDEX);
+        var token = ConsumeIdentifier() ?? throw Error("Expected index name");
+        Consume(TokenType.ON);
+        var conceptToken = ConsumeIdentifier() ?? throw Error("Expected concept name after ON");
+
+        return new DropIndexNode
+        {
+            Type = "DROP_INDEX",
+            IndexName = token.Lexeme,
+            ConceptName = conceptToken.Lexeme,
+            Line = token.Line,
+            Column = token.Column
+        };
+    }
+
+    private DropTriggerNode ParseDropTrigger()
+    {
+        Consume(TokenType.TRIGGER);
+        var token = ConsumeIdentifier() ?? throw Error("Expected trigger name");
+
+        return new DropTriggerNode
+        {
+            Type = "DROP_TRIGGER",
+            TriggerName = token.Lexeme,
+            Line = token.Line,
+            Column = token.Column
         };
     }
 
@@ -1649,20 +1818,15 @@ public class Parser
         {
             hierarchyType = KBMS.Parser.Ast.Kdl.HierarchyType.IS_A;
         }
-        else if (typeToken.Type == TokenType.PART_OF)
-        {
-            hierarchyType = KBMS.Parser.Ast.Kdl.HierarchyType.PART_OF;
-        }
         else
         {
-            throw Error($"Expected IS_A, ISA, or PART_OF, got {typeToken.Lexeme}", typeToken);
+            throw Error($"Expected IS_A or ISA, got {typeToken.Lexeme}", typeToken);
         }
         Advance();
 
         var secondConceptToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected concept name");
 
-        // In both IS_A and PART_OF:
-        // "A IS_A B" or "A PART_OF B" means A is the child, B is the parent
+        // "A IS_A B" means A is the child, B is the parent
         return new AddHierarchyNode
         {
             Type = "ADD_HIERARCHY",
@@ -1757,13 +1921,9 @@ public class Parser
         {
             hierarchyType = KBMS.Parser.Ast.Kdl.HierarchyType.IS_A;
         }
-        else if (typeToken.Type == TokenType.PART_OF)
-        {
-            hierarchyType = KBMS.Parser.Ast.Kdl.HierarchyType.PART_OF;
-        }
         else
         {
-            throw Error($"Expected IS_A, ISA, or PART_OF, got {typeToken.Lexeme}", typeToken);
+            throw Error($"Expected IS_A or ISA, got {typeToken.Lexeme}", typeToken);
         }
         Advance();
 
@@ -1861,6 +2021,7 @@ public class Parser
             Line = token.Line,
             Column = token.Column
         };
+        PartialNodes.Add(node);
 
         // Parse SELECT columns: *, aggregates, or named column list with optional AS aliases
         if (Check(TokenType.STAR) && PeekNext() != null && PeekNext()!.Type == TokenType.FROM)
@@ -2069,7 +2230,7 @@ public class Parser
         // Parse as a full expression
         var expr = ParseExpression();
         col.Expression = expr;
-        col.Name = expr.ToString(); // Fallback/Display name
+        col.Name = expr.ToString() ?? ""; // Fallback/Display name
 
         // Try to extract TablePrefix for simple p.name patterns
         if (expr is VariableNode varNode)
@@ -2629,6 +2790,32 @@ public class Parser
                 throw Error("Expected ON or OF after PRIVILEGES");
             }
         }
+        else if (Peek()?.Type == TokenType.TRIGGERS)
+        {
+            Consume(TokenType.TRIGGERS);
+            node.ShowType = ShowType.Triggers;
+            node.Type = "SHOW_TRIGGERS";
+
+            if (Check(TokenType.IN))
+            {
+                Consume(TokenType.IN);
+                var kbToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected knowledge base name");
+                node.KbName = kbToken.Lexeme;
+            }
+        }
+        else if (Peek()?.Type == TokenType.INDEXES)
+        {
+            Consume(TokenType.INDEXES);
+            node.ShowType = ShowType.Indexes;
+            node.Type = "SHOW_INDEXES";
+
+            if (Check(TokenType.IN))
+            {
+                Consume(TokenType.IN);
+                var kbToken = Consume(TokenType.IDENTIFIER) ?? throw Error("Expected knowledge base name");
+                node.KbName = kbToken.Lexeme;
+            }
+        }
         else
         {
             var errorToken = Peek();
@@ -2815,12 +3002,29 @@ public class Parser
                     Line = token.Line,
                     Column = token.Column
                 };
+                
+            case TokenType.NULL_TOKEN:
+                Advance();
+                return new LiteralNode
+                {
+                    Value = null,
+                    ValueType = "null",
+                    Line = token.Line,
+                    Column = token.Column
+                };
 
             case TokenType.IDENTIFIER:
             case TokenType.SOLVE: // Allow SOLVE keyword as a function name
             case TokenType.KNOWLEDGE:
             case TokenType.CONCEPT:
             case TokenType.RELATION:
+            case TokenType.HAS_FIRED:
+            case TokenType.IS_DEDUCED:
+            case TokenType.TOTAL_COST:
+            case TokenType.IS_STUCK:
+            case TokenType.AUDIT_LOG:
+            case TokenType.GENERATED_VARIABLES:
+            case TokenType.MISSING_FACTS:
                 Advance();
 
                 // Check for function call
@@ -2883,7 +3087,7 @@ public class Parser
             };
         }
 
-        var left = ParseExpression();
+        var left = ParseAdditive();
 
         if (left is VariableNode varNode)
         {
@@ -2893,6 +3097,16 @@ public class Parser
             {
                 Advance();
                 object? value = null;
+                string opString = opToken.Lexeme;
+
+                if (opToken.Type == TokenType.IS)
+                {
+                    if (Check(TokenType.NOT))
+                    {
+                        Advance();
+                        opString = "IS NOT";
+                    }
+                }
 
                 if (opToken.Type == TokenType.IN)
                 {
@@ -2908,7 +3122,7 @@ public class Parser
                         while (!Check(TokenType.RPAREN) && !IsAtEnd())
                         {
                             var expr = ParseExpression();
-                            if (expr is LiteralNode lit) list.Add(lit.Value);
+                            if (expr is LiteralNode lit) list.Add(lit.Value ?? DBNull.Value);
                             else if (expr is VariableNode vNode) list.Add(vNode.Name);
                             else list.Add(expr.ToString()!);
 
@@ -2928,7 +3142,7 @@ public class Parser
                 }
                 else
                 {
-                    var right = ParseExpression();
+                    var right = ParseAdditive();
                     value = right switch
                     {
                         LiteralNode lit => lit.Value,
@@ -2940,36 +3154,43 @@ public class Parser
                 return new Condition
                 {
                     Field = varNode.Name,
-                    Operator = opToken.Lexeme,
+                    Operator = opString.ToUpper(),
                     Value = value
                 };
             }
         }
         else if (left is FunctionCallNode funcCall)
         {
-            // Handle SOLVE(field) > value pattern
-            var opToken = Peek() ?? throw Error("Expected operator");
-
-            if (IsComparisonOperator(opToken.Type))
+            // If there's no operator, treat the function call as a boolean condition itself
+            var opToken = Peek();
+            if (opToken == null || !IsComparisonOperator(opToken.Type))
             {
-                Advance();
-                var right = ParseExpression();
-                object? value = right switch
-                {
-                    LiteralNode lit => lit.Value,
-                    VariableNode v => v.Name,
-                    _ => right.ToString()
-                };
-
                 return new Condition
                 {
-                    Field = funcCall.ToString() ?? "",
-                    Operator = opToken.Lexeme,
-                    Value = value,
+                    Field = funcCall.FunctionName,
+                    Operator = "TRUE",
+                    Value = true,
                     LeftExpression = funcCall
                 };
             }
-            throw Error($"Expected comparison operator after function call {funcCall.FunctionName}");
+
+            // Handle SOLVE(field) > value pattern
+            Advance();
+            var right = ParseAdditive();
+            object? value = right switch
+            {
+                LiteralNode lit => lit.Value,
+                VariableNode v => v.Name,
+                _ => right.ToString()
+            };
+
+            return new Condition
+            {
+                Field = funcCall.ToString() ?? "",
+                Operator = opToken.Lexeme,
+                Value = value,
+                LeftExpression = funcCall
+            };
         }
         else if (left is BinaryExpressionNode binary)
         {
@@ -3164,10 +3385,10 @@ public class Parser
                 break;
 
             var rule = new ConceptRuleDef();
-            
+
             if (Check(TokenType.RULE) || Check(TokenType.TYPE))
             {
-                Advance(); // Consume RULE or TYPE
+                var trigger = Advance(); // Consume RULE or TYPE
                 // Optional colon after RULE/TYPE
                 if (Check(TokenType.COLON)) Consume(TokenType.COLON);
                 
@@ -3175,7 +3396,8 @@ public class Parser
                 if (Check(TokenType.IDENTIFIER))
                 {
                     var typeToken = Consume(TokenType.IDENTIFIER);
-                    rule.Kind = typeToken?.Lexeme;
+                    rule.Kind = typeToken?.Lexeme ?? "deduction";
+                    rule.RuleName = typeToken?.Lexeme ?? "";
                     if (Check(TokenType.COLON)) Consume(TokenType.COLON);
                 }
             }
@@ -3287,7 +3509,7 @@ public class Parser
             // Lookahead for named constraint: name: expression
             if (Peek()?.Type == TokenType.IDENTIFIER && PeekNext()?.Type == TokenType.COLON)
             {
-                name = Advance().Lexeme;
+                name = Advance().Lexeme ?? "";
                 Consume(TokenType.COLON);
                 // The actual expression starts after the colon
                 startToken = Peek() ?? throw Error("Expected constraint expression after ':'");
@@ -3457,7 +3679,7 @@ public class Parser
             if (token == null || token.Type == TokenType.COMMA)
                 throw Error("Expected variable name");
             var varToken = Advance();
-            var item = new OrderByItem { Variable = varToken.Lexeme };
+            var item = new OrderByItem { Variable = varToken.Lexeme! };
 
             if (Check(TokenType.ASC))
             {
@@ -3533,7 +3755,8 @@ public class Parser
                type == TokenType.LESS_EQUAL ||
                type == TokenType.IN ||
                type == TokenType.LIKE ||
-               type == TokenType.CONTAINS;
+               type == TokenType.CONTAINS ||
+               type == TokenType.IS;
     }
 
     private static bool IsOperatorToken(TokenType type)
@@ -3663,6 +3886,25 @@ public class Parser
     {
         var t = token ?? Peek() ?? (_tokens.Count > 0 ? _tokens[^1] : null);
         var response = ErrorResponse.ParserErrorResponse(message, _originalQuery, t?.Line ?? 0, t?.Column ?? 0);
-        return new ParserException(response);
+        var ex = new ParserException(response);
+        
+        if (TolerantMode)
+        {
+            Errors.Add(ex);
+            // In tolerant mode, we still need to unwind the current Parse loop 
+            // without crashing the entire ParseAll loop. We throw a TolerantException.
+            throw new TolerantParseException(ex);
+        }
+
+        return ex;
+    }
+}
+
+public class TolerantParseException : Exception
+{
+    public ParserException OriginalException { get; }
+    public TolerantParseException(ParserException ex) : base(ex.Message)
+    {
+        OriginalException = ex;
     }
 }

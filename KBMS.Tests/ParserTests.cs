@@ -346,20 +346,7 @@ public class ParserTests
         Assert.Equal(HierarchyType.IS_A, hierNode.HierarchyType);
     }
 
-    [Fact]
-    public void Parser_AddHierarchy_PartOf_ShouldParseCorrectly()
-    {
-        var node = ParseStatement("ADD HIERARCHY Wheel PART_OF Car;");
 
-        Assert.NotNull(node);
-        Assert.IsType<AddHierarchyNode>(node);
-
-        var hierNode = (AddHierarchyNode)node;
-        Assert.Equal("ADD_HIERARCHY", hierNode.Type);
-        Assert.Equal("Wheel", hierNode.ChildConcept);
-        Assert.Equal("Car", hierNode.ParentConcept);
-        Assert.Equal(HierarchyType.PART_OF, hierNode.HierarchyType);
-    }
 
     // ==================== GRANT/REVOKE Tests ====================
 
