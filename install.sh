@@ -68,6 +68,7 @@ mkdir -p "$INSTALL_DIR"
 mkdir -p "$DATA_DIR"
 
 unzip -q -o "$SERVER_ZIP" -d "$INSTALL_DIR/server"
+rm -f "$INSTALL_DIR/server/kbms.ini"
 unzip -q -o "$CLI_ZIP" -d "$INSTALL_DIR/cli"
 
 # Setup config

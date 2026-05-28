@@ -21,6 +21,7 @@ mkdir -p "$PAYLOAD_DIR/DEBIAN"
 echo "Extracting Linux binaries from releases..."
 unzip -q -o "releases/KBMS_Server_v${VERSION}_linux-x64.zip" -d "$PAYLOAD_DIR/opt/kbms/server"
 unzip -q -o "releases/KBMS_CLI_v${VERSION}_linux-x64.zip" -d "$PAYLOAD_DIR/opt/kbms/cli"
+rm -f "$PAYLOAD_DIR/opt/kbms/server/kbms.ini"
 
 mkdir -p "$PAYLOAD_DIR/etc/systemd/system"
 cat <<EOF > "$PAYLOAD_DIR/etc/systemd/system/kbms.service"

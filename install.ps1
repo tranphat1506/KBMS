@@ -46,6 +46,11 @@ if (-not (Test-Path $DataDir)) { New-Item -ItemType Directory -Path $DataDir -Fo
 Expand-Archive -Path "$TempDir\server.zip" -DestinationPath "$InstallDir\server" -Force
 Expand-Archive -Path "$TempDir\cli.zip" -DestinationPath "$InstallDir\cli" -Force
 
+# Remove bundled kbms.ini to force using the global one in ProgramData
+if (Test-Path "$InstallDir\server\kbms.ini") {
+    Remove-Item -Path "$InstallDir\server\kbms.ini" -Force
+}
+
 $ConfigFile = "$ConfigDir\kbms.ini"
 $ConfigContent = @"
 [Server]
