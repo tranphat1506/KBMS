@@ -66,8 +66,8 @@ npm run build
 # Build for all targets
 # --mac: zip, dmg
 # --linux: AppImage, deb, rpm
-# --win: exe, zip
-npx electron-builder build --mac --linux --win --publish never
+# (Bỏ qua build Windows --win trên máy Mac ARM để tránh lỗi wine64)
+npx electron-builder build --mac --linux --publish never
 
 # Copy Studio artifacts to root releases folder
 echo "Organizing Studio artifacts..."
