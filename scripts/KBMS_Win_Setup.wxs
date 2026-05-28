@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    <Product Id="*" Name="KBMS Core (Server &amp; CLI)" Language="1033" Version="3.5.0.0" Manufacturer="Thingent" UpgradeCode="a1b2c3d4-e5f6-4a1b-8c9d-0123456789ab">
+        <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
+
+        <MajorUpgrade DowngradeErrorMessage="A newer version of KBMS Core is already installed." />
+        <MediaTemplate EmbedCab="yes" />
+
+        <!-- Directory Structure -->
+        <Directory Id="TARGETDIR" Name="SourceDir">
+            <Directory Id="ProgramFiles64Folder">
+                <Directory Id="INSTALLFOLDER" Name="KBMS">
+                    <Directory Id="SERVERFOLDER" Name="server" />
+                    <Directory Id="CLIFOLDER" Name="cli" />
+                </Directory>
+            </Directory>
+            <Directory Id="CommonAppDataFolder">
+                <Directory Id="DATAFOLDER" Name="KBMS">
+                    <Directory Id="KBMSDATA" Name="data" />
+                </Directory>
+            </Directory>
+        </Directory>
+
+        <!-- Components -->
+        <DirectoryRef Id="INSTALLFOLDER">
+            <!-- Add Path Environment Variable -->
+            <Component Id="PathEnvVar" Guid="12345678-1234-1234-1234-123456789012">
+                <Environment Id="PATH" Name="PATH" Value="[INSTALLFOLDER]cli;[INSTALLFOLDER]server" Permanent="no" Part="last" Action="set" System="yes" />
+            </Component>
+        </DirectoryRef>
+
+        <DirectoryRef Id="DATAFOLDER">
+            <!-- Global Config File -->
+            <Component Id="GlobalConfig" Guid="87654321-4321-4321-4321-210987654321">
+                <File Id="KbmsIni" Source="kbms.ini" KeyPath="yes" />
+            </Component>
+        </DirectoryRef>
+
+        <!-- Features -->
+        <Feature Id="ProductFeature" Title="KBMS Core" Level="1">
+            <ComponentRef Id="PathEnvVar" />
+            <ComponentRef Id="GlobalConfig" />
+            <!-- Server & CLI components will be generated dynamically by heat.exe -->
+        </Feature>
+    </Product>
+</Wix>
