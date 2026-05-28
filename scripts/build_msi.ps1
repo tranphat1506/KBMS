@@ -62,7 +62,7 @@ Write-Host "[4/5] Skipping heat.exe (Files manually defined in WXS)..."
 # 5. Run WiX Candle & Light
 Write-Host "[5/5] Compiling and Linking MSI with candle.exe and light.exe..."
 & "$WixDir\candle.exe" -arch x64 KBMS_Win_Setup.wxs
-& "$WixDir\light.exe" -ext WixUIExtension KBMS_Win_Setup.wixobj -out KBMS_v${Version}_${RID}.msi
+& "$WixDir\light.exe" -ext WixUIExtension KBMS_Win_Setup.wixobj -out KBMS_v${Version}_${RID}_Update.msi
 
 # Cleanup
 Write-Host "Cleaning up..."

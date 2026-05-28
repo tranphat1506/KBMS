@@ -15,7 +15,15 @@ $DataDir = "$env:ProgramData\KBMS"
 # 1. Stop and Remove Service
 if (Get-Service $ServiceName -ErrorAction SilentlyContinue) {
     Write-Host "Stopping and removing Windows Service..."
-    Stop-Service $ServiceName -Force
+    
+    # Force kill process to release file locks before stopping service
+    $process = Get-Process kbms-server -ErrorAction SilentlyContinue
+    if ($process) {
+        Write-Host "Force killing kbms-server process..."
+        Stop-Process -Name "kbms-server" -Force -ErrorAction SilentlyContinue
+    }
+
+    Stop-Service $ServiceName -Force -ErrorAction SilentlyContinue
     sc.exe delete $ServiceName | Out-Null
 }
 
