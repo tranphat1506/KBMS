@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # KBMS Multi-Platform Packaging Script
-# Version: 3.4.0
+# Version: 3.5.0
 # Support: macOS, Linux, Windows
 
 set -e
 
-VERSION="3.4.0"
+VERSION="3.5.0"
 ROOT_DIR=$(pwd)
 RELEASE_DIR="$ROOT_DIR/releases"
 RIDS=("osx-arm64" "linux-x64" "win-x64")
@@ -25,6 +25,8 @@ echo "[2/4] Cleaning up old releases..."
 rm -rf "$RELEASE_DIR"
 rm -rf "$ROOT_DIR/kbms-studio/release"
 mkdir -p "$RELEASE_DIR"
+cp "$ROOT_DIR/install.sh" "$RELEASE_DIR/"
+cp "$ROOT_DIR/install.ps1" "$RELEASE_DIR/"
 
 # 3. Build & Package Server & CLI (for all RIDs)
 echo "[3/4] Building .NET Components (Server & CLI)..."

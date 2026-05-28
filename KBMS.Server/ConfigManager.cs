@@ -24,13 +24,26 @@ public class ConfigManager
         var config = new ConfigManager();
         
         string fullPath = filePath;
-        if (!Path.IsPathRooted(filePath))
+        if (!File.Exists(fullPath))
         {
             fullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, filePath);
             if (!File.Exists(fullPath))
             {
                 // Fallback to CWD
                 fullPath = Path.GetFullPath(filePath);
+            }
+            
+            // Fallback to Global Paths if installed via Script/GUI
+            if (!File.Exists(fullPath))
+            {
+                if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+                {
+                    fullPath = @"C:\ProgramData\KBMS\kbms.ini";
+                }
+                else
+                {
+                    fullPath = "/etc/kbms/kbms.ini";
+                }
             }
         }
 
