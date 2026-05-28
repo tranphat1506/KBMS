@@ -1,0 +1,5 @@
+graph TD
+    T[Khái niệm Mục tiêu] --> P[Khái niệm Cha: IS-A/PART-OF]
+    P -- Tìm kiếm DFS --> All[Tập hợp toàn bộ Metadata]
+    All -- Ghi đè (Overriding) --> Flatten[Khái niệm Hiệu dụng]
+    Flatten -- Tiêm vào --> Engine[Bộ máy Suy diễn]

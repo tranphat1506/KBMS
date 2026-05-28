@@ -1,0 +1,23 @@
+graph TD
+    A[Máy trạm / Client] -- "Dòng Byte (TCP)" --> B[TcpListener]
+    
+    subgraph "Khối Điều phối & Phiên"
+        B -- "Giao tiếp Socket" --> C[ConnectionManager]
+        C -- "Khởi tạo" --> E[Đối tượng Session]
+        E -- "Quản lý" --> G[(Session Catalog)]
+    end
+    
+    subgraph "Xử lý Giao thức"
+        E -- "Đọc Frame" --> H[Bộ giải mã nhị phân]
+        H -- "Phân tách" --> I{Cấu trúc Message}
+        I -- "Phân loại" --> J[Đăng nhập / Truy vấn]
+        I -- "Định danh" --> K[Mã Phiên + Mã Yêu cầu]
+    end
+    
+    J -- "Phối hợp" --> K
+    K -- "Chuyển tiếp" --> L[Tầng Máy chủ]
+
+    style B fill:#f9f,stroke:#333,stroke-width:2px
+    style C fill:#bbf,stroke:#333,stroke-width:2px
+    style G fill:#dfd,stroke:#333,stroke-width:2px
+    style H fill:#fdb,stroke:#333,stroke-width:2px

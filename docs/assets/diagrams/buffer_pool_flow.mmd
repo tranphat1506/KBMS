@@ -1,0 +1,27 @@
+graph LR
+    subgraph "Storage Pool (System RAM)"
+        BPM["Buffer Pool Manager"]
+        subgraph "Page Frames (Fixed Size 100 slots)"
+            F1["Frame 0"]
+            F2["Frame 1"]
+            F3["Frame N"]
+        end
+        LRU["LRU Eviction List"]
+        Table["Page Table: PageId -> FrameId"]
+    end
+
+    subgraph "Disk (Physical Storage)"
+        DM["Disk Manager"]
+        File[(".kdb Data File")]
+    end
+
+    Fetch["FetchPage Request"] --> BPM
+    BPM --> Table
+    Table -- "Miss" --> LRU
+    LRU -- "Evict Dirty?" --> DM
+    DM -- "WritePage" --> File
+    DM -- "ReadPage (Decrypted)" --> BPM
+    BPM -- "Populate" --> F1
+    Table -- "Hit" --> BPM
+    BPM -- "Increment PinCount" --> F1
+    BPM -- "Return Page Pointer" --> Return["Caller"]

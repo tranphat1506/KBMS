@@ -1,0 +1,23 @@
+graph TD
+    subgraph KBMS_Reasoning_Layer [Tầng Suy luận KBMS]
+        IE[Inference Engine - Bộ điều phối]
+        FM[(Fact Memory - Bộ nhớ Sự kiện)]
+        ER[Equation Resolver - Bộ giải Hệ thức]
+        RE[Rule Evaluator - Bộ đánh giá Luật]
+    end
+
+    subgraph Rete_Network [Cấu trúc Mạng Rete]
+        AN[Alpha Nodes - Bộ lọc thuộc tính]
+        BN[Beta Nodes - Phép nối dữ kiện]
+        PN[P-Nodes - Nút thực thi kết luận]
+    end
+
+    IE -->|Khởi tạo| FM
+    IE -->|Kích hoạt| RE
+    IE -->|Tính toán| ER
+    RE --> AN
+    AN --> BN
+    BN --> PN
+    PN -->|Sinh Fact mới| FM
+    ER -->|Giá trị nội suy| FM
+    FM -->|Cung cấp sự kiện| RE

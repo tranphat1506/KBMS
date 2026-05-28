@@ -1,0 +1,20 @@
+graph LR
+    subgraph Total_Physical_Page [Khối vật lý trên đĩa: 16,416 byte]
+        Data[Dữ liệu Logic: 16,384 byte]
+        IV[Vector IV: 16 byte]
+        Padding[Phần bù: 16 byte]
+    end
+
+    subgraph Logical_Data_Breakdown [Cấu trúc nội bộ của 16KB]
+        Header[Page Header: 24 byte]
+        Slots[Mảng Slot Index]
+        FS[Vùng trống Free Space]
+        Tuples[Vùng bản ghi Tuples]
+    end
+
+    Data --- Logical_Data_Breakdown
+
+    style Data fill:#e3f2fd,stroke:#1565c0
+    style IV fill:#fff3e0,stroke:#e65100
+    style Padding fill:#f1f8e9,stroke:#33691e
+    style Header fill:#f3e5f5,stroke:#4a148c

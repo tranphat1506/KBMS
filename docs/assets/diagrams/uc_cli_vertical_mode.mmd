@@ -1,0 +1,16 @@
+sequenceDiagram
+    participant U as Người dùng (Admin)
+    participant C as KBMS CLI (Interactive)
+    participant P as ResponseParser.cs
+    participant S as KBMS Server
+
+    U->>C: Nhập lệnh DESCRIBE Concept_A;
+    C->>S: Gửi MessageType.QUERY
+    S-->>C: Trả về Metadata (ConceptName="Describe_A")
+    C->>P: Gọi DisplayResult(metadata)
+    P->>P: Phát hiện IsVerticalMode("Describe_A") = true
+    P->>C: Xuất Header: ********* row 1 *********
+    S-->>C: Trả về Row dữ liệu JSON
+    C->>P: Gọi DisplayRow(content)
+    P->>C: In dạng cột dọc: Field: Value
+    C->>U: Hiển thị giao diện trực quan dể đọc

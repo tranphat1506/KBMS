@@ -1,0 +1,63 @@
+classDiagram
+    class AstNode {
+        +String Type
+        +String KbName
+        +int Line
+        +int Column
+    }
+
+    class KclNode {
+        <<Abstract>>
+        +String ConceptName
+    }
+
+    class KdlNode {
+        <<Abstract>>
+        +String TableName
+    }
+
+    class KqlNode {
+        <<Abstract>>
+        +QuerySource Source
+    }
+
+    class SelectNode {
+        +List Projection
+        +FilterNode Where
+    }
+
+    class SolveNode {
+        +String Goal
+        +List Facts
+    }
+
+    class ExpressionNode {
+        <<Abstract>>
+        +Type DataType
+    }
+
+    class BinaryExpressionNode {
+        +AstNode Left
+        +AstNode Right
+        +Operator Op
+    }
+
+    class LiteralNode {
+        +Object Value
+    }
+
+    AstNode <|-- KclNode
+    AstNode <|-- KdlNode
+    AstNode <|-- KqlNode
+    AstNode <|-- ExpressionNode
+    
+    KqlNode <|-- SelectNode
+    KqlNode <|-- SolveNode
+    
+    ExpressionNode <|-- BinaryExpressionNode
+    ExpressionNode <|-- LiteralNode
+
+    style AstNode fill:#f9f,stroke:#333,stroke-width:2px
+    style KqlNode fill:#bbf,stroke:#333
+    style KclNode fill:#dfd,stroke:#333
+    style ExpressionNode fill:#fdb,stroke:#333

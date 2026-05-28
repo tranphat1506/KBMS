@@ -1,0 +1,20 @@
+classDiagram
+    class Function {
+        +Guid Id
+        +string Name
+        +string ReturnType
+        +string Body
+        +List~FunctionParameter~ Parameters
+    }
+    class Operator {
+        +Guid Id
+        +string Symbol
+        +string ReturnType
+        +string Body
+        +List~string~ ParamTypes
+    }
+    class FunctionParameter {
+        +string Name
+        +string Type
+    }
+    Function o-- FunctionParameter

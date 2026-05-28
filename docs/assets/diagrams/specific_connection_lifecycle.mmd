@@ -1,0 +1,21 @@
+sequenceDiagram
+    participant C as Khách (CLI/Studio)
+    participant S as Máy chủ KBMS
+    participant CM as ConnectionManager
+    participant AM as AuthenticationManager
+    participant KM as KnowledgeManager
+
+    C->>S: Yêu cầu TCP:3307 (Connect)
+    S->>CM: Khởi tạo luồng bất đồng bộ (Accept)
+    CM->>AM: Xác thực quyền hạn (RBAC)
+    AM-->>CM: Cấp mã GUID phiền
+    CM-->>C: Sẵn sàng (ConnectionEstablished)
+
+    C->>CM: Gửi khung tin KBQL (MessageType.QUERY)
+    CM->>KM: Điều phối nốt AST đến Nhân tri thức
+    KM->>KM: Thực thi (Execute)
+    KM-->>CM: Tập kết quả (ResultSet)
+    CM-->>C: Phản hồi gói tin (MessageType.ROW)
+
+    C->>CM: Ngắt kết nối (Close)
+    CM->>S: Giải phóng tài nguyên (Dispose)

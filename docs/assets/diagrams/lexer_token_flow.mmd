@@ -1,0 +1,11 @@
+graph LR
+    Input["Chuỗi tri thức (Source String)"] -- "Scanner" --> Lexer["Lexer.cs"]
+    
+    subgraph Tokenization
+        Lexer -- "Identify" --> T1["Keyword (SELECT)"]
+        Lexer -- "Identify" --> T2["Symbol (*)"]
+        Lexer -- "Identify" --> T3["Keyword (FROM)"]
+        Lexer -- "Identify" --> T4["Identifier (Student)"]
+    end
+    
+    T1 & T2 & T3 & T4 -- "Queue" --> TokenStream["Danh sách Token (List&lt;Token&gt;)"]

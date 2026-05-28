@@ -1,0 +1,20 @@
+sequenceDiagram
+    participant Main as Program.Main
+    participant Config as ConfigManager
+    participant Pool as StoragePool
+    participant Catalog as Catalogs (KB/Concept/User)
+    participant KM as KnowledgeManager
+    participant Boot as SystemKbBootstrapper
+    participant Server as KbmsServer
+
+    Main->>Config: Load(kbms.ini)
+    Config-->>Main: Return Host/Port/DataDir
+    Main->>Pool: Init(DataDir, Key)
+    Main->>Catalog: Init(Pool)
+    Main->>KM: Init(Pool, Catalog)
+    Main->>Boot: Bootstrap(KM)
+    Boot->>Catalog: Create 'system' KB if not exists
+    Boot->>Catalog: Define 'User', 'KnowledgeBase' concepts
+    Main->>Server: Init(Config, KM)
+    Main->>Server: StartAsync()
+    Server->>Server: Open TcpListener

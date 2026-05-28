@@ -1,0 +1,15 @@
+graph TD
+    Root[Root: Fact Input] --> Type[Alpha: Concept Filter]
+    Type --> Attrib[Alpha: Attribute Filter]
+    Attrib --> Join1[Beta: Join - Concept A & B]
+    Join1 --> Join2[Beta: Join - Relation Check]
+    Join2 --> Prod[P-Node: Production Execution]
+    
+    subgraph Alpha_Nodes
+        Type
+        Attrib
+    end
+    subgraph Beta_Nodes
+        Join1
+        Join2
+    end

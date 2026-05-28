@@ -1,0 +1,33 @@
+classDiagram
+    class ReteNode {
+        +Guid Id
+        +List<ReteNode> Children
+        +ReceiveToken()*
+        #Propagate()
+    }
+    class EntryNode {
+        +AssertFact()
+    }
+    class AlphaNode {
+        +VariableName
+        +Condition
+    }
+    class BetaNode {
+        +LeftMemory: List<Token>
+        +RightMemory: List<Token>
+        +ReceiveLeft()
+        +ReceiveRight()
+    }
+    class TerminalNode {
+        +RuleName
+        +OnActivation
+    }
+    class FilterNode {
+        +Predicate
+    }
+    
+    ReteNode <|-- EntryNode
+    ReteNode <|-- AlphaNode
+    ReteNode <|-- BetaNode
+    ReteNode <|-- TerminalNode
+    ReteNode <|-- FilterNode

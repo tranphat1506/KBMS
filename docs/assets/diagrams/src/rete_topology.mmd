@@ -1,0 +1,12 @@
+graph TD
+    Root[EntryNode] --> Alpha1[AlphaNode: Type==Resistor]
+    Root --> Alpha2[AlphaNode: Type==VoltageSource]
+    
+    Alpha1 -->|Token| AM1[(Alpha Memory)]
+    Alpha2 -->|Token| AM2[(Alpha Memory)]
+    
+    AM1 --> Beta1{BetaNode: Join Connect}
+    AM2 --> Beta1
+    
+    Beta1 -->|Match| BM1[(Beta Memory)]
+    BM1 --> Term[TerminalNode: Solve Equation]

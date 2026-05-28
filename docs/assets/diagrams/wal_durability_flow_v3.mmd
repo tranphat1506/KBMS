@@ -1,0 +1,18 @@
+sequenceDiagram
+    participant T as Giao dịch Tri thức
+    participant BP as Buffer Pool (RAM)
+    participant WM as WAL Manager (Log)
+    participant DM as Disk Manager (.kdb)
+
+    T->>BP: Cập nhật trang dữ liệu (Trang bẩn)
+    BP->>WM: Tạo bản ghi nhật ký (Log Record)
+    WM->>WM: Ghi tuần tự vào tệp .wal
+    WM->>WM: Flush (Xác nhận trên đĩa)
+    
+    rect rgb(240, 240, 240)
+        Note right of WM: WAL Rule: Log must be on disk before Page
+        BP-->>DM: Ghi trang dữ liệu (Checkpoint/Evict)
+        DM->>DM: Ghi vào tệp .kdb vật lý
+    end
+
+    T-->>T: Phản hồi hoàn tất (Commit Successful)

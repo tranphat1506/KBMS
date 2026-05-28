@@ -1,0 +1,14 @@
+classDiagram
+    class KnowledgeBase {
+        +Guid Id
+        +string Name
+        +List~Concept~ Concepts
+        +List~Hierarchy~ Hierarchies
+        +List~Relation~ Relations
+        +List~Rule~ Rules
+        +List~Operator~ Operators
+        +List~Function~ Functions
+    }
+    KnowledgeBase "1" *-- "many" Concept
+    KnowledgeBase "1" *-- "many" Hierarchy
+    KnowledgeBase "1" *-- "many" Relation

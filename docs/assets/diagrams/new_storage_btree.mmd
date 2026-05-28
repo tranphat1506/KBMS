@@ -1,0 +1,23 @@
+flowchart TD
+    Root((BPlusTreeInternalNode: Gốc))
+    
+    Branch1((BPlusTreeInternalNode: Nhánh 1))
+    Branch2((BPlusTreeInternalNode: Nhánh 2))
+    
+    Leaf1[BPlusTreeLeafNode: Page 12]
+    Leaf2[BPlusTreeLeafNode: Page 15]
+    Leaf3[BPlusTreeLeafNode: Page 22]
+    Leaf4[BPlusTreeLeafNode: Page 28]
+
+    Root -->|> Guid2| Branch2
+    Root -->|< Guid2| Branch1
+    
+    Branch1 -->|< Guid1| Leaf1
+    Branch1 -->|>= Guid1| Leaf2
+    
+    Branch2 -->|< Guid3| Leaf3
+    Branch2 -->|>= Guid3| Leaf4
+    
+    Leaf1 -. NextPageId .-> Leaf2
+    Leaf2 -. NextPageId .-> Leaf3
+    Leaf3 -. NextPageId .-> Leaf4

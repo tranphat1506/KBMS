@@ -1,0 +1,26 @@
+graph TD
+    subgraph "Storage Layer V3 (Core Architecture)"
+        Buffer["BufferPoolManager<br/>(LRU Cache, Pinning)"]
+        WAL["WalManager<br/>(Aries Recovery, WAL Log)"]
+        Index["B+ Tree Index<br/>(Logical Retrieval)"]
+        Page["Slotted Page Mapper<br/>(Binary Layout / RID)"]
+        Disk["DiskManager<br/>(Direct Block I/O)"]
+        
+        Index -- "Fetch Page / Slot" --> Page
+        Page -- "Request Block" --> Buffer
+        Buffer -- "Direct I/O" --> Disk
+        WAL -- "Write logs" --> Disk
+        WAL -. "Redo / Undo" .-> Buffer
+    end
+
+    Server["Server Layer<br/>(AST / Row Requests)"] -- "Index Search / Commit" --> Index
+    HAL["Hardware Abstraction Layer<br/>(AES-256 / OS FS)"] <--> Disk
+
+    %% Styling
+    style Buffer fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style WAL fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Index fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Page fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px
+    style Disk fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    style Server fill:#f5f5f5,stroke:#9e9e9e,stroke-dasharray: 5 5
+    style HAL fill:#f5f5f5,stroke:#9e9e9e,stroke-dasharray: 5 5

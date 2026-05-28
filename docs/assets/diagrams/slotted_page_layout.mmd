@@ -1,0 +1,26 @@
+graph TD
+    subgraph "Slotted Page Binary Structure (16,384 Bytes)"
+        direction TB
+        
+        Header["<b>PAGE HEADER (24 Bytes)</b><br/>Metadata & Recovery Status"]
+        
+        subgraph "Slot Array (Index Area)"
+            SA["Slot 0 | Slot 1 | Slot 2 | ... | Slot N"]
+        end
+        
+        FS["<b>FREE SPACE</b><br/>Available Memory for New Tuples"]
+        
+        subgraph "Tuple Storage (Data Area)"
+            TS["Tuple N | ... | Tuple 2 | Tuple 1 | Tuple 0"]
+        end
+
+        Header --- SA
+        SA -- Grows Forwards --> FS
+        FS -- Grows Backwards --> TS
+    end
+
+    %% Styling
+    style Header fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    style SA fill:#f1f8e9,stroke:#33691e,stroke-width:1px
+    style TS fill:#fff3e0,stroke:#e65100,stroke-width:1px
+    style FS fill:#fafafa,stroke:#9e9e9e,stroke-dasharray: 5 5

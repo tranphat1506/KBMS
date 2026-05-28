@@ -1,0 +1,25 @@
+graph TD
+    subgraph AppLayer ["Tầng Ứng dụng (Presentation)"]
+        A[KBMS Studio / CLI]
+    end
+
+    subgraph NetLayer ["Tầng Truyền tải (Network)"]
+        B[Binary Protocol / Socket / Streaming]
+    end
+
+    subgraph ServerLayer ["Tầng Xử lý (Server Engine)"]
+        C[KnowledgeManager / Parser / Reasoning Engine]
+    end
+
+    subgraph StorageLayer ["Tầng Lưu trữ (Storage)"]
+        D[BufferPool / Indexing / WAL / Disk]
+    end
+
+    A <==> B
+    B <==> C
+    C <==> D
+
+    style AppLayer fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style NetLayer fill:#e1f5fe,stroke:#0277bd,stroke-width:2px
+    style ServerLayer fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
+    style StorageLayer fill:#fce4ec,stroke:#c2185b,stroke-width:2px

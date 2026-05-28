@@ -1,0 +1,15 @@
+flowchart TD
+    A[Dữ kiện mới] --> B(Working Memory)
+    B --> C{Rete Network}
+    
+    C -->|Pattern Matching| D[Alpha Network]
+    D --> E[Beta Network]
+    
+    E --> F{Có Rule thỏa mãn?}
+    F -- Có --> G[Agenda]
+    G --> H[Thực thi tính toán - Fire Rule]
+    H --> I[Sinh dữ kiện mới]
+    I -->|Đẩy ngược vào| B
+    
+    F -- Không --> J[Đạt F-Closure]
+    J --> K([Trả kết quả])
