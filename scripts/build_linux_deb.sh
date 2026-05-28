@@ -7,7 +7,7 @@ echo "========================================="
 
 VERSION="3.5.0"
 ARCH="amd64"
-OUTPUT_DEB="kbms-server_${VERSION}_${ARCH}.deb"
+OUTPUT_DEB="releases/kbms-server_${VERSION}_${ARCH}.deb"
 PAYLOAD_DIR="/tmp/kbms_deb_payload"
 
 # Clean up
@@ -18,7 +18,9 @@ mkdir -p "$PAYLOAD_DIR/etc/kbms"
 mkdir -p "$PAYLOAD_DIR/usr/local/bin"
 mkdir -p "$PAYLOAD_DIR/DEBIAN"
 
-echo "Please make sure to place Linux binaries into the payload directory."
+echo "Extracting Linux binaries from releases..."
+unzip -q -o "releases/KBMS_Server_v${VERSION}_linux-x64.zip" -d "$PAYLOAD_DIR/opt/kbms/server"
+unzip -q -o "releases/KBMS_CLI_v${VERSION}_linux-x64.zip" -d "$PAYLOAD_DIR/opt/kbms/cli"
 
 cat <<EOF > "$PAYLOAD_DIR/DEBIAN/control"
 Package: kbms-core

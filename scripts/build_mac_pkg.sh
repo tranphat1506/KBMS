@@ -6,7 +6,7 @@ echo " KBMS macOS PKG Builder"
 echo "========================================="
 
 VERSION="3.5.0"
-OUTPUT_PKG="KBMS_Core_v${VERSION}_macOS.pkg"
+OUTPUT_PKG="releases/KBMS_Core_v${VERSION}_macOS.pkg"
 PAYLOAD_DIR="/tmp/kbms_pkg_payload"
 SCRIPTS_DIR="/tmp/kbms_pkg_scripts"
 
@@ -17,9 +17,9 @@ mkdir -p "$PAYLOAD_DIR/opt/kbms/cli"
 mkdir -p "$PAYLOAD_DIR/etc/kbms"
 mkdir -p "$SCRIPTS_DIR"
 
-# Assuming binaries are already built in releases folder or temp_server/temp_cli
-echo "Please make sure to place macOS binaries into the payload directory."
-# Example: cp releases/temp_server/* $PAYLOAD_DIR/opt/kbms/server/
+echo "Extracting macOS binaries from releases..."
+unzip -q -o "releases/KBMS_Server_v${VERSION}_osx-arm64.zip" -d "$PAYLOAD_DIR/opt/kbms/server"
+unzip -q -o "releases/KBMS_CLI_v${VERSION}_osx-arm64.zip" -d "$PAYLOAD_DIR/opt/kbms/cli"
 
 cat <<EOF > "$PAYLOAD_DIR/etc/kbms/kbms.ini"
 [Server]
