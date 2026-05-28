@@ -41,9 +41,9 @@ cat <<EOF > "$PAYLOAD_DIR/Library/LaunchDaemons/com.thingent.kbms.plist"
     <key>KeepAlive</key>
     <true/>
     <key>StandardErrorPath</key>
-    <string>/var/log/kbms-error.log</string>
+    <string>/var/lib/kbms/kbms-error.log</string>
     <key>StandardOutPath</key>
-    <string>/var/log/kbms-output.log</string>
+    <string>/var/lib/kbms/kbms-output.log</string>
 </dict>
 </plist>
 EOF
