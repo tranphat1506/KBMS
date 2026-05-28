@@ -118,3 +118,12 @@ datasets/
 *.docx
 *.py
 *.xlsx
+
+# KBMS Scripts folder build results
+scripts/*
+!scripts/build_linux_deb.sh
+!scripts/build_mac_pkg.sh
+!scripts/KBMS_Win_Setup.wxs
+!scripts/build_msi.ps1
+temp_server/
+temp_cli/

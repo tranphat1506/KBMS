@@ -10,8 +10,16 @@
         <Directory Id="TARGETDIR" Name="SourceDir">
             <Directory Id="ProgramFiles64Folder">
                 <Directory Id="INSTALLFOLDER" Name="KBMS">
-                    <Directory Id="SERVERFOLDER" Name="server" />
-                    <Directory Id="CLIFOLDER" Name="cli" />
+                    <Directory Id="SERVERFOLDER" Name="server">
+                        <Component Id="ServerExecutable" Guid="34567890-1234-1234-1234-123456789012">
+                            <File Id="KbmsServerExe" Source="..\temp_server\kbms-server.exe" KeyPath="yes" />
+                        </Component>
+                    </Directory>
+                    <Directory Id="CLIFOLDER" Name="cli">
+                        <Component Id="CliExecutable" Guid="45678901-1234-1234-1234-123456789012">
+                            <File Id="KbmsCliExe" Source="..\temp_cli\kbms-cli.exe" KeyPath="yes" />
+                        </Component>
+                    </Directory>
                 </Directory>
             </Directory>
             <Directory Id="CommonAppDataFolder">
@@ -24,7 +32,8 @@
         <!-- Components -->
         <DirectoryRef Id="INSTALLFOLDER">
             <!-- Add Path Environment Variable -->
-            <Component Id="PathEnvVar" Guid="12345678-1234-1234-1234-123456789012">
+            <Component Id="PathEnvVar" Guid="12345678-1234-1234-1234-123456789012" Win64="yes">
+                <CreateFolder />
                 <Environment Id="PATH" Name="PATH" Value="[INSTALLFOLDER]cli;[INSTALLFOLDER]server" Permanent="no" Part="last" Action="set" System="yes" />
             </Component>
         </DirectoryRef>
@@ -32,7 +41,7 @@
         <DirectoryRef Id="DATAFOLDER">
             <!-- Global Config File -->
             <Component Id="GlobalConfig" Guid="87654321-4321-4321-4321-210987654321">
-                <File Id="KbmsIni" Source="kbms.ini" KeyPath="yes" />
+                <File Id="KbmsIni" Source="..\kbms.ini" KeyPath="yes" />
             </Component>
         </DirectoryRef>
 
@@ -40,7 +49,8 @@
         <Feature Id="ProductFeature" Title="KBMS Core" Level="1">
             <ComponentRef Id="PathEnvVar" />
             <ComponentRef Id="GlobalConfig" />
-            <!-- Server & CLI components will be generated dynamically by heat.exe -->
+            <ComponentRef Id="ServerExecutable" />
+            <ComponentRef Id="CliExecutable" />
         </Feature>
     </Product>
 </Wix>
