@@ -32,7 +32,7 @@ After=network.target
 [Service]
 ExecStart=/opt/kbms/server/KBMS.Server
 Restart=always
-User=root
+User=kbms
 
 [Install]
 WantedBy=multi-user.target
@@ -74,6 +74,13 @@ ln -sf /opt/kbms/server/KBMS.Server /usr/local/bin/kbms-server
 ln -sf /opt/kbms/cli/KBMS.CLI /usr/local/bin/kbms-cli
 mkdir -p /var/lib/kbms/data
 chmod -R 755 /opt/kbms
+
+# Create dedicated kbms user if not exists
+useradd -r -s /bin/false kbms 2>/dev/null || true
+
+# Grant ownership to the daemon user
+chown -R kbms:kbms /var/lib/kbms
+chown -R kbms:kbms /etc/kbms
 
 # Start Systemd Service
 systemctl daemon-reload || true

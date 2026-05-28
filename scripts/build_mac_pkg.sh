@@ -30,6 +30,8 @@ cat <<EOF > "$PAYLOAD_DIR/Library/LaunchDaemons/com.thingent.kbms.plist"
 <dict>
     <key>Label</key>
     <string>com.thingent.kbms</string>
+    <key>UserName</key>
+    <string>_kbms</string>
     <key>ProgramArguments</key>
     <array>
         <string>/opt/kbms/server/KBMS.Server</string>
@@ -72,6 +74,13 @@ ln -sf /opt/kbms/server/KBMS.Server /usr/local/bin/kbms-server
 ln -sf /opt/kbms/cli/KBMS.CLI /usr/local/bin/kbms-cli
 mkdir -p /var/lib/kbms/data
 chmod -R 755 /opt/kbms
+
+# Create dedicated _kbms user if not exists
+sysadminctl -addUser _kbms -home /var/empty -shell /usr/bin/false 2>/dev/null || true
+
+# Grant ownership to the daemon user
+chown -R _kbms /var/lib/kbms
+chown -R _kbms /etc/kbms
 
 # Start LaunchDaemon Service
 launchctl load -w /Library/LaunchDaemons/com.thingent.kbms.plist || true

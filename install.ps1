@@ -101,6 +101,10 @@ if (Get-Service $ServiceName -ErrorAction SilentlyContinue) {
     sc.exe delete $ServiceName | Out-Null
 }
 New-Service -Name $ServiceName -BinaryPathName "$InstallDir\server\kbms-server.exe" -DisplayName "KBMS Core Server" -Description "Thingent Knowledge Base Management System" -StartupType Automatic | Out-Null
+
+# Secure the service by running it as LocalService instead of LocalSystem
+sc.exe config $ServiceName obj= "NT AUTHORITY\LocalService" | Out-Null
+
 Start-Service $ServiceName | Out-Null
 
 Remove-Item -Recurse -Force $TempDir

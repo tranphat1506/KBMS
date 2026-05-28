@@ -110,6 +110,8 @@ if [ "$OS" = "Darwin" ]; then
 <dict>
     <key>Label</key>
     <string>com.thingent.kbms</string>
+    <key>UserName</key>
+    <string>_kbms</string>
     <key>ProgramArguments</key>
     <array>
         <string>$INSTALL_DIR/server/KBMS.Server</string>
@@ -125,8 +127,11 @@ if [ "$OS" = "Darwin" ]; then
 </dict>
 </plist>
 EOF
+    sysadminctl -addUser _kbms -home /var/empty -shell /usr/bin/false 2>/dev/null || true
+    chown -R _kbms /var/lib/kbms
+    chown -R _kbms /etc/kbms
     launchctl load -w "$PLIST_FILE" || true
-    echo "Service registered with launchd (macOS)."
+    echo "Service registered with launchd (macOS) under user _kbms."
 elif [ "$OS" = "Linux" ]; then
     SERVICE_FILE="/etc/systemd/system/kbms.service"
     cat <<EOF > "$SERVICE_FILE"
@@ -137,15 +142,18 @@ After=network.target
 [Service]
 ExecStart=$INSTALL_DIR/server/KBMS.Server
 Restart=always
-User=root
+User=kbms
 
 [Install]
 WantedBy=multi-user.target
 EOF
+    useradd -r -s /bin/false kbms 2>/dev/null || true
+    chown -R kbms:kbms /var/lib/kbms
+    chown -R kbms:kbms /etc/kbms
     systemctl daemon-reload || true
     systemctl enable kbms || true
     systemctl start kbms || true
-    echo "Service registered with systemd (Linux)."
+    echo "Service registered with systemd (Linux) under user kbms."
 fi
 
 # Cleanup
