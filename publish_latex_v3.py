@@ -415,7 +415,7 @@ def process_directory(dir_path, level, af_id, at_id):
                 md_text = re.sub(r'</?details>|<summary>.*?</summary>', '', md_text)
 
                 # Smart Block Splitting (v3.71): Handle headers mid-block
-                blocks = re.split(r'\n\s*\n|(?m)^(?=#+ )', md_text)
+                blocks = re.split(r'(?m)\n\s*\n|^(?=#+ )', md_text)
                 prev_b = ''
                 skip_next = False
                 for i, b in enumerate(blocks):
@@ -492,6 +492,7 @@ def main():
     # Glossary synthesis removed in v4.1 (Cleaned from front-matter)
 
     main_tex = r'''\documentclass[13pt,a4paper,oneside]{extreport}
+\usepackage[fontsize=13pt]{fontsize}
 \usepackage{fontspec}
 \usepackage[vietnamese]{babel}
 \usepackage[backend=biber,style=numeric,sorting=none,maxbibnames=99]{biblatex}
@@ -525,6 +526,9 @@ def main():
 \usepackage{setspace}
 \usepackage{float}
 \usepackage{titlesec}
+\titleformat{\section}{\fontsize{14pt}{18pt}\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\fontsize{14pt}{18pt}\bfseries}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}{\fontsize{13pt}{17pt}\bfseries}{\thesubsubsection}{1em}{}
 \usepackage[table]{xcolor}
 \usepackage{listings}
 \usepackage[most]{tcolorbox}
@@ -643,10 +647,16 @@ def main():
 
 
 \usepackage{fancyhdr}
+\fancypagestyle{plain}{
+  \fancyhf{}
+  \fancyfoot[R]{\thepage}
+  \renewcommand{\headrulewidth}{0pt}
+}
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[R]{\textit{Hệ hỗ trợ quản trị tri thức COKB}}
-\fancyfoot[C]{\thepage}
+\fancyhead[L]{\textit{Thiết kế hệ hỗ trợ quản trị cơ sở tri thức dạng COKB}}
+\fancyfoot[R]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
 
 \begin{document}
 \newgeometry{margin=0.8in}
@@ -704,6 +714,8 @@ def main():
     \end{tcolorbox}
 \end{titlepage}
 \restoregeometry
+\clearpage
+\pagenumbering{roman}
 
 % --- LỜI CẢM ƠN ---
 \chapter*{LỜI CẢM ƠN}
@@ -764,6 +776,7 @@ Em xin cam kết rằng báo cáo khóa luận tốt nghiệp này được hoà
 \addcontentsline{toc}{chapter}{MỤC LỤC}
 \tableofcontents
 \clearpage
+\pagenumbering{arabic}
 '''
     # main_tex += "".join(glossary_content) # Removed
     main_tex += "\n".join(report_content)

@@ -1,43 +1,43 @@
 \babel@toc {vietnamese}{}\relax 
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {2.1}{\ignorespaces Sơ đồ Use Case tổng quát phân định quyền hạn và tương tác của các nhóm người dùng.}}{13}{figure.caption.10}%
-\contentsline {figure}{\numberline {2.2}{\ignorespaces Sơ đồ hoạt động (Activity Diagram) luồng phân tích và thực thi câu lệnh KBQL.}}{14}{figure.caption.11}%
-\contentsline {figure}{\numberline {2.3}{\ignorespaces Sơ đồ Lớp (Class Diagram) ánh xạ mô hình toán học COKB thành cấu trúc dữ liệu.}}{15}{figure.caption.12}%
-\contentsline {figure}{\numberline {2.4}{\ignorespaces Sơ đồ luồng dữ liệu (Data Flow) của cơ chế suy diễn tiến dựa trên mạng Rete.}}{16}{figure.caption.13}%
+\contentsline {figure}{\numberline {2.1}{\ignorespaces Sơ đồ Use Case tổng quát phân định quyền hạn và tương tác của các nhóm người dùng.}}{10}{figure.caption.10}%
+\contentsline {figure}{\numberline {2.2}{\ignorespaces Sơ đồ hoạt động (Activity Diagram) luồng phân tích và thực thi câu lệnh KBQL.}}{11}{figure.caption.11}%
+\contentsline {figure}{\numberline {2.3}{\ignorespaces Sơ đồ Lớp (Class Diagram) ánh xạ mô hình toán học COKB thành cấu trúc dữ liệu.}}{12}{figure.caption.12}%
+\contentsline {figure}{\numberline {2.4}{\ignorespaces Sơ đồ luồng dữ liệu (Data Flow) của cơ chế suy diễn tiến dựa trên mạng Rete.}}{14}{figure.caption.13}%
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {3.1}{\ignorespaces Sơ đồ khối kiến trúc phân lớp chức năng của hệ thống KBMS dựa trên cấu trúc dự án.}}{19}{figure.caption.14}%
-\contentsline {figure}{\numberline {3.2}{\ignorespaces Sơ đồ tuần tự (Sequence Diagram) phản ánh luồng thực thi mã nguồn giữa các module.}}{20}{figure.caption.15}%
-\contentsline {figure}{\numberline {3.3}{\ignorespaces Cấu trúc bộ nhớ 16KB của một Slotted Page thực tế.}}{22}{figure.caption.16}%
-\contentsline {figure}{\numberline {3.4}{\ignorespaces Cấu trúc cây đa phân B+ Tree sử dụng \texttt {Guid} làm khóa tìm kiếm.}}{24}{figure.caption.17}%
+\contentsline {figure}{\numberline {3.1}{\ignorespaces Sơ đồ khối kiến trúc phân lớp chức năng của hệ thống KBMS dựa trên cấu trúc dự án.}}{17}{figure.caption.14}%
+\contentsline {figure}{\numberline {3.2}{\ignorespaces Sơ đồ tuần tự (Sequence Diagram) phản ánh luồng thực thi mã nguồn giữa các module.}}{19}{figure.caption.15}%
+\contentsline {figure}{\numberline {3.3}{\ignorespaces Cấu trúc bộ nhớ 16KB của một Slotted Page thực tế.}}{21}{figure.caption.16}%
+\contentsline {figure}{\numberline {3.4}{\ignorespaces Cấu trúc cây đa phân B+ Tree sử dụng \texttt {Guid} làm khóa tìm kiếm.}}{23}{figure.caption.17}%
 \contentsline {figure}{\numberline {3.5}{\ignorespaces Cấu trúc phân tích cú pháp và điều phối lệnh KBQL dựa trên AST.}}{26}{figure.caption.18}%
-\contentsline {figure}{\numberline {3.6}{\ignorespaces Luồng thực thi từ biên dịch KDL đến truy vấn KQL có truy vết.}}{30}{figure.caption.21}%
-\contentsline {figure}{\numberline {3.7}{\ignorespaces Kiến trúc bộ nhớ và luồng dữ kiện bên trong mạng Rete.}}{32}{figure.caption.22}%
-\contentsline {figure}{\numberline {3.8}{\ignorespaces Minh họa chi tiết luồng di chuyển của các cạnh tam giác qua mạng Rete.}}{34}{figure.caption.23}%
-\contentsline {figure}{\numberline {3.9}{\ignorespaces Cấu trúc đóng gói byte (Byte Layout) của Giao thức KBMS.}}{34}{figure.caption.24}%
-\contentsline {figure}{\numberline {3.10}{\ignorespaces Luồng giao tiếp Data Streaming tránh tràn bộ nhớ.}}{36}{figure.caption.27}%
-\contentsline {figure}{\numberline {3.11}{\ignorespaces Sơ đồ luồng xử lý (Processing Flow) của ứng dụng CLI.}}{37}{figure.caption.28}%
-\contentsline {figure}{\numberline {3.12}{\ignorespaces Luồng logic kết nối và xác thực người dùng.}}{38}{figure.caption.29}%
-\contentsline {figure}{\numberline {3.13}{\ignorespaces Giao diện khởi tạo kết nối TCP và đăng nhập của KBMS CLI.}}{38}{figure.caption.30}%
-\contentsline {figure}{\numberline {3.14}{\ignorespaces Luồng logic định nghĩa cấu trúc dữ liệu qua KDL.}}{39}{figure.caption.31}%
-\contentsline {figure}{\numberline {3.15}{\ignorespaces Giao diện soạn thảo đa dòng (Multi-line Editor) cho phép ngắt dòng lệnh KDL.}}{39}{figure.caption.32}%
-\contentsline {figure}{\numberline {3.16}{\ignorespaces Luồng logic phân giải lệnh truy vấn (KQL).}}{40}{figure.caption.33}%
-\contentsline {figure}{\numberline {3.17}{\ignorespaces Giao diện hiển thị kết quả truy vấn KBQL dạng bảng thẳng hàng trên Console.}}{40}{figure.caption.34}%
-\contentsline {figure}{\numberline {3.18}{\ignorespaces Luồng logic yêu cầu truy vết giải thuật từ Server.}}{41}{figure.caption.35}%
-\contentsline {figure}{\numberline {3.19}{\ignorespaces Giao diện truy vết từng bước kích hoạt của Mạng Rete.}}{41}{figure.caption.36}%
-\contentsline {figure}{\numberline {3.20}{\ignorespaces Sơ đồ kiến trúc ứng dụng Studio.}}{42}{figure.caption.37}%
-\contentsline {figure}{\numberline {3.21}{\ignorespaces Luồng giao tiếp Server Push cập nhật trạng thái thời gian thực.}}{42}{figure.caption.38}%
-\contentsline {figure}{\numberline {3.22}{\ignorespaces Luồng logic thiết kế với tính năng Autocomplete và Diagnostics.}}{43}{figure.caption.39}%
-\contentsline {figure}{\numberline {3.23}{\ignorespaces Giao diện Tree Explorer quản lý cấu trúc Khái niệm của hệ thống.}}{44}{figure.caption.40}%
-\contentsline {figure}{\numberline {3.24}{\ignorespaces Giao diện soạn thảo (Designer) tích hợp gợi ý cú pháp.}}{44}{figure.caption.41}%
-\contentsline {figure}{\numberline {3.25}{\ignorespaces Luồng logic vẽ đồ thị truy vết suy luận.}}{45}{figure.caption.42}%
-\contentsline {figure}{\numberline {3.26}{\ignorespaces Giao diện trực quan hóa kết quả bằng bảng dữ liệu động và cây.}}{45}{figure.caption.43}%
-\contentsline {figure}{\numberline {3.27}{\ignorespaces Luồng logic lấy mẫu dữ liệu thống kê từ Server.}}{46}{figure.caption.44}%
-\contentsline {figure}{\numberline {3.28}{\ignorespaces Dashboard giám sát hiệu năng suy diễn và tài nguyên bộ nhớ theo thời gian thực.}}{46}{figure.caption.45}%
+\contentsline {figure}{\numberline {3.6}{\ignorespaces Luồng thực thi từ biên dịch KDL đến truy vấn KQL có truy vết.}}{32}{figure.caption.21}%
+\contentsline {figure}{\numberline {3.7}{\ignorespaces Kiến trúc bộ nhớ và luồng dữ kiện bên trong mạng Rete.}}{34}{figure.caption.22}%
+\contentsline {figure}{\numberline {3.8}{\ignorespaces Minh họa chi tiết luồng di chuyển của các cạnh tam giác qua mạng Rete.}}{36}{figure.caption.23}%
+\contentsline {figure}{\numberline {3.9}{\ignorespaces Cấu trúc đóng gói byte (Byte Layout) của Giao thức KBMS.}}{37}{figure.caption.24}%
+\contentsline {figure}{\numberline {3.10}{\ignorespaces Luồng giao tiếp Data Streaming tránh tràn bộ nhớ.}}{40}{figure.caption.27}%
+\contentsline {figure}{\numberline {3.11}{\ignorespaces Sơ đồ luồng xử lý (Processing Flow) của ứng dụng CLI.}}{42}{figure.caption.28}%
+\contentsline {figure}{\numberline {3.12}{\ignorespaces Luồng logic kết nối và xác thực người dùng.}}{42}{figure.caption.29}%
+\contentsline {figure}{\numberline {3.13}{\ignorespaces Giao diện khởi tạo kết nối TCP và đăng nhập của KBMS CLI.}}{43}{figure.caption.30}%
+\contentsline {figure}{\numberline {3.14}{\ignorespaces Luồng logic định nghĩa cấu trúc dữ liệu qua KDL.}}{44}{figure.caption.31}%
+\contentsline {figure}{\numberline {3.15}{\ignorespaces Giao diện soạn thảo đa dòng (Multi-line Editor) cho phép ngắt dòng lệnh KDL.}}{45}{figure.caption.32}%
+\contentsline {figure}{\numberline {3.16}{\ignorespaces Luồng logic phân giải lệnh truy vấn (KQL).}}{45}{figure.caption.33}%
+\contentsline {figure}{\numberline {3.17}{\ignorespaces Giao diện hiển thị kết quả truy vấn KBQL dạng bảng thẳng hàng trên Console.}}{46}{figure.caption.34}%
+\contentsline {figure}{\numberline {3.18}{\ignorespaces Luồng logic yêu cầu truy vết giải thuật từ Server.}}{47}{figure.caption.35}%
+\contentsline {figure}{\numberline {3.19}{\ignorespaces Giao diện truy vết từng bước kích hoạt của Mạng Rete.}}{47}{figure.caption.36}%
+\contentsline {figure}{\numberline {3.20}{\ignorespaces Sơ đồ kiến trúc ứng dụng Studio.}}{48}{figure.caption.37}%
+\contentsline {figure}{\numberline {3.21}{\ignorespaces Luồng giao tiếp Server Push cập nhật trạng thái thời gian thực.}}{48}{figure.caption.38}%
+\contentsline {figure}{\numberline {3.22}{\ignorespaces Luồng logic thiết kế với tính năng Autocomplete và Diagnostics.}}{49}{figure.caption.39}%
+\contentsline {figure}{\numberline {3.23}{\ignorespaces Giao diện Tree Explorer quản lý cấu trúc Khái niệm của hệ thống.}}{50}{figure.caption.40}%
+\contentsline {figure}{\numberline {3.24}{\ignorespaces Giao diện soạn thảo (Designer) tích hợp gợi ý cú pháp.}}{50}{figure.caption.41}%
+\contentsline {figure}{\numberline {3.25}{\ignorespaces Luồng logic vẽ đồ thị truy vết suy luận.}}{51}{figure.caption.42}%
+\contentsline {figure}{\numberline {3.26}{\ignorespaces Giao diện trực quan hóa kết quả bằng bảng dữ liệu động và cây.}}{51}{figure.caption.43}%
+\contentsline {figure}{\numberline {3.27}{\ignorespaces Luồng logic lấy mẫu dữ liệu thống kê từ Server.}}{52}{figure.caption.44}%
+\contentsline {figure}{\numberline {3.28}{\ignorespaces Dashboard giám sát hiệu năng suy diễn và tài nguyên bộ nhớ theo thời gian thực.}}{52}{figure.caption.45}%
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {4.1}{\ignorespaces Phân bổ trọng số của 418 kịch bản kiểm thử trên hệ thống.}}{47}{figure.caption.47}%
-\contentsline {figure}{\numberline {4.2}{\ignorespaces Kết quả thực thi thành công toàn bộ 418 kịch bản kiểm thử tự động trên Terminal.}}{48}{figure.caption.48}%
-\contentsline {figure}{\numberline {4.3}{\ignorespaces Luồng kiểm thử độc lập cho Language Parser và Storage Engine.}}{49}{figure.caption.49}%
-\contentsline {figure}{\numberline {4.4}{\ignorespaces Luồng thực thi thuật toán Rete trong kịch bản suy diễn đa Khái niệm.}}{50}{figure.caption.50}%
-\contentsline {figure}{\numberline {4.5}{\ignorespaces Mối tương quan giữa Kích thước Buffer Pool và Thông lượng ghi.}}{51}{figure.caption.52}%
+\contentsline {figure}{\numberline {4.1}{\ignorespaces Phân bổ trọng số của 418 kịch bản kiểm thử trên hệ thống.}}{55}{figure.caption.47}%
+\contentsline {figure}{\numberline {4.2}{\ignorespaces Kết quả thực thi thành công toàn bộ 418 kịch bản kiểm thử tự động trên Terminal.}}{55}{figure.caption.48}%
+\contentsline {figure}{\numberline {4.3}{\ignorespaces Luồng kiểm thử độc lập cho Language Parser và Storage Engine.}}{56}{figure.caption.49}%
+\contentsline {figure}{\numberline {4.4}{\ignorespaces Luồng thực thi thuật toán Rete trong kịch bản suy diễn đa Khái niệm.}}{58}{figure.caption.50}%
+\contentsline {figure}{\numberline {4.5}{\ignorespaces Mối tương quan giữa Kích thước Buffer Pool và Thông lượng ghi.}}{59}{figure.caption.52}%
 \addvspace {10\p@ }

@@ -1,4 +1,5 @@
 \documentclass[13pt,a4paper,oneside]{extreport}
+\usepackage[fontsize=13pt]{fontsize}
 \usepackage{fontspec}
 \usepackage[vietnamese]{babel}
 \usepackage[backend=biber,style=numeric,sorting=none,maxbibnames=99]{biblatex}
@@ -32,6 +33,9 @@
 \usepackage{setspace}
 \usepackage{float}
 \usepackage{titlesec}
+\titleformat{\section}{\fontsize{14pt}{18pt}\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\fontsize{14pt}{18pt}\bfseries}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}{\fontsize{13pt}{17pt}\bfseries}{\thesubsubsection}{1em}{}
 \usepackage[table]{xcolor}
 \usepackage{listings}
 \usepackage[most]{tcolorbox}
@@ -150,10 +154,16 @@
 
 
 \usepackage{fancyhdr}
+\fancypagestyle{plain}{
+  \fancyhf{}
+  \fancyfoot[R]{\thepage}
+  \renewcommand{\headrulewidth}{0pt}
+}
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[R]{\textit{Hệ hỗ trợ quản trị tri thức COKB}}
-\fancyfoot[C]{\thepage}
+\fancyhead[L]{\textit{Thiết kế hệ hỗ trợ quản trị cơ sở tri thức dạng COKB}}
+\fancyfoot[R]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
 
 \begin{document}
 \newgeometry{margin=0.8in}
@@ -211,6 +221,8 @@
     \end{tcolorbox}
 \end{titlepage}
 \restoregeometry
+\clearpage
+\pagenumbering{roman}
 
 % --- LỜI CẢM ƠN ---
 \chapter*{LỜI CẢM ƠN}
@@ -271,6 +283,7 @@ Em xin cam kết rằng báo cáo khóa luận tốt nghiệp này được hoà
 \addcontentsline{toc}{chapter}{MỤC LỤC}
 \tableofcontents
 \clearpage
+\pagenumbering{arabic}
 \chapter{GIỚI THIỆU VÀ TỔNG QUAN}
 
 \section{Lý do chọn đề tài}
