@@ -1,0 +1,151 @@
+-- ***************************************************************************
+-- * KBMS DEMO
+-- * Chủ đề: Suy diễn tri thức Hình học phẳng
+-- ***************************************************************************
+
+LOGIN root root;
+DROP KNOWLEDGE BASE GeometryKB;
+
+CREATE KNOWLEDGE BASE GeometryKB
+DESCRIPTION "Knowledge Base for Plane Geometry";
+
+USE GeometryKB;
+
+CREATE CONCEPT Triangle(
+
+    VARIABLES(
+        id : INT,
+        a : FLOAT,
+        b : FLOAT,
+        c : FLOAT,
+        area : FLOAT,
+        isRight : BOOLEAN,
+        isIsosceles : BOOLEAN,
+        isEquilateral : BOOLEAN,
+        isRightIsosceles : BOOLEAN
+    ),
+
+    EQUATIONS(
+        area = sqrt(
+            (a+b+c)/2 *
+            ((a+b+c)/2-a) *
+            ((a+b+c)/2-b) *
+            ((a+b+c)/2-c)
+        )
+    ),
+
+    RULES(
+
+        RULE RightTriangle :
+        IF (a*a+b*b==c*c)
+           OR (a*a+c*c==b*b)
+           OR (b*b+c*c==a*a)
+        THEN isRight=TRUE,
+
+        RULE Isosceles :
+        IF (a==b) OR (a==c) OR (b==c)
+        THEN isIsosceles=TRUE,
+
+        RULE Equilateral :
+        IF (a==b) AND (b==c)
+        THEN isEquilateral=TRUE,
+
+        RULE RightIsosceles :
+        IF (isRight) AND (isIsosceles)
+        THEN isRightIsosceles=TRUE
+
+    )
+);
+
+-- DEMO 1
+INSERT INTO Triangle VARIABLES(id:1,a:3,b:4,c:5);
+
+-- Kỳ vọng:
+-- RightTriangle fired
+-- isRight = TRUE
+-- area = 6
+
+FIND Triangle
+WITH id=1 AND HAS_FIRED("RightTriangle")
+RETURN id,a,b,c,isRight,area;
+
+-- DEMO 2
+INSERT INTO Triangle VARIABLES(id:2,a:5,b:5,c:6);
+
+-- Kỳ vọng:
+-- Isosceles fired
+
+FIND Triangle
+WITH id=2
+RETURN id,a,b,c,isIsosceles;
+
+-- DEMO 3
+INSERT INTO Triangle VARIABLES(id:3,a:6,b:6,c:6);
+
+-- Kỳ vọng:
+-- Isosceles + Equilateral fired
+
+FIND Triangle
+WITH id=3
+RETURN id,isEquilateral,area;
+
+-- DEMO 4
+INSERT INTO Triangle VARIABLES(id:4,a:1,b:1,c:1.41421356);
+
+-- Kỳ vọng:
+-- RightTriangle
+-- Isosceles
+-- RightIsosceles
+
+FIND Triangle
+WITH id=4
+RETURN id,isRight,isIsosceles,isRightIsosceles;
+
+-- DEMO 5
+SELECT COUNT(*),AVG(area),MAX(area),MIN(area)
+FROM Triangle
+WHERE isRight=TRUE;
+
+-- DEMO 6
+FIND Triangle
+WITH id=1
+RETURN
+HAS_FIRED("RightTriangle"),
+HAS_FIRED("Equilateral"),
+TOTAL_COST(),
+AUDIT_LOG();
+
+-- DEMO 7
+FIND Triangle
+WITH id=2
+RETURN
+HAS_FIRED("RightTriangle"),
+HAS_FIRED("Isosceles");
+
+-- DEMO 8
+EXPLAIN
+FIND Triangle
+WITH id=4
+RETURN *;
+
+-- DEMO 9
+INSERT INTO Triangle VARIABLES(id:5,a:3,b:4);
+
+FIND Triangle
+WITH id=5
+AND IS_STUCK()
+RETURN MISSING_FACTS();
+
+-- DEMO 10
+SHOW CONCEPTS;
+SHOW RULES;
+SHOW INDEXES;
+DESCRIBE CONCEPT Triangle;
+
+-- DEMO 11
+-- CHECK CONSISTENCY;
+
+-- DEMO 12
+EXPORT Triangle
+INTO FILE "./triangle.json"
+FORMAT JSON;
