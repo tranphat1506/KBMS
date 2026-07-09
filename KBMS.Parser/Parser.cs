@@ -2029,48 +2029,56 @@ public class Parser
             Consume(TokenType.STAR);
             // Pure SELECT * FROM concept - SelectColumns remains empty
         }
-        else if (Check(TokenType.COUNT) || Check(TokenType.SUM) || Check(TokenType.AVG) || Check(TokenType.MIN) || Check(TokenType.MAX))
+        else
         {
-            // ... existing aggregate logic (no change needed here for now) ...
-            var agg = new AggregateClause();
-            var funcToken = Advance()!;
-            agg.AggregateType = funcToken.Type.ToString();
-
-            if (Check(TokenType.LPAREN))
+            bool hasMoreColumns = true;
+            while (hasMoreColumns)
             {
-                Consume(TokenType.LPAREN);
-                if (!Check(TokenType.STAR))
+                if (Check(TokenType.COUNT) || Check(TokenType.SUM) || Check(TokenType.AVG) || Check(TokenType.MIN) || Check(TokenType.MAX))
                 {
-                    var varToken = Consume(TokenType.IDENTIFIER);
-                    agg.Variable = varToken?.Lexeme;
+                    var agg = new AggregateClause();
+                    var funcToken = Advance()!;
+                    agg.AggregateType = funcToken.Type.ToString();
+
+                    if (Check(TokenType.LPAREN))
+                    {
+                        Consume(TokenType.LPAREN);
+                        if (!Check(TokenType.STAR))
+                        {
+                            var varToken = Consume(TokenType.IDENTIFIER);
+                            agg.Variable = varToken?.Lexeme;
+                        }
+                        else
+                        {
+                            Consume(TokenType.STAR);
+                        }
+                        Consume(TokenType.RPAREN);
+                    }
+
+                    if (Check(TokenType.AS))
+                    {
+                        Consume(TokenType.AS);
+                        var aliasToken = Consume(TokenType.IDENTIFIER);
+                        agg.Alias = aliasToken?.Lexeme;
+                    }
+
+                    node.Aggregates.Add(agg);
                 }
                 else
                 {
-                    Consume(TokenType.STAR);
+                    node.SelectColumns.Add(ParseSelectColumnItem());
                 }
-                Consume(TokenType.RPAREN);
-            }
 
-            if (Check(TokenType.AS))
-            {
-                Consume(TokenType.AS);
-                var aliasToken = Consume(TokenType.IDENTIFIER);
-                agg.Alias = aliasToken?.Lexeme;
-            }
-
-            node.Aggregates.Add(agg);
-        }
-        else
-        {
-            // Parse comma-separated list of expressions/columns (which may include *)
-            node.SelectColumns.Add(ParseSelectColumnItem());
-            while (Check(TokenType.COMMA))
-            {
-                Consume(TokenType.COMMA);
-                if (Check(TokenType.FROM))
-                    throw Error("Trailing comma in SELECT list");
-
-                node.SelectColumns.Add(ParseSelectColumnItem());
+                if (Check(TokenType.COMMA))
+                {
+                    Consume(TokenType.COMMA);
+                    if (Check(TokenType.FROM))
+                        throw Error("Trailing comma in SELECT list");
+                }
+                else
+                {
+                    hasMoreColumns = false;
+                }
             }
         }
 
