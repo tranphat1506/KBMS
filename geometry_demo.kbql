@@ -102,9 +102,9 @@ WITH id=4
 RETURN id,isRight,isIsosceles,isRightIsosceles;
 
 -- DEMO 5
-SELECT COUNT(*),AVG(area),MAX(area),MIN(area)
-FROM Triangle
-WHERE isRight=TRUE;
+-- SELECT COUNT(*),AVG(area),MAX(area),MIN(area)
+-- FROM Triangle
+-- WHERE isRight=TRUE;
 
 -- DEMO 6
 FIND Triangle
